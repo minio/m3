@@ -1,0 +1,2 @@
+# mcs
+MinIO Cloud Console
