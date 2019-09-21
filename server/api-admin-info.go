@@ -13,13 +13,33 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package main
+package server
 
 import (
-	"github.com/minio/mcs/cmd"
-	"os"
+	"encoding/json"
+	"log"
+	"net/http"
 )
 
-func main() {
-	cmd.Main(os.Args)
+func RegisterRoutes() {
+	http.HandleFunc("/api/admin/info", info)
+}
+
+func info(w http.ResponseWriter, r *http.Request) {
+	aliasedURL := "play"
+	// Create a new MinIO Admin Client
+	client, err := newAdminClient(aliasedURL)
+	fatalIf(err, "Unable to initialize admin connection.")
+
+	// Fetch info of all servers (cluster or single server)
+	serverInfo, errProbe := client.ServerInfo()
+	if errProbe != nil {
+		log.Println(errProbe)
+	}
+	output, err2 := json.Marshal(serverInfo)
+	if err2 != nil {
+		log.Println(err)
+	}
+
+	w.Write(output)
 }

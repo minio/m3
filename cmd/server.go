@@ -13,13 +13,21 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package main
+package cmd
 
 import (
-	"github.com/minio/mcs/cmd"
-	"os"
+	"github.com/minio/cli"
+	"github.com/minio/mcs/server"
 )
 
-func main() {
-	cmd.Main(os.Args)
+// list files and folders.
+var serverCmd = cli.Command{
+	Name:   "server",
+	Usage:  "starts server",
+	Action: startApiServerCmd,
+}
+
+func startApiServerCmd(ctx *cli.Context) error {
+	server.StartApiServer()
+	return nil
 }

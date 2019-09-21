@@ -13,13 +13,35 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package main
+package server
 
 import (
-	"github.com/minio/mcs/cmd"
-	"os"
+	"encoding/json"
+	"log"
+	"net/http"
 )
 
-func main() {
-	cmd.Main(os.Args)
+func StartApiServer() {
+	log.Println("Starting MinIO Cloud Storage")
+	http.HandleFunc("/api/version", version)
+	// have all APIs register their handlers
+	registerRoutes()
+	log.Fatal(http.ListenAndServe(":4000", nil))
+}
+
+func registerRoutes() {
+	RegisterRoutes()
+}
+
+
+
+func version(w http.ResponseWriter, r *http.Request) {
+	// TODO: Read version from somewhere
+	v := Version
+	// Serialize and output
+	output, err := json.Marshal(v)
+	if err != nil {
+		log.Fatal("Cannot Marshal error")
+	}
+	w.Write(output)
 }

@@ -13,13 +13,13 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package main
+package server
 
-import (
-	"github.com/minio/mcs/cmd"
-	"os"
-)
-
-func main() {
-	cmd.Main(os.Args)
+// hostConfig configuration of a host.
+type hostConfigV9 struct {
+	URL       string `json:"url"`
+	AccessKey string `json:"accessKey"`
+	SecretKey string `json:"secretKey"`
+	API       string `json:"api"`
+	Lookup    string `json:"lookup"`
 }
