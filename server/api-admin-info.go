@@ -26,9 +26,14 @@ func RegisterRoutes() {
 }
 
 func info(w http.ResponseWriter, r *http.Request) {
-	aliasedURL := "play"
+	if validRequest(w, r) == false {
+		return
+	}
 	// Create a new MinIO Admin Client
-	client, err := newAdminClient(aliasedURL)
+	client, err := newAdminClient(
+		"https://play.minio.io:9000",
+		"Q3AM3UQ867SPQQA43P2F",
+		"zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG")
 	fatalIf(err, "Unable to initialize admin connection.")
 
 	// Fetch info of all servers (cluster or single server)

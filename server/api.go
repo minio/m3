@@ -26,14 +26,12 @@ func StartApiServer() {
 	http.HandleFunc("/api/version", version)
 	// have all APIs register their handlers
 	registerRoutes()
-	log.Fatal(http.ListenAndServe(":4000", nil))
+	log.Fatal(http.ListenAndServe(":9009", nil))
 }
 
 func registerRoutes() {
 	RegisterRoutes()
 }
-
-
 
 func version(w http.ResponseWriter, r *http.Request) {
 	// TODO: Read version from somewhere
@@ -44,4 +42,20 @@ func version(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("Cannot Marshal error")
 	}
 	w.Write(output)
+}
+
+func validRequest(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method != "POST" {
+		badRequestResponse := make(map[string]string)
+		badRequestResponse["error"] = "Bad request"
+
+		output, err := json.Marshal(badRequestResponse)
+		if err != nil {
+			log.Println(err)
+		}
+		w.WriteHeader(400)
+		w.Write(output)
+		return false
+	}
+	return true
 }

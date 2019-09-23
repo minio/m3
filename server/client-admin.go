@@ -105,22 +105,20 @@ func newAdminFactory() func(config *Config) (*madmin.AdminClient, *probe.Error) 
 	}
 }
 // newAdminClient gives a new client interface
-func newAdminClient(aliasedURL string) (*madmin.AdminClient, *probe.Error) {
-	alias := "play"
-	urlStrFull := "https://play.minio.io:9000"
+func newAdminClient(url string,accessKey string, secretKey string) (*madmin.AdminClient, *probe.Error) {
 	hostCfg := hostConfigV9{
-		URL:       "https://play.minio.io:9000",
-		AccessKey: "Q3AM3UQ867SPQQA43P2F",
-		SecretKey: "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
+		URL:       url,
+		AccessKey: accessKey,
+		SecretKey: secretKey,
 		API:       "S3v4",
 		Lookup:    "dns",
 	}
 
-	s3Config := newS3Config(urlStrFull, &hostCfg)
+	s3Config := newS3Config(hostCfg.URL, &hostCfg)
 
 	s3Client, err := s3AdminNew(s3Config)
 	if err != nil {
-		return nil, err.Trace(alias, urlStrFull)
+		return nil, err.Trace(url, hostCfg.URL)
 	}
 	return s3Client, nil
 }
