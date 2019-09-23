@@ -13,13 +13,8 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package main
+package server
 
-import (
-	"github.com/minio/mcs/cmd"
-	"os"
-)
-
-func main() {
-	cmd.Main(os.Args)
+func Main(args []string) {
+	StartApiServer()
 }

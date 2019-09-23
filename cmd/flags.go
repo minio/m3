@@ -13,13 +13,21 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package main
+package cmd
 
 import (
-	"github.com/minio/mcs/cmd"
-	"os"
+	"github.com/minio/cli"
+	"github.com/minio/minio/pkg/trie"
 )
 
-func main() {
-	cmd.Main(os.Args)
+// Collection of mcs commands currently supported
+var commands = []cli.Command{}
+
+// Collection of mcs commands currently supported in a trie tree
+var commandsTree = trie.NewTrie()
+
+// registerCmd registers a cli command
+func registerCmd(cmd cli.Command) {
+	commands = append(commands, cmd)
+	commandsTree.Insert(cmd.Name)
 }
