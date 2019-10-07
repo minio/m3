@@ -4,9 +4,15 @@ Getting started
 Requirements
 ---
 
-`kubectl`
+build docker image
 
-install
+```
+docker build -t m3kind .
+```
+
+install `kubectl`
+
+Installation
 ---
 
 Install kind
@@ -16,6 +22,8 @@ then create cluster and sample tenant
 chmod +x create-kind-cluster.sh
 ./create-kind-cluster.sh
 ```
+
+
 
 
 configure `kubectl`
