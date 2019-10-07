@@ -19,8 +19,8 @@ Install kind
 `GO111MODULE="on" go get sigs.k8s.io/kind@v0.5.1`
 then create cluster and sample tenant
 ```
-chmod +x create-kind-cluster.sh
-./create-kind-cluster.sh
+chmod +x create-kind.sh
+./create-kind.sh
 ```
 
 
