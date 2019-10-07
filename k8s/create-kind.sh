@@ -12,4 +12,5 @@ echo "done"
 
 echo "Creating: tenant-1"
 ./add-volume.sh tenant-1
+kubectl apply -f deployments/tenant1-env.yaml
 kubectl apply -f deployments/v1-tenant-1.yaml
