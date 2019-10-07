@@ -1,0 +1,416 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-1
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk1/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk1/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-2
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk2/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk2/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-3
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk3/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk3/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-4
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk4/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk4/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-5
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk1/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk1/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker2
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-6
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk2/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk2/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker2
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-7
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk3/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk3/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker2
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-8
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk4/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk4/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker2
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-9
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk1/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk1/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker3
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-10
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk2/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk2/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker3
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-11
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk3/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk3/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker3
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-12
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk4/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk4/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker3
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-13
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk1/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk1/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker4
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-14
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk2/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk2/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker4
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-15
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk3/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk3/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker4
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tenant-1-pv-16
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  # hostPath:
+  #   path: "/tmp/disk4/tenant-1"
+  persistentVolumeReclaimPolicy: Retain
+  local:
+    path: /tmp/disk4/tenant-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - m3cluster-worker4
