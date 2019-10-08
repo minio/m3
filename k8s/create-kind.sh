@@ -12,7 +12,8 @@ kubectl create clusterrolebinding dashboard-admin -n default --clusterrole=clust
 
 echo "done"
 
-# echo "Creating: tenant-1"
-# ./add-volume.sh tenant-1
-# kubectl apply -f deployments/tenant1-env.yaml
-# kubectl apply -f deployments/v1-tenant-1.yaml
+echo "Creating: tenant-1"
+./add-volume.sh tenant-1
+echo "Creating: tenant-2"
+./add-volume.sh tenant-2
+kubectl apply -f deployments/v3
