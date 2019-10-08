@@ -13,45 +13,25 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-import React from 'react';
-import './App.css';
 
-function App() {
-    const {counter} = this.props
-    return (
-        <div className="App">
-            <header className="App-header">
-                <h1>mcs</h1>
-                <p>
-                    {counter}
-                </p>
-                <p>
-                    Coming soon
-                </p>
-            </header>
-        </div>
-    );
+
+const initialState = {
+    counter: 0,
 }
 
-const mapStateToProps = state => {
-    return {
-        counter: state.counter,
+export default (state = initialState, action) => {
+    switch (action.type) {
+        case 'INCREMENT':
+            return {
+                ...state,
+                counter: state.counter + 1
+            }
+        case 'DECREMENT':
+            return {
+                ...state,
+                counter: state.counter - 1
+            }
+        default:
+            return state
     }
 }
-
-const mapDispatchToProps = dispatch => {
-    return {
-        showAddNodeModal: () => dispatch(showAddNodeModal())
-    }
-}
-
-
-const AppController = connect(
-    mapStateToProps,
-    mapDispatchToProps
-)(DeploymentsHeader)
-
-export { AppController as App }
-
-
-// export default App;

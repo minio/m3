@@ -1,0 +1,285 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tenant-1
+  labels:
+    name: tenant-1
+spec:
+  ports:
+    - port: 9001
+      name: http
+  selector:
+    tenant: tenant-1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tenant-1-host-1
+  labels:
+    name: tenant-1
+spec:
+  ports:
+    - port: 9001
+      name: http
+  clusterIP: None
+  # type: NodePort
+  selector:
+    app: tenant-1-host-1
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: tenant-1-host-1
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: tenant-1-host-1
+        tenant: tenant-1
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: m3cluster-worker
+      containers:
+        - name: minio-1
+          # hostname: tenant-1-host-1
+          image: minio/minio:latest
+          imagePullPolicy: "IfNotPresent"
+          args: 
+            - server
+            - "--address"
+            - ":9001"
+            - http://tenant-1-host-{1...4}:9001/mnt/tdisk{1...4}
+          envFrom:
+            - configMapRef:
+                name: tenant-1-env
+          volumeMounts:
+            - mountPath: /mnt/tdisk1
+              name: tenant1-pv-1
+            - mountPath: /mnt/tdisk2
+              name: tenant1-pv-2
+            - mountPath: /mnt/tdisk3
+              name: tenant1-pv-3
+            - mountPath: /mnt/tdisk4
+              name: tenant1-pv-4
+          ports:
+            - containerPort: 9001
+              name: http
+      volumes:
+        - name: tenant1-pv-1
+          hostPath:
+            path: /mnt/disk1/tenant-1
+        - name: tenant1-pv-2
+          hostPath:
+            path: /mnt/disk2/tenant-1
+        - name: tenant1-pv-3
+          hostPath:
+            path: /mnt/disk3/tenant-1
+        - name: tenant1-pv-4
+          hostPath:
+            path: /mnt/disk4/tenant-1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tenant-1-host-2
+  labels:
+    name: tenant-1
+spec:
+  ports:
+    - port: 9001
+      name: http
+  clusterIP: None
+  # type: NodePort
+  selector:
+    app: tenant-1-host-2
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: tenant-1-host-2
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: tenant-1-host-2
+        tenant: tenant-1
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: m3cluster-worker2
+      containers:
+        - name: minio-2
+          # hostname: tenant-1-host-2
+          image: minio/minio:latest
+          imagePullPolicy: "IfNotPresent"
+          args: 
+            - server
+            - "--address"
+            - ":9001"
+            - http://tenant-1-host-{1...4}:9001/mnt/tdisk{1...4}
+          envFrom:
+            - configMapRef:
+                name: tenant-1-env
+          volumeMounts:
+            - mountPath: /mnt/tdisk1
+              name: tenant1-pv-1
+            - mountPath: /mnt/tdisk2
+              name: tenant1-pv-2
+            - mountPath: /mnt/tdisk3
+              name: tenant1-pv-3
+            - mountPath: /mnt/tdisk4
+              name: tenant1-pv-4
+          ports:
+            - containerPort: 9001
+              name: http
+      volumes:
+        - name: tenant1-pv-1
+          hostPath:
+            path: /mnt/disk1/tenant-1
+        - name: tenant1-pv-2
+          hostPath:
+            path: /mnt/disk2/tenant-1
+        - name: tenant1-pv-3
+          hostPath:
+            path: /mnt/disk3/tenant-1
+        - name: tenant1-pv-4
+          hostPath:
+            path: /mnt/disk4/tenant-1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tenant-1-host-3
+  labels:
+    name: tenant-1
+spec:
+  ports:
+    - port: 9001
+      name: http
+  clusterIP: None
+  # type: NodePort
+  selector:
+    app: tenant-1-host-3
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: tenant-1-host-3
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: tenant-1-host-3
+        tenant: tenant-1
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: m3cluster-worker3
+      containers:
+        - name: minio-3
+          # hostname: tenant-1-host-3
+          image: minio/minio:latest
+          imagePullPolicy: "IfNotPresent"
+          args: 
+            - server
+            - "--address"
+            - ":9001"
+            - http://tenant-1-host-{1...4}:9001/mnt/tdisk{1...4}
+          envFrom:
+            - configMapRef:
+                name: tenant-1-env
+          volumeMounts:
+            - mountPath: /mnt/tdisk1
+              name: tenant1-pv-1
+            - mountPath: /mnt/tdisk2
+              name: tenant1-pv-2
+            - mountPath: /mnt/tdisk3
+              name: tenant1-pv-3
+            - mountPath: /mnt/tdisk4
+              name: tenant1-pv-4
+          ports:
+            - containerPort: 9001
+              name: http
+      volumes:
+        - name: tenant1-pv-1
+          hostPath:
+            path: /mnt/disk1/tenant-1
+        - name: tenant1-pv-2
+          hostPath:
+            path: /mnt/disk2/tenant-1
+        - name: tenant1-pv-3
+          hostPath:
+            path: /mnt/disk3/tenant-1
+        - name: tenant1-pv-4
+          hostPath:
+            path: /mnt/disk4/tenant-1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tenant-1-host-4
+  labels:
+    name: tenant-1
+spec:
+  ports:
+    - port: 9001
+      name: http
+  clusterIP: None
+  # type: NodePort
+  selector:
+    app: tenant-1-host-4
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: tenant-1-host-4
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: tenant-1-host-4
+        tenant: tenant-1
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: m3cluster-worker4
+      containers:
+        - name: minio-4
+          # hostname: tenant-1-host-4
+          image: minio/minio:latest
+          imagePullPolicy: "IfNotPresent"
+          args: 
+            - server
+            - "--address"
+            - ":9001"
+            - http://tenant-1-host-{1...4}:9001/mnt/tdisk{1...4}
+          envFrom:
+            - configMapRef:
+                name: tenant-1-env
+          volumeMounts:
+            - mountPath: /mnt/tdisk1
+              name: tenant1-pv-1
+            - mountPath: /mnt/tdisk2
+              name: tenant1-pv-2
+            - mountPath: /mnt/tdisk3
+              name: tenant1-pv-3
+            - mountPath: /mnt/tdisk4
+              name: tenant1-pv-4
+          ports:
+            - containerPort: 9001
+              name: http
+      volumes:
+        - name: tenant1-pv-1
+          hostPath:
+            path: /mnt/disk1/tenant-1
+        - name: tenant1-pv-2
+          hostPath:
+            path: /mnt/disk2/tenant-1
+        - name: tenant1-pv-3
+          hostPath:
+            path: /mnt/disk3/tenant-1
+        - name: tenant1-pv-4
+          hostPath:
+            path: /mnt/disk4/tenant-1
