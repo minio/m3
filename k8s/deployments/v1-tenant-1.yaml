@@ -23,7 +23,6 @@ spec:
     - port: 9001
       name: http
   clusterIP: None
-  # type: NodePort
   selector:
     app: tenant-1-host-1
 ---
@@ -43,7 +42,6 @@ spec:
         kubernetes.io/hostname: m3cluster-worker
       containers:
         - name: minio-1
-          # hostname: tenant-1-host-1
           image: minio/minio:latest
           imagePullPolicy: "IfNotPresent"
           args: 
@@ -91,7 +89,6 @@ spec:
     - port: 9001
       name: http
   clusterIP: None
-  # type: NodePort
   selector:
     app: tenant-1-host-2
 ---
@@ -111,7 +108,6 @@ spec:
         kubernetes.io/hostname: m3cluster-worker2
       containers:
         - name: minio-2
-          # hostname: tenant-1-host-2
           image: minio/minio:latest
           imagePullPolicy: "IfNotPresent"
           args: 
@@ -159,7 +155,6 @@ spec:
     - port: 9001
       name: http
   clusterIP: None
-  # type: NodePort
   selector:
     app: tenant-1-host-3
 ---
@@ -179,7 +174,6 @@ spec:
         kubernetes.io/hostname: m3cluster-worker3
       containers:
         - name: minio-3
-          # hostname: tenant-1-host-3
           image: minio/minio:latest
           imagePullPolicy: "IfNotPresent"
           args: 
@@ -227,7 +221,6 @@ spec:
     - port: 9001
       name: http
   clusterIP: None
-  # type: NodePort
   selector:
     app: tenant-1-host-4
 ---
@@ -247,7 +240,6 @@ spec:
         kubernetes.io/hostname: m3cluster-worker4
       containers:
         - name: minio-4
-          # hostname: tenant-1-host-4
           image: minio/minio:latest
           imagePullPolicy: "IfNotPresent"
           args: 
