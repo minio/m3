@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tenant-1-env
+  labels:
+    app: tenant-1
+data:
+  MINIO_ACCESS_KEY: "minio"
+  MINIO_SECRET_KEY: "minio123"
+  # MINIO_STORAGE_CLASS_STANDARD: "EC:1"
+  # MINIO_STORAGE_CLASS_RRS: "EC:1"

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 echo "Provisioning Kind"
 kind create cluster --name m3cluster --image m3kind --config kind-cluster.yaml 
 echo "exporting KUBECONFIG"
@@ -11,6 +13,7 @@ kubectl create clusterrolebinding dashboard-admin -n default --clusterrole=clust
 echo "done"
 
 echo "Creating: tenant-1"
-./add-volume.sh tenant-1
-kubectl apply -f deployments/tenant1-env.yaml
-kubectl apply -f deployments/v1-tenant-1.yaml
+./add-volume-tenant.sh tenant-1
+echo "Creating: tenant-2"
+./add-volume-tenant.sh tenant-2
+kubectl apply -f deployments/v3

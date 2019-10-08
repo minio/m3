@@ -1,0 +1,180 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sc-host-1
+  labels:
+    name: sc-host-1
+spec:
+  ports:
+    - port: 9001
+      name: tenant-1
+    - port: 9002
+      name: tenant-2
+    - port: 9003
+      name: tenant-3
+    - port: 9004
+      name: tenant-4
+    - port: 9005
+      name: tenant-5
+    - port: 9006
+      name: tenant-6
+    - port: 9007
+      name: tenant-7
+    - port: 9008
+      name: tenant-8
+    - port: 9009
+      name: tenant-9
+    - port: 9010
+      name: tenant-10
+    - port: 9011
+      name: tenant-11
+    - port: 9012
+      name: tenant-12
+    - port: 9013
+      name: tenant-13
+    - port: 9014
+      name: tenant-14
+    - port: 9015
+      name: tenant-15
+    - port: 9016
+      name: tenant-16
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: sc-host-1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sc-host-2
+  labels:
+    name: sc-host-2
+spec:
+  ports:
+    - port: 9001
+      name: tenant-1
+    - port: 9002
+      name: tenant-2
+    - port: 9003
+      name: tenant-3
+    - port: 9004
+      name: tenant-4
+    - port: 9005
+      name: tenant-5
+    - port: 9006
+      name: tenant-6
+    - port: 9007
+      name: tenant-7
+    - port: 9008
+      name: tenant-8
+    - port: 9009
+      name: tenant-9
+    - port: 9010
+      name: tenant-10
+    - port: 9011
+      name: tenant-11
+    - port: 9012
+      name: tenant-12
+    - port: 9013
+      name: tenant-13
+    - port: 9014
+      name: tenant-14
+    - port: 9015
+      name: tenant-15
+    - port: 9016
+      name: tenant-16
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: sc-host-2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sc-host-3
+  labels:
+    name: sc-host-3
+spec:
+  ports:
+    - port: 9001
+      name: tenant-1
+    - port: 9002
+      name: tenant-2
+    - port: 9003
+      name: tenant-3
+    - port: 9004
+      name: tenant-4
+    - port: 9005
+      name: tenant-5
+    - port: 9006
+      name: tenant-6
+    - port: 9007
+      name: tenant-7
+    - port: 9008
+      name: tenant-8
+    - port: 9009
+      name: tenant-9
+    - port: 9010
+      name: tenant-10
+    - port: 9011
+      name: tenant-11
+    - port: 9012
+      name: tenant-12
+    - port: 9013
+      name: tenant-13
+    - port: 9014
+      name: tenant-14
+    - port: 9015
+      name: tenant-15
+    - port: 9016
+      name: tenant-16
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: sc-host-3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sc-host-4
+  labels:
+    name: sc-host-4
+spec:
+  ports:
+    - port: 9001
+      name: tenant-1
+    - port: 9002
+      name: tenant-2
+    - port: 9003
+      name: tenant-3
+    - port: 9004
+      name: tenant-4
+    - port: 9005
+      name: tenant-5
+    - port: 9006
+      name: tenant-6
+    - port: 9007
+      name: tenant-7
+    - port: 9008
+      name: tenant-8
+    - port: 9009
+      name: tenant-9
+    - port: 9010
+      name: tenant-10
+    - port: 9011
+      name: tenant-11
+    - port: 9012
+      name: tenant-12
+    - port: 9013
+      name: tenant-13
+    - port: 9014
+      name: tenant-14
+    - port: 9015
+      name: tenant-15
+    - port: 9016
+      name: tenant-16
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: sc-host-4

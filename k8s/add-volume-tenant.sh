@@ -1,3 +1,5 @@
+#!/bin/bash
+
 TENANT_NAME="${1:-tenant-1}"
 
 docker exec -it m3cluster-worker mkdir -p /mnt/disk1/$TENANT_NAME
