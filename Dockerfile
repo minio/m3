@@ -17,7 +17,7 @@ WORKDIR /
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-s" -a -installsuffix cgo -o main ./go/src/github.com/minio/m3/
 
 FROM scratch
-MAINTAINER Daniel Valdivia "daniel@min.io"
+MAINTAINER MinIO Development "dev@min.io"
 EXPOSE 10105
 
 COPY --from=0 /main    .
