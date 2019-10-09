@@ -14,7 +14,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-w -s" -a -installsuffix cgo -o 
 
 FROM scratch
 MAINTAINER MinIO Development "dev@min.io"
-EXPOSE 10105
+EXPOSE 9009
 
 COPY --from=0 /m3    .
 
