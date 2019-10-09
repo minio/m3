@@ -274,8 +274,10 @@ func getDisks(storageClusterNum string, hostNum string) []string {
 
 }
 
-const MaxNumberDiskPerNode = 4
-const MaxNumberHost = 4
+const (
+	MaxNumberDiskPerNode = 4
+	MaxNumberHost        = 4
+)
 
 //Creates a service that will resolve to any of the hosts within the storage cluster this tenant lives in
 func CreateDeploymentWithTenants(tenants []Tenant, storageClusterNum string, hostNum string) {

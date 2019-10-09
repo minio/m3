@@ -16,4 +16,5 @@ echo "Creating: tenant-1"
 ./add-volume-tenant.sh tenant-1
 echo "Creating: tenant-2"
 ./add-volume-tenant.sh tenant-2
-kubectl apply -f deployments/v3
+# uncomment this if you want to use the static files
+#kubectl apply -f deployments/v3
