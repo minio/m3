@@ -1,12 +1,14 @@
 import React from 'react';
 import { compose } from 'recompose'
 import { connect } from 'react-redux';
+import NavigationBar from '../../components/NavigationBar';
 
 import './styles.css';
 
 function LandingPage(props) {
   return (
     <div className="LandingPage">
+      <NavigationBar />
       <div className="container">
         <div className="row">
           <div className="col-sm-12">
