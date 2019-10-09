@@ -17,7 +17,7 @@ package cmd
 
 import (
 	"github.com/minio/cli"
-	"github.com/minio/mcs/cluster"
+	"github.com/minio/m3/cluster"
 )
 
 // list files and folders.

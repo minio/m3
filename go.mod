@@ -1,4 +1,4 @@
-module github.com/minio/mcs
+module github.com/minio/m3
 
 go 1.13
 
