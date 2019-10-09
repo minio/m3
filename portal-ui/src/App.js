@@ -1,10 +1,13 @@
 import React from 'react';
+import NavigationBar from './components/NavigationBar';
+import LandingPage from './scenes/LandingPage';
 import './App.css';
 
 function App() {
   return (
     <div className="App">
-      Create React App - 3.2.0
+      <NavigationBar />
+      <LandingPage />
     </div>
   );
 }
