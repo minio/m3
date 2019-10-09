@@ -1,0 +1,3 @@
+#ignore k8s stuff
+k8s/
+target/

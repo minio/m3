@@ -18,38 +18,19 @@ package cmd
 import (
 	"fmt"
 	"github.com/minio/cli"
-	"os"
-	"path/filepath"
 )
 
-var appCmds = []cli.Command{
-	serverCmd,
-	clusterCmd,
+// list files and folders.
+var storageClusterCmd = cli.Command{
+	Name:   "sc",
+	Usage:  "storage cluster sub commands",
+	Action: defClusterCmd,
+	Subcommands: []cli.Command{
+		addStorageClusterCmd,
+	},
 }
 
-func Main(args []string) {
-	// Set the mcs app name.
-	appName := filepath.Base(args[0])
-	// Run the app - exit on error.
-	if err := registerApp(appName).Run(args); err != nil {
-		os.Exit(1)
-	}
-}
-
-func registerApp(name string) *cli.App {
-	// register commands
-	for _, cmd := range appCmds {
-		registerCmd(cmd)
-	}
-
-	app := cli.NewApp()
-	app.Name = "mcs"
-	app.Usage = "Starts MinIO Cloud Storage"
-	app.Commands = commands
-	app.Action = func(c *cli.Context) error {
-		fmt.Println("hello!")
-		return nil
-	}
-
-	return app
+func defClusterCmd(ctx *cli.Context) error {
+	fmt.Println("run a sub command")
+	return nil
 }

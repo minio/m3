@@ -1,13 +1,13 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: sc-host-2
+  name: sc-1-host-2
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: sc-host-2
+        app: sc-1-host-2
         sc: storage-cluster1
     spec:
       nodeSelector:
@@ -20,7 +20,7 @@ spec:
             - server
             - "--address"
             - ":9001"
-            - http://sc-host-{1...4}:9001/mnt/tdisk{1...4}
+            - http://sc-1-host-{1...4}:9001/mnt/tdisk{1...4}
           envFrom:
             - configMapRef:
                 name: tenant-1-env
@@ -43,7 +43,7 @@ spec:
             - server
             - "--address"
             - ":9002"
-            - http://sc-host-{1...4}:9002/mnt/tdisk{1...4}
+            - http://sc-1-host-{1...4}:9002/mnt/tdisk{1...4}
           envFrom:
             - configMapRef:
                 name: tenant-2-env
