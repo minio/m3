@@ -1,4 +1,4 @@
-// This file is part of MinIO Cloud Storage
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2019 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
 package main
 
 import (
-	"github.com/minio/mcs/cmd"
+	"github.com/minio/m3/cmd"
 	"os"
 )
 
