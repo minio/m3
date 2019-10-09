@@ -13,16 +13,21 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package server
+package portal
 
-var (
-	// Version - version time.RFC3339.
-	Version = "DEVELOPMENT.GOGET"
-	// ReleaseTag - release tag in TAG.%Y-%m-%dT%H-%M-%SZ.
-	ReleaseTag = "DEVELOPMENT.GOGET"
-	// CommitID - latest commit id.
-	CommitID = "DEVELOPMENT.GOGET"
-	// ShortCommitID - first 12 characters from CommitID.
-	ShortCommitID = CommitID[:12]
+import (
+	"github.com/minio/minio-go/v6"
 )
-
+// Config - see http://docs.amazonwebservices.com/AmazonS3/latest/dev/index.html?RESTAuthentication.html
+type Config struct {
+	AccessKey   string
+	SecretKey   string
+	Signature   string
+	HostURL     string
+	AppName     string
+	AppVersion  string
+	AppComments []string
+	Debug       bool
+	Insecure    bool
+	Lookup      minio.BucketLookupType
+}
