@@ -6,12 +6,12 @@ import { Link } from "react-router-dom";
 function NavigationBar(props) {
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-light">
-      <a class="navbar-brand" href="#">ACME Cloud Storage</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
+      <a className="navbar-brand" href="#">ACME Cloud Storage</a>
+      <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+        <span className="navbar-toggler-icon"></span>
       </button>
-      <div class="navbar-collapse collapse w-100 order-3 dual-collapse2" id="navbarSupportedContent">
-        <ul class="navbar-nav ml-auto">
+      <div className="navbar-collapse collapse w-100 order-3 dual-collapse2" id="navbarSupportedContent">
+        <ul className="navbar-nav ml-auto">
         <li className="nav-item active">
             <Link className="nav-link" to="/dashboard">Dashboard</Link>
           </li>
