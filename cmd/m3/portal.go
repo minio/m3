@@ -13,26 +13,21 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package cmd
+package main
 
 import (
 	"github.com/minio/cli"
-	"github.com/minio/m3/cluster"
+	"github.com/minio/m3/portal"
 )
 
 // list files and folders.
-var clusterCmd = cli.Command{
-	Name:   "cluster",
-	Usage:  "runs cluster commands",
-	Action: listPodsCmd,
-	Subcommands: []cli.Command{
-		storageClusterCmd,
-	},
+var portalCmd = cli.Command{
+	Name:   "portal",
+	Usage:  "starts portal",
+	Action: startApiPortalCmd,
 }
 
-func listPodsCmd(ctx *cli.Context) error {
-	cluster.ListPods()
+func startApiPortalCmd(ctx *cli.Context) error {
+	portal.StartApiPortal()
 	return nil
 }
-
-

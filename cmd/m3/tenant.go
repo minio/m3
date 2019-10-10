@@ -16,10 +16,23 @@
 package main
 
 import (
-	"github.com/minio/m3/cmd"
-	"os"
+	"fmt"
+	"github.com/minio/cli"
 )
 
-func main() {
-	cmd.Main(os.Args)
+// list files and folders.
+var tenantCmd = cli.Command{
+	Name:   "tenant",
+	Usage:  "tenant commands",
+	Action: tenantDefCmd,
+	Subcommands: []cli.Command{
+		addTenantCmd,
+	},
 }
+
+func tenantDefCmd(ctx *cli.Context) error {
+	fmt.Println("run a sub command for now")
+	return nil
+}
+
+

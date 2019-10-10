@@ -18,6 +18,9 @@ const Routes = (props) => (
       <Route path="/signup">
         <LandingPage page="signup" />
       </Route>
+      <Route path="/login">
+        <LandingPage page="login" />
+      </Route>
       <Route exact path="/dashboard">
         <Dashboard />
       </Route>

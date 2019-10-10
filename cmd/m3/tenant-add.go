@@ -13,26 +13,21 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package cmd
+package main
 
 import (
-	"fmt"
 	"github.com/minio/cli"
+	"github.com/minio/m3/cluster"
 )
 
 // list files and folders.
-var tenantCmd = cli.Command{
-	Name:   "tenant",
-	Usage:  "tenant commands",
-	Action: tenantDefCmd,
-	Subcommands: []cli.Command{
-		addTenantCmd,
-	},
+var addTenantCmd = cli.Command{
+	Name:   "add",
+	Usage:  "add a tenant to a cluster",
+	Action: addTenant,
 }
 
-func tenantDefCmd(ctx *cli.Context) error {
-	fmt.Println("run a sub command for now")
+func addTenant(ctx *cli.Context) error {
+	<-cluster.ProvisionTenantOnStorageCluster("kes", "1")
 	return nil
 }
-
-
