@@ -19,16 +19,14 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-
-	"github.com/gorilla/mux"
 )
 
-func AdminInfoRoutes(router *mux.Router) {
-	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
-	apiRouter.Methods("GET").Path("/api/admin/info").HandlerFunc(info)
-}
+// Compiler checks
+var (
+	_ http.HandlerFunc = AdminServerInfo
+)
 
-func info(w http.ResponseWriter, r *http.Request) {
+func AdminServerInfo(w http.ResponseWriter, r *http.Request) {
 	if validRequest(w, r) == false {
 		return
 	}

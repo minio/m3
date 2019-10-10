@@ -13,6 +13,8 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+// Package portal impl.. 
 package portal
 
 import (
@@ -25,13 +27,14 @@ import (
 	"github.com/minio/minio-go/v6"
 )
 
-func ClientBucketRoutes(router *mux.Router) {
-	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
-	apiRouter.Methods("GET").Path("/api/bucket/").HandlerFunc(listBuckets)
-	apiRouter.Methods("GET").Path("/api/bucket/{bucketName}").HandlerFunc(listObjects)
-}
+// Compiler checks
+var (
+	_ http.HandlerFunc = ListBuckets
+	_ http.HandlerFunc = ListObjects
+)
 
-func listBuckets(w http.ResponseWriter, r *http.Request) {
+// ListBuckets ...
+func ListBuckets(w http.ResponseWriter, r *http.Request) {
 	var binfo []minio.BucketInfo
 	ssl := true
 
@@ -67,17 +70,11 @@ func listBuckets(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func TodoShow(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    todoId := vars["todoId"]
-    fmt.Fprintln(w, "Todo show:", todoId)
-}
-
-func listObjects(w http.ResponseWriter, r *http.Request){
+// ListObjects ...
+func ListObjects(w http.ResponseWriter, r *http.Request){
 	var objInfo []minio.ObjectInfo
 	vars := mux.Vars(r)
     bucketName := vars["bucketName"]
-    fmt.Println(bucketName)
 
     // Hardcoding Demo client
 	// Initialize minio client object.
@@ -106,7 +103,6 @@ func listObjects(w http.ResponseWriter, r *http.Request){
 	        return
 	    }
 	    objInfo = append(objInfo, object)
-	    fmt.Println(object)
 	}
 
 	output, err := json.Marshal(objInfo)
