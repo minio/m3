@@ -13,7 +13,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package server
+package portal
 
 import (
 	"encoding/json"
@@ -21,7 +21,7 @@ import (
 	"net/http"
 )
 
-func StartApiServer() {
+func StartApiPortal() {
 	log.Println("Starting MinIO Kubernetes Cloud")
 	http.HandleFunc("/api/version", version)
 	// have all APIs register their handlers

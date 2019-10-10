@@ -17,17 +17,17 @@ package cmd
 
 import (
 	"github.com/minio/cli"
-	"github.com/minio/m3/server"
+	"github.com/minio/m3/portal"
 )
 
 // list files and folders.
-var serverCmd = cli.Command{
-	Name:   "server",
-	Usage:  "starts server",
-	Action: startApiServerCmd,
+var portalCmd = cli.Command{
+	Name:   "portal",
+	Usage:  "starts portal",
+	Action: startApiPortalCmd,
 }
 
-func startApiServerCmd(ctx *cli.Context) error {
-	server.StartApiServer()
+func startApiPortalCmd(ctx *cli.Context) error {
+	portal.StartApiPortal()
 	return nil
 }

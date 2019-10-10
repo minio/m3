@@ -13,21 +13,38 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package server
+package portal
 
 import (
-	"github.com/minio/minio-go/v6"
+	"encoding/json"
+	"log"
+	"net/http"
 )
-// Config - see http://docs.amazonwebservices.com/AmazonS3/latest/dev/index.html?RESTAuthentication.html
-type Config struct {
-	AccessKey   string
-	SecretKey   string
-	Signature   string
-	HostURL     string
-	AppName     string
-	AppVersion  string
-	AppComments []string
-	Debug       bool
-	Insecure    bool
-	Lookup      minio.BucketLookupType
+
+func RegisterRoutes() {
+	http.HandleFunc("/api/admin/info", info)
+}
+
+func info(w http.ResponseWriter, r *http.Request) {
+	if validRequest(w, r) == false {
+		return
+	}
+	// Create a new MinIO Admin Client
+	client, err := newAdminClient(
+		"https://play.minio.io:9000",
+		"Q3AM3UQ867SPQQA43P2F",
+		"zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG")
+	fatalIf(err, "Unable to initialize admin connection.")
+
+	// Fetch info of all servers (cluster or single server)
+	serverInfo, errProbe := client.ServerInfo()
+	if errProbe != nil {
+		log.Println(errProbe)
+	}
+	output, err2 := json.Marshal(serverInfo)
+	if err2 != nil {
+		log.Println(err)
+	}
+
+	w.Write(output)
 }

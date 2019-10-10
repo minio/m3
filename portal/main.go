@@ -13,24 +13,8 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package server
+package portal
 
-import "crypto/x509"
-
-var (
-	globalQuiet    = false // Quiet flag set via command line
-	globalJSON     = false // Json flag set via command line
-	globalDebug    = false // Debug flag set via command line
-	globalNoColor  = false // No Color flag set via command line
-	globalInsecure = false // Insecure flag set via command line
-
-	// WHEN YOU ADD NEXT GLOBAL FLAG, MAKE SURE TO ALSO UPDATE SESSION CODE AND CODE BELOW.
-)
-
-var (
-	// Terminal width
-	globalTermWidth int
-
-	// CA root certificates, a nil value means system certs pool will be used
-	globalRootCAs *x509.CertPool
-)
+func Main(args []string) {
+	StartApiPortal()
+}

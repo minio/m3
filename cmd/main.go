@@ -23,7 +23,7 @@ import (
 )
 
 var appCmds = []cli.Command{
-	serverCmd,
+	portalCmd,
 	clusterCmd,
 }
 
