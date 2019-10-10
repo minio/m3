@@ -5,6 +5,7 @@ import NavigationBar from '../../components/NavigationBar';
 
 import './styles.css';
 import SignUp from './components/SignUp';
+import Login from './components/Login';
 
 function LandingPage(props) {
   let content;
@@ -34,6 +35,10 @@ function LandingPage(props) {
           </div>
         </div>
       );
+    break;
+    case "login":
+      title = "Login";
+      content = <Login />;
     break;
     case "signup":
       title = "Sign Up";

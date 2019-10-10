@@ -21,6 +21,9 @@ function NavigationBar(props) {
             <Link className="nav-link" to="/about-us">About Us</Link>
           </li>
           <li className="nav-item">
+            <Link className="nav-link" to="/login">Login</Link>
+          </li>
+          <li className="nav-item">
             <Link className="btn btn-outline-success my-2 my-sm-0" to="/signup">Sign Up</Link>
           </li>
         </ul>
