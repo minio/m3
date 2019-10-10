@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import LandingPage from './scenes/LandingPage';
+import Dashboard from './scenes/Dashboard';
 
 const Routes = (props) => (
  <Router {...props}>
@@ -16,6 +17,9 @@ const Routes = (props) => (
       </Route>
       <Route path="/signup">
         <LandingPage page="signup" />
+      </Route>
+      <Route exact path="/dashboard">
+        <Dashboard />
       </Route>
     </Switch>
  </Router>

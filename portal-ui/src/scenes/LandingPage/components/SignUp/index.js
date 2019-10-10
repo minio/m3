@@ -1,6 +1,7 @@
 import React from 'react';
 import { compose } from 'recompose'
 import { connect } from 'react-redux';
+import { Link } from "react-router-dom";
 
 import './styles.css';
 
@@ -58,7 +59,8 @@ function SignUp(props) {
               </div>
             </div>
           </div>
-          <button type="button" className="subscribe btn btn-outline-success btn-block rounded-pill shadow-sm">Sign Up</button>
+          {/* <button type="button" className="subscribe btn btn-outline-success btn-block ro÷unded-pill shadow-sm">Sign Up</button> */}
+          <Link to="/dashboard" className="subscribe btn btn-outline-success btn-block rounded-pill shadow-sm">Sign Up</Link>
         </form>
         </div>
       </div>
