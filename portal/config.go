@@ -1,4 +1,4 @@
-// This file is part of MinIO Cloud Storage
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2019 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -13,24 +13,13 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package server
+package portal
 
-import "crypto/x509"
-
-var (
-	globalQuiet    = false // Quiet flag set via command line
-	globalJSON     = false // Json flag set via command line
-	globalDebug    = false // Debug flag set via command line
-	globalNoColor  = false // No Color flag set via command line
-	globalInsecure = false // Insecure flag set via command line
-
-	// WHEN YOU ADD NEXT GLOBAL FLAG, MAKE SURE TO ALSO UPDATE SESSION CODE AND CODE BELOW.
-)
-
-var (
-	// Terminal width
-	globalTermWidth int
-
-	// CA root certificates, a nil value means system certs pool will be used
-	globalRootCAs *x509.CertPool
-)
+// hostConfig configuration of a host.
+type hostConfigV9 struct {
+	URL       string `json:"url"`
+	AccessKey string `json:"accessKey"`
+	SecretKey string `json:"secretKey"`
+	API       string `json:"api"`
+	Lookup    string `json:"lookup"`
+}

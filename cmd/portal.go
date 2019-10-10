@@ -13,13 +13,21 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package main
+package cmd
 
 import (
-	"github.com/minio/m3/cmd"
-	"os"
+	"github.com/minio/cli"
+	"github.com/minio/m3/portal"
 )
 
-func main() {
-	cmd.Main(os.Args)
+// list files and folders.
+var portalCmd = cli.Command{
+	Name:   "portal",
+	Usage:  "starts portal",
+	Action: startApiPortalCmd,
+}
+
+func startApiPortalCmd(ctx *cli.Context) error {
+	portal.StartApiPortal()
+	return nil
 }

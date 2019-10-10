@@ -1,4 +1,4 @@
-// This file is part of MinIO Cloud Storage
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2019 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -13,36 +13,31 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package server
+package portal
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
-func StartApiServer() {
-	log.Println("Starting MinIO Cloud Storage")
-	http.HandleFunc("/api/version", version)
+func StartApiPortal() {
+	log.Println("Starting MinIO Kubernetes Cloud")
 	// have all APIs register their handlers
-	registerRoutes()
-	log.Fatal(http.ListenAndServe(":9009", nil))
+	router := registerRoutes()
+	log.Fatal(http.ListenAndServe(":9009", router))
 }
 
-func registerRoutes() {
-	RegisterRoutes()
+func registerRoutes() *mux.Router {
+	router := mux.NewRouter().SkipClean(true)
+	VersionRoutes(router)
+	AdminInfoRoutes(router)
+	ClientBucketRoutes(router)
+	return router
 }
 
-func version(w http.ResponseWriter, r *http.Request) {
-	// TODO: Read version from somewhere
-	v := Version
-	// Serialize and output
-	output, err := json.Marshal(v)
-	if err != nil {
-		log.Fatal("Cannot Marshal error")
-	}
-	w.Write(output)
-}
 
 func validRequest(w http.ResponseWriter, r *http.Request) bool {
 	if r.Method != "POST" {

@@ -1,4 +1,4 @@
-// This file is part of MinIO Cloud Storage
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2019 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -13,13 +13,26 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package server
+package cmd
 
-// hostConfig configuration of a host.
-type hostConfigV9 struct {
-	URL       string `json:"url"`
-	AccessKey string `json:"accessKey"`
-	SecretKey string `json:"secretKey"`
-	API       string `json:"api"`
-	Lookup    string `json:"lookup"`
+import (
+	"fmt"
+	"github.com/minio/cli"
+)
+
+// list files and folders.
+var tenantCmd = cli.Command{
+	Name:   "tenant",
+	Usage:  "tenant commands",
+	Action: tenantDefCmd,
+	Subcommands: []cli.Command{
+		addTenantCmd,
+	},
 }
+
+func tenantDefCmd(ctx *cli.Context) error {
+	fmt.Println("run a sub command for now")
+	return nil
+}
+
+

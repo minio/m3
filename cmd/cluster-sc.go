@@ -1,4 +1,4 @@
-// This file is part of MinIO Cloud Storage
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2019 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -13,8 +13,24 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package server
+package cmd
 
-func Main(args []string) {
-	StartApiServer()
+import (
+	"fmt"
+	"github.com/minio/cli"
+)
+
+// list files and folders.
+var storageClusterCmd = cli.Command{
+	Name:   "sc",
+	Usage:  "storage cluster sub commands",
+	Action: defClusterCmd,
+	Subcommands: []cli.Command{
+		addStorageClusterCmd,
+	},
+}
+
+func defClusterCmd(ctx *cli.Context) error {
+	fmt.Println("run a sub command")
+	return nil
 }

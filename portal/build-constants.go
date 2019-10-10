@@ -1,4 +1,4 @@
-// This file is part of MinIO Cloud Storage
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2019 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -13,21 +13,16 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package cmd
+package portal
 
-import (
-	"github.com/minio/cli"
-	"github.com/minio/mcs/server"
+var (
+	// Version - version time.RFC3339.
+	Version = "DEVELOPMENT.GOGET"
+	// ReleaseTag - release tag in TAG.%Y-%m-%dT%H-%M-%SZ.
+	ReleaseTag = "DEVELOPMENT.GOGET"
+	// CommitID - latest commit id.
+	CommitID = "DEVELOPMENT.GOGET"
+	// ShortCommitID - first 12 characters from CommitID.
+	ShortCommitID = CommitID[:12]
 )
 
-// list files and folders.
-var serverCmd = cli.Command{
-	Name:   "server",
-	Usage:  "starts server",
-	Action: startApiServerCmd,
-}
-
-func startApiServerCmd(ctx *cli.Context) error {
-	server.StartApiServer()
-	return nil
-}

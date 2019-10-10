@@ -1,4 +1,4 @@
-// This file is part of MinIO Cloud Storage
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2019 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -13,7 +13,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package server
+package portal
 
 import (
 	"crypto/tls"
@@ -104,8 +104,8 @@ func newAdminFactory() func(config *Config) (*madmin.AdminClient, *probe.Error) 
 		return api, nil
 	}
 }
-// newAdminClient gives a new client interface
-func newAdminClient(url string,accessKey string, secretKey string) (*madmin.AdminClient, *probe.Error) {
+// NewAdminClient gives a new client interface
+func NewAdminClient(url string,accessKey string, secretKey string) (*madmin.AdminClient, *probe.Error) {
 	hostCfg := hostConfigV9{
 		URL:       url,
 		AccessKey: accessKey,

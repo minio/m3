@@ -1,4 +1,4 @@
-// This file is part of MinIO Cloud Storage
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2019 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -23,7 +23,9 @@ import (
 )
 
 var appCmds = []cli.Command{
-	serverCmd,
+	portalCmd,
+	clusterCmd,
+	tenantCmd,
 }
 
 func Main(args []string) {
@@ -42,11 +44,11 @@ func registerApp(name string) *cli.App {
 	}
 
 	app := cli.NewApp()
-	app.Name = "mcs"
-	app.Usage = "Starts MinIO Cloud Storage"
+	app.Name = "m3"
+	app.Usage = "Starts MinIO Kubernetes Cloud"
 	app.Commands = commands
 	app.Action = func(c *cli.Context) error {
-		fmt.Println("hello!")
+		fmt.Println(app.Name + " started")
 		return nil
 	}
 

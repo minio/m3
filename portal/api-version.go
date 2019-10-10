@@ -13,13 +13,28 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package main
+package portal
 
 import (
-	"github.com/minio/m3/cmd"
-	"os"
+	"encoding/json"
+	"log"
+	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
-func main() {
-	cmd.Main(os.Args)
+func VersionRoutes(router *mux.Router) {
+	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
+	apiRouter.Methods("GET").Path("/api/version/").HandlerFunc(version)
+}
+
+func version(w http.ResponseWriter, r *http.Request) {
+	// TODO: Read version from somewhere
+	v := Version
+	// Serialize and output
+	output, err := json.Marshal(v)
+	if err != nil {
+		log.Fatal("Cannot Marshal error")
+	}
+	w.Write(output)
 }

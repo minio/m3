@@ -1,4 +1,4 @@
-// This file is part of MinIO Cloud Storage
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2019 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -13,16 +13,19 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package server
+package portal
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
-func RegisterRoutes() {
-	http.HandleFunc("/api/admin/info", info)
+func AdminInfoRoutes(router *mux.Router) {
+	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
+	apiRouter.Methods("GET").Path("/api/admin/info").HandlerFunc(info)
 }
 
 func info(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +33,7 @@ func info(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Create a new MinIO Admin Client
-	client, err := newAdminClient(
+	client, err := NewAdminClient(
 		"https://play.minio.io:9000",
 		"Q3AM3UQ867SPQQA43P2F",
 		"zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG")

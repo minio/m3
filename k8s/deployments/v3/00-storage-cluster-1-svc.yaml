@@ -2,9 +2,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: sc-host-1
+  name: sc-1-host-1
   labels:
-    name: sc-host-1
+    name: sc-1-host-1
 spec:
   ports:
     - port: 9001
@@ -42,14 +42,14 @@ spec:
   clusterIP: None
   publishNotReadyAddresses: true
   selector:
-    app: sc-host-1
+    app: sc-1-host-1
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: sc-host-2
+  name: sc-1-host-2
   labels:
-    name: sc-host-2
+    name: sc-1-host-2
 spec:
   ports:
     - port: 9001
@@ -87,14 +87,14 @@ spec:
   clusterIP: None
   publishNotReadyAddresses: true
   selector:
-    app: sc-host-2
+    app: sc-1-host-2
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: sc-host-3
+  name: sc-1-host-3
   labels:
-    name: sc-host-3
+    name: sc-1-host-3
 spec:
   ports:
     - port: 9001
@@ -132,14 +132,14 @@ spec:
   clusterIP: None
   publishNotReadyAddresses: true
   selector:
-    app: sc-host-3
+    app: sc-1-host-3
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: sc-host-4
+  name: sc-1-host-4
   labels:
-    name: sc-host-4
+    name: sc-1-host-4
 spec:
   ports:
     - port: 9001
@@ -177,4 +177,4 @@ spec:
   clusterIP: None
   publishNotReadyAddresses: true
   selector:
-    app: sc-host-4
+    app: sc-1-host-4
