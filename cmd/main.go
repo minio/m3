@@ -25,6 +25,7 @@ import (
 var appCmds = []cli.Command{
 	portalCmd,
 	clusterCmd,
+	tenantCmd,
 }
 
 func Main(args []string) {

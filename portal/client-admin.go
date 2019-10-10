@@ -104,8 +104,8 @@ func newAdminFactory() func(config *Config) (*madmin.AdminClient, *probe.Error) 
 		return api, nil
 	}
 }
-// newAdminClient gives a new client interface
-func newAdminClient(url string,accessKey string, secretKey string) (*madmin.AdminClient, *probe.Error) {
+// NewAdminClient gives a new client interface
+func NewAdminClient(url string,accessKey string, secretKey string) (*madmin.AdminClient, *probe.Error) {
 	hostCfg := hostConfigV9{
 		URL:       url,
 		AccessKey: accessKey,

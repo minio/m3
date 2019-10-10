@@ -29,23 +29,27 @@ var addStorageClusterCmd = cli.Command{
 }
 
 func addStorageCluster(ctx *cli.Context) error {
-	//cluster.ListPods()
+	//<-cluster.ProvisionTenantOnStorageCluster("kes", "1")
+	//if true {
+	//	return nil
+	//}
+
+
 	fmt.Println("------")
 	fmt.Println("Adding SC Services")
-	cluster.CreateSCHostService("1", "1")
-	cluster.CreateSCHostService("1", "2")
-	cluster.CreateSCHostService("1", "3")
-	cluster.CreateSCHostService("1", "4")
+	for i := 1; i <= cluster.MaxNumberHost; i++ {
+		cluster.CreateSCHostService("1", fmt.Sprintf("%d",i), nil)
+	}
 	fmt.Println("------")
 	fmt.Println("Adding tenant secrets")
 	// for now I'm going to add all tenants here
-	cluster.CreateTenantSecret("tenant-1")
-	cluster.CreateTenantSecret("tenant-2")
+	cluster.CreateTenantConfigMap("tenant-1")
+	//cluster.CreateTenantConfigMap("tenant-2")
 	fmt.Println("------")
 	fmt.Println("Adding Tenant services")
 	// create the main tenant service
-	cluster.CreateTenantService("tenant-1", 9001, "storage-cluster1")
-	cluster.CreateTenantService("tenant-2", 9002, "storage-cluster1")
+	cluster.CreateTenantService("tenant-1", 9001, "1")
+	//cluster.CreateTenantService("tenant-2", 9002, "1")
 
 	tenants := []cluster.Tenant{
 		{
@@ -53,26 +57,18 @@ func addStorageCluster(ctx *cli.Context) error {
 			Port:              9001,
 			StorageClusterNum: "1",
 		},
-		{
-			Name:              "tenant-2",
-			Port:              9002,
-			StorageClusterNum: "1",
-		},
+		//{
+		//	Name:              "tenant-2",
+		//	Port:              9002,
+		//	StorageClusterNum: "1",
+		//},
 	}
-
-	fmt.Println("------")
-	fmt.Println("configuring deployment")
-
-	cluster.CreateDeploymentWithTenants(tenants, "1", "1")
-	fmt.Println("------")
-	fmt.Println("configuring deployment")
-	cluster.CreateDeploymentWithTenants(tenants, "1", "2")
-	fmt.Println("------")
-	fmt.Println("configuring deployment")
-	cluster.CreateDeploymentWithTenants(tenants, "1", "3")
-	fmt.Println("------")
-	fmt.Println("configuring deployment")
-	cluster.CreateDeploymentWithTenants(tenants, "1", "4")
+	// for each host in storage clsuter, create a deployment
+	for i := 1; i <= cluster.MaxNumberHost; i++ {
+		fmt.Println("------")
+		fmt.Println("configuring deployment")
+		cluster.CreateDeploymentWithTenants(tenants, "1", fmt.Sprintf("%d", i), nil)
+	}
 
 	return nil
 }

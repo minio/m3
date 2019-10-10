@@ -13,23 +13,21 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+package cmd
 
-import { applyMiddleware, compose, createStore } from "redux"
-import reducers from "./reducers";
+import (
+	"github.com/minio/cli"
+	"github.com/minio/m3/cluster"
+)
 
+// list files and folders.
+var addTenantCmd = cli.Command{
+	Name:   "add",
+	Usage:  "add a tenant to a cluster",
+	Action: addTenant,
+}
 
-export default function configureStore(initialState) {
-    const store = createStore(
-        reducers,
-        initialState,
-        compose(
-            applyMiddleware(
-                ...[]
-            ),
-            window.__REDUX_DEVTOOLS_EXTENSION__
-                ? window.__REDUX_DEVTOOLS_EXTENSION__()
-                : f => f
-        )
-    )
-    return store
+func addTenant(ctx *cli.Context) error {
+	<-cluster.ProvisionTenantOnStorageCluster("kes", "1")
+	return nil
 }

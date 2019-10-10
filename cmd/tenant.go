@@ -13,23 +13,26 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+package cmd
 
-import { applyMiddleware, compose, createStore } from "redux"
-import reducers from "./reducers";
+import (
+	"fmt"
+	"github.com/minio/cli"
+)
 
-
-export default function configureStore(initialState) {
-    const store = createStore(
-        reducers,
-        initialState,
-        compose(
-            applyMiddleware(
-                ...[]
-            ),
-            window.__REDUX_DEVTOOLS_EXTENSION__
-                ? window.__REDUX_DEVTOOLS_EXTENSION__()
-                : f => f
-        )
-    )
-    return store
+// list files and folders.
+var tenantCmd = cli.Command{
+	Name:   "tenant",
+	Usage:  "tenant commands",
+	Action: tenantDefCmd,
+	Subcommands: []cli.Command{
+		addTenantCmd,
+	},
 }
+
+func tenantDefCmd(ctx *cli.Context) error {
+	fmt.Println("run a sub command for now")
+	return nil
+}
+
+
