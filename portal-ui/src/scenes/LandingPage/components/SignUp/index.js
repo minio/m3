@@ -1,38 +1,33 @@
 import React from 'react';
 import { compose } from 'recompose'
 import { connect } from 'react-redux';
-import NavigationBar from '../../components/NavigationBar';
 
 import './styles.css';
 
 function SignUp(props) {
   return (
     <div className="SignUp">
-      <NavigationBar />
       <div className="container">
-        <div className="row justify-content-center">
-          <p><h1>Sign Up</h1></p>
-        </div>
         <div className="row justify-content-center">
         <form>
           <div className="form-group">
-            <label for="username">Full Name</label>
+            <label htmlFor="username">Full Name</label>
             <input type="text" name="username" placeholder="Enter your full name" required className="form-control" />
           </div>
           <div className="form-group">
-            <label for="username">Organization</label>
+            <label htmlFor="organization">Organization</label>
             <input type="text" name="organization" placeholder="Enter your organization name" required className="form-control" />
           </div>
           <div className="form-group">
-            <label for="username">Email</label>
+            <label htmlFor="email">Email</label>
             <input type="text" name="email" placeholder="Enter your email address" required className="form-control" />
           </div>
           <div className="form-group">
-            <label for="username">Password</label>
-            <input type="text" name="password" placeholder="Enter your password" required className="form-control" />
+            <label htmlFor="password">Password</label>
+            <input type="password" name="password" placeholder="Enter your password" required className="form-control" />
           </div>
           <div className="form-group">
-            <label for="cardNumber">Card number</label>
+            <label htmlFor="cardNumber">Card number</label>
             <div className="input-group">
               <input type="text" name="cardNumber" placeholder="Your card number" className="form-control" required />
               <div className="input-group-append">

@@ -1,25 +1,21 @@
 import React from 'react';
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import LandingPage from './scenes/LandingPage';
-import SignUp from './scenes/SignUp';
 
 const Routes = (props) => (
  <Router {...props}>
     <Switch>
       <Route exact path="/">
-        <LandingPage />
-      </Route>
-      <Route path="/home">
-        <LandingPage />
+        <LandingPage page="home" />
       </Route>
       <Route path="/pricing">
-        <LandingPage />
+        <LandingPage page="pricing" />
       </Route>
       <Route path="/about-us">
-        <LandingPage />
+        <LandingPage page="about-us" />
       </Route>
       <Route path="/signup">
-        <SignUp />
+        <LandingPage page="signup" />
       </Route>
     </Switch>
  </Router>
