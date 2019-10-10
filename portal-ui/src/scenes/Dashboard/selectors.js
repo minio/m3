@@ -2,7 +2,7 @@ import { createSelector } from 'reselect'
 
 const getSection = (state) => state.Dashboard.section;
 
-export const getSelecteSection = createSelector(
+export const getSelectedSection = createSelector(
   [ getSection ],
   (section) => {
     return section;

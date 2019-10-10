@@ -1,8 +1,6 @@
 import React from 'react';
 import { compose, withHandlers } from 'recompose'
 import { connect } from 'react-redux';
-import { getSelecteSection } from './selectors'
-import * as sectionActionCreators from '../../actions';
 
 import './styles.css';
 
@@ -22,14 +20,14 @@ function SideBar(props) {
 }
 
 const mapStateToProps = state => ({
-  selected: getSelecteSection(state),
+
 });
 
 export default compose(
   connect(mapStateToProps),
   withHandlers({
-    dispatchSelectSection: ({ dispatch }) => section => {
-      dispatch(sectionActionCreators.select(section));
+    dispatchSelectSection: ({ dispatch, sectionActions }) => section => {
+      dispatch(sectionActions.select(section));
     },
   })
 )(SideBar);
