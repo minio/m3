@@ -30,7 +30,7 @@ func info(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Create a new MinIO Admin Client
-	client, err := newAdminClient(
+	client, err := NewAdminClient(
 		"https://play.minio.io:9000",
 		"Q3AM3UQ867SPQQA43P2F",
 		"zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG")

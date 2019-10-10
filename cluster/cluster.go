@@ -17,11 +17,16 @@ package cluster
 
 import (
 	"fmt"
+	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"strings"
+	"time"
+
 	//
 	// Uncomment to load all auth plugins
 	// _ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -44,7 +49,7 @@ func getConfig() *rest.Config {
 		// TODO: switch to using cluster DNS.
 		Host:            "http://localhost:8001",
 		TLSClientConfig: rest.TLSClientConfig{},
-		BearerToken:     "<YOUR_TOKEN>",
+		BearerToken:     "eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRhc2hib2FyZC10b2tlbi1mZ2J4NSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJkYXNoYm9hcmQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIyNGE3Mjg1OC00YjE4LTRhZDEtYjM4YS03ZTA2NGM2ODI1ZmEiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6ZGVmYXVsdDpkYXNoYm9hcmQifQ.OTj-gB3OnDA5yDmtRZVF9wxMx-6fT1o3vSmd_lZrCpddTBgSkUb2vnaB8eVDQ_DKN2fHsnWw6JvZoPftJ27gKVZ_dAM_21XwgUJy72_lhI_XLinGcx5TAqObxhLp5-YlCTQPDbVEW56DUs59mvx2KKaYeeS7KE-ORYN4wpH6ecZnhUR7_jhSdJAb9MBp3reUU6Iou2YDfEHtHgrSoF7EpZrQME8zjtTQE0Fkl6YavKA1zjHMg-yKuiFRjLkKcrcXyYa_j4lFXL_ZGEICy94FsjGAPv4iwCqZW9ruTU9EX0B0BbG4xGYEZfgG6B5iqIUdleYzHl86eSpWQMS5H5xguQ",
 		BearerTokenFile: "some/file",
 	}
 
@@ -73,7 +78,7 @@ func ListPods() {
 }
 
 //Creates a headless service that will point to a specific node inside a storage cluster
-func CreateSCHostService(storageClusterNum string, hostNum string) {
+func CreateSCHostService(storageClusterNum string, hostNum string, prefix *string) {
 	config := getConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
@@ -81,7 +86,12 @@ func CreateSCHostService(storageClusterNum string, hostNum string) {
 		panic(err.Error())
 	}
 
-	serviceName := fmt.Sprintf("sc-%s-host-%s", storageClusterNum, hostNum)
+	servicePrefix := ""
+	if prefix != nil {
+		servicePrefix = *prefix
+	}
+
+	serviceName := fmt.Sprintf("%ssc-%s-host-%s", servicePrefix, storageClusterNum, hostNum)
 
 	scSvc := v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -160,8 +170,8 @@ func CreateSCHostService(storageClusterNum string, hostNum string) {
 			Selector: map[string]string{
 				"app": serviceName,
 			},
-			ClusterIP:                "None",
-			PublishNotReadyAddresses: true,
+			ClusterIP: "None",
+			//PublishNotReadyAddresses: true,
 		},
 	}
 
@@ -174,7 +184,7 @@ func CreateSCHostService(storageClusterNum string, hostNum string) {
 }
 
 //Creates a the "secrets" of a tenant, for now it's just a plain configMap, but it should be upgraded to secret
-func CreateTenantSecret(tenantShortName string) {
+func CreateTenantConfigMap(tenantShortName string) {
 	config := getConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
@@ -280,7 +290,7 @@ const (
 )
 
 //Creates a service that will resolve to any of the hosts within the storage cluster this tenant lives in
-func CreateDeploymentWithTenants(tenants []Tenant, storageClusterNum string, hostNum string) {
+func CreateDeploymentWithTenants(tenants []Tenant, storageClusterNum string, hostNum string, prefix *string) {
 	config := getConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
@@ -288,7 +298,12 @@ func CreateDeploymentWithTenants(tenants []Tenant, storageClusterNum string, hos
 		panic(err.Error())
 	}
 
-	scHostName := fmt.Sprintf("sc-%s-host-%s", storageClusterNum, hostNum)
+	deploymentPrefix := ""
+	if prefix != nil {
+		deploymentPrefix = *prefix
+	}
+
+	scHostName := fmt.Sprintf("%ssc-%s-host-%s", deploymentPrefix, storageClusterNum, hostNum)
 	var replicas int32 = 1
 
 	mainPodSpec := v1.PodSpec{
@@ -299,17 +314,19 @@ func CreateDeploymentWithTenants(tenants []Tenant, storageClusterNum string, hos
 
 	for i := range tenants {
 		tenant := tenants[i]
+		envName := fmt.Sprintf("%s%s-env", deploymentPrefix, tenant.Name)
 		volumeMounts := []v1.VolumeMount{}
 		tenantContainer := v1.Container{
-			Name:            fmt.Sprintf("%s-minio-%s", tenant.Name, hostNum),
-			Image:           "minio/minio:RELEASE.2019-09-26T19-42-35Z",
-			ImagePullPolicy: "IfNotPresent",
+			Name: fmt.Sprintf("%s-minio-%s", tenant.Name, hostNum),
+			Image:           "minio/minio:edge",
+			ImagePullPolicy: "Always",
 			Args: []string{
 				"server",
 				"--address",
 				fmt.Sprintf(":%d", tenant.Port),
 				fmt.Sprintf(
-					"http://sc-%s-host-{1...%d}:%d/mnt/tdisk{1...%d}",
+					"http://%ssc-%s-host-{1...%d}:%d/mnt/tdisk{1...%d}",
+					deploymentPrefix,
 					storageClusterNum,
 					MaxNumberHost,
 					tenant.Port,
@@ -324,9 +341,21 @@ func CreateDeploymentWithTenants(tenants []Tenant, storageClusterNum string, hos
 			EnvFrom: []v1.EnvFromSource{
 				{
 					ConfigMapRef: &v1.ConfigMapEnvSource{
-						LocalObjectReference: v1.LocalObjectReference{Name: fmt.Sprintf("%s-env", tenant.Name)},
+						LocalObjectReference: v1.LocalObjectReference{Name: envName},
 					},
 				},
+			},
+			LivenessProbe: &v1.Probe{
+				Handler: v1.Handler{
+					HTTPGet: &v1.HTTPGetAction{
+						Path: "/minio/health/live",
+						Port: intstr.IntOrString{
+							IntVal: tenant.Port,
+						},
+					},
+				},
+				InitialDelaySeconds: 120,
+				PeriodSeconds:       20,
 			},
 		}
 		//volumes that will be used by this tenant
@@ -372,4 +401,168 @@ func CreateDeploymentWithTenants(tenants []Tenant, storageClusterNum string, hos
 	fmt.Println("done creating storage cluster deploymenty ")
 	fmt.Println(res.String())
 
+}
+
+// spins up the tenant on the target storage cluster, waits for it to start, then shuts it down
+func ProvisionTenantOnStorageCluster(tenantName string, storageClusterNum string) chan interface{} {
+	ch := make(chan interface{})
+	go func() {
+		defer close(ch)
+		// create the tenant folder on each node via job
+		config := getConfig()
+		// creates the clientset
+		clientset, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		// start the jobs that create the tenant folder on each disk on each node of the storage cluster
+		var jobChs []chan interface{}
+		for i := 1; i <= MaxNumberHost; i++ {
+			jobCh := CreateTenantFolderInDiskAndWait(tenantName, storageClusterNum, i)
+			jobChs = append(jobChs, jobCh)
+		}
+		// wait for all the jobs to complete
+		for chi := range jobChs {
+			<-jobChs[chi]
+		}
+		CreateTenantConfigMap(tenantName)
+		CreateTenantService(tenantName, 9002, "1")
+		tenants := []Tenant{
+			{
+				Name:              "tenant-1",
+				Port:              9001,
+				StorageClusterNum: "1",
+			},
+			{
+				Name:              tenantName,
+				Port:              9002,
+				StorageClusterNum: "1",
+			},
+		}
+		// for each host in storage clsuter, create a deployment
+		for i := 1; i <= MaxNumberHost; i++ {
+			fmt.Println("------")
+			fmt.Println("configuring deployment")
+			scHostName := fmt.Sprintf("sc-%s-host-%d", storageClusterNum, i)
+			err = clientset.AppsV1().Deployments("default").Delete(scHostName, nil)
+			if err != nil {
+				fmt.Println("deleting deployment")
+				fmt.Println(err)
+			} else {
+				fmt.Println("ok delete deployment")
+			}
+			CreateDeploymentWithTenants(tenants, "1", fmt.Sprintf("%d", i), nil)
+			// wait for the deployment to come online
+		}
+
+	}()
+	return ch
+}
+
+func CreateTenantFolderInDiskAndWait(tenantName string, storageClusterNum string, hostNumber int) chan interface{} {
+	ch := make(chan interface{})
+	go func() {
+		defer close(ch)
+		// create the tenant folder on each node via job
+		config := getConfig()
+		// creates the clientset
+		clientset, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			panic(err.Error())
+		}
+		var backoff int32 = 0
+		var ttlJob int32 = 60
+
+		jobName := fmt.Sprintf("provision-sc-%s-host-%d-%s-job", storageClusterNum, hostNumber, tenantName)
+		job := batchv1.Job{
+			TypeMeta: metav1.TypeMeta{
+				Kind: "Job",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: jobName,
+			},
+			Spec: batchv1.JobSpec{
+				TTLSecondsAfterFinished: &ttlJob,
+				BackoffLimit:            &backoff,
+				Template: v1.PodTemplateSpec{
+					Spec: v1.PodSpec{
+						Volumes:       nil,
+						Containers:    nil,
+						RestartPolicy: "Never",
+						NodeSelector: map[string]string{
+							"kubernetes.io/hostname": nodeNameForSCHostNum(storageClusterNum, fmt.Sprintf("%d", hostNumber)),
+						},
+					},
+				},
+			},
+		}
+
+		volumeMounts := []v1.VolumeMount{}
+		jobContainer := v1.Container{
+			Name:  jobName,
+			Image: "ubuntu",
+			Command: []string{
+				"/bin/sh",
+				"-c",
+			},
+
+			ImagePullPolicy: "IfNotPresent",
+		}
+
+		var commands []string
+
+		//volumes that will be used by this tenant
+		for vi := 1; vi <= MaxNumberDiskPerNode; vi++ {
+			vName := fmt.Sprintf("%s-pv-%d", tenantName, vi)
+			volumeSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: fmt.Sprintf("/mnt/disk%d", vi)}}
+			hostPathVolume := v1.Volume{Name: vName, VolumeSource: volumeSource}
+			job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, hostPathVolume)
+
+			commands = append(commands, fmt.Sprintf("mkdir -p /mnt/hdisk%d/%s", vi, tenantName))
+
+			mount := v1.VolumeMount{
+				Name:      vName,
+				MountPath: fmt.Sprintf("/mnt/hdisk%d", vi),
+			}
+			volumeMounts = append(volumeMounts, mount)
+		}
+		finalMkdirCommand := strings.Join(commands, " && ")
+		jobContainer.Args = []string{finalMkdirCommand}
+		jobContainer.VolumeMounts = volumeMounts
+
+		job.Spec.Template.Spec.Containers = append(job.Spec.Template.Spec.Containers, jobContainer)
+
+		fmt.Println("sending job")
+		//joby, _ := yaml.Marshal(job)
+		//fmt.Println(string(joby))
+
+		res, err := clientset.BatchV1().Jobs("default").Create(&job)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(res)
+		//now sit and wait for the job to complete before returning
+		for {
+			status, err := clientset.BatchV1().Jobs("default").Get(jobName, metav1.GetOptions{});
+			if err != nil {
+				panic(err)
+			}
+			// if completitions above 1 job is complete
+			if *status.Spec.Completions > 0 {
+				// we are done here
+				//return
+				break
+			}
+			//TODO: we should probably timeout after a while :P
+			time.Sleep(300 * time.Millisecond)
+		}
+		// job cleanup
+		err = clientset.BatchV1().Jobs("default").Delete(jobName, nil);
+		if err != nil {
+			fmt.Println("error deleting job")
+			fmt.Println(err)
+		}
+	}()
+	return ch
 }
