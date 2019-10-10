@@ -13,21 +13,45 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package cmd
+package main
 
 import (
+	"fmt"
 	"github.com/minio/cli"
-	"github.com/minio/minio/pkg/trie"
+	"os"
+	"path/filepath"
 )
 
-// Collection of mcs commands currently supported
-var commands = []cli.Command{}
+var appCmds = []cli.Command{
+	portalCmd,
+	clusterCmd,
+	tenantCmd,
+}
 
-// Collection of mcs commands currently supported in a trie tree
-var commandsTree = trie.NewTrie()
+func main() {
+	args := os.Args
+	// Set the mcs app name.
+	appName := filepath.Base(args[0])
+	// Run the app - exit on error.
+	if err := registerApp(appName).Run(args); err != nil {
+		os.Exit(1)
+	}
+}
 
-// registerCmd registers a cli command
-func registerCmd(cmd cli.Command) {
-	commands = append(commands, cmd)
-	commandsTree.Insert(cmd.Name)
+func registerApp(name string) *cli.App {
+	// register commands
+	for _, cmd := range appCmds {
+		registerCmd(cmd)
+	}
+
+	app := cli.NewApp()
+	app.Name = "m3"
+	app.Usage = "Starts MinIO Kubernetes Cloud"
+	app.Commands = commands
+	app.Action = func(c *cli.Context) error {
+		fmt.Println(app.Name + " started")
+		return nil
+	}
+
+	return app
 }
