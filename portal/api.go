@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package portal
 
 import (
@@ -32,15 +33,15 @@ func StartApiPortal() {
 
 func registerRoutes() *mux.Router {
 	router := mux.NewRouter().SkipClean(true)
-	registerAppRoutes(router)
+	registerApiRoutes(router)
 	registerAdminRoutes(router)
 	registerBucketRoutes(router)
 	return router
 }
 
-func registerAppRoutes(router *mux.Router) {
+func registerApiRoutes(router *mux.Router) {
 	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
-	apiRouter.Methods("GET").Path("/api/version/").HandlerFunc(AppVersion)
+	apiRouter.Methods("GET").Path("/api/version/").HandlerFunc(ApiVersion)
 }
 
 func registerAdminRoutes(router *mux.Router) {

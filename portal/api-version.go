@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package portal
 
 import (
@@ -21,12 +22,14 @@ import (
 	"net/http"
 )
 
+const Version = `1.0.0`
+
 // Compiler checks
 var (
-	_ http.HandlerFunc = AppVersion
+	_ http.HandlerFunc = ApiVersion
 )
 
-func AppVersion(w http.ResponseWriter, r *http.Request) {
+func ApiVersion(w http.ResponseWriter, r *http.Request) {
 	// TODO: Read version from somewhere
 	v := Version
 	// Serialize and output
