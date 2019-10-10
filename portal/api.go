@@ -32,10 +32,26 @@ func StartApiPortal() {
 
 func registerRoutes() *mux.Router {
 	router := mux.NewRouter().SkipClean(true)
-	VersionRoutes(router)
-	AdminInfoRoutes(router)
-	ClientBucketRoutes(router)
+	registerAppRoutes(router)
+	registerAdminRoutes(router)
+	registerBucketRoutes(router)
 	return router
+}
+
+func registerAppRoutes(router *mux.Router) {
+	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
+	apiRouter.Methods("GET").Path("/api/version/").HandlerFunc(AppVersion)
+}
+
+func registerAdminRoutes(router *mux.Router) {
+	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
+	apiRouter.Methods("GET").Path("/api/admin/info").HandlerFunc(AdminServerInfo)
+}
+
+func registerBucketRoutes (router *mux.Router) {
+	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
+	apiRouter.Methods("GET").Path("/api/bucket/").HandlerFunc(ListBuckets)
+	apiRouter.Methods("GET").Path("/api/bucket/{bucketName}").HandlerFunc(ListObjects)
 }
 
 
