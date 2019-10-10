@@ -9,7 +9,8 @@ import Buckets from './components/Buckets';
 import Users from './components/Users';
 import Billing from './components/Billing';
 
-import { getSelecteSection } from './components/SideBar/selectors'
+import { getSelectedSection } from './selectors'
+import * as sectionActionCreators from './actions';
 
 import './styles.css';
 
@@ -27,7 +28,7 @@ function Dashboard(props) {
       <div className="container-fluid">
         <div className="row">
           <div className="col-sm-2">
-            <SideBar />
+            <SideBar sectionActions={sectionActionCreators} />
           </div>
           <div className="col-sm-10">
             { sections[props.selected] || <Metrics /> }
@@ -39,7 +40,7 @@ function Dashboard(props) {
 }
 
 const mapStateToProps = state => ({
-  selected: getSelecteSection(state),
+  selected: getSelectedSection(state),
 });
 
 export default compose(
