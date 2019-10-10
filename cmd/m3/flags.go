@@ -13,21 +13,21 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package cmd
+package main
 
 import (
 	"github.com/minio/cli"
-	"github.com/minio/m3/cluster"
+	"github.com/minio/minio/pkg/trie"
 )
 
-// list files and folders.
-var addTenantCmd = cli.Command{
-	Name:   "add",
-	Usage:  "add a tenant to a cluster",
-	Action: addTenant,
-}
+// Collection of mcs commands currently supported
+var commands = []cli.Command{}
 
-func addTenant(ctx *cli.Context) error {
-	<-cluster.ProvisionTenantOnStorageCluster("kes", "1")
-	return nil
+// Collection of mcs commands currently supported in a trie tree
+var commandsTree = trie.NewTrie()
+
+// registerCmd registers a cli command
+func registerCmd(cmd cli.Command) {
+	commands = append(commands, cmd)
+	commandsTree.Insert(cmd.Name)
 }
