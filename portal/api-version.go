@@ -23,31 +23,18 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func AdminInfoRoutes(router *mux.Router) {
+func VersionRoutes(router *mux.Router) {
 	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
-	apiRouter.Methods("GET").Path("/api/admin/info").HandlerFunc(info)
+	apiRouter.Methods("GET").Path("/api/version/").HandlerFunc(version)
 }
 
-func info(w http.ResponseWriter, r *http.Request) {
-	if validRequest(w, r) == false {
-		return
+func version(w http.ResponseWriter, r *http.Request) {
+	// TODO: Read version from somewhere
+	v := Version
+	// Serialize and output
+	output, err := json.Marshal(v)
+	if err != nil {
+		log.Fatal("Cannot Marshal error")
 	}
-	// Create a new MinIO Admin Client
-	client, err := NewAdminClient(
-		"https://play.minio.io:9000",
-		"Q3AM3UQ867SPQQA43P2F",
-		"zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG")
-	fatalIf(err, "Unable to initialize admin connection.")
-
-	// Fetch info of all servers (cluster or single server)
-	serverInfo, errProbe := client.ServerInfo()
-	if errProbe != nil {
-		log.Println(errProbe)
-	}
-	output, err2 := json.Marshal(serverInfo)
-	if err2 != nil {
-		log.Println(err)
-	}
-
 	w.Write(output)
 }
