@@ -318,8 +318,7 @@ func CreateDeploymentWithTenants(tenants []Tenant, storageClusterNum string, hos
 		volumeMounts := []v1.VolumeMount{}
 		tenantContainer := v1.Container{
 			Name: fmt.Sprintf("%s-minio-%s", tenant.Name, hostNum),
-			//Image:           "minio/minio:RELEASE.2019-10-02T21-19-38Z",
-			Image:           "y4m4/minio:dsync-2",
+			Image:           "minio/minio:edge",
 			ImagePullPolicy: "Always",
 			Args: []string{
 				"server",
