@@ -25,12 +25,12 @@ jobs:
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v1
-     
+
       - name: Build on ${{ matrix.os }}
         env:
           GO111MODULE: on
         run: |
-          diff -au <(gofmt -d *.go) <(printf "")
+          diff -au <(gofmt -d cluster) <(printf "")
           diff -au <(gofmt -d cmd) <(printf "")
-          diff -au <(gofmt -d pkg) <(printf "")
+          diff -au <(gofmt -d portal) <(printf "")
           go test -v -race ./...
