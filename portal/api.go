@@ -40,7 +40,7 @@ func registerRoutes() *mux.Router {
 
 func registerAppRoutes(router *mux.Router) {
 	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
-	apiRouter.Methods("GET").Path("/api/version/").HandlerFunc(AppVersion)
+	apiRouter.Methods("GET").Path("/api/version/").HandlerFunc(APIVersion)
 }
 
 func registerAdminRoutes(router *mux.Router) {
@@ -48,12 +48,11 @@ func registerAdminRoutes(router *mux.Router) {
 	apiRouter.Methods("GET").Path("/api/admin/info").HandlerFunc(AdminServerInfo)
 }
 
-func registerBucketRoutes (router *mux.Router) {
+func registerBucketRoutes(router *mux.Router) {
 	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
 	apiRouter.Methods("GET").Path("/api/bucket/").HandlerFunc(ListBuckets)
 	apiRouter.Methods("GET").Path("/api/bucket/{bucketName}").HandlerFunc(ListObjects)
 }
-
 
 func validRequest(w http.ResponseWriter, r *http.Request) bool {
 	if r.Method != "POST" {
