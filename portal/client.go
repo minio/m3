@@ -19,6 +19,7 @@ package portal
 import (
 	"github.com/minio/minio-go/v6"
 )
+
 // Config - see http://docs.amazonwebservices.com/AmazonS3/latest/dev/index.html?RESTAuthentication.html
 type Config struct {
 	AccessKey   string

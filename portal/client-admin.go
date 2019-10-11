@@ -18,15 +18,16 @@ package portal
 
 import (
 	"crypto/tls"
-	"github.com/minio/mc/pkg/httptracer"
-	"github.com/minio/mc/pkg/probe"
-	"github.com/minio/minio/pkg/madmin"
 	"hash/fnv"
 	"net"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
+
+	"github.com/minio/mc/pkg/httptracer"
+	"github.com/minio/mc/pkg/probe"
+	"github.com/minio/minio/pkg/madmin"
 )
 
 // newAdminFactory encloses New function with client cache.
@@ -105,8 +106,9 @@ func newAdminFactory() func(config *Config) (*madmin.AdminClient, *probe.Error) 
 		return api, nil
 	}
 }
+
 // NewAdminClient gives a new client interface
-func NewAdminClient(url string,accessKey string, secretKey string) (*madmin.AdminClient, *probe.Error) {
+func NewAdminClient(url string, accessKey string, secretKey string) (*madmin.AdminClient, *probe.Error) {
 	hostCfg := hostConfigV9{
 		URL:       url,
 		AccessKey: accessKey,
@@ -127,4 +129,3 @@ func NewAdminClient(url string,accessKey string, secretKey string) (*madmin.Admi
 // s3AdminNew returns an initialized minioAdmin structure. If debug is enabled,
 // it also enables an internal trace transport.
 var s3AdminNew = newAdminFactory()
-

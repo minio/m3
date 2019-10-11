@@ -19,11 +19,12 @@ package portal
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"unicode"
+
 	"github.com/minio/cli"
 	"github.com/minio/mc/pkg/console"
 	"github.com/minio/mc/pkg/probe"
-	"strings"
-	"unicode"
 )
 
 // causeMessage container for golang error messages

@@ -18,12 +18,13 @@ package portal
 
 import (
 	"crypto/tls"
-	"github.com/minio/mc/pkg/console"
-	"github.com/minio/minio-go/v6"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/minio/mc/pkg/console"
+	"github.com/minio/minio-go/v6"
 )
 
 // newS3Config simply creates a new Config struct using the passed
@@ -48,7 +49,6 @@ func newS3Config(urlStr string, hostCfg *hostConfigV9) *Config {
 	s3Config.Lookup = getLookupType(hostCfg.Lookup)
 	return s3Config
 }
-
 
 // getLookupType returns the minio.BucketLookupType for lookup
 // option entered on the command line

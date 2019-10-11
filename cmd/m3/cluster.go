@@ -35,5 +35,3 @@ func listPodsCmd(ctx *cli.Context) error {
 	cluster.ListPods()
 	return nil
 }
-
-

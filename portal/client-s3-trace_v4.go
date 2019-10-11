@@ -17,12 +17,13 @@
 package portal
 
 import (
-	"github.com/minio/mc/pkg/console"
-	"github.com/minio/mc/pkg/httptracer"
 	"net/http"
 	"net/http/httputil"
 	"regexp"
 	"strings"
+
+	"github.com/minio/mc/pkg/console"
+	"github.com/minio/mc/pkg/httptracer"
 )
 
 // traceV4 - tracing structure for signature version '4'.
