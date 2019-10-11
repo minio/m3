@@ -18,9 +18,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/minio/cli"
 	"os"
 	"path/filepath"
+
+	"github.com/minio/cli"
 )
 
 var appCmds = []cli.Command{

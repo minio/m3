@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/minio/cli"
 	"github.com/minio/m3/cluster"
 )
@@ -35,11 +36,10 @@ func addStorageCluster(ctx *cli.Context) error {
 	//	return nil
 	//}
 
-
 	fmt.Println("------")
 	fmt.Println("Adding SC Services")
 	for i := 1; i <= cluster.MaxNumberHost; i++ {
-		cluster.CreateSCHostService("1", fmt.Sprintf("%d",i), nil)
+		cluster.CreateSCHostService("1", fmt.Sprintf("%d", i), nil)
 	}
 	fmt.Println("------")
 	fmt.Println("Adding tenant secrets")
