@@ -13,48 +13,24 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 package main
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-
 	"github.com/minio/cli"
+	"github.com/minio/m3/cluster"
 )
 
-var appCmds = []cli.Command{
-	portalCmd,
-	clusterCmd,
-	tenantCmd,
-	setupCmd,
+// list files and folders.
+var setupCmd = cli.Command{
+	Name:   "setup",
+	Usage:  "Setups the m3 cluster",
+	Action: setupDefCmd,
+	Subcommands: []cli.Command {
+		setupDbCmd,
+	},
 }
 
-func main() {
-	args := os.Args
-	// Set the mcs app name.
-	appName := filepath.Base(args[0])
-	// Run the app - exit on error.
-	if err := registerApp(appName).Run(args); err != nil {
-		os.Exit(1)
-	}
-}
-
-func registerApp(name string) *cli.App {
-	// register commands
-	for _, cmd := range appCmds {
-		registerCmd(cmd)
-	}
-
-	app := cli.NewApp()
-	app.Name = name
-	app.Usage = "Starts MinIO Kubernetes Cloud"
-	app.Commands = commands
-	app.Action = func(c *cli.Context) error {
-		fmt.Println(app.Name + " started")
-		return nil
-	}
-
-	return app
+func setupDefCmd(ctx *cli.Context) error {
+	cluster.SetupM3()
+	return nil
 }
