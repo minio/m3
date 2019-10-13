@@ -17,6 +17,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/minio/cli"
 	"github.com/minio/m3/cluster"
 )
@@ -26,9 +27,37 @@ var addTenantCmd = cli.Command{
 	Name:   "add",
 	Usage:  "add a tenant to a cluster",
 	Action: addTenant,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "name",
+			Value: "",
+			Usage: "Name of the tenant",
+		},
+		cli.StringFlag{
+			Name:  "short_name",
+			Value: "",
+			Usage: "Short tenant name. this is the official string identifier of the tenant.",
+		},
+	},
 }
 
 func addTenant(ctx *cli.Context) error {
-	<-cluster.ProvisionTenantOnStorageCluster("kes", "1")
+	name := ctx.String("name")
+	shortName := ctx.String("short_name")
+	if name == "" || shortName == "" {
+		fmt.Println("You must provide tenant name and short name.")
+		return nil
+	}
+	fmt.Println("adding tenant!", name, shortName)
+
+	// register the tenant
+
+	tenant := <-cluster.AddTenant(name, shortName)
+	fmt.Println(fmt.Sprintf("Registered as tenant %d\n", tenant.Id))
+
+	// find a cluster where to allocate the tenant
+
+	// provision the tenant on that cluster
+	<-cluster.ProvisionTenantOnStorageCluster(tenant.ShortName, "1")
 	return nil
 }
