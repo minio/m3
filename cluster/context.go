@@ -26,7 +26,7 @@ import (
 // rolled back.
 type Context struct {
 	*sql.Tx
-	Main *context.Context
+	Main context.Context
 }
 
 // Creates a new `Context` given an initial transaction and `context.Context`
