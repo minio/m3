@@ -282,7 +282,7 @@ const (
 )
 
 //Creates a service that will resolve to any of the hosts within the storage cluster this tenant lives in
-func CreateDeploymentWithTenants(tenants []*StorageClusterTenant, storageClusterNum string, hostNum string, prefix *string) {
+func CreateDeploymentWithTenants(tenants []*StorageClusterTenant, storageClusterNum, hostNum, prefix *string) {
 	config := getConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
