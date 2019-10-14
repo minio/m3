@@ -17,6 +17,7 @@
 package cluster
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -186,12 +187,12 @@ func CreateSCHostService(storageClusterNum string, hostNum string, prefix *strin
 }
 
 // Creates a the "secrets" of a tenant, for now it's just a plain configMap, but it should be upgraded to secret
-func CreateTenantConfigMap(tenant *Tenant) {
+func CreateTenantConfigMap(tenant *Tenant) error {
 	config := getConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 
 	secretsName := fmt.Sprintf("%s-env", tenant.ShortName)
@@ -211,16 +212,16 @@ func CreateTenantConfigMap(tenant *Tenant) {
 
 	res, err := clientset.CoreV1().ConfigMaps("default").Create(&configMap)
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 	if res.Name == "" {
-		fmt.Println("Error adding config map")
+		return errors.New("error adding config map to kubernetes")
 	}
-
+	return nil
 }
 
 //Creates a service that will resolve to any of the hosts within the storage cluster this tenant lives in
-func CreateTenantService(tenantName string, tenantPort int32, storageClusterNum string) {
+func CreateTenantService(sct *StorageClusterTenant) {
 	config := getConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
@@ -230,20 +231,20 @@ func CreateTenantService(tenantName string, tenantPort int32, storageClusterNum 
 
 	scSvc := v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: tenantName,
+			Name: sct.ShortName,
 			Labels: map[string]string{
-				"name": tenantName,
+				"name": sct.ShortName,
 			},
 		},
 		Spec: v1.ServiceSpec{
 			Ports: []v1.ServicePort{
 				{
 					Name: "http",
-					Port: tenantPort,
+					Port: sct.Port,
 				},
 			},
 			Selector: map[string]string{
-				"sc": fmt.Sprintf("storage-cluster-%s", storageClusterNum),
+				"sc": fmt.Sprintf("storage-cluster-%d", sct.StorageClusterId),
 			},
 		},
 	}
@@ -256,12 +257,7 @@ func CreateTenantService(tenantName string, tenantPort int32, storageClusterNum 
 
 }
 
-type SCTenant struct {
-	Name string
-	Port int32
-}
-
-func nodeNameForSCHostNum(hostNum string) string {
+func nodeNameForSCHostNum(sc *StorageCluster, hostNum string) string {
 	switch hostNum {
 	case "1":
 		return "m3cluster-worker"
@@ -282,31 +278,27 @@ const (
 )
 
 //Creates a service that will resolve to any of the hosts within the storage cluster this tenant lives in
-func CreateDeploymentWithTenants(tenants []*StorageClusterTenant, storageClusterNum, hostNum, prefix *string) {
+// This will create a deployment for the provided `StorageCluster` using the provided list of `StorageClusterTenant`
+func CreateDeploymentWithTenants(tenants []*StorageClusterTenant, sc *StorageCluster, hostNum string) error {
 	config := getConfig()
-	// creates the clientset
+	// creates the clientset to interact with kubernetes
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 
-	deploymentPrefix := ""
-	if prefix != nil {
-		deploymentPrefix = *prefix
-	}
-
-	scHostName := fmt.Sprintf("%ssc-%s-host-%s", deploymentPrefix, storageClusterNum, hostNum)
+	scHostName := fmt.Sprintf("sc-%d-host-%s", sc.Id, hostNum)
 	var replicas int32 = 1
 
 	mainPodSpec := v1.PodSpec{
 		NodeSelector: map[string]string{
-			"kubernetes.io/hostname": nodeNameForSCHostNum(hostNum),
+			"kubernetes.io/hostname": nodeNameForSCHostNum(sc, hostNum),
 		},
 	}
 
 	for i := range tenants {
 		tenant := tenants[i]
-		envName := fmt.Sprintf("%s%s-env", deploymentPrefix, tenant.ShortName)
+		envName := fmt.Sprintf("%s-env", tenant.ShortName)
 		volumeMounts := []v1.VolumeMount{}
 		tenantContainer := v1.Container{
 			Name:            fmt.Sprintf("%s-minio-%s", tenant.Name, hostNum),
@@ -317,9 +309,8 @@ func CreateDeploymentWithTenants(tenants []*StorageClusterTenant, storageCluster
 				"--address",
 				fmt.Sprintf(":%d", tenant.Port),
 				fmt.Sprintf(
-					"http://%ssc-%s-host-{1...%d}:%d/mnt/tdisk{1...%d}",
-					deploymentPrefix,
-					storageClusterNum,
+					"http://sc-%d-host-{1...%d}:%d/mnt/tdisk{1...%d}",
+					sc.Id,
 					MaxNumberHost,
 					tenant.Port,
 					MaxNumberDiskPerNode),
@@ -378,7 +369,7 @@ func CreateDeploymentWithTenants(tenants []*StorageClusterTenant, storageCluster
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app": scHostName,
-						"sc":  fmt.Sprintf("storage-cluster-%s", storageClusterNum),
+						"sc":  fmt.Sprintf("storage-cluster-%d", sc.Id),
 					},
 				},
 				Spec: mainPodSpec,
@@ -388,10 +379,12 @@ func CreateDeploymentWithTenants(tenants []*StorageClusterTenant, storageCluster
 
 	res, err := clientset.ExtensionsV1beta1().Deployments("default").Create(&deployment)
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
-	fmt.Println("done creating storage cluster deployment %s \n", res.Name)
-
+	if res.Name == "" {
+		return errors.New("error creating the deployment on kubernetes")
+	}
+	return nil
 }
 
 // spins up the tenant on the target storage cluster, waits for it to start, then shuts it down
@@ -400,9 +393,9 @@ func ProvisionTenantOnStorageCluster(ctx *Context, tenant *Tenant, sc *StorageCl
 	go func() {
 		defer close(ch)
 		if tenant == nil || sc == nil {
+			ch <- errors.New("nil Tenant or StorageCluster passed")
 			return
 		}
-		storageClusterNum := fmt.Sprintf("%d", sc.Id)
 		// assign the tenant to the storage cluster
 		scTenantResult := <-createTenantInStorageCluster(ctx, tenant, sc)
 		if scTenantResult.Error != nil {
@@ -412,7 +405,7 @@ func ProvisionTenantOnStorageCluster(ctx *Context, tenant *Tenant, sc *StorageCl
 		// start the jobs that create the tenant folder on each disk on each node of the storage cluster
 		var jobChs []chan interface{}
 		for i := 1; i <= MaxNumberHost; i++ {
-			jobCh := CreateTenantFolderInDiskAndWait(tenant.Name, storageClusterNum, i)
+			jobCh := CreateTenantFolderInDiskAndWait(tenant, sc, i)
 			jobChs = append(jobChs, jobCh)
 		}
 		// wait for all the jobs to complete
@@ -420,7 +413,7 @@ func ProvisionTenantOnStorageCluster(ctx *Context, tenant *Tenant, sc *StorageCl
 			<-jobChs[chi]
 		}
 
-		CreateTenantService(scTenantResult.ServiceName, scTenantResult.Port, storageClusterNum)
+		CreateTenantService(scTenantResult.StorageClusterTenant)
 
 		// call for the storage cluster to refresh
 		err := <-ReDeployStorageCluster(ctx, sc)
@@ -433,7 +426,7 @@ func ProvisionTenantOnStorageCluster(ctx *Context, tenant *Tenant, sc *StorageCl
 	return ch
 }
 
-func CreateTenantFolderInDiskAndWait(tenantName string, storageClusterNum string, hostNumber int) chan interface{} {
+func CreateTenantFolderInDiskAndWait(tenant *Tenant, sc *StorageCluster, hostNumber int) chan interface{} {
 	ch := make(chan interface{})
 	go func() {
 		defer close(ch)
@@ -447,7 +440,7 @@ func CreateTenantFolderInDiskAndWait(tenantName string, storageClusterNum string
 		var backoff int32 = 0
 		var ttlJob int32 = 60
 
-		jobName := fmt.Sprintf("provision-sc-%s-host-%d-%s-job", storageClusterNum, hostNumber, tenantName)
+		jobName := fmt.Sprintf("provision-sc-%d-host-%d-%s-job", sc.Id, hostNumber, tenant.Name)
 		job := batchv1.Job{
 			TypeMeta: metav1.TypeMeta{
 				Kind: "Job",
@@ -464,7 +457,7 @@ func CreateTenantFolderInDiskAndWait(tenantName string, storageClusterNum string
 						Containers:    nil,
 						RestartPolicy: "Never",
 						NodeSelector: map[string]string{
-							"kubernetes.io/hostname": nodeNameForSCHostNum(fmt.Sprintf("%d", hostNumber)),
+							"kubernetes.io/hostname": nodeNameForSCHostNum(sc, fmt.Sprintf("%d", hostNumber)),
 						},
 					},
 				},
@@ -487,12 +480,12 @@ func CreateTenantFolderInDiskAndWait(tenantName string, storageClusterNum string
 
 		//volumes that will be used by this tenant
 		for vi := 1; vi <= MaxNumberDiskPerNode; vi++ {
-			vName := fmt.Sprintf("%s-pv-%d", tenantName, vi)
+			vName := fmt.Sprintf("%s-pv-%d", tenant.ShortName, vi)
 			volumeSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: fmt.Sprintf("/mnt/disk%d", vi)}}
 			hostPathVolume := v1.Volume{Name: vName, VolumeSource: volumeSource}
 			job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, hostPathVolume)
 
-			commands = append(commands, fmt.Sprintf("mkdir -p /mnt/hdisk%d/%s", vi, tenantName))
+			commands = append(commands, fmt.Sprintf("mkdir -p /mnt/hdisk%d/%s", vi, tenant.ShortName))
 
 			mount := v1.VolumeMount{
 				Name:      vName,
@@ -535,6 +528,7 @@ func CreateTenantFolderInDiskAndWait(tenantName string, storageClusterNum string
 	return ch
 }
 
+// Based on the current list of tenants for the `StorageCluster` it re-deploys it.
 func ReDeployStorageCluster(ctx *Context, sc *StorageCluster) chan error {
 	ch := make(chan error)
 	go func() {
@@ -567,11 +561,14 @@ func ReDeployStorageCluster(ctx *Context, sc *StorageCluster) chan error {
 					return
 				}
 			}
-			CreateDeploymentWithTenants(
+			err = CreateDeploymentWithTenants(
 				tenants,
-				fmt.Sprintf("%d", sc.Id),
-				fmt.Sprintf("%d", i),
-				nil)
+				sc,
+				fmt.Sprintf("%d", i))
+			if err != nil {
+				ch <- err
+				return
+			}
 			// TODO: wait for the deployment to come online before replacing the next deployment
 		}
 	}()
