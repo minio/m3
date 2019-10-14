@@ -185,7 +185,7 @@ func CreateSCHostService(storageClusterNum string, hostNum string, prefix *strin
 	return nil
 }
 
-//Creates a the "secrets" of a tenant, for now it's just a plain configMap, but it should be upgraded to secret
+// Creates a the "secrets" of a tenant, for now it's just a plain configMap, but it should be upgraded to secret
 func CreateTenantConfigMap(tenant *Tenant) {
 	config := getConfig()
 	// creates the clientset
