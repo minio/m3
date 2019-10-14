@@ -569,13 +569,13 @@ func ReDeployStorageCluster(ctx *Context, sc *StorageCluster) chan error {
 			// TODO: wait for the deployment to come online before replacing the next deployment
 			// to know when the past deployment is online, we will expect at least 1 tenant to reply with it's
 			// liveliness probe
-			if len(tenants) > 0 {
-				err = <-waitDeploymentLive(scHostName, tenants[0].Port)
-				if err != nil {
-					ch <- err
-					return
-				}
-			}
+			//if len(tenants) > 0 {
+			//	err = <-waitDeploymentLive(scHostName, tenants[0].Port)
+			//	if err != nil {
+			//		ch <- err
+			//		return
+			//	}
+			//}
 		}
 	}()
 	return ch
