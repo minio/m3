@@ -397,18 +397,21 @@ func ProvisionTenantOnStorageCluster(ctx *Context, tenant *Tenant, sc *StorageCl
 			return
 		}
 		// start the jobs that create the tenant folder on each disk on each node of the storage cluster
-		var jobChs []chan interface{}
+		var jobChs []chan error
 		for i := 1; i <= MaxNumberHost; i++ {
 			jobCh := CreateTenantFolderInDiskAndWait(tenant, sc, i)
 			jobChs = append(jobChs, jobCh)
 		}
 		// wait for all the jobs to complete
 		for chi := range jobChs {
-			<-jobChs[chi]
+			err := <-jobChs[chi]
+			if err != nil {
+				ch <- err
+				return
+			}
 		}
 
 		CreateTenantService(scTenantResult.StorageClusterTenant)
-
 		// call for the storage cluster to refresh
 		err := <-ReDeployStorageCluster(ctx, sc)
 		if err != nil {
@@ -420,8 +423,8 @@ func ProvisionTenantOnStorageCluster(ctx *Context, tenant *Tenant, sc *StorageCl
 	return ch
 }
 
-func CreateTenantFolderInDiskAndWait(tenant *Tenant, sc *StorageCluster, hostNumber int) chan interface{} {
-	ch := make(chan interface{})
+func CreateTenantFolderInDiskAndWait(tenant *Tenant, sc *StorageCluster, hostNumber int) chan error {
+	ch := make(chan error)
 	go func() {
 		defer close(ch)
 		// create the tenant folder on each node via job
@@ -429,7 +432,8 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sc *StorageCluster, hostNum
 		// creates the clientset
 		clientset, err := kubernetes.NewForConfig(config)
 		if err != nil {
-			panic(err.Error())
+			ch <- err
+			return
 		}
 		var backoff int32 = 0
 		var ttlJob int32 = 60
@@ -495,7 +499,8 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sc *StorageCluster, hostNum
 
 		_, err = clientset.BatchV1().Jobs("default").Create(&job)
 		if err != nil {
-			fmt.Println(err)
+			ch <- err
+			return
 		}
 		//now sit and wait for the job to complete before returning
 		for {
@@ -515,8 +520,8 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sc *StorageCluster, hostNum
 		// job cleanup
 		err = clientset.BatchV1().Jobs("default").Delete(jobName, nil)
 		if err != nil {
-			fmt.Println("error deleting job")
-			fmt.Println(err)
+			ch <- err
+			return
 		}
 	}()
 	return ch
