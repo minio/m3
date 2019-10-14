@@ -171,16 +171,18 @@ func SetupPostgres() {
 
 }
 
+// This runs all the migrations on the cluster/migrations folder, if some migrations were already applied it then will
+// apply the missing migrations.
 func RunMigrations() {
 	m, err := migrate.New(
 		"file://cluster/migrations",
 		"postgres://postgres:m3meansmkube@localhost:5432/m3?sslmode=disable")
 	if err != nil {
-		log.Println("uno")
+		log.Println("error connecting to database or reading migrations")
 		log.Fatal(err)
 	}
 	if err := m.Up(); err != nil {
-		log.Println("dos")
+		log.Println("Error migrating up")
 		log.Fatal(err)
 	}
 }
