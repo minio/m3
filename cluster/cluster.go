@@ -416,7 +416,6 @@ func ProvisionTenantOnStorageCluster(ctx *Context, tenant *Tenant, sc *StorageCl
 		err := <-ReDeployStorageCluster(ctx, sc)
 		if err != nil {
 			ch <- err
-			return
 		}
 
 	}()
