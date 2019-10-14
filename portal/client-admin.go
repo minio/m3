@@ -18,6 +18,7 @@ package portal
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"hash/fnv"
 	"net"
 	"net/http"
@@ -29,6 +30,10 @@ import (
 	"github.com/minio/mc/pkg/probe"
 	"github.com/minio/minio/pkg/madmin"
 )
+
+const globalAppName = "m3 portal"
+
+var globalRootCAs *x509.CertPool
 
 // newAdminFactory encloses New function with client cache.
 func newAdminFactory() func(config *Config) (*madmin.AdminClient, *probe.Error) {
@@ -117,7 +122,7 @@ func NewAdminClient(url string, accessKey string, secretKey string) (*madmin.Adm
 		Lookup:    "dns",
 	}
 
-	s3Config := newS3Config(hostCfg.URL, &hostCfg)
+	s3Config := newS3Config(globalAppName, hostCfg.URL, &hostCfg)
 
 	s3Client, err := s3AdminNew(s3Config)
 	if err != nil {

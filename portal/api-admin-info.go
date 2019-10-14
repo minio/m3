@@ -27,26 +27,32 @@ var (
 	_ http.HandlerFunc = AdminServerInfo
 )
 
+const (
+	playURL       = "https://play.minio.io:9000"
+	playAccessKey = "Q3AM3UQ867SPQQA43P2F"
+	playSecretKey = "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+)
+
 func AdminServerInfo(w http.ResponseWriter, r *http.Request) {
-	if validRequest(w, r) == false {
+	if !validRequest(w, r) {
 		return
 	}
-	// Create a new MinIO Admin Client
-	client, err := NewAdminClient(
-		"https://play.minio.io:9000",
-		"Q3AM3UQ867SPQQA43P2F",
-		"zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG")
-	fatalIf(err, "Unable to initialize admin connection.")
 
-	// Fetch info of all servers (cluster or single server)
-	serverInfo, errProbe := client.ServerInfo()
-	if errProbe != nil {
-		log.Println(errProbe)
-	}
-	output, err2 := json.Marshal(serverInfo)
-	if err2 != nil {
-		log.Println(err)
+	client, pErr := NewAdminClient(playURL, playAccessKey, playSecretKey)
+	if pErr != nil {
+		log.Printf("Error: Unable to initalize admin connection to '%s' - %v\n", playURL, pErr)
+		return
 	}
 
+	serverInfo, err := client.ServerInfo()
+	if err != nil {
+		log.Printf("Error: Failed to get server info: %v\n", err)
+		return
+	}
+	output, err := json.Marshal(serverInfo)
+	if err != nil {
+		log.Printf("Error: Failed to marshal server info to JSON: %v\n", err)
+		return
+	}
 	w.Write(output)
 }

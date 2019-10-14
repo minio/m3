@@ -17,44 +17,38 @@
 package portal
 
 import (
-	"crypto/tls"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
-	"github.com/minio/mc/pkg/console"
 	"github.com/minio/minio-go/v6"
 )
 
 // newS3Config simply creates a new Config struct using the passed
 // parameters.
-func newS3Config(urlStr string, hostCfg *hostConfigV9) *Config {
+func newS3Config(appName, url string, hostCfg *hostConfigV9) *Config {
 	// We have a valid alias and hostConfig. We populate the
 	// credentials from the match found in the config file.
 	s3Config := new(Config)
 
-	s3Config.AppName = filepath.Base(os.Args[0])
+	s3Config.AppName = filepath.Base(appName)
 	s3Config.AppVersion = Version
-	s3Config.AppComments = []string{os.Args[0], runtime.GOOS, runtime.GOARCH}
-	s3Config.Debug = globalDebug
-	s3Config.Insecure = globalInsecure
+	s3Config.AppComments = []string{filepath.Base(appName), runtime.GOOS, runtime.GOARCH}
 
-	s3Config.HostURL = urlStr
+	s3Config.HostURL = url
 	if hostCfg != nil {
 		s3Config.AccessKey = hostCfg.AccessKey
 		s3Config.SecretKey = hostCfg.SecretKey
 		s3Config.Signature = hostCfg.API
 	}
-	s3Config.Lookup = getLookupType(hostCfg.Lookup)
+	s3Config.Lookup = toLookupType(hostCfg.Lookup)
 	return s3Config
 }
 
 // getLookupType returns the minio.BucketLookupType for lookup
 // option entered on the command line
-func getLookupType(l string) minio.BucketLookupType {
-	l = strings.ToLower(l)
-	switch l {
+func toLookupType(s string) minio.BucketLookupType {
+	switch strings.ToLower(s) {
 	case "dns":
 		return minio.BucketLookupDNS
 	case "path":
@@ -63,17 +57,4 @@ func getLookupType(l string) minio.BucketLookupType {
 	return minio.BucketLookupAuto
 }
 
-// dumpTlsCertificates prints some fields of the certificates received from the server.
-// Fields will be inspected by the user, so they must be conscise and useful
-func dumpTLSCertificates(t *tls.ConnectionState) {
-	for _, cert := range t.PeerCertificates {
-		console.Debugln("TLS Certificate found: ")
-		if len(cert.Issuer.Country) > 0 {
-			console.Debugln(" >> Country: " + cert.Issuer.Country[0])
-		}
-		if len(cert.Issuer.Organization) > 0 {
-			console.Debugln(" >> Organization: " + cert.Issuer.Organization[0])
-		}
-		console.Debugln(" >> Expires: " + cert.NotAfter.String())
-	}
-}
+func returnHTTPError() {}
