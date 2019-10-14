@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package cluster
 
 import (
@@ -20,12 +21,16 @@ import (
 	"database/sql"
 )
 
+// An application wide context that holds the a transaction, in case anything
+// goes wrong during the business logic execution, database objects can be
+// rolled back.
 type Context struct {
 	*sql.Tx
 	Main *context.Context
 }
 
-// NewContext creates a new context.
+// Creates a new `Context` given an initial transaction and `context.Context`
+// to control timeouts and cancellations.
 func NewContext(tx *sql.Tx, ctx *context.Context) *Context {
 	c := &Context{Tx: tx, Main: ctx}
 	return c

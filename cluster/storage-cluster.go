@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package cluster
 
 import (
@@ -20,24 +21,22 @@ import (
 	"fmt"
 )
 
+// Represents a logical storage cluster in which multiple tenants resides
+// and spawns across multiple nodes.
 type StorageCluster struct {
 	Id   int32
 	Name *string
 }
 
+// Struct returned by goroutines via channels that bundles a possible error.
 type StorageClusterResult struct {
 	*StorageCluster
 	Error error
 }
 
-type AddStorageClusterResult struct {
-	*StorageCluster
-	Error error
-}
-
 // Creates a storage cluster in the DB
-func AddStorageCluster(scName *string) chan AddStorageClusterResult {
-	ch := make(chan AddStorageClusterResult)
+func AddStorageCluster(scName *string) chan StorageClusterResult {
+	ch := make(chan StorageClusterResult)
 	go func() {
 		defer close(ch)
 		db := GetInstance().Db
@@ -50,7 +49,7 @@ func AddStorageCluster(scName *string) chan AddStorageClusterResult {
 			  RETURNING id`
 		stmt, err := db.Prepare(query)
 		if err != nil {
-			ch <- AddStorageClusterResult{
+			ch <- StorageClusterResult{
 				Error: err,
 			}
 			return
@@ -60,13 +59,13 @@ func AddStorageCluster(scName *string) chan AddStorageClusterResult {
 		var tenantId int32
 		err = stmt.QueryRow(scName).Scan(&tenantId)
 		if err != nil {
-			ch <- AddStorageClusterResult{
+			ch <- StorageClusterResult{
 				Error: err,
 			}
 			return
 		}
 		// return result via channel
-		ch <- AddStorageClusterResult{
+		ch <- StorageClusterResult{
 			StorageCluster: &StorageCluster{
 				Id:   tenantId,
 				Name: scName,
@@ -129,6 +128,7 @@ func SelectSCWithSpace(ctx *Context) chan *StorageClusterResult {
 	return ch
 }
 
+// Returns a list of tenants that are allocated to the provided `StorageCluster`
 func GetListOfTenantsForSCluster(ctx *Context, sc *StorageCluster) chan []*StorageClusterTenant {
 	ch := make(chan []*StorageClusterTenant)
 	go func() {
@@ -177,6 +177,7 @@ func GetListOfTenantsForSCluster(ctx *Context, sc *StorageCluster) chan []*Stora
 	return ch
 }
 
+// Represents the allocation of a tenant to a specific `StorageCluster`
 type StorageClusterTenant struct {
 	*Tenant
 	StorageClusterId int32
@@ -184,6 +185,7 @@ type StorageClusterTenant struct {
 	ServiceName      string
 }
 
+// Struct returned by goroutines via channels that bundles a possible error.
 type StorageClusterTenantResult struct {
 	*StorageClusterTenant
 	Error error
@@ -228,7 +230,6 @@ func createTenantInStorageCluster(ctx *Context, tenant *Tenant, sc *StorageClust
 			  VALUES
 				($1,$2,$3,$4)`
 		_, err = ctx.Tx.Exec(query, tenant.Id, sc.Id, port, serviceName)
-		fmt.Println("gmmm")
 		if err != nil {
 			ch <- &StorageClusterTenantResult{
 				Error: err,

@@ -13,9 +13,11 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package cluster
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
@@ -35,7 +37,8 @@ var once sync.Once
 func GetInstance() *singleton {
 	once.Do(func() {
 		// Wait for the DB connection
-		db := <-ConnectToDb()
+		ctx := context.Background()
+		db := <-ConnectToDb(ctx)
 
 		instance = &singleton{
 			Db: db,
@@ -44,58 +47,62 @@ func GetInstance() *singleton {
 	return instance
 }
 
-func ConnectToDb() chan *sql.DB {
+func ConnectToDb(ctx context.Context) chan *sql.DB {
 	ch := make(chan *sql.DB)
 	go func() {
 		defer close(ch)
-		db_host := "localhost"
-		if os.Getenv("DB_HOSTNAME") != "" {
-			db_host = os.Getenv("DB_HOSTNAME")
-			fmt.Println("USER DB HOST", db_host)
-		}
-
-		db_port := "5432"
-		if os.Getenv("DB_PORT") != "" {
-			db_port = os.Getenv("DB_PORT")
-		}
-
-		db_user := "postgres"
-		if os.Getenv("DB_USER") != "" {
-			db_user = os.Getenv("DB_USER")
-		}
-
-		db_pass := "m3meansmkube"
-		if os.Getenv("DB_PASSWORD") != "" {
-			db_pass = os.Getenv("DB_PASSWORD")
-		}
-		db_ssl := false
-		if os.Getenv("DB_SSL") != "" {
-			if os.Getenv("DB_SSL") == "true" {
-				db_ssl = true
+		select {
+		case <-ctx.Done():
+		default:
+			db_host := "localhost"
+			if os.Getenv("DB_HOSTNAME") != "" {
+				db_host = os.Getenv("DB_HOSTNAME")
+				fmt.Println("USER DB HOST", db_host)
 			}
-		}
 
-		db_name := "m3"
-		if os.Getenv("DB_NAME") != "" {
-			db_name = os.Getenv("DB_NAME")
-		}
-		db_str := "host=" + db_host + " port=" + db_port + " user=" + db_user
-		if db_pass != "" {
-			db_str = db_str + " password=" + db_pass
-		}
+			db_port := "5432"
+			if os.Getenv("DB_PORT") != "" {
+				db_port = os.Getenv("DB_PORT")
+			}
 
-		db_str = db_str + " dbname=" + db_name
-		if db_ssl {
-			db_str = db_str + " sslmode=enable"
-		} else {
-			db_str = db_str + " sslmode=disable"
-		}
+			db_user := "postgres"
+			if os.Getenv("DB_USER") != "" {
+				db_user = os.Getenv("DB_USER")
+			}
 
-		db, err := sql.Open("postgres", db_str)
-		if err != nil {
-			log.Fatal(err)
+			db_pass := "m3meansmkube"
+			if os.Getenv("DB_PASSWORD") != "" {
+				db_pass = os.Getenv("DB_PASSWORD")
+			}
+			db_ssl := false
+			if os.Getenv("DB_SSL") != "" {
+				if os.Getenv("DB_SSL") == "true" {
+					db_ssl = true
+				}
+			}
+
+			db_name := "m3"
+			if os.Getenv("DB_NAME") != "" {
+				db_name = os.Getenv("DB_NAME")
+			}
+			db_str := "host=" + db_host + " port=" + db_port + " user=" + db_user
+			if db_pass != "" {
+				db_str = db_str + " password=" + db_pass
+			}
+
+			db_str = db_str + " dbname=" + db_name
+			if db_ssl {
+				db_str = db_str + " sslmode=enable"
+			} else {
+				db_str = db_str + " sslmode=disable"
+			}
+
+			db, err := sql.Open("postgres", db_str)
+			if err != nil {
+				log.Fatal(err)
+			}
+			ch <- db
 		}
-		ch <- db
 	}()
 	return ch
 }

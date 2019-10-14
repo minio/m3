@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package cluster
 
 import (
@@ -54,8 +55,11 @@ func AddTenant(name string, shortName string) error {
 
 	// find a cluster where to allocate the tenant
 	sc := <-SelectSCWithSpace(ctx)
-
-	CreateTenantConfigMap(tenantResult.Tenant)
+	// Create a store for the tenant's configuration
+	err = CreateTenantConfigMap(tenantResult.Tenant)
+	if err != nil {
+		return err
+	}
 
 	if sc.Error != nil {
 		fmt.Println("There was an error adding the tenant, no storage cluster available.", sc.Error)
