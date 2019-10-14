@@ -87,10 +87,12 @@ func ProvisionServicesForStorageCluster(storageCluster *StorageCluster) chan err
 			return
 		}
 		for i := 1; i <= MaxNumberHost; i++ {
-			CreateSCHostService(
-				fmt.Sprintf("%d", storageCluster.Id),
-				fmt.Sprintf("%d", i),
-				nil)
+			err := CreateSCHostService(
+				storageCluster,
+				fmt.Sprintf("%d", i))
+			if err != nil {
+				ch <- err
+			}
 		}
 	}()
 	return ch
