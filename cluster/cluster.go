@@ -19,6 +19,7 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -80,7 +81,7 @@ func ListPods() {
 }
 
 //Creates a headless service that will point to a specific node inside a storage cluster
-func CreateSCHostService(storageClusterNum string, hostNum string, prefix *string) error {
+func CreateSCHostService(sc *StorageCluster, hostNum string) error {
 	config := getConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
@@ -88,12 +89,7 @@ func CreateSCHostService(storageClusterNum string, hostNum string, prefix *strin
 		return err
 	}
 
-	servicePrefix := ""
-	if prefix != nil {
-		servicePrefix = *prefix
-	}
-
-	serviceName := fmt.Sprintf("%ssc-%s-host-%s", servicePrefix, storageClusterNum, hostNum)
+	serviceName := fmt.Sprintf("sc-%d-host-%s", sc.Id, hostNum)
 
 	scSvc := v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -533,7 +529,6 @@ func ReDeployStorageCluster(ctx *Context, sc *StorageCluster) chan error {
 		defer close(ch)
 		tenants := <-GetListOfTenantsForSCluster(ctx, sc)
 
-		storageClusterNum := fmt.Sprintf("%d", sc.Id)
 		config := getConfig()
 		// creates the clientset
 		clientset, err := kubernetes.NewForConfig(config)
@@ -543,7 +538,7 @@ func ReDeployStorageCluster(ctx *Context, sc *StorageCluster) chan error {
 		}
 		// for each host in storage clsuter, create a deployment
 		for i := 1; i <= MaxNumberHost; i++ {
-			scHostName := fmt.Sprintf("sc-%s-host-%d", storageClusterNum, i)
+			scHostName := fmt.Sprintf("sc-%d-host-%d", sc.Id, i)
 			// TODO: Upgrade this logic so we don't delete the current deployment
 			// does the deployment exist?
 			res, err := clientset.AppsV1().Deployments("default").Get(scHostName, metav1.GetOptions{})
@@ -568,6 +563,37 @@ func ReDeployStorageCluster(ctx *Context, sc *StorageCluster) chan error {
 				return
 			}
 			// TODO: wait for the deployment to come online before replacing the next deployment
+			// to know when the past deployment is online, we will expect at least 1 tenant to reply with it's
+			// liveliness probe
+			if len(tenants) > 0 {
+				err = <-waitDeploymentLive(scHostName, tenants[0].Port)
+				if err != nil {
+					ch <- err
+					return
+				}
+			}
+		}
+	}()
+	return ch
+}
+
+func waitDeploymentLive(scHostName string, port int32) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		targetUrl := fmt.Sprintf("http://%s:%d/minio/health/live", scHostName, port)
+		for {
+			resp, err := http.Get(targetUrl)
+			if err != nil {
+				// TODO: Return error if it's not a "not found" error
+				fmt.Println(err)
+			}
+			if resp.StatusCode == http.StatusOK {
+				fmt.Println("host available")
+				return
+			}
+			fmt.Println("host not available")
+			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 	return ch
