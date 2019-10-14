@@ -13,10 +13,14 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package cluster
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
@@ -24,9 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"strings"
-	"time"
-
 	//
 	// Uncomment to load all auth plugins
 	// _ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -175,7 +176,7 @@ func CreateSCHostService(storageClusterNum string, hostNum string, prefix *strin
 		},
 	}
 
-	res, err := clientset.CoreV1().Services("default").Create(&scSvc);
+	res, err := clientset.CoreV1().Services("default").Create(&scSvc)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -207,7 +208,7 @@ func CreateTenantConfigMap(tenantShortName string) {
 		},
 	}
 
-	res, err := clientset.CoreV1().ConfigMaps("default").Create(&configMap);
+	res, err := clientset.CoreV1().ConfigMaps("default").Create(&configMap)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -244,11 +245,11 @@ func CreateTenantService(tenantName string, tenantPort int32, storageClusterNum 
 		},
 	}
 
-	res, err := clientset.CoreV1().Services("default").Create(&scSvc);
+	res, err := clientset.CoreV1().Services("default").Create(&scSvc)
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Println("done creating tenant service for tenant %s ")
+	fmt.Println("done creating tenant service for tenant")
 	fmt.Println(res.String())
 
 }
@@ -317,7 +318,7 @@ func CreateDeploymentWithTenants(tenants []Tenant, storageClusterNum string, hos
 		envName := fmt.Sprintf("%s%s-env", deploymentPrefix, tenant.Name)
 		volumeMounts := []v1.VolumeMount{}
 		tenantContainer := v1.Container{
-			Name: fmt.Sprintf("%s-minio-%s", tenant.Name, hostNum),
+			Name:            fmt.Sprintf("%s-minio-%s", tenant.Name, hostNum),
 			Image:           "minio/minio:edge",
 			ImagePullPolicy: "Always",
 			Args: []string{
@@ -394,7 +395,7 @@ func CreateDeploymentWithTenants(tenants []Tenant, storageClusterNum string, hos
 		},
 	}
 
-	res, err := clientset.ExtensionsV1beta1().Deployments("default").Create(&deployment);
+	res, err := clientset.ExtensionsV1beta1().Deployments("default").Create(&deployment)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -544,7 +545,7 @@ func CreateTenantFolderInDiskAndWait(tenantName string, storageClusterNum string
 		fmt.Println(res)
 		//now sit and wait for the job to complete before returning
 		for {
-			status, err := clientset.BatchV1().Jobs("default").Get(jobName, metav1.GetOptions{});
+			status, err := clientset.BatchV1().Jobs("default").Get(jobName, metav1.GetOptions{})
 			if err != nil {
 				panic(err)
 			}
@@ -558,7 +559,7 @@ func CreateTenantFolderInDiskAndWait(tenantName string, storageClusterNum string
 			time.Sleep(300 * time.Millisecond)
 		}
 		// job cleanup
-		err = clientset.BatchV1().Jobs("default").Delete(jobName, nil);
+		err = clientset.BatchV1().Jobs("default").Delete(jobName, nil)
 		if err != nil {
 			fmt.Println("error deleting job")
 			fmt.Println(err)

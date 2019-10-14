@@ -13,39 +13,42 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+// Package portal impl..
 package portal
 
 import (
-	"fmt"
-	"net/http"
 	"encoding/json"
+	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/minio/minio-go/v6"
 )
 
-func ClientBucketRoutes(router *mux.Router) {
-	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
-	apiRouter.Methods("GET").Path("/api/bucket/").HandlerFunc(listBuckets)
-	apiRouter.Methods("GET").Path("/api/bucket/{bucketName}").HandlerFunc(listObjects)
-}
+// Compiler checks
+var (
+	_ http.HandlerFunc = ListBuckets
+	_ http.HandlerFunc = ListObjects
+)
 
-func listBuckets(w http.ResponseWriter, r *http.Request) {
+// ListBuckets ...
+func ListBuckets(w http.ResponseWriter, r *http.Request) {
 	var binfo []minio.BucketInfo
 	ssl := true
 
 	// DEMO
 	// Initialize minio client object.
-    minioClient, err := minio.New("play.min.io",
-    	"Q3AM3UQ867SPQQA43P2F",
-        "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
-   	    ssl)
+	minioClient, err := minio.New("play.min.io",
+		"Q3AM3UQ867SPQQA43P2F",
+		"zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
+		ssl)
 
-    if err != nil {
-    	fmt.Println(err)
-        return
-    }
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	buckets, err := minioClient.ListBuckets()
 
@@ -55,10 +58,10 @@ func listBuckets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, bucket := range buckets {
-        binfo = append(binfo, bucket)
-    }
+		binfo = append(binfo, bucket)
+	}
 
-    output, err := json.Marshal(binfo)
+	output, err := json.Marshal(binfo)
 	if err != nil {
 		fmt.Println(err)
 		log.Fatal("Cannot Marshal error")
@@ -67,30 +70,24 @@ func listBuckets(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func TodoShow(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    todoId := vars["todoId"]
-    fmt.Fprintln(w, "Todo show:", todoId)
-}
-
-func listObjects(w http.ResponseWriter, r *http.Request){
+// ListObjects ...
+func ListObjects(w http.ResponseWriter, r *http.Request) {
 	var objInfo []minio.ObjectInfo
 	vars := mux.Vars(r)
-    bucketName := vars["bucketName"]
-    fmt.Println(bucketName)
+	bucketName := vars["bucketName"]
 
-    // Hardcoding Demo client
+	// Hardcoding Demo client
 	// Initialize minio client object.
 	ssl := true
 	minioClient, err := minio.New("play.min.io",
-    	"Q3AM3UQ867SPQQA43P2F",
-        "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
-   	    ssl)
+		"Q3AM3UQ867SPQQA43P2F",
+		"zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
+		ssl)
 
-    if err != nil {
-    	fmt.Println(err)
-        return
-    }
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	// Create a done channel to control 'ListObjectsV2' go routine.
 	doneCh := make(chan struct{})
@@ -101,12 +98,11 @@ func listObjects(w http.ResponseWriter, r *http.Request){
 	isRecursive := true
 	objectCh := minioClient.ListObjectsV2(bucketName, "", isRecursive, doneCh)
 	for object := range objectCh {
-	    if object.Err != nil {
-	        fmt.Println(object.Err)
-	        return
-	    }
-	    objInfo = append(objInfo, object)
-	    fmt.Println(object)
+		if object.Err != nil {
+			fmt.Println(object.Err)
+			return
+		}
+		objInfo = append(objInfo, object)
 	}
 
 	output, err := json.Marshal(objInfo)

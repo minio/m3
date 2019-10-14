@@ -48,3 +48,9 @@ To get the access token
 ```
 $ kubectl get secret $(kubectl get serviceaccount dashboard -o jsonpath="{.secrets[0].name}") -o jsonpath="{.data.token}" | base64 --decode | pbcopy
 ```
+
+Launch proxy to access kubernetes dashboard
+```
+$ kubectl proxy
+```
+After that go to http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login and enter the authentication token

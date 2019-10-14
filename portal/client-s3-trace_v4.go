@@ -13,15 +13,17 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package portal
 
 import (
-	"github.com/minio/mc/pkg/console"
-	"github.com/minio/mc/pkg/httptracer"
 	"net/http"
 	"net/http/httputil"
 	"regexp"
 	"strings"
+
+	"github.com/minio/mc/pkg/console"
+	"github.com/minio/mc/pkg/httptracer"
 )
 
 // traceV4 - tracing structure for signature version '4'.
@@ -83,10 +85,5 @@ func (t traceV4) Response(resp *http.Response) (err error) {
 	if err == nil {
 		console.Debug(string(respTrace))
 	}
-
-	if globalInsecure && resp.TLS != nil {
-		dumpTLSCertificates(resp.TLS)
-	}
-
 	return err
 }

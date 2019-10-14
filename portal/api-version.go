@@ -13,26 +13,30 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package portal
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
-
-	"github.com/gorilla/mux"
 )
 
-func VersionRoutes(router *mux.Router) {
-	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
-	apiRouter.Methods("GET").Path("/api/version/").HandlerFunc(version)
-}
+// Version is the API version of the portal API.
+// The portal API follows semantic versioning.
+//
+//   1.0.0 => 2.0.0   // major change: when you make incompatible API changes
+//   1.0.y => 1.1.y   // minor change: when you add functionality in a backwards compatible manner
+//   1.0.0 => 1.0.1   // patch change  version when you make backwards compatible bug fixes
+const Version = `0.1.0`
 
-func version(w http.ResponseWriter, r *http.Request) {
-	// TODO: Read version from somewhere
-	v := Version
-	// Serialize and output
-	output, err := json.Marshal(v)
+// Compiler checks
+var (
+	_ http.HandlerFunc = APIVersion
+)
+
+func APIVersion(w http.ResponseWriter, r *http.Request) {
+	output, err := json.Marshal(Version)
 	if err != nil {
 		log.Fatal("Cannot Marshal error")
 	}

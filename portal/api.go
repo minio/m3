@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package portal
 
 import (
@@ -32,12 +33,27 @@ func StartApiPortal() {
 
 func registerRoutes() *mux.Router {
 	router := mux.NewRouter().SkipClean(true)
-	VersionRoutes(router)
-	AdminInfoRoutes(router)
-	ClientBucketRoutes(router)
+	registerAppRoutes(router)
+	registerAdminRoutes(router)
+	registerBucketRoutes(router)
 	return router
 }
 
+func registerAppRoutes(router *mux.Router) {
+	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
+	apiRouter.Methods("GET").Path("/api/version/").HandlerFunc(APIVersion)
+}
+
+func registerAdminRoutes(router *mux.Router) {
+	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
+	apiRouter.Methods("GET").Path("/api/admin/info").HandlerFunc(AdminServerInfo)
+}
+
+func registerBucketRoutes(router *mux.Router) {
+	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
+	apiRouter.Methods("GET").Path("/api/bucket/").HandlerFunc(ListBuckets)
+	apiRouter.Methods("GET").Path("/api/bucket/{bucketName}").HandlerFunc(ListObjects)
+}
 
 func validRequest(w http.ResponseWriter, r *http.Request) bool {
 	if r.Method != "POST" {

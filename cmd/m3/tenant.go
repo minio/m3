@@ -13,10 +13,12 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package main
 
 import (
 	"fmt"
+
 	"github.com/minio/cli"
 )
 
@@ -34,5 +36,3 @@ func tenantDefCmd(ctx *cli.Context) error {
 	fmt.Println("run a sub command for now")
 	return nil
 }
-
-
