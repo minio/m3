@@ -48,16 +48,12 @@ func addTenant(ctx *cli.Context) error {
 		fmt.Println("You must provide tenant name and short name.")
 		return nil
 	}
-	fmt.Println("adding tenant!", name, shortName)
 
-	// register the tenant
-
-	tenant := <-cluster.AddTenant(name, shortName)
-	fmt.Println(fmt.Sprintf("Registered as tenant %d\n", tenant.Id))
-
-	// find a cluster where to allocate the tenant
-
-	// provision the tenant on that cluster
-	<-cluster.ProvisionTenantOnStorageCluster(tenant.ShortName, "1")
+	err := cluster.AddTenant(name, shortName)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
+	fmt.Println("Done adding tenant!")
 	return nil
 }
