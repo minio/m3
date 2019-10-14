@@ -31,7 +31,7 @@ type Context struct {
 
 // Creates a new `Context` given an initial transaction and `context.Context`
 // to control timeouts and cancellations.
-func NewContext(tx *sql.Tx, ctx *context.Context) *Context {
+func NewContext(tx *sql.Tx, ctx context.Context) *Context {
 	c := &Context{Tx: tx, Main: ctx}
 	return c
 }
