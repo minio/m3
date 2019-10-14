@@ -37,11 +37,8 @@ var addStorageClusterCmd = cli.Command{
 	},
 }
 
+// Adds a Storage Cluster to house multiple tenants
 func addStorageCluster(ctx *cli.Context) error {
-	//<-cluster.ProvisionTenantOnStorageCluster("kes", "1")
-	//if true {
-	//	return nil
-	//}
 	var name *string
 	if ctx.String("name") != "" {
 		nameVal := ctx.String("name")
