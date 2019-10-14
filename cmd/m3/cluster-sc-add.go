@@ -49,40 +49,16 @@ func addStorageCluster(ctx *cli.Context) error {
 	}
 
 	// create a new storage cluster in the DB
-	cluster.AddStorageCluster(name)
-
-	// provisiong the supporting services for the new storage cluster
-
-
-	//fmt.Println("------")
-	//fmt.Println("Adding tenant secrets")
-	//// for now I'm going to add all tenants here
-	//cluster.CreateTenantConfigMap("tenant-1")
-	////cluster.CreateTenantConfigMap("tenant-2")
-	//fmt.Println("------")
-	//fmt.Println("Adding SCTenant services")
-	//// create the main tenant service
-	//cluster.CreateTenantService("tenant-1", 9001, "1")
-	////cluster.CreateTenantService("tenant-2", 9002, "1")
-	//
-	//tenants := []cluster.SCTenant{
-	//	{
-	//		Name:              "tenant-1",
-	//		Port:              9001,
-	//		StorageClusterNum: "1",
-	//	},
-	//	//{
-	//	//	Name:              "tenant-2",
-	//	//	Port:              9002,
-	//	//	StorageClusterNum: "1",
-	//	//},
-	//}
-	//// for each host in storage clsuter, create a deployment
-	//for i := 1; i <= cluster.MaxNumberHost; i++ {
-	//	fmt.Println("------")
-	//	fmt.Println("configuring deployment")
-	//	cluster.CreateDeploymentWithTenants(tenants, "1", fmt.Sprintf("%d", i), nil)
-	//}
+	result := <-cluster.AddStorageCluster(name)
+	if result.Error != nil {
+		fmt.Println(result.Error)
+		return nil
+	}
+	err := <-cluster.ProvisionServicesForStorageCluster(result.StorageCluster)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
 
 	return nil
 }

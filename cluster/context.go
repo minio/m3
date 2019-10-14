@@ -13,24 +13,20 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-package main
+package cluster
 
 import (
-	"github.com/minio/cli"
-	"github.com/minio/m3/cluster"
+	"context"
+	"database/sql"
 )
 
-// list files and folders.
-var setupCmd = cli.Command{
-	Name:   "setup",
-	Usage:  "Setups the m3 cluster",
-	Action: setupDefCmd,
-	Subcommands: []cli.Command{
-		setupDbCmd,
-	},
+type Context struct {
+	*sql.Tx
+	Main *context.Context
 }
 
-func setupDefCmd(ctx *cli.Context) error {
-	cluster.SetupM3()
-	return nil
+// NewContext creates a new context.
+func NewContext(tx *sql.Tx, ctx *context.Context) *Context {
+	c := &Context{Tx: tx, Main: ctx}
+	return c
 }

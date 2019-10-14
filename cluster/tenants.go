@@ -16,6 +16,7 @@
 package cluster
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -32,12 +33,51 @@ type AddTenantResult struct {
 	Error error
 }
 
+func AddTenant(name string, shortName string) error {
+	db := GetInstance().Db
+	bgCtx := context.Background()
+	// Add the tenant within a transaction in case anything goes wrong during the adding process
+	tx, err := db.BeginTx(bgCtx, nil)
+	if err != nil {
+		return err
+	}
+
+	ctx := NewContext(tx, &bgCtx)
+
+	// register the tenant
+	tenantResult := <-InsertTenant(ctx, name, shortName)
+	if tenantResult.Error != nil {
+		tx.Rollback()
+		return tenantResult.Error
+	}
+	fmt.Println(fmt.Sprintf("Registered as tenant %d\n", tenantResult.Tenant.Id))
+
+	// find a cluster where to allocate the tenant
+	sc := <-SelectSCWithSpace(ctx)
+
+	CreateTenantConfigMap(tenantResult.Tenant)
+
+	if sc.Error != nil {
+		fmt.Println("There was an error adding the tenant, no storage cluster available.", sc.Error)
+		tx.Rollback()
+		return nil
+	}
+	// provision the tenant on that cluster
+	err = <-ProvisionTenantOnStorageCluster(ctx, tenantResult.Tenant, sc.StorageCluster)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	// if no error happened to this point
+	err = tx.Commit()
+	return err
+}
+
 // Creates a tenant in the DB if tenant short name is unique
-func AddTenant(tenantName string, tenantShortName string) chan AddTenantResult {
+func InsertTenant(ctx *Context, tenantName string, tenantShortName string) chan AddTenantResult {
 	ch := make(chan AddTenantResult)
 	go func() {
 		defer close(ch)
-		db := GetInstance().Db
 		// check if the tenant short name is unique
 		checkUniqueQuery := `
 		SELECT 
@@ -47,7 +87,7 @@ func AddTenant(tenantName string, tenantShortName string) chan AddTenantResult {
 		WHERE 
 		      short_name=$1`
 		var totalCollisions int
-		row := db.QueryRow(checkUniqueQuery, tenantShortName)
+		row := ctx.QueryRow(checkUniqueQuery, tenantShortName)
 		err := row.Scan(&totalCollisions)
 		if err != nil {
 			fmt.Println(err)
@@ -66,7 +106,7 @@ func AddTenant(tenantName string, tenantShortName string) chan AddTenantResult {
 			  VALUES
 				($1, $2)
 			  RETURNING id`
-		stmt, err := db.Prepare(query)
+		stmt, err := ctx.Prepare(query)
 		if err != nil {
 			log.Fatal(err)
 		}

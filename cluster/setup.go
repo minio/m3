@@ -92,7 +92,7 @@ func SetupPostgres() {
 		},
 	}
 
-	res, err := clientset.CoreV1().Services(m3SystemNamespace).Create(&pgSvc);
+	res, err := clientset.CoreV1().Services(m3SystemNamespace).Create(&pgSvc)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -112,7 +112,7 @@ func SetupPostgres() {
 		},
 	}
 
-	resSecret, err := clientset.CoreV1().ConfigMaps(m3SystemNamespace).Create(&configMap);
+	resSecret, err := clientset.CoreV1().ConfigMaps(m3SystemNamespace).Create(&configMap)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -161,7 +161,7 @@ func SetupPostgres() {
 		},
 	}
 
-	resDeployment, err := clientset.ExtensionsV1beta1().Deployments(m3SystemNamespace).Create(&deployment);
+	resDeployment, err := clientset.ExtensionsV1beta1().Deployments(m3SystemNamespace).Create(&deployment)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -170,7 +170,7 @@ func SetupPostgres() {
 
 }
 
-func RunMigrations(){
+func RunMigrations() {
 	m, err := migrate.New(
 		"file://cluster/migrations",
 		"postgres://postgres:m3meansmkube@localhost:5432/m3?sslmode=disable")
