@@ -43,7 +43,7 @@ func AddTenant(name string, shortName string) error {
 		return err
 	}
 
-	ctx := NewContext(tx, &bgCtx)
+	ctx := NewContext(tx, bgCtx)
 
 	// register the tenant
 	tenantResult := <-InsertTenant(ctx, name, shortName)
