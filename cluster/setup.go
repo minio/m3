@@ -19,7 +19,9 @@ package cluster
 import (
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
+	// the postgres driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	// the file driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"

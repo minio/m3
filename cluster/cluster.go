@@ -89,7 +89,7 @@ func CreateSCHostService(sc *StorageCluster, hostNum string) error {
 		return err
 	}
 
-	serviceName := fmt.Sprintf("sc-%d-host-%s", sc.Id, hostNum)
+	serviceName := fmt.Sprintf("sc-%d-host-%s", sc.ID, hostNum)
 
 	scSvc := v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -238,7 +238,7 @@ func CreateTenantService(sct *StorageClusterTenant) {
 				},
 			},
 			Selector: map[string]string{
-				"sc": fmt.Sprintf("storage-cluster-%d", sct.StorageClusterId),
+				"sc": fmt.Sprintf("storage-cluster-%d", sct.StorageClusterID),
 			},
 		},
 	}
@@ -281,7 +281,7 @@ func CreateDeploymentWithTenants(tenants []*StorageClusterTenant, sc *StorageClu
 		return err
 	}
 
-	scHostName := fmt.Sprintf("sc-%d-host-%s", sc.Id, hostNum)
+	scHostName := fmt.Sprintf("sc-%d-host-%s", sc.ID, hostNum)
 	var replicas int32 = 1
 
 	mainPodSpec := v1.PodSpec{
@@ -304,7 +304,7 @@ func CreateDeploymentWithTenants(tenants []*StorageClusterTenant, sc *StorageClu
 				fmt.Sprintf(":%d", tenant.Port),
 				fmt.Sprintf(
 					"http://sc-%d-host-{1...%d}:%d/mnt/tdisk{1...%d}",
-					sc.Id,
+					sc.ID,
 					MaxNumberHost,
 					tenant.Port,
 					MaxNumberDiskPerNode),
@@ -363,7 +363,7 @@ func CreateDeploymentWithTenants(tenants []*StorageClusterTenant, sc *StorageClu
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app": scHostName,
-						"sc":  fmt.Sprintf("storage-cluster-%d", sc.Id),
+						"sc":  fmt.Sprintf("storage-cluster-%d", sc.ID),
 					},
 				},
 				Spec: mainPodSpec,
@@ -437,7 +437,7 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sc *StorageCluster, hostNum
 		var backoff int32 = 0
 		var ttlJob int32 = 60
 
-		jobName := fmt.Sprintf("provision-sc-%d-host-%d-%s-job", sc.Id, hostNumber, tenant.Name)
+		jobName := fmt.Sprintf("provision-sc-%d-host-%d-%s-job", sc.ID, hostNumber, tenant.Name)
 		job := batchv1.Job{
 			TypeMeta: metav1.TypeMeta{
 				Kind: "Job",
@@ -542,7 +542,7 @@ func ReDeployStorageCluster(ctx *Context, sc *StorageCluster) chan error {
 		}
 		// for each host in storage clsuter, create a deployment
 		for i := 1; i <= MaxNumberHost; i++ {
-			scHostName := fmt.Sprintf("sc-%d-host-%d", sc.Id, i)
+			scHostName := fmt.Sprintf("sc-%d-host-%d", sc.ID, i)
 			// TODO: Upgrade this logic so we don't delete the current deployment
 			// does the deployment exist?
 			res, err := clientset.AppsV1().Deployments("default").Get(scHostName, metav1.GetOptions{})

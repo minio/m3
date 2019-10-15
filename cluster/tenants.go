@@ -24,7 +24,7 @@ import (
 )
 
 type Tenant struct {
-	Id        int32
+	ID        int32
 	Name      string
 	ShortName string
 }
@@ -51,7 +51,7 @@ func AddTenant(name string, shortName string) error {
 		tx.Rollback()
 		return tenantResult.Error
 	}
-	fmt.Println(fmt.Sprintf("Registered as tenant %d\n", tenantResult.Tenant.Id))
+	fmt.Println(fmt.Sprintf("Registered as tenant %d\n", tenantResult.Tenant.ID))
 
 	// find a cluster where to allocate the tenant
 	sc := <-SelectSCWithSpace(ctx)
@@ -115,8 +115,8 @@ func InsertTenant(ctx *Context, tenantName string, tenantShortName string) chan 
 			log.Fatal(err)
 		}
 		defer stmt.Close()
-		var tenantId int32
-		err = stmt.QueryRow(tenantName, tenantShortName).Scan(&tenantId)
+		var tenantID int32
+		err = stmt.QueryRow(tenantName, tenantShortName).Scan(&tenantID)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -125,7 +125,7 @@ func InsertTenant(ctx *Context, tenantName string, tenantShortName string) chan 
 
 		ch <- AddTenantResult{
 			Tenant: &Tenant{
-				Id:        tenantId,
+				ID:        tenantID,
 				Name:      tenantName,
 				ShortName: tenantShortName,
 			},
