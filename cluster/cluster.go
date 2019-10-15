@@ -585,9 +585,9 @@ func waitDeploymentLive(scHostName string, port int32) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
-		targetUrl := fmt.Sprintf("http://%s:%d/minio/health/live", scHostName, port)
+		targetURL := fmt.Sprintf("http://%s:%d/minio/health/live", scHostName, port)
 		for {
-			resp, err := http.Get(targetUrl)
+			resp, err := http.Get(targetURL)
 			if err != nil {
 				// TODO: Return error if it's not a "not found" error
 				fmt.Println(err)

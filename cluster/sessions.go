@@ -27,21 +27,21 @@ import (
 	"sync"
 )
 
-type singleton struct {
+type Singleton struct {
 	Db *sql.DB
 }
 
-var instance *singleton
+var instance *Singleton
 var once sync.Once
 
-// Returns a singleton instance that keeps the connections to the Database
-func GetInstance() *singleton {
+// Returns a Singleton instance that keeps the connections to the Database
+func GetInstance() *Singleton {
 	once.Do(func() {
 		// Wait for the DB connection
 		ctx := context.Background()
 		db := <-ConnectToDb(ctx)
 
-		instance = &singleton{
+		instance = &Singleton{
 			Db: db,
 		}
 	})
