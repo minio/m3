@@ -34,8 +34,7 @@ var (
 
 // ListBuckets lists all buckets for the client
 func ListBuckets(w http.ResponseWriter, r *http.Request) {
-	var binfo []minio.BucketInfo
-	ssl := true
+	const ssl = true
 
 	// DEMO
 	// Initialize minio client object.
@@ -50,17 +49,12 @@ func ListBuckets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	buckets, err := minioClient.ListBuckets()
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	for _, bucket := range buckets {
-		binfo = append(binfo, bucket)
-	}
-
-	output, err := json.Marshal(binfo)
+	output, err := json.Marshal(buckets)
 	if err != nil {
 		fmt.Println(err)
 		log.Fatal("Cannot Marshal error")

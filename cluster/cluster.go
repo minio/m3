@@ -260,7 +260,7 @@ type Tenant struct {
 	StorageClusterNum string
 }
 
-func nodeNameForSCHostNum(storageClusterNum string, hostNum string) string {
+func nodeNameForSCHostNum(hostNum string) string {
 	switch hostNum {
 	case "1":
 		return "m3cluster-worker"
@@ -273,16 +273,6 @@ func nodeNameForSCHostNum(storageClusterNum string, hostNum string) string {
 	default:
 		return "m3cluster-worker"
 	}
-}
-
-func getDisks(storageClusterNum string, hostNum string) []string {
-	switch storageClusterNum {
-	case "2":
-		return []string{"/mnt/disk5", "/mnt/disk6", "/mnt/disk7", "/mnt/disk8"}
-	default:
-		return []string{"/mnt/disk1", "/mnt/disk2", "/mnt/disk3", "/mnt/disk4"}
-	}
-
 }
 
 const (
@@ -309,7 +299,7 @@ func CreateDeploymentWithTenants(tenants []Tenant, storageClusterNum string, hos
 
 	mainPodSpec := v1.PodSpec{
 		NodeSelector: map[string]string{
-			"kubernetes.io/hostname": nodeNameForSCHostNum(storageClusterNum, hostNum),
+			"kubernetes.io/hostname": nodeNameForSCHostNum(hostNum),
 		},
 	}
 
@@ -492,7 +482,7 @@ func CreateTenantFolderInDiskAndWait(tenantName string, storageClusterNum string
 						Containers:    nil,
 						RestartPolicy: "Never",
 						NodeSelector: map[string]string{
-							"kubernetes.io/hostname": nodeNameForSCHostNum(storageClusterNum, fmt.Sprintf("%d", hostNumber)),
+							"kubernetes.io/hostname": nodeNameForSCHostNum(fmt.Sprintf("%d", hostNumber)),
 						},
 					},
 				},
