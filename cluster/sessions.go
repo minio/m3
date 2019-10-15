@@ -20,6 +20,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	// postgres driver for database/sql
 	_ "github.com/lib/pq"
 	"log"
 	"os"
@@ -54,50 +55,50 @@ func ConnectToDb(ctx context.Context) chan *sql.DB {
 		select {
 		case <-ctx.Done():
 		default:
-			db_host := "localhost"
+			dbHost := "localhost"
 			if os.Getenv("DB_HOSTNAME") != "" {
-				db_host = os.Getenv("DB_HOSTNAME")
-				fmt.Println("USER DB HOST", db_host)
+				dbHost = os.Getenv("DB_HOSTNAME")
+				fmt.Println("USER DB HOST", dbHost)
 			}
 
-			db_port := "5432"
+			dbPort := "5432"
 			if os.Getenv("DB_PORT") != "" {
-				db_port = os.Getenv("DB_PORT")
+				dbPort = os.Getenv("DB_PORT")
 			}
 
-			db_user := "postgres"
+			dbUser := "postgres"
 			if os.Getenv("DB_USER") != "" {
-				db_user = os.Getenv("DB_USER")
+				dbUser = os.Getenv("DB_USER")
 			}
 
-			db_pass := "m3meansmkube"
+			dbPass := "m3meansmkube"
 			if os.Getenv("DB_PASSWORD") != "" {
-				db_pass = os.Getenv("DB_PASSWORD")
+				dbPass = os.Getenv("DB_PASSWORD")
 			}
-			db_ssl := false
+			dbSsl := false
 			if os.Getenv("DB_SSL") != "" {
 				if os.Getenv("DB_SSL") == "true" {
-					db_ssl = true
+					dbSsl = true
 				}
 			}
 
-			db_name := "m3"
+			dbName := "m3"
 			if os.Getenv("DB_NAME") != "" {
-				db_name = os.Getenv("DB_NAME")
+				dbName = os.Getenv("DB_NAME")
 			}
-			db_str := "host=" + db_host + " port=" + db_port + " user=" + db_user
-			if db_pass != "" {
-				db_str = db_str + " password=" + db_pass
+			dbStr := "host=" + dbHost + " port=" + dbPort + " user=" + dbUser
+			if dbPass != "" {
+				dbStr = dbStr + " password=" + dbPass
 			}
 
-			db_str = db_str + " dbname=" + db_name
-			if db_ssl {
-				db_str = db_str + " sslmode=enable"
+			dbStr = dbStr + " dbname=" + dbName
+			if dbSsl {
+				dbStr = dbStr + " sslmode=enable"
 			} else {
-				db_str = db_str + " sslmode=disable"
+				dbStr = dbStr + " sslmode=disable"
 			}
 
-			db, err := sql.Open("postgres", db_str)
+			db, err := sql.Open("postgres", dbStr)
 			if err != nil {
 				log.Fatal(err)
 			}

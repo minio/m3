@@ -24,7 +24,7 @@ import (
 // Represents a logical storage cluster in which multiple tenants resides
 // and spawns across multiple nodes.
 type StorageCluster struct {
-	Id   int32
+	ID   int32
 	Name *string
 }
 
@@ -56,8 +56,8 @@ func AddStorageCluster(scName *string) chan StorageClusterResult {
 		}
 		defer stmt.Close()
 
-		var tenantId int32
-		err = stmt.QueryRow(scName).Scan(&tenantId)
+		var tenantID int32
+		err = stmt.QueryRow(scName).Scan(&tenantID)
 		if err != nil {
 			ch <- StorageClusterResult{
 				Error: err,
@@ -67,7 +67,7 @@ func AddStorageCluster(scName *string) chan StorageClusterResult {
 		// return result via channel
 		ch <- StorageClusterResult{
 			StorageCluster: &StorageCluster{
-				Id:   tenantId,
+				ID:   tenantID,
 				Name: scName,
 			},
 			Error: nil,
@@ -121,7 +121,7 @@ func SelectSCWithSpace(ctx *Context) chan *StorageClusterResult {
 		}
 		ch <- &StorageClusterResult{
 			StorageCluster: &StorageCluster{
-				Id:   id,
+				ID:   id,
 				Name: name,
 			},
 		}
@@ -146,7 +146,7 @@ func GetListOfTenantsForSCluster(ctx *Context, sc *StorageCluster) chan []*Stora
 			LEFT JOIN m3.provisioning.tenants t2
 			ON t1.tenant_id = t2.id
 			WHERE storage_cluster_id=$1`
-		rows, err := ctx.Tx.Query(query, sc.Id)
+		rows, err := ctx.Tx.Query(query, sc.ID)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -165,13 +165,13 @@ func GetListOfTenantsForSCluster(ctx *Context, sc *StorageCluster) chan []*Stora
 
 			tenants = append(tenants, &StorageClusterTenant{
 				Tenant: &Tenant{
-					Id:        tenantId,
+					ID:        tenantId,
 					Name:      tenantName,
 					ShortName: tenantShortName,
 				},
 				Port:             port,
 				ServiceName:      serviceName,
-				StorageClusterId: sc.Id})
+				StorageClusterID: sc.ID})
 
 		}
 		ch <- tenants
@@ -182,7 +182,7 @@ func GetListOfTenantsForSCluster(ctx *Context, sc *StorageCluster) chan []*Stora
 // Represents the allocation of a tenant to a specific `StorageCluster`
 type StorageClusterTenant struct {
 	*Tenant
-	StorageClusterId int32
+	StorageClusterID int32
 	Port             int32
 	ServiceName      string
 }
@@ -199,7 +199,7 @@ func createTenantInStorageCluster(ctx *Context, tenant *Tenant, sc *StorageClust
 	go func() {
 		defer close(ch)
 
-		serviceName := fmt.Sprintf("%s-sc-%d", tenant.Name, sc.Id)
+		serviceName := fmt.Sprintf("%s-sc-%d", tenant.Name, sc.ID)
 
 		// assign a port by counting tenants in this storage cluster
 		totalTenantsCountQuery := `
@@ -210,7 +210,7 @@ func createTenantInStorageCluster(ctx *Context, tenant *Tenant, sc *StorageClust
 		WHERE 
 		      storage_cluster_id=$1`
 		var totalTenantsCount int32
-		row := ctx.Tx.QueryRow(totalTenantsCountQuery, sc.Id)
+		row := ctx.Tx.QueryRow(totalTenantsCountQuery, sc.ID)
 		err := row.Scan(&totalTenantsCount)
 		if err != nil {
 			ch <- &StorageClusterTenantResult{
@@ -231,7 +231,7 @@ func createTenantInStorageCluster(ctx *Context, tenant *Tenant, sc *StorageClust
 				                                          "service_name")
 			  VALUES
 				($1,$2,$3,$4)`
-		_, err = ctx.Tx.Exec(query, tenant.Id, sc.Id, port, serviceName)
+		_, err = ctx.Tx.Exec(query, tenant.ID, sc.ID, port, serviceName)
 		if err != nil {
 			ch <- &StorageClusterTenantResult{
 				Error: err,
@@ -242,7 +242,7 @@ func createTenantInStorageCluster(ctx *Context, tenant *Tenant, sc *StorageClust
 		ch <- &StorageClusterTenantResult{
 			StorageClusterTenant: &StorageClusterTenant{
 				Tenant:           tenant,
-				StorageClusterId: sc.Id,
+				StorageClusterID: sc.ID,
 				Port:             port,
 				ServiceName:      serviceName,
 			},
