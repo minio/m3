@@ -98,7 +98,7 @@ func GetBucket(w http.ResponseWriter, r *http.Request) {
 	if found {
 		info["name"] = bucketName
 	} else {
-		http.NotFound(w,r)
+		http.NotFound(w, r)
 		return
 	}
 
@@ -115,13 +115,12 @@ type bucket struct {
 	Name string `json:"bucketName"`
 }
 
-
-// MakeBucket creates a new bucket 
+// MakeBucket creates a new bucket
 func MakeBucket(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var newBucket bucket
 
-	err:= decoder.Decode(&newBucket)
+	err := decoder.Decode(&newBucket)
 	if err != nil {
 		panic(err)
 	}
@@ -190,13 +189,13 @@ func DeleteBucket(w http.ResponseWriter, r *http.Request) {
 	if found {
 		err = minioClient.RemoveBucket(bucketName)
 		if err != nil {
-		    http.Error(w, err.Error(), http.StatusInternalServerError)
-		    return
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		info["message"] = fmt.Sprintf("Bucket %s deleted", bucketName)
 
 	} else {
-		http.NotFound(w,r)
+		http.NotFound(w, r)
 		return
 	}
 
@@ -205,7 +204,7 @@ func DeleteBucket(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		log.Fatal("Cannot Marshal error")
 	}
-	
+
 	w.Write(output)
 }
 
@@ -262,7 +261,7 @@ func ListObjects(w http.ResponseWriter, r *http.Request) {
 		w.Write(output)
 
 	} else {
-		http.NotFound(w,r)
+		http.NotFound(w, r)
 		return
 	}
 }

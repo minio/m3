@@ -77,7 +77,6 @@ func registerBucketRoutes(router *mux.Router) {
 	apiRouter.Methods("DELETE").Path("/api/buckets/{bucketName}").HandlerFunc(DeleteBucket)
 	apiRouter.Methods("GET").Path("/api/buckets/{bucketName}/objects/").HandlerFunc(ListObjects)
 
-
 }
 
 func validRequest(w http.ResponseWriter, r *http.Request) bool {
