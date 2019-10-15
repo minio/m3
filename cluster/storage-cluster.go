@@ -153,19 +153,19 @@ func GetListOfTenantsForSCluster(ctx *Context, sc *StorageCluster) chan []*Stora
 		}
 		var tenants []*StorageClusterTenant
 		for rows.Next() {
-			var tenantId int32
+			var tenantID int32
 			var tenantName string
 			var tenantShortName string
 			var port int32
 			var serviceName string
-			err = rows.Scan(&tenantId, &port, &serviceName, &tenantName, &tenantShortName)
+			err = rows.Scan(&tenantID, &port, &serviceName, &tenantName, &tenantShortName)
 			if err != nil {
 				fmt.Println(err)
 			}
 
 			tenants = append(tenants, &StorageClusterTenant{
 				Tenant: &Tenant{
-					ID:        tenantId,
+					ID:        tenantID,
 					Name:      tenantName,
 					ShortName: tenantShortName,
 				},
@@ -218,7 +218,7 @@ func createTenantInStorageCluster(ctx *Context, tenant *Tenant, sc *StorageClust
 			}
 			return
 		}
-		// asign a port for this tenant
+		// assign a port for this tenant
 		port := 9000 + totalTenantsCount + 1
 
 		// insert a new Storage Cluster with the optional name
