@@ -19,7 +19,6 @@ package cluster
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -594,28 +593,6 @@ func ReDeployStorageCluster(ctx *Context, sc *StorageCluster) chan error {
 			//		return
 			//	}
 			//}
-		}
-	}()
-	return ch
-}
-
-func waitDeploymentLive(scHostName string, port int32) chan error {
-	ch := make(chan error)
-	go func() {
-		defer close(ch)
-		targetURL := fmt.Sprintf("http://%s:%d/minio/health/live", scHostName, port)
-		for {
-			resp, err := http.Get(targetURL)
-			if err != nil {
-				// TODO: Return error if it's not a "not found" error
-				fmt.Println(err)
-			}
-			if resp != nil && resp.StatusCode == http.StatusOK {
-				fmt.Println("host available")
-				return
-			}
-			fmt.Println("host not available")
-			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 	return ch
