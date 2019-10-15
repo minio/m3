@@ -30,7 +30,6 @@ jobs:
         env:
           GO111MODULE: on
         run: |
-          diff -au <(gofmt -d cluster) <(printf "")
-          diff -au <(gofmt -d cmd) <(printf "")
-          diff -au <(gofmt -d portal) <(printf "")
+          curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.20.0
+          $(go env GOPATH)/bin/golangci-lint run --config ./.golangci.yml
           go test -v -race ./...
