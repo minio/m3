@@ -47,7 +47,7 @@ func registerApp(name string) *cli.App {
 	}
 
 	app := cli.NewApp()
-	app.Name = "m3"
+	app.Name = name
 	app.Usage = "Starts MinIO Kubernetes Cloud"
 	app.Commands = commands
 	app.Action = func(c *cli.Context) error {

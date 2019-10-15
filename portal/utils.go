@@ -56,5 +56,3 @@ func toLookupType(s string) minio.BucketLookupType {
 	}
 	return minio.BucketLookupAuto
 }
-
-func returnHTTPError() {}
