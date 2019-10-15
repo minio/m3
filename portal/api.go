@@ -24,14 +24,34 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// StartApiPortal starts the portal handling the following routes:
+// 	/version/ :
+// 		Description: Version of the portal API
+//		Methods: GET
+//	/admin/info/ :
+//		Description: TODO
+//	/buckets/ :
+//		Method: GET
+//			Description: List of buckets
+// 		Method: POST
+//			Description: Creates a new Bucket
+//			Body payload request: {"bucketName": <name_of_bucket>}
+// 	/buckets/{bucketName} :
+//		Method: GET
+// 			Description: Returns bucket info
+//		Method: DELETE
+//			Description: Remove bucket
+//	/buckets/{bucketName}/objects/ :
+//		Description: List of objects within the bucket {bucketName}
+//		Methods: GET
 func StartApiPortal() {
 	log.Println("Starting MinIO Kubernetes Cloud")
-	// have all APIs register their handlers
 	router := registerRoutes()
 	log.Fatal(http.ListenAndServe(":9009", router))
 }
 
 func registerRoutes() *mux.Router {
+	// register handlers
 	router := mux.NewRouter().SkipClean(true)
 	registerAppRoutes(router)
 	registerAdminRoutes(router)
@@ -40,7 +60,7 @@ func registerRoutes() *mux.Router {
 }
 
 func registerAppRoutes(router *mux.Router) {
-	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
+	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter().StrictSlash(true)
 	apiRouter.Methods("GET").Path("/api/version/").HandlerFunc(APIVersion)
 }
 
@@ -50,9 +70,13 @@ func registerAdminRoutes(router *mux.Router) {
 }
 
 func registerBucketRoutes(router *mux.Router) {
-	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter()
-	apiRouter.Methods("GET").Path("/api/bucket/").HandlerFunc(ListBuckets)
-	apiRouter.Methods("GET").Path("/api/bucket/{bucketName}").HandlerFunc(ListObjects)
+	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter().StrictSlash(true)
+	apiRouter.Methods("GET").Path("/api/buckets/").HandlerFunc(ListBuckets)
+	apiRouter.Methods("POST").Path("/api/buckets/").HandlerFunc(MakeBucket)
+	apiRouter.Methods("GET").Path("/api/buckets/{bucketName}").HandlerFunc(GetBucket)
+	apiRouter.Methods("DELETE").Path("/api/buckets/{bucketName}").HandlerFunc(DeleteBucket)
+	apiRouter.Methods("GET").Path("/api/buckets/{bucketName}/objects/").HandlerFunc(ListObjects)
+
 }
 
 func validRequest(w http.ResponseWriter, r *http.Request) bool {
