@@ -23,11 +23,12 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	//
@@ -252,18 +253,35 @@ func CreateTenantService(sct *StorageClusterTenant) {
 }
 
 func nodeNameForSCHostNum(sc *StorageCluster, hostNum string) string {
-	switch hostNum {
-	case "1":
-		return "m3cluster-worker"
-	case "2":
-		return "m3cluster-worker2"
-	case "3":
-		return "m3cluster-worker3"
-	case "4":
-		return "m3cluster-worker4"
+	switch sc.ID {
+	case 1:
+		switch hostNum {
+		case "1":
+			return "m3cluster-worker"
+		case "2":
+			return "m3cluster-worker2"
+		case "3":
+			return "m3cluster-worker3"
+		case "4":
+			return "m3cluster-worker4"
+		default:
+			return "m3cluster-worker"
+		}
 	default:
-		return "m3cluster-worker"
+		switch hostNum {
+		case "1":
+			return "m3cluster-worker"
+		case "2":
+			return "m3cluster-worker2"
+		case "3":
+			return "m3cluster-worker3"
+		case "4":
+			return "m3cluster-worker4"
+		default:
+			return "m3cluster-worker"
+		}
 	}
+
 }
 
 const (
@@ -297,7 +315,7 @@ func CreateDeploymentWithTenants(tenants []*StorageClusterTenant, sc *StorageClu
 		tenantContainer := v1.Container{
 			Name:            fmt.Sprintf("%s-minio-%s", tenant.Name, hostNum),
 			Image:           "minio/minio:edge",
-			ImagePullPolicy: "Always",
+			ImagePullPolicy: "IfNotPresent",
 			Args: []string{
 				"server",
 				"--address",
@@ -592,7 +610,7 @@ func waitDeploymentLive(scHostName string, port int32) chan error {
 				// TODO: Return error if it's not a "not found" error
 				fmt.Println(err)
 			}
-			if resp.StatusCode == http.StatusOK {
+			if resp != nil && resp.StatusCode == http.StatusOK {
 				fmt.Println("host available")
 				return
 			}

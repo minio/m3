@@ -18,6 +18,8 @@ package cluster
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/golang-migrate/migrate/v4"
 	// the postgres driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -27,7 +29,6 @@ import (
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"log"
 )
 
 const (

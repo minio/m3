@@ -20,11 +20,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	// postgres driver for database/sql
-	_ "github.com/lib/pq"
+
 	"log"
 	"os"
 	"sync"
+
+	// postgres driver for database/sql
+	_ "github.com/lib/pq"
 )
 
 type Singleton struct {
