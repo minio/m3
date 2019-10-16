@@ -14,47 +14,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package cluster
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-
-	"github.com/minio/cli"
+	"context"
+	"database/sql"
 )
 
-var appCmds = []cli.Command{
-	portalCmd,
-	clusterCmd,
-	tenantCmd,
-	setupCmd,
+// An application wide context that holds the a transaction, in case anything
+// goes wrong during the business logic execution, database objects can be
+// rolled back.
+type Context struct {
+	*sql.Tx
+	Main context.Context
 }
 
-func main() {
-	args := os.Args
-	// Set the mcs app name.
-	appName := filepath.Base(args[0])
-	// Run the app - exit on error.
-	if err := registerApp(appName).Run(args); err != nil {
-		os.Exit(1)
-	}
-}
-
-func registerApp(name string) *cli.App {
-	// register commands
-	for _, cmd := range appCmds {
-		registerCmd(cmd)
-	}
-
-	app := cli.NewApp()
-	app.Name = name
-	app.Usage = "Starts MinIO Kubernetes Cloud"
-	app.Commands = commands
-	app.Action = func(c *cli.Context) error {
-		fmt.Println(app.Name + " started")
-		return nil
-	}
-
-	return app
+// Creates a new `Context` given an initial transaction and `context.Context`
+// to control timeouts and cancellations.
+func NewContext(ctx context.Context, tx *sql.Tx) *Context {
+	c := &Context{Tx: tx, Main: ctx}
+	return c
 }

@@ -17,45 +17,21 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/minio/cli"
 	"github.com/minio/m3/cluster"
 )
 
 // list files and folders.
-var addStorageClusterCmd = cli.Command{
-	Name:   "add",
-	Usage:  "add a storage cluster",
-	Action: addStorageCluster,
-	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "name",
-			Value: "",
-			Usage: "Optional name for the storage cluster",
-		},
+var setupCmd = cli.Command{
+	Name:   "setup",
+	Usage:  "Setups the m3 cluster",
+	Action: setupDefCmd,
+	Subcommands: []cli.Command{
+		setupDbCmd,
 	},
 }
 
-// Adds a Storage Cluster to house multiple tenants
-func addStorageCluster(ctx *cli.Context) error {
-	var name *string
-	if ctx.String("name") != "" {
-		nameVal := ctx.String("name")
-		name = &nameVal
-	}
-
-	// create a new storage cluster in the DB
-	result := <-cluster.AddStorageCluster(name)
-	if result.Error != nil {
-		fmt.Println(result.Error)
-		return nil
-	}
-	err := <-cluster.ProvisionServicesForStorageCluster(result.StorageCluster)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-
+func setupDefCmd(ctx *cli.Context) error {
+	cluster.SetupM3()
 	return nil
 }
