@@ -39,13 +39,15 @@ const (
 func SetupM3() {
 	fmt.Println("Setting up m3 namespace")
 	SetupM3Namespace()
+	fmt.Println("setting up nginx")
+	SetupNginxLoadBalancer()
 	fmt.Println("Setting up postgres")
 	SetupPostgres()
 	fmt.Println("Running Migrations")
 	RunMigrations()
 }
 
-// Setups a postgres used by the provisioning service
+// Setups the namcespace used by the provisioning service
 func SetupM3Namespace() {
 	config := getConfig()
 	// creates the clientset
@@ -100,7 +102,7 @@ func SetupPostgres() {
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Println("done setting up postgres servcice ")
+	fmt.Println("done setting up postgres service ")
 	fmt.Println(res.String())
 
 	configMap := v1.ConfigMap{
@@ -170,6 +172,131 @@ func SetupPostgres() {
 		panic(err.Error())
 	}
 	fmt.Println("done creating postgres deployment ")
+	fmt.Println(resDeployment.String())
+
+}
+
+// SetupNginxLoadBalancer setups the loadbalancer/reverse proxy used to resolve the tenants subdomains
+func SetupNginxLoadBalancer() {
+	config := getConfig()
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	nginxService := v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "nginx-resolver",
+			Labels: map[string]string{
+				"name": "nginx-resolver",
+			},
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{
+				{
+					Name: "http",
+					Port: 80,
+				},
+			},
+			Selector: map[string]string{
+				"app": "nginx-resolver",
+			},
+		},
+	}
+
+	res, err := clientset.CoreV1().Services(m3SystemNamespace).Create(&nginxService)
+	if err != nil {
+		panic(err.Error())
+	}
+	fmt.Println("done setting up nginx-resolver service ")
+	fmt.Println(res.String())
+
+	configMap := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "nginx-configuration",
+		},
+		Data: map[string]string{
+			"nginx.conf": `
+			user nginx;
+			worker_processes auto;
+			error_log /dev/stdout debug;
+			pid /var/run/nginx.pid;
+			
+			events {
+				worker_connections  1024;
+			}
+		
+			`,
+		},
+	}
+
+	resConfigMap, err := clientset.CoreV1().ConfigMaps(m3SystemNamespace).Create(&configMap)
+	if err != nil {
+		panic(err.Error())
+	}
+	fmt.Println("done with nginx-resolver configMaps")
+	fmt.Println(resConfigMap.String())
+
+	var replicas int32 = 1
+
+	mainPodSpec := v1.PodSpec{
+		Containers: []v1.Container{
+			{
+				Name:            "nginx-resolver",
+				Image:           "nginx",
+				ImagePullPolicy: "IfNotPresent",
+				Ports: []v1.ContainerPort{
+					{
+						Name:          "http",
+						ContainerPort: 80,
+					},
+				},
+				VolumeMounts: []v1.VolumeMount{
+					{
+						Name:      "nginx-configuration",
+						MountPath: "/etc/nginx/nginx.conf",
+						SubPath:   "nginx.conf",
+					},
+				},
+			},
+		},
+		Volumes: []v1.Volume{
+			{
+				Name: "nginx-configuration",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "nginx-configuration",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	deployment := v1beta1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "nginx-resolver",
+		},
+		Spec: v1beta1.DeploymentSpec{
+			Replicas: &replicas,
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": "nginx-resolver",
+					},
+				},
+				Spec: mainPodSpec,
+			},
+		},
+	}
+
+	resDeployment, err := clientset.ExtensionsV1beta1().Deployments(m3SystemNamespace).Create(&deployment)
+	if err != nil {
+		panic(err.Error())
+	}
+	fmt.Println("done creating nginx-resolver deployment ")
 	fmt.Println(resDeployment.String())
 
 }
