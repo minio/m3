@@ -47,17 +47,6 @@ create table provisioning.nodes
 
 alter table provisioning.nodes owner to postgres;
 
-create table provisioning.node_volumes
-(
-    id uuid not null
-        constraint node_volumes_pk
-            primary key,
-    node_id integer not null,
-    mount_path varchar(256)
-);
-
-alter table provisioning.node_volumes owner to postgres;
-
 create table provisioning.storage_clusters
 (
     id uuid not null
@@ -92,4 +81,18 @@ create table provisioning.storage_cluster_nodes
 );
 
 alter table provisioning.storage_cluster_nodes owner to postgres;
+
+create table provisioning.node_volumes
+(
+    id uuid not null
+        constraint node_volumes_pk
+            primary key,
+    node_id uuid not null
+        constraint node_volumes_nodes_id_fk
+            references provisioning.nodes,
+    mount_path varchar(256)
+);
+
+alter table provisioning.node_volumes owner to postgres;
+
 
