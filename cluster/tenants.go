@@ -64,7 +64,7 @@ func AddTenant(name string, shortName string) error {
 	}
 
 	if sc.Error != nil {
-		fmt.Println("There was an error adding the tenant, no storage cluster available.", sc.Error)
+		fmt.Println("There was an error adding the tenant, no storage group available.", sc.Error)
 		tx.Rollback()
 		return nil
 	}

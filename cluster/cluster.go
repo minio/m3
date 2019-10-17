@@ -80,7 +80,7 @@ func ListPods() {
 
 }
 
-//Creates a headless service that will point to a specific node inside a storage cluster
+//Creates a headless service that will point to a specific node inside a storage group
 func CreateSGHostService(sc *StorageGroup, hostNum string) error {
 	config := getConfig()
 	// creates the clientset
@@ -287,7 +287,7 @@ const (
 	MaxNumberHost        = 4
 )
 
-//Creates a service that will resolve to any of the hosts within the storage cluster this tenant lives in
+//Creates a service that will resolve to any of the hosts within the storage group this tenant lives in
 // This will create a deployment for the provided `StorageGroup` using the provided list of `StorageGroupTenant`
 func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sc *StorageGroup, hostNum string) error {
 	config := getConfig()
@@ -397,7 +397,7 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sc *StorageGroup
 	return nil
 }
 
-// spins up the tenant on the target storage cluster, waits for it to start, then shuts it down
+// spins up the tenant on the target storage group, waits for it to start, then shuts it down
 func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sc *StorageGroup) chan error {
 	ch := make(chan error)
 	go func() {
@@ -406,13 +406,13 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sc *StorageGrou
 			ch <- errors.New("nil Tenant or StorageGroup passed")
 			return
 		}
-		// assign the tenant to the storage cluster
+		// assign the tenant to the storage group
 		scTenantResult := <-createTenantInStorageGroup(ctx, tenant, sc)
 		if scTenantResult.Error != nil {
 			ch <- scTenantResult.Error
 			return
 		}
-		// start the jobs that create the tenant folder on each disk on each node of the storage cluster
+		// start the jobs that create the tenant folder on each disk on each node of the storage group
 		var jobChs []chan error
 		for i := 1; i <= MaxNumberHost; i++ {
 			jobCh := CreateTenantFolderInDiskAndWait(tenant, sc, i)
@@ -428,7 +428,7 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sc *StorageGrou
 		}
 
 		CreateTenantServiceInStorageGroup(scTenantResult.StorageGroupTenant)
-		// call for the storage cluster to refresh
+		// call for the storage group to refresh
 		err := <-ReDeployStorageGroup(ctx, sc)
 		if err != nil {
 			ch <- err
