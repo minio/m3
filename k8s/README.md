@@ -1,56 +1,91 @@
-Getting started
-=====
+# Getting started
 
-Requirements
----
+
+## Requirements
+
 - [Docker](https://www.docker.com)
 
-	Build docker image:
+- [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
-	```
-	$ docker build -t m3kind .
- 	```
+## Installation
 
-- Install [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- Install [`kind`](https://kind.sigs.k8s.io/docs/user/quick-start/)
 
-Installation
----
-
-#### Install `kind`
-
-```
+```shell
 $ GO111MODULE="on" go get sigs.k8s.io/kind@v0.5.1
 ```
-> Note: If the message `kind: command not found` appears when running those commands add the `$GOPATH` variable to the `$PATH` variable with: `$ export PATH=$PATH:$(go env GOPATH)/bin`
-else, refer to [kind docs](https://kind.sigs.k8s.io/docs/user/quick-start/)
 
-then create cluster and sample tenant
+## Setup a local kubernetes (`m3cluster`) using kind
+Provision the local kubernetes cluster for test/development
 
-```
-$ chmod +x create-kind.sh
+```shell
+
 $ ./create-kind.sh
 ```
 
+## Access Kubernetes dashboard
 
-#### Configure `kubectl`
-```
+1. Configure `kubectl` to work with local kubernetes
+
+```shell
 $ export KUBECONFIG="$(kind get kubeconfig-path --name="m3cluster")"
 ```
 
-
-forward the service to your local
+2. Launch kubectl proxy to access kubernetes dashboard
+```shell
+$ kubectl proxy
 ```
-$ kubectl port-forward service/tenant-1 9001
+
+3. Log in to the dashboard at  http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login
+
+4. To get the access token,
+
+On *nix,
+```shell
+$ kubectl get secret $(kubectl get serviceaccount dashboard -o jsonpath="{.secrets[0].name}") -o jsonpath="{.data.token}" | base64 --decode
 ```
 
-To get the access token 
-
-```
+On Mac OS,
+```shell
 $ kubectl get secret $(kubectl get serviceaccount dashboard -o jsonpath="{.secrets[0].name}") -o jsonpath="{.data.token}" | base64 --decode | pbcopy
 ```
 
-Launch proxy to access kubernetes dashboard
+## Setup `m3`
+(The following instructions assume that you are in the top-level directory of this repository)
+1. Build `m3` locally
+```shell
+   go build ./cmd/m3
 ```
-$ kubectl proxy
+
+2. Run `m3 setup` on the local kubernetes
+```shell
+   ./m3 setup
 ```
-After that go to http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login and enter the authentication token
+At the moment, you would see the following error message,
+```
+Running Migrations
+2019/10/17 12:02:50 error connecting to database or reading migrations
+2019/10/17 12:02:50 dial tcp 127.0.0.1:5432: connect: connection refused
+```
+
+This is benign and can be fixed with the following steps,
+
+```shell
+  kubectl port-forward -n m3 svc/postgres 5432
+  ./m3 setup db
+```
+
+## Creating a Storage Cluster
+```shell
+  ./m3 cluster sc add -n my-dc-rack-1
+```
+
+## Adding a tenant
+```shell
+  ./m3 tenant add -n company-name --short_name comp-name
+```
+
+## Accessing the tenant MinIO service via browser UI
+```shell
+  kubectl port-forward svc/comp-name 9001
+```
