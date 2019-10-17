@@ -62,6 +62,7 @@ func registerRoutes() *mux.Router {
 func registerAppRoutes(router *mux.Router) {
 	apiRouter := router.PathPrefix("").HeadersRegexp("User-Agent", ".*Mozilla.*").Subrouter().StrictSlash(true)
 	apiRouter.Methods("GET").Path("/api/version/").HandlerFunc(APIVersion)
+	apiRouter.Methods("POST").Path("/api/login/").HandlerFunc(Login)
 }
 
 func registerAdminRoutes(router *mux.Router) {

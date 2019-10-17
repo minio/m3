@@ -30,12 +30,21 @@ import (
 var (
 	_ http.HandlerFunc = ListBuckets
 	_ http.HandlerFunc = ListObjects
+	_ http.HandlerFunc = GetBucket
+	_ http.HandlerFunc = MakeBucket
+	_ http.HandlerFunc = DeleteBucket
 )
 
 // ListBuckets lists all buckets for the client
 func ListBuckets(w http.ResponseWriter, r *http.Request) {
 	var binfo []minio.BucketInfo
 	ssl := true
+
+	// Validate request token
+	validToken := ValidateTokenFromCookie(w, r)
+	if !validToken {
+		return
+	}
 
 	// DEMO
 	// Initialize minio client object.
