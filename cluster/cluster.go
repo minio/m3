@@ -17,6 +17,7 @@
 package cluster
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -223,11 +224,13 @@ func CreateTenantService(sct *StorageClusterTenant) {
 		panic(err.Error())
 	}
 
+	serviceName := fmt.Sprintf("%s-sc-%d", sct.Tenant.ShortName, sct.ID)
+
 	scSvc := v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: sct.ShortName,
+			Name: serviceName,
 			Labels: map[string]string{
-				"name": sct.ShortName,
+				"tenant": sct.ShortName,
 			},
 		},
 		Spec: v1.ServiceSpec{
@@ -439,6 +442,75 @@ func ProvisionTenantOnStorageCluster(ctx *Context, tenant *Tenant, sc *StorageCl
 	return ch
 }
 
+// UpdateNginxConfiguration Update the nginx.conf ConfigMap used by the nginx-resolver service
+func UpdateNginxConfiguration(ctx *Context) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		tenants := <-GetListOfTenants(ctx)
+		config := getConfig()
+		// creates the clientset
+		clientset, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			ch <- err
+			return
+		}
+		var nginxConfiguration bytes.Buffer
+		nginxConfiguration.WriteString(`
+user nginx;
+worker_processes auto;
+error_log /dev/stdout debug;
+pid /var/run/nginx.pid;
+
+events {
+	worker_connections  1024;
+}
+
+http {
+
+		`)
+		for index := 0; index < len(tenants); index++ {
+			tenant := tenants[index]
+			serverBlock := fmt.Sprintf(`
+	server {
+		server_name %s.s3.localhost;
+		location / {
+			proxy_pass http://%s:%d;
+		}
+	}
+
+			`, tenant.ServiceName, tenant.ServiceName, tenant.Port)
+			nginxConfiguration.WriteString(serverBlock)
+		}
+		nginxConfiguration.WriteString(`
+}
+		`)
+
+		configMap := v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "nginx-configuration",
+			},
+			Data: map[string]string{
+				"nginx.conf": nginxConfiguration.String(),
+			},
+		}
+		fmt.Println(nginxConfiguration.String())
+		resConfigMap, err := clientset.CoreV1().ConfigMaps("default").Update(&configMap)
+		if err != nil {
+			panic(err.Error())
+		}
+		fmt.Println(resConfigMap.String())
+
+		err = <-ReDeployNginxResolver(ctx)
+		if err != nil {
+			ch <- err
+			return
+		}
+
+	}()
+	return ch
+}
+
 func CreateTenantFolderInDiskAndWait(tenant *Tenant, sc *StorageCluster, hostNumber int) chan error {
 	ch := make(chan error)
 	go func() {
@@ -596,4 +668,101 @@ func ReDeployStorageCluster(ctx *Context, sc *StorageCluster) chan error {
 		}
 	}()
 	return ch
+}
+
+// ReDeployNginxResolver destroy current nginx deployment and replace it with a new want that will take latest configMap configuration
+func ReDeployNginxResolver(ctx *Context) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+
+		config := getConfig()
+		// creates the clientset
+		clientset, err := kubernetes.NewForConfig(config)
+		// does the deployment exist?
+		res, err := clientset.AppsV1().Deployments("default").Get("nginx-resolver", metav1.GetOptions{})
+		if err != nil && (res == nil || res.Name != "") {
+			ch <- err
+			return
+		}
+		// if the deployment exist, delete FOR NOW
+		if res.Name != "" {
+			err = clientset.AppsV1().Deployments("default").Delete("nginx-resolver", nil)
+			if err != nil {
+				ch <- err
+				return
+			}
+		}
+		DeployNginxResolver()
+	}()
+	return ch
+}
+
+// DeployNginxResolver create a new nginx-resolver deployment
+func DeployNginxResolver() {
+	config := getConfig()
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+
+	var replicas int32 = 1
+
+	mainPodSpec := v1.PodSpec{
+		Containers: []v1.Container{
+			{
+				Name:            "nginx-resolver",
+				Image:           "nginx",
+				ImagePullPolicy: "IfNotPresent",
+				Ports: []v1.ContainerPort{
+					{
+						Name:          "http",
+						ContainerPort: 80,
+					},
+				},
+				VolumeMounts: []v1.VolumeMount{
+					{
+						Name:      "nginx-configuration",
+						MountPath: "/etc/nginx/nginx.conf",
+						SubPath:   "nginx.conf",
+					},
+				},
+			},
+		},
+		Volumes: []v1.Volume{
+			{
+				Name: "nginx-configuration",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: "nginx-configuration",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	deployment := v1beta1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "nginx-resolver",
+		},
+		Spec: v1beta1.DeploymentSpec{
+			Replicas: &replicas,
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": "nginx-resolver",
+					},
+				},
+				Spec: mainPodSpec,
+			},
+		},
+	}
+
+	resDeployment, err := clientset.ExtensionsV1beta1().Deployments("default").Create(&deployment)
+	if err != nil {
+		panic(err.Error())
+	}
+	fmt.Println("done creating nginx-resolver deployment ")
+	fmt.Println(resDeployment.String())
+
 }

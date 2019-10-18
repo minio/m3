@@ -179,6 +179,40 @@ func GetListOfTenantsForSCluster(ctx *Context, sc *StorageCluster) chan []*Stora
 	return ch
 }
 
+// GetListOfTenants returns a list of all tenants that currently exists on the cluster
+func GetListOfTenants(ctx *Context) chan []*StorageClusterTenant {
+	ch := make(chan []*StorageClusterTenant)
+	go func() {
+		defer close(ch)
+		query := `
+			SELECT 
+			       t1.port, t1.service_name
+			FROM 
+			     m3.provisioning.tenants_storage_clusters t1
+		`
+		rows, err := ctx.Tx.Query(query)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		var tenants []*StorageClusterTenant
+		for rows.Next() {
+			var port int32
+			var serviceName string
+			err = rows.Scan(&port, &serviceName)
+			if err != nil {
+				fmt.Println(err)
+			}
+			tenants = append(tenants, &StorageClusterTenant{
+				Port:        port,
+				ServiceName: serviceName,
+			})
+		}
+		ch <- tenants
+	}()
+	return ch
+}
+
 // Represents the allocation of a tenant to a specific `StorageCluster`
 type StorageClusterTenant struct {
 	*Tenant

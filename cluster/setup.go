@@ -205,7 +205,7 @@ func SetupNginxLoadBalancer() {
 		},
 	}
 
-	res, err := clientset.CoreV1().Services(m3SystemNamespace).Create(&nginxService)
+	res, err := clientset.CoreV1().Services("default").Create(&nginxService)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -218,87 +218,26 @@ func SetupNginxLoadBalancer() {
 		},
 		Data: map[string]string{
 			"nginx.conf": `
-			user nginx;
-			worker_processes auto;
-			error_log /dev/stdout debug;
-			pid /var/run/nginx.pid;
-			
-			events {
-				worker_connections  1024;
-			}
-		
+user nginx;
+worker_processes auto;
+error_log /dev/stdout debug;
+pid /var/run/nginx.pid;
+
+events {
+	worker_connections  1024;
+}
 			`,
 		},
 	}
 
-	resConfigMap, err := clientset.CoreV1().ConfigMaps(m3SystemNamespace).Create(&configMap)
+	resConfigMap, err := clientset.CoreV1().ConfigMaps("default").Create(&configMap)
 	if err != nil {
 		panic(err.Error())
 	}
 	fmt.Println("done with nginx-resolver configMaps")
 	fmt.Println(resConfigMap.String())
 
-	var replicas int32 = 1
-
-	mainPodSpec := v1.PodSpec{
-		Containers: []v1.Container{
-			{
-				Name:            "nginx-resolver",
-				Image:           "nginx",
-				ImagePullPolicy: "IfNotPresent",
-				Ports: []v1.ContainerPort{
-					{
-						Name:          "http",
-						ContainerPort: 80,
-					},
-				},
-				VolumeMounts: []v1.VolumeMount{
-					{
-						Name:      "nginx-configuration",
-						MountPath: "/etc/nginx/nginx.conf",
-						SubPath:   "nginx.conf",
-					},
-				},
-			},
-		},
-		Volumes: []v1.Volume{
-			{
-				Name: "nginx-configuration",
-				VolumeSource: v1.VolumeSource{
-					ConfigMap: &v1.ConfigMapVolumeSource{
-						LocalObjectReference: v1.LocalObjectReference{
-							Name: "nginx-configuration",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	deployment := v1beta1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "nginx-resolver",
-		},
-		Spec: v1beta1.DeploymentSpec{
-			Replicas: &replicas,
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": "nginx-resolver",
-					},
-				},
-				Spec: mainPodSpec,
-			},
-		},
-	}
-
-	resDeployment, err := clientset.ExtensionsV1beta1().Deployments(m3SystemNamespace).Create(&deployment)
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println("done creating nginx-resolver deployment ")
-	fmt.Println(resDeployment.String())
-
+	DeployNginxResolver()
 }
 
 // This runs all the migrations on the cluster/migrations folder, if some migrations were already applied it then will
