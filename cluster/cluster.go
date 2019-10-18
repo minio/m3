@@ -180,8 +180,8 @@ func CreateSCHostService(sc *StorageCluster, hostNum string) error {
 	return nil
 }
 
-// Creates a the "secrets" of a tenant, for now it's just a plain configMap, but it should be upgraded to secret
-func CreateTenantConfigMap(tenant *Tenant) error {
+// CreateTenantSecrets creates the "secrets" of a tenant.
+func CreateTenantSecrets(tenant *Tenant) error {
 	config := getConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
@@ -191,30 +191,29 @@ func CreateTenantConfigMap(tenant *Tenant) error {
 
 	secretsName := fmt.Sprintf("%s-env", tenant.ShortName)
 
-	configMap := v1.ConfigMap{
+	secret := v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: secretsName,
 			Labels: map[string]string{
 				"app": tenant.ShortName,
 			},
 		},
-		Data: map[string]string{
-			"MINIO_ACCESS_KEY": "minio",
-			"MINIO_SECRET_KEY": "minio123",
+		Data: map[string][]byte{
+			"MINIO_ACCESS_KEY": []byte("minio"),
+			"MINIO_SECRET_KEY": []byte("minio123"),
 		},
 	}
-
-	res, err := clientset.CoreV1().ConfigMaps("default").Create(&configMap)
+	res, err := clientset.CoreV1().Secrets("default").Create(&secret)
 	if err != nil {
 		return err
 	}
 	if res.Name == "" {
-		return errors.New("error adding config map to kubernetes")
+		return errors.New("error adding secret to kubernetes")
 	}
 	return nil
 }
 
-//Creates a service that will resolve to any of the hosts within the storage cluster this tenant lives in
+//CreateTenantService creates a service that will resolve to any of the hosts within the storage cluster this tenant lives in
 func CreateTenantService(sct *StorageClusterTenant) {
 	config := getConfig()
 	// creates the clientset
@@ -334,7 +333,7 @@ func CreateDeploymentWithTenants(tenants []*StorageClusterTenant, sc *StorageClu
 			},
 			EnvFrom: []v1.EnvFromSource{
 				{
-					ConfigMapRef: &v1.ConfigMapEnvSource{
+					SecretRef: &v1.SecretEnvSource{
 						LocalObjectReference: v1.LocalObjectReference{Name: envName},
 					},
 				},

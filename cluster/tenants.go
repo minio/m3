@@ -56,7 +56,7 @@ func AddTenant(name string, shortName string) error {
 	// find a cluster where to allocate the tenant
 	sc := <-SelectSCWithSpace(ctx)
 	// Create a store for the tenant's configuration
-	err = CreateTenantConfigMap(tenantResult.Tenant)
+	err = CreateTenantSecrets(tenantResult.Tenant)
 	if err != nil {
 		return err
 	}
