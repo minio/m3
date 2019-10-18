@@ -1,0 +1,339 @@
+// This file is part of MinIO Kubernetes Cloud
+// Copyright (c) 2019 MinIO, Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+syntax = "proto3";
+
+
+option java_multiple_files = true;
+option java_package = "io.min.m3.public-api";
+option java_outer_classname = "PublicApiProto";
+
+package v3;
+
+service PublicAPI {
+    // Registers a new Tenant and a Tenant Admin account
+    rpc RegisterTenant (RegisterAccountRequest) returns (RegisterAccountResponse) {
+    }
+    // Returns metrics around the authenticated tenant account if the tenant is an admin or has access
+    rpc Metrics (MetricsRequest) returns (MetricsResponse) {
+    }
+
+    // Bucket
+
+    // List Buckets
+    rpc ListBuckets (ListBucketsRequest) returns (ListBucketsResponse) {
+    }
+    // List Buckets
+    rpc MakeBucket (MakeBucketRequest) returns (Bucket) {
+    }
+
+    // User
+
+    // List Users
+    rpc ListUsers (ListUsersRequest) returns (ListUsersResponse) {
+    }
+
+    // Disable a User
+    rpc DisableUser (UserActionRequest) returns (UserActionResponse) {
+    }
+
+    // Enable a User
+    rpc EnableUser (UserActionRequest) returns (UserActionResponse) {
+    }
+    // Remove a User
+    rpc RemoveUser (UserActionRequest) returns (UserActionResponse) {
+    }
+    // Remove a User
+    rpc InfoUser (UserActionRequest) returns (User) {
+    }
+
+    // Token
+
+    // List Tokens for a User
+    rpc ListTokens (ListTokensRequest) returns (ListTokensResponse) {
+    }
+
+    // Generates a token for the given user
+    // This is the only time the secret key will be returned\
+    rpc GenerateToken (GenerateTokenRequest) returns (GenerateTokenResponse) {
+    }
+    // Disable a Token
+    rpc DisableToken (TokenActionRequest) returns (TokenActionResponse) {
+    }
+
+    // Enable a Token
+    rpc EnableToken (TokenActionRequest) returns (TokenActionResponse) {
+    }
+    // Remove a Token
+    rpc RemoveToken (TokenActionRequest) returns (TokenActionResponse) {
+    }
+    // Remove a Token
+    rpc InfoToken (TokenActionRequest) returns (Token) {
+    }
+
+    // Group
+
+    // List Groups
+    rpc ListGroups (ListGroupsRequest) returns (ListGroupsResponse) {
+    }
+    // Disable a Group
+    rpc DisableGroup (GroupActionRequest) returns (GroupActionResponse) {
+    }
+
+    // Enable a Group
+    rpc EnableGroup (GroupActionRequest) returns (GroupActionResponse) {
+    }
+    // Remove a Group
+    rpc RemoveGroup (GroupActionRequest) returns (GroupActionResponse) {
+    }
+    // Remove a Group
+    rpc InfoGroup (GroupActionRequest) returns (Group) {
+    }
+
+    // Policy
+
+    // List Policies
+    rpc ListPolicies (ListPoliciesRequest) returns (ListPoliciesResponse) {
+    }
+    // Disable a Policy
+    rpc DisablePolicy (PolicyActionRequest) returns (PolicyActionResponse) {
+    }
+
+    // Enable a Policy
+    rpc EnablePolicy (PolicyActionRequest) returns (PolicyActionResponse) {
+    }
+    // Remove a Policy
+    rpc RemovePolicy (PolicyActionRequest) returns (PolicyActionResponse) {
+    }
+    // Remove a Policy
+    rpc InfoPolicy (PolicyActionRequest) returns (Policy) {
+    }
+}
+
+// Message containing details of the Tenant Admin and the tenant that is going to be created
+message RegisterAccountRequest {
+    string full_name = 1;
+    string company = 3;
+    string company_short_name = 4;
+    string email = 5;
+    string password = 6;
+    // Portal that handles the payment details should
+    string payment_id = 7;
+}
+
+// Response on wether the account was created or not
+message RegisterAccountResponse {
+    string error = 1;
+    string jwt_token = 2;
+}
+
+// A request for metrics on the authenticated tenant
+message MetricsRequest {
+}
+// Capacity related metrics
+message CapacityMetrics {
+    // number of buckets on the account
+    int32 buckets = 1;
+    // A number of bytes representing the total usage on the account
+    int64 total_data = 2;
+}
+
+// Networking related metrics
+message NetworkMetrics {
+    // Current period amount of egress
+    int64 current_egress = 1;
+    // Current period amount of egress
+    int64 current_ingress = 2;
+}
+
+// Information to build a basic dashboard
+message MetricsResponse {
+    CapacityMetrics capacity = 1;
+    NetworkMetrics network = 2;
+}
+
+// Request what buckets the current tenant user can see
+message ListBucketsRequest {
+    string sort_by = 1;
+    int32 offset = 2;
+    // a query to filter buckets with
+    string query = 3;
+}
+
+message ListBucketsResponse {
+    // if any error, like user not allowed to list buckets
+    string error = 1;
+    // list of resulting buckets
+    repeated Bucket buckets = 2;
+    // number of buckets accessible to tenant user
+    int32 total_buckets = 3;
+}
+
+message Bucket {
+    string name = 1;
+    int64 size = 2;
+}
+
+message MakeBucketRequest {
+    string name = 1;
+}
+
+// Request a list of users on the tenant account
+message ListUsersRequest {
+    string sort_by = 1;
+    int32 offset = 2;
+    // a query to filter users with
+    string query = 3;
+}
+
+// Request a list of users on the tenant account
+message ListUsersResponse {
+    // if any error, like user not allowed to list users
+    string error = 1;
+    // list of resulting users
+    repeated User users = 2;
+    // number of users on the tenant account
+    int32 total_users = 3;
+}
+
+message User {
+    // Identifier for the user
+    string name = 1;
+    string email = 2;
+}
+
+message UserActionRequest {
+    string user_name = 1;
+}
+
+message UserActionResponse {
+    string error = 1;
+    string status = 2;
+}
+
+// Request a list of tokens on the tenant account
+message ListTokensRequest {
+    string sort_by = 1;
+    int32 offset = 2;
+    // a query to filter tokens with
+    string query = 3;
+}
+
+// Request a list of tokens on the tenant account
+message ListTokensResponse {
+    // if any error, like user not allowed to list tokens
+    string error = 1;
+    // list of resulting tokens
+    repeated Token tokens = 2;
+    // number of tokens on the tenant account
+    int32 total_tokens = 3;
+}
+
+message Token {
+    // Identifier for the token
+    string access_key = 1;
+    // State of the token
+    enum Status {
+        ACTIVE = 0;
+        INACTIVE = 1;
+    }
+    Status status = 2;
+}
+
+message TokenActionRequest {
+    // Access key to apply the action to
+    string access_key = 1;
+}
+
+message TokenActionResponse {
+    // If any error happened
+    string error = 1;
+}
+
+message GenerateTokenRequest {
+    string user_access_key = 1;
+}
+message GenerateTokenResponse {
+    string access_key = 1;
+    string secret_key = 2;
+}
+
+// Request a list of groups on the tenant account
+message ListGroupsRequest {
+    string sort_by = 1;
+    int32 offset = 2;
+    // a query to filter groups with
+    string query = 3;
+}
+
+// Request a list of groups on the tenant account
+message ListGroupsResponse {
+    // if any error, like user not allowed to list groups
+    string error = 1;
+    // list of resulting groups
+    repeated Group groups = 2;
+    // number of groups on the tenant account
+    int32 total_groups = 3;
+}
+
+message Group {
+    // Group identifier
+    string name = 1;
+    string description = 2;
+}
+
+message GroupActionRequest {
+    string group_name = 1;
+}
+
+message GroupActionResponse {
+    string error = 1;
+    string status = 2;
+}
+
+// Request a list of policies on the tenant account
+message ListPoliciesRequest {
+    string sort_by = 1;
+    int32 offset = 2;
+    // a query to filter policies with
+    string query = 3;
+}
+
+// Request a list of policies on the tenant account
+message ListPoliciesResponse {
+    // if any error, like user not allowed to list policies
+    string error = 1;
+    // list of resulting policies
+    repeated Policy policies = 2;
+    // number of policies on the tenant account
+    int32 total_policies = 3;
+}
+
+// Policy resource
+message Policy {
+    // Identifier for the policy
+    string name = 1;
+    string description = 2;
+}
+
+message PolicyActionRequest {
+    // Identifier for the policy
+    string policy_name = 1;
+}
+message PolicyActionResponse {
+    string error = 1;
+    string status = 2;
+}
+

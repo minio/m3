@@ -24,7 +24,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// StartApiPortal starts the portal handling the following routes:
+// StartAPIPortal starts the portal handling the following routes:
 // 	/version/ :
 // 		Description: Version of the portal API
 //		Methods: GET
@@ -44,7 +44,7 @@ import (
 //	/buckets/{bucketName}/objects/ :
 //		Description: List of objects within the bucket {bucketName}
 //		Methods: GET
-func StartApiPortal() {
+func StartAPIPortal() {
 	log.Println("Starting MinIO Kubernetes Cloud")
 	router := registerRoutes()
 	log.Fatal(http.ListenAndServe(":9009", router))

@@ -23,16 +23,16 @@ import (
 )
 
 // list files and folders.
-var storageClusterCmd = cli.Command{
-	Name:   "sc",
-	Usage:  "storage cluster sub commands",
-	Action: defClusterCmd,
+var storageGroupCmd = cli.Command{
+	Name:   "sg",
+	Usage:  "storage group sub commands",
+	Action: defStorageGroupCmd,
 	Subcommands: []cli.Command{
-		storageGroupCmd,
+		addStorageClusterCmd,
 	},
 }
 
-func defClusterCmd(ctx *cli.Context) error {
+func defStorageGroupCmd(ctx *cli.Context) error {
 	fmt.Println("run a sub command")
 	return nil
 }

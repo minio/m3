@@ -20,19 +20,42 @@ import (
 	"fmt"
 
 	"github.com/minio/cli"
+	"github.com/minio/m3/cluster"
 )
 
 // list files and folders.
-var storageClusterCmd = cli.Command{
-	Name:   "sc",
-	Usage:  "storage cluster sub commands",
-	Action: defClusterCmd,
-	Subcommands: []cli.Command{
-		storageGroupCmd,
+var addStorageClusterCmd = cli.Command{
+	Name:   "add",
+	Usage:  "add a storage group",
+	Action: addStorageGroup,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "name",
+			Value: "",
+			Usage: "Optional name for the storage group",
+		},
 	},
 }
 
-func defClusterCmd(ctx *cli.Context) error {
-	fmt.Println("run a sub command")
+// Adds a Storage Group to house multiple tenants
+func addStorageGroup(ctx *cli.Context) error {
+	var name *string
+	if ctx.String("name") != "" {
+		nameVal := ctx.String("name")
+		name = &nameVal
+	}
+
+	// create a new storage group in the DB
+	storageGroupResult := <-cluster.AddStorageGroup(name)
+	if storageGroupResult.Error != nil {
+		fmt.Println(storageGroupResult.Error)
+		return nil
+	}
+	err := <-cluster.ProvisionServicesForStorageGroup(storageGroupResult.StorageGroup)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
 	return nil
 }

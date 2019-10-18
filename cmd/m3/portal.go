@@ -25,10 +25,10 @@ import (
 var portalCmd = cli.Command{
 	Name:   "portal",
 	Usage:  "starts portal",
-	Action: startApiPortalCmd,
+	Action: startAPIPortalCmd,
 }
 
-func startApiPortalCmd(ctx *cli.Context) error {
-	portal.StartApiPortal()
+func startAPIPortalCmd(ctx *cli.Context) error {
+	portal.StartAPIPortal()
 	return nil
 }

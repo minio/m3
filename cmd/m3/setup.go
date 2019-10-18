@@ -17,22 +17,21 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/minio/cli"
+	"github.com/minio/m3/cluster"
 )
 
 // list files and folders.
-var storageClusterCmd = cli.Command{
-	Name:   "sc",
-	Usage:  "storage cluster sub commands",
-	Action: defClusterCmd,
+var setupCmd = cli.Command{
+	Name:   "setup",
+	Usage:  "Setups the m3 cluster",
+	Action: setupDefCmd,
 	Subcommands: []cli.Command{
-		storageGroupCmd,
+		setupDbCmd,
 	},
 }
 
-func defClusterCmd(ctx *cli.Context) error {
-	fmt.Println("run a sub command")
+func setupDefCmd(ctx *cli.Context) error {
+	cluster.SetupM3()
 	return nil
 }

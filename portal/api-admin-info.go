@@ -40,7 +40,7 @@ func AdminServerInfo(w http.ResponseWriter, r *http.Request) {
 
 	client, pErr := NewAdminClient(playURL, playAccessKey, playSecretKey)
 	if pErr != nil {
-		log.Printf("Error: Unable to initalize admin connection to '%s' - %v\n", playURL, pErr)
+		log.Printf("Error: Unable to initialize admin connection to '%s' - %v\n", playURL, pErr)
 		return
 	}
 

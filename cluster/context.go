@@ -14,25 +14,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package cluster
 
 import (
-	"fmt"
-
-	"github.com/minio/cli"
+	"context"
+	"database/sql"
 )
 
-// list files and folders.
-var storageClusterCmd = cli.Command{
-	Name:   "sc",
-	Usage:  "storage cluster sub commands",
-	Action: defClusterCmd,
-	Subcommands: []cli.Command{
-		storageGroupCmd,
-	},
+// An application wide context that holds the a transaction, in case anything
+// goes wrong during the business logic execution, database objects can be
+// rolled back.
+type Context struct {
+	*sql.Tx
+	Main context.Context
 }
 
-func defClusterCmd(ctx *cli.Context) error {
-	fmt.Println("run a sub command")
-	return nil
+// Creates a new `Context` given an initial transaction and `context.Context`
+// to control timeouts and cancellations.
+func NewContext(ctx context.Context, tx *sql.Tx) *Context {
+	c := &Context{Tx: tx, Main: ctx}
+	return c
 }
