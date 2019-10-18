@@ -187,10 +187,55 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*Sto
 	return ch
 }
 
+// GetAllTenantRoutes returns a list of all tenants that currently exists on the cluster
+// their subdomain, service name and port.
+func GetAllTenantRoutes(ctx *Context) chan []*TenantRoute {
+	ch := make(chan []*TenantRoute)
+	go func() {
+		defer close(ch)
+		query := `
+			SELECT 
+			       t1.port, t1.service_name, t2.short_name
+			FROM 
+			m3.provisioning.tenants_storage_groups t1
+			LEFT JOIN m3.provisioning.tenants t2
+			ON t1.tenant_id = t2.id
+		`
+		rows, err := ctx.Tx.Query(query)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		var tenants []*TenantRoute
+		for rows.Next() {
+			var tenantShortName string
+			var port int32
+			var serviceName string
+			err = rows.Scan(&port, &serviceName, &tenantShortName)
+			if err != nil {
+				fmt.Println(err)
+			}
+			tenants = append(tenants, &TenantRoute{
+				ShortName:   tenantShortName,
+				Port:        port,
+				ServiceName: serviceName,
+			})
+		}
+		ch <- tenants
+	}()
+	return ch
+}
+
 // Represents the allocation of a tenant to a specific `StorageGroup`
 type StorageGroupTenant struct {
 	*Tenant
 	*StorageGroup
+	Port        int32
+	ServiceName string
+}
+
+type TenantRoute struct {
+	ShortName   string
 	Port        int32
 	ServiceName string
 }

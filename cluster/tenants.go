@@ -74,6 +74,11 @@ func AddTenant(name string, shortName string) error {
 		tx.Rollback()
 		return err
 	}
+	err = <-UpdateNginxConfiguration(ctx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	// if no error happened to this point
 	err = tx.Commit()
 	return err
