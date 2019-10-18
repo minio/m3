@@ -187,7 +187,7 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*Sto
 	return ch
 }
 
-// GetAllTenantRoutes returns a list of all tenants that currently exists on the cluster 
+// GetAllTenantRoutes returns a list of all tenants that currently exists on the cluster
 // their subdomain, service name and port.
 func GetAllTenantRoutes(ctx *Context) chan []*TenantRoute {
 	ch := make(chan []*TenantRoute)
