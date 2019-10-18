@@ -312,7 +312,7 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 		envName := fmt.Sprintf("%s-env", sgTenant.ShortName)
 		volumeMounts := []v1.VolumeMount{}
 		tenantContainer := v1.Container{
-			Name:            fmt.Sprintf("%s-minio-%s", sgTenant.Tenant.Name, hostNum),
+			Name:            fmt.Sprintf("%s-minio-%s", sgTenant.Tenant.ShortName, hostNum),
 			Image:           "minio/minio:edge",
 			ImagePullPolicy: "IfNotPresent",
 			Args: []string{
@@ -354,8 +354,8 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 		}
 		//volumes that will be used by this sgTenant
 		for vi := 1; vi <= MaxNumberDiskPerNode; vi++ {
-			vname := fmt.Sprintf("%s-pv-%d", sgTenant.Tenant.Name, vi)
-			volumenSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: fmt.Sprintf("/mnt/disk%d/%s", vi, sgTenant.Tenant.Name)}}
+			vname := fmt.Sprintf("%s-pv-%d", sgTenant.Tenant.ShortName, vi)
+			volumenSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: fmt.Sprintf("/mnt/disk%d/%s", vi, sgTenant.Tenant.ShortName)}}
 			hostPathVolume := v1.Volume{Name: vname, VolumeSource: volumenSource}
 			mainPodSpec.Volumes = append(mainPodSpec.Volumes, hostPathVolume)
 
@@ -523,7 +523,7 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sg *StorageGroup, hostNumbe
 		var backoff int32 = 0
 		var ttlJob int32 = 60
 
-		jobName := fmt.Sprintf("provision-sg-%d-host-%d-%s-job", sg.Num, hostNumber, tenant.Name)
+		jobName := fmt.Sprintf("provision-sg-%d-host-%d-%s-job", sg.Num, hostNumber, tenant.ShortName)
 		job := batchv1.Job{
 			TypeMeta: metav1.TypeMeta{
 				Kind: "Job",

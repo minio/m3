@@ -18,6 +18,8 @@ package main
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/minio/cli"
 	"github.com/minio/m3/cluster"
@@ -42,11 +44,34 @@ var addTenantCmd = cli.Command{
 	},
 }
 
+// Command to add a new tenant, it has a mandatory parameter for the tenant name and an optional parameter for
+// the short name, if the short name cannot be inferred from the name (in case of unicode) the command will fail.
+// sample usage:
+//     m3 tenant add tenant-1
+//     m3 tenant add --name tenant-1
+//     m3 tenant add tenant-1 --short_name tenant1
+//     m3 tenant add --name tenant-1 --short_name tenant1
 func addTenant(ctx *cli.Context) error {
 	name := ctx.String("name")
 	shortName := ctx.String("short_name")
-	if name == "" || shortName == "" {
-		fmt.Println("You must provide tenant name and short name.")
+	if name == "" && ctx.Args().Get(0) != "" {
+		name = ctx.Args().Get(0)
+	}
+	if name == "" {
+		fmt.Println("You must provide tenant name")
+		return nil
+	}
+	if shortName == "" {
+		tempShortName := strings.ToLower(name)
+		tempShortName = strings.Replace(tempShortName, " ", "-", -1)
+		var re = regexp.MustCompile(`(?m)^[a-z0-9-]{2,}$`)
+		if re.MatchString(tempShortName) {
+			shortName = tempShortName
+		}
+	}
+
+	if shortName == "" {
+		fmt.Println("A valid short name could not be inferred from the tenant name")
 		return nil
 	}
 
