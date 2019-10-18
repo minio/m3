@@ -35,14 +35,18 @@ var (
 	_ http.HandlerFunc = DeleteBucket
 )
 
+type ListBucketResp struct {
+	Buckets []minio.BucketInfo
+}
+
 // ListBuckets lists all buckets for the client
 func ListBuckets(w http.ResponseWriter, r *http.Request) {
-	var binfo []minio.BucketInfo
+	var bucketLists ListBucketResp
 	ssl := true
 
 	// Validate request token
-	validToken := ValidateTokenFromCookie(w, r)
-	if !validToken {
+	_, err := ValidateWebToken(w, r)
+	if err != nil {
 		return
 	}
 
@@ -66,10 +70,10 @@ func ListBuckets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, bucket := range buckets {
-		binfo = append(binfo, bucket)
+		bucketLists.Buckets = append(bucketLists.Buckets, bucket)
 	}
 
-	output, err := json.Marshal(binfo)
+	output, err := json.Marshal(bucketLists.Buckets)
 	if err != nil {
 		fmt.Println(err)
 		log.Fatal("Cannot Marshal error")
@@ -77,12 +81,22 @@ func ListBuckets(w http.ResponseWriter, r *http.Request) {
 	w.Write(output)
 }
 
+type Bucket struct {
+	Name string `json:"bucketName"`
+}
+
 // GetBucket checks if bucket exists and returns bucket info
 func GetBucket(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	bucketName := vars["bucketName"]
-	info := make(map[string]string)
+	var bucketResp Bucket
 	ssl := true
+
+	// Validate request token
+	_, err := ValidateWebToken(w, r)
+	if err != nil {
+		return
+	}
 
 	// DEMO
 	// Initialize minio client object.
@@ -105,13 +119,13 @@ func GetBucket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if found {
-		info["name"] = bucketName
+		bucketResp.Name = bucketName
 	} else {
 		http.NotFound(w, r)
 		return
 	}
 
-	output, err := json.Marshal(info)
+	output, err := json.Marshal(bucketResp)
 	if err != nil {
 		fmt.Println(err)
 		log.Fatal("Cannot Marshal error")
@@ -120,26 +134,32 @@ func GetBucket(w http.ResponseWriter, r *http.Request) {
 	w.Write(output)
 }
 
-type bucket struct {
-	Name string `json:"bucketName"`
+type MessageResponse struct {
+	Message string `json:"message"`
 }
 
 // MakeBucket creates a new bucket
 func MakeBucket(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-	var newBucket bucket
+	var newBucket Bucket
+	var messageResp MessageResponse
 
-	err := decoder.Decode(&newBucket)
+	// Validate request token
+	_, err := ValidateWebToken(w, r)
+	if err != nil {
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&newBucket)
 	if err != nil {
 		panic(err)
 	}
 
 	bucketName := newBucket.Name
-	info := make(map[string]string)
-	ssl := true
 
 	// DEMO
 	// Initialize minio client object.
+	ssl := true
 	minioClient, err := minio.New("play.min.io",
 		"Q3AM3UQ867SPQQA43P2F",
 		"zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
@@ -157,9 +177,9 @@ func MakeBucket(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	info["message"] = fmt.Sprintf("Bucket %s created", bucketName)
+	messageResp.Message = fmt.Sprintf("Bucket %s created", bucketName)
 
-	output, err := json.Marshal(info)
+	output, err := json.Marshal(messageResp)
 	if err != nil {
 		fmt.Println(err)
 		log.Fatal("Cannot Marshal error")
@@ -172,8 +192,14 @@ func MakeBucket(w http.ResponseWriter, r *http.Request) {
 func DeleteBucket(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	bucketName := vars["bucketName"]
-	info := make(map[string]string)
+	var messageResp MessageResponse
 	ssl := true
+
+	// Validate request token
+	_, err := ValidateWebToken(w, r)
+	if err != nil {
+		return
+	}
 
 	// DEMO
 	// Initialize minio client object.
@@ -201,14 +227,14 @@ func DeleteBucket(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		info["message"] = fmt.Sprintf("Bucket %s deleted", bucketName)
+		messageResp.Message = fmt.Sprintf("Bucket %s deleted", bucketName)
 
 	} else {
 		http.NotFound(w, r)
 		return
 	}
 
-	output, err := json.Marshal(info)
+	output, err := json.Marshal(messageResp)
 	if err != nil {
 		fmt.Println(err)
 		log.Fatal("Cannot Marshal error")
@@ -217,11 +243,21 @@ func DeleteBucket(w http.ResponseWriter, r *http.Request) {
 	w.Write(output)
 }
 
+type ListObjectsResp struct {
+	Objects []minio.ObjectInfo
+}
+
 // ListObjects lists objects inside the bucket
 func ListObjects(w http.ResponseWriter, r *http.Request) {
-	var objInfo []minio.ObjectInfo
+	var objResp ListObjectsResp
 	vars := mux.Vars(r)
 	bucketName := vars["bucketName"]
+
+	// Validate request token
+	_, err := ValidateWebToken(w, r)
+	if err != nil {
+		return
+	}
 
 	// Hardcoding Demo client
 	// Initialize minio client object.
@@ -258,10 +294,10 @@ func ListObjects(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			objInfo = append(objInfo, object)
+			objResp.Objects = append(objResp.Objects, object)
 		}
 
-		output, err := json.Marshal(objInfo)
+		output, err := json.Marshal(objResp)
 		if err != nil {
 			fmt.Println(err)
 			log.Fatal("Cannot Marshal error")

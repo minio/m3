@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/minio/minio-go/v6"
 )
@@ -58,3 +59,8 @@ func toLookupType(s string) minio.BucketLookupType {
 }
 
 func returnHTTPError() {}
+
+// UTCNow - returns current UTC time.
+func UTCNow() time.Time {
+	return time.Now().UTC()
+}
