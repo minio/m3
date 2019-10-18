@@ -250,7 +250,7 @@ func CreateTenantServiceInStorageGroup(sgt *StorageGroupTenant) {
 
 }
 
-func nodeNameForSCHostNum(sg *StorageGroup, hostNum string) string {
+func nodeNameForSGHostNum(sg *StorageGroup, hostNum string) string {
 	switch sg.Num {
 	case 1:
 		switch hostNum {
@@ -302,7 +302,7 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 
 	mainPodSpec := v1.PodSpec{
 		NodeSelector: map[string]string{
-			"kubernetes.io/hostname": nodeNameForSCHostNum(sg, hostNum),
+			"kubernetes.io/hostname": nodeNameForSGHostNum(sg, hostNum),
 		},
 	}
 
@@ -470,7 +470,7 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sg *StorageGroup, hostNumbe
 						Containers:    nil,
 						RestartPolicy: "Never",
 						NodeSelector: map[string]string{
-							"kubernetes.io/hostname": nodeNameForSCHostNum(sg, fmt.Sprintf("%d", hostNumber)),
+							"kubernetes.io/hostname": nodeNameForSGHostNum(sg, fmt.Sprintf("%d", hostNumber)),
 						},
 					},
 				},
