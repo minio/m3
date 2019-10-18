@@ -19,56 +19,62 @@ package cluster
 import (
 	"errors"
 	"fmt"
+
+	uuid "github.com/satori/go.uuid"
 )
 
-// Represents a logical storage cluster in which multiple tenants resides
+// Represents a logical entity in which multiple tenants resides inside a set of machines (Storage Cluster)
 // and spawns across multiple nodes.
-type StorageCluster struct {
-	ID   int32
+type StorageGroup struct {
+	ID   uuid.UUID
+	Num  int32
 	Name *string
 }
 
 // Struct returned by goroutines via channels that bundles a possible error.
-type StorageClusterResult struct {
-	*StorageCluster
+type StorageGroupResult struct {
+	*StorageGroup
 	Error error
 }
 
-// Creates a storage cluster in the DB
-func AddStorageCluster(scName *string) chan StorageClusterResult {
-	ch := make(chan StorageClusterResult)
+// Creates a storage group in the DB
+func AddStorageGroup(sgName *string) chan StorageGroupResult {
+	ch := make(chan StorageGroupResult)
 	go func() {
 		defer close(ch)
 		db := GetInstance().Db
-		// insert a new Storage Cluster with the optional name
+		sgID := uuid.NewV4()
+		var sgNum int32
+		// insert a new Storage Group with the optional name
 		query :=
 			`INSERT INTO
-				m3.provisioning.storage_clusters ("name")
+				m3.provisioning.storage_groups ("id","name")
 			  VALUES
-				($1)
-			  RETURNING id`
+				($1,$2)
+				RETURNING num`
+
 		stmt, err := db.Prepare(query)
 		if err != nil {
-			ch <- StorageClusterResult{
+			ch <- StorageGroupResult{
 				Error: err,
 			}
 			return
 		}
 		defer stmt.Close()
 
-		var tenantID int32
-		err = stmt.QueryRow(scName).Scan(&tenantID)
+		err = stmt.QueryRow(sgID, sgName).Scan(&sgNum)
 		if err != nil {
-			ch <- StorageClusterResult{
+			ch <- StorageGroupResult{
 				Error: err,
 			}
 			return
 		}
 		// return result via channel
-		ch <- StorageClusterResult{
-			StorageCluster: &StorageCluster{
-				ID:   tenantID,
-				Name: scName,
+		ch <- StorageGroupResult{
+			StorageGroup: &StorageGroup{
+				ID:   sgID,
+				Name: sgName,
+				Num:  sgNum,
 			},
 			Error: nil,
 		}
@@ -77,18 +83,18 @@ func AddStorageCluster(scName *string) chan StorageClusterResult {
 	return ch
 }
 
-// provisions the storage cluster supporting services that point to each node in the storage cluster
-func ProvisionServicesForStorageCluster(storageCluster *StorageCluster) chan error {
+// provisions the storage group supporting services that point to each node in the storage group
+func ProvisionServicesForStorageGroup(storageGroup *StorageGroup) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
-		if storageCluster == nil {
-			ch <- errors.New("Empty storage cluster received")
+		if storageGroup == nil {
+			ch <- errors.New("empty storage group received")
 			return
 		}
 		for i := 1; i <= MaxNumberHost; i++ {
-			err := CreateSCHostService(
-				storageCluster,
+			err := CreateSGHostService(
+				storageGroup,
 				fmt.Sprintf("%d", i))
 			if err != nil {
 				ch <- err
@@ -98,31 +104,33 @@ func ProvisionServicesForStorageCluster(storageCluster *StorageCluster) chan err
 	return ch
 }
 
-// Selects from all the available storage clusters for one with space available.
-func SelectSCWithSpace(ctx *Context) chan *StorageClusterResult {
-	ch := make(chan *StorageClusterResult)
+// Selects from all the available storage groups for one with space available.
+func SelectSGWithSpace(ctx *Context) chan *StorageGroupResult {
+	ch := make(chan *StorageGroupResult)
 	go func() {
 		defer close(ch)
-		var id int32
+		var id uuid.UUID
 		var name *string
-		// For now, let's select a storage cluster at random
+		var num int32
+		// For now, let's select a storage group at random
 		query := `
 			SELECT 
-			       id, name 
+			       id, name, num
 			FROM 
-			     m3.provisioning.storage_clusters 
+			     m3.provisioning.storage_groups 
 			OFFSET 
-				floor(random() * (SELECT COUNT(*) FROM m3.provisioning.storage_clusters)) LIMIT 1;`
+				floor(random() * (SELECT COUNT(*) FROM m3.provisioning.storage_groups)) LIMIT 1;`
 
-		err := ctx.Tx.QueryRow(query).Scan(&id, &name)
+		err := ctx.Tx.QueryRow(query).Scan(&id, &name, &num)
 		if err != nil {
-			ch <- &StorageClusterResult{Error: err}
+			ch <- &StorageGroupResult{Error: err}
 			return
 		}
-		ch <- &StorageClusterResult{
-			StorageCluster: &StorageCluster{
+		ch <- &StorageGroupResult{
+			StorageGroup: &StorageGroup{
 				ID:   id,
 				Name: name,
+				Num:  num,
 			},
 		}
 
@@ -130,30 +138,30 @@ func SelectSCWithSpace(ctx *Context) chan *StorageClusterResult {
 	return ch
 }
 
-// Returns a list of tenants that are allocated to the provided `StorageCluster`
-func GetListOfTenantsForSCluster(ctx *Context, sc *StorageCluster) chan []*StorageClusterTenant {
-	ch := make(chan []*StorageClusterTenant)
+// Returns a list of tenants that are allocated to the provided `StorageGroup`
+func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*StorageGroupTenant {
+	ch := make(chan []*StorageGroupTenant)
 	go func() {
 		defer close(ch)
-		if sc == nil {
+		if sg == nil {
 			return
 		}
 		query := `
 			SELECT 
-			       t1.tenant_id, t1.port, t1.service_name, t2.name, t2.short_name 
+			       t1.tenant_id, t1.port, t1.service_name, t2.name, t2.short_name
 			FROM 
-			     m3.provisioning.tenants_storage_clusters t1
+			     m3.provisioning.tenants_storage_groups t1
 			LEFT JOIN m3.provisioning.tenants t2
 			ON t1.tenant_id = t2.id
-			WHERE storage_cluster_id=$1`
-		rows, err := ctx.Tx.Query(query, sc.ID)
+			WHERE storage_group_id=$1`
+		rows, err := ctx.Tx.Query(query, sg.ID)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		var tenants []*StorageClusterTenant
+		var tenants []*StorageGroupTenant
 		for rows.Next() {
-			var tenantID int32
+			var tenantID uuid.UUID
 			var tenantName string
 			var tenantShortName string
 			var port int32
@@ -163,15 +171,15 @@ func GetListOfTenantsForSCluster(ctx *Context, sc *StorageCluster) chan []*Stora
 				fmt.Println(err)
 			}
 
-			tenants = append(tenants, &StorageClusterTenant{
+			tenants = append(tenants, &StorageGroupTenant{
 				Tenant: &Tenant{
 					ID:        tenantID,
 					Name:      tenantName,
 					ShortName: tenantShortName,
 				},
-				Port:             port,
-				ServiceName:      serviceName,
-				StorageClusterID: sc.ID})
+				Port:         port,
+				ServiceName:  serviceName,
+				StorageGroup: sg})
 
 		}
 		ch <- tenants
@@ -179,41 +187,41 @@ func GetListOfTenantsForSCluster(ctx *Context, sc *StorageCluster) chan []*Stora
 	return ch
 }
 
-// Represents the allocation of a tenant to a specific `StorageCluster`
-type StorageClusterTenant struct {
+// Represents the allocation of a tenant to a specific `StorageGroup`
+type StorageGroupTenant struct {
 	*Tenant
-	StorageClusterID int32
-	Port             int32
-	ServiceName      string
+	*StorageGroup
+	Port        int32
+	ServiceName string
 }
 
 // Struct returned by goroutines via channels that bundles a possible error.
-type StorageClusterTenantResult struct {
-	*StorageClusterTenant
+type StorageGroupTenantResult struct {
+	*StorageGroupTenant
 	Error error
 }
 
-// Creates a storage cluster in the DB
-func createTenantInStorageCluster(ctx *Context, tenant *Tenant, sc *StorageCluster) chan *StorageClusterTenantResult {
-	ch := make(chan *StorageClusterTenantResult)
+// Creates a storage group in the DB
+func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) chan *StorageGroupTenantResult {
+	ch := make(chan *StorageGroupTenantResult)
 	go func() {
 		defer close(ch)
 
-		serviceName := fmt.Sprintf("%s-sc-%d", tenant.Name, sc.ID)
+		serviceName := fmt.Sprintf("%s-sg-%d", tenant.Name, sg.Num)
 
-		// assign a port by counting tenants in this storage cluster
+		// assign a port by counting tenants in this storage group
 		totalTenantsCountQuery := `
 		SELECT 
 		       COUNT(*) 
 		FROM 
-		     m3.provisioning.tenants_storage_clusters
+		     m3.provisioning.tenants_storage_groups
 		WHERE 
-		      storage_cluster_id=$1`
+		      storage_group_id=$1`
 		var totalTenantsCount int32
-		row := ctx.Tx.QueryRow(totalTenantsCountQuery, sc.ID)
+		row := ctx.Tx.QueryRow(totalTenantsCountQuery, sg.ID)
 		err := row.Scan(&totalTenantsCount)
 		if err != nil {
-			ch <- &StorageClusterTenantResult{
+			ch <- &StorageGroupTenantResult{
 				Error: err,
 			}
 			return
@@ -221,30 +229,30 @@ func createTenantInStorageCluster(ctx *Context, tenant *Tenant, sc *StorageClust
 		// assign a port for this tenant
 		port := 9000 + totalTenantsCount + 1
 
-		// insert a new Storage Cluster with the optional name
+		// insert a new Storage Group with the optional name
 		query :=
 			`INSERT INTO
-				m3.provisioning.tenants_storage_clusters (
+				m3.provisioning.tenants_storage_groups (
 				                                          "tenant_id",
-				                                          "storage_cluster_id",
+				                                          "storage_group_id",
 				                                          "port",
 				                                          "service_name")
 			  VALUES
 				($1,$2,$3,$4)`
-		_, err = ctx.Tx.Exec(query, tenant.ID, sc.ID, port, serviceName)
+		_, err = ctx.Tx.Exec(query, tenant.ID, sg.ID, port, serviceName)
 		if err != nil {
-			ch <- &StorageClusterTenantResult{
+			ch <- &StorageGroupTenantResult{
 				Error: err,
 			}
 			return
 		}
 		// return result via channel
-		ch <- &StorageClusterTenantResult{
-			StorageClusterTenant: &StorageClusterTenant{
-				Tenant:           tenant,
-				StorageClusterID: sc.ID,
-				Port:             port,
-				ServiceName:      serviceName,
+		ch <- &StorageGroupTenantResult{
+			StorageGroupTenant: &StorageGroupTenant{
+				Tenant:       tenant,
+				StorageGroup: sg,
+				Port:         port,
+				ServiceName:  serviceName,
 			},
 		}
 

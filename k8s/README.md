@@ -75,9 +75,9 @@ This is benign and can be fixed with the following steps,
   ./m3 setup db
 ```
 
-## Creating a Storage Cluster
+## Creating a Storage Group
 ```shell
-  ./m3 cluster sc add -n my-dc-rack-1
+  ./m3 cluster sc sg add -n my-dc-rack-1
 ```
 
 ## Adding a tenant

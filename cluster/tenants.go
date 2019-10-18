@@ -21,10 +21,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 type Tenant struct {
-	ID        int32
+	ID        uuid.UUID
 	Name      string
 	ShortName string
 }
@@ -51,23 +53,23 @@ func AddTenant(name string, shortName string) error {
 		tx.Rollback()
 		return tenantResult.Error
 	}
-	fmt.Println(fmt.Sprintf("Registered as tenant %d\n", tenantResult.Tenant.ID))
+	fmt.Println(fmt.Sprintf("Registered as tenant %s\n", tenantResult.Tenant.ID.String()))
 
 	// find a cluster where to allocate the tenant
-	sc := <-SelectSCWithSpace(ctx)
+	sg := <-SelectSGWithSpace(ctx)
 	// Create a store for the tenant's configuration
 	err = CreateTenantSecrets(tenantResult.Tenant)
 	if err != nil {
 		return err
 	}
 
-	if sc.Error != nil {
-		fmt.Println("There was an error adding the tenant, no storage cluster available.", sc.Error)
+	if sg.Error != nil {
+		fmt.Println("There was an error adding the tenant, no storage group available.", sg.Error)
 		tx.Rollback()
 		return nil
 	}
 	// provision the tenant on that cluster
-	err = <-ProvisionTenantOnStorageCluster(ctx, tenantResult.Tenant, sc.StorageCluster)
+	err = <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sg.StorageGroup)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -103,20 +105,19 @@ func InsertTenant(ctx *Context, tenantName string, tenantShortName string) chan 
 			return
 		}
 		// insert the new tenant
+		tenantID := uuid.NewV4()
 
 		query :=
 			`INSERT INTO
-				m3.provisioning.tenants ("name","short_name")
+				m3.provisioning.tenants ("id","name","short_name")
 			  VALUES
-				($1, $2)
-			  RETURNING id`
+				($1, $2, $3)`
 		stmt, err := ctx.Prepare(query)
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer stmt.Close()
-		var tenantID int32
-		err = stmt.QueryRow(tenantName, tenantShortName).Scan(&tenantID)
+		_, err = stmt.Exec(tenantID, tenantName, tenantShortName)
 		if err != nil {
 			log.Fatal(err)
 		}
