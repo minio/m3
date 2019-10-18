@@ -36,7 +36,7 @@ var (
 )
 
 type ListBucketResp struct {
-	Buckets []minio.BucketInfo
+	Buckets []minio.BucketInfo `json:"buckets"`
 }
 
 // ListBuckets lists all buckets for the client
@@ -244,7 +244,7 @@ func DeleteBucket(w http.ResponseWriter, r *http.Request) {
 }
 
 type ListObjectsResp struct {
-	Objects []minio.ObjectInfo
+	Objects []minio.ObjectInfo `json:"objects"`
 }
 
 // ListObjects lists objects inside the bucket
