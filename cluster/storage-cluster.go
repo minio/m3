@@ -38,7 +38,7 @@ type StorageGroupResult struct {
 }
 
 // Creates a storage group in the DB
-func AddStorageGroup(scName *string) chan StorageGroupResult {
+func AddStorageGroup(sgName *string) chan StorageGroupResult {
 	ch := make(chan StorageGroupResult)
 	go func() {
 		defer close(ch)
@@ -62,7 +62,7 @@ func AddStorageGroup(scName *string) chan StorageGroupResult {
 		}
 		defer stmt.Close()
 
-		err = stmt.QueryRow(sgID, scName).Scan(&sgNum)
+		err = stmt.QueryRow(sgID, sgName).Scan(&sgNum)
 		if err != nil {
 			ch <- StorageGroupResult{
 				Error: err,
@@ -73,7 +73,7 @@ func AddStorageGroup(scName *string) chan StorageGroupResult {
 		ch <- StorageGroupResult{
 			StorageGroup: &StorageGroup{
 				ID:   sgID,
-				Name: scName,
+				Name: sgName,
 				Num:  sgNum,
 			},
 			Error: nil,
@@ -105,7 +105,7 @@ func ProvisionServicesForStorageGroup(storageGroup *StorageGroup) chan error {
 }
 
 // Selects from all the available storage groups for one with space available.
-func SelectSCWithSpace(ctx *Context) chan *StorageGroupResult {
+func SelectSGWithSpace(ctx *Context) chan *StorageGroupResult {
 	ch := make(chan *StorageGroupResult)
 	go func() {
 		defer close(ch)

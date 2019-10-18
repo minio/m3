@@ -56,20 +56,20 @@ func AddTenant(name string, shortName string) error {
 	fmt.Println(fmt.Sprintf("Registered as tenant %s\n", tenantResult.Tenant.ID.String()))
 
 	// find a cluster where to allocate the tenant
-	sc := <-SelectSCWithSpace(ctx)
+	sg := <-SelectSGWithSpace(ctx)
 	// Create a store for the tenant's configuration
 	err = CreateTenantSecrets(tenantResult.Tenant)
 	if err != nil {
 		return err
 	}
 
-	if sc.Error != nil {
-		fmt.Println("There was an error adding the tenant, no storage group available.", sc.Error)
+	if sg.Error != nil {
+		fmt.Println("There was an error adding the tenant, no storage group available.", sg.Error)
 		tx.Rollback()
 		return nil
 	}
 	// provision the tenant on that cluster
-	err = <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sc.StorageGroup)
+	err = <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sg.StorageGroup)
 	if err != nil {
 		tx.Rollback()
 		return err
