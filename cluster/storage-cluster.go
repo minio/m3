@@ -196,7 +196,7 @@ func GetAllTenantRoutes(ctx *Context) chan []*TenantRoute {
 			SELECT 
 			       t1.port, t1.service_name, t2.short_name
 			FROM 
-					 m3.provisioning.tenants_storage_clusters t1
+			m3.provisioning.tenants_storage_groups t1
 			LEFT JOIN m3.provisioning.tenants t2
 			ON t1.tenant_id = t2.id
 		`

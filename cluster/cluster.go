@@ -222,7 +222,7 @@ func CreateTenantServiceInStorageGroup(sgt *StorageGroupTenant) {
 	if err != nil {
 		panic(err.Error())
 	}
-	serviceName := fmt.Sprintf("%s-sc-%d", sgt.Tenant.ShortName, sgt.StorageGroup.Num)
+	serviceName := fmt.Sprintf("%s-sg-%d", sgt.Tenant.ShortName, sgt.StorageGroup.Num)
 	sgSvc := v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: serviceName,
