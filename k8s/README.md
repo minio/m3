@@ -85,7 +85,7 @@ This is benign and can be fixed with the following steps,
   ./m3 tenant add company-name
 ```
 
-If the company name is not url-friend a short name will be generated, but it can also be specified.
+If the company name is not url-friendly a short name will be generated, but it can also be specified.
 
 ```shell
   ./m3 tenant add "Commpany® Inc." --short_name company-inc
