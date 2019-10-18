@@ -675,7 +675,7 @@ func ReDeployNginxResolver(ctx *Context) chan error {
 
 		config := getConfig()
 		// creates the clientset
-		clientset, err := kubernetes.NewForConfig(config)
+		clientset, _ := kubernetes.NewForConfig(config)
 		// does the deployment exist?
 		res, err := clientset.AppsV1().Deployments("default").Get("nginx-resolver", metav1.GetOptions{})
 		if err != nil && (res == nil || res.Name != "") {
