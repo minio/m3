@@ -139,11 +139,11 @@ func SelectSCWithSpace(ctx *Context) chan *StorageGroupResult {
 }
 
 // Returns a list of tenants that are allocated to the provided `StorageGroup`
-func GetListOfTenantsForStorageGroup(ctx *Context, sc *StorageGroup) chan []*StorageGroupTenant {
+func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*StorageGroupTenant {
 	ch := make(chan []*StorageGroupTenant)
 	go func() {
 		defer close(ch)
-		if sc == nil {
+		if sg == nil {
 			return
 		}
 		query := `
@@ -154,7 +154,7 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sc *StorageGroup) chan []*Sto
 			LEFT JOIN m3.provisioning.tenants t2
 			ON t1.tenant_id = t2.id
 			WHERE storage_group_id=$1`
-		rows, err := ctx.Tx.Query(query, sc.ID)
+		rows, err := ctx.Tx.Query(query, sg.ID)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -179,7 +179,7 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sc *StorageGroup) chan []*Sto
 				},
 				Port:         port,
 				ServiceName:  serviceName,
-				StorageGroup: sc})
+				StorageGroup: sg})
 
 		}
 		ch <- tenants
@@ -202,12 +202,12 @@ type StorageGroupTenantResult struct {
 }
 
 // Creates a storage group in the DB
-func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sc *StorageGroup) chan *StorageGroupTenantResult {
+func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) chan *StorageGroupTenantResult {
 	ch := make(chan *StorageGroupTenantResult)
 	go func() {
 		defer close(ch)
 
-		serviceName := fmt.Sprintf("%s-sg-%d", tenant.Name, sc.Num)
+		serviceName := fmt.Sprintf("%s-sg-%d", tenant.Name, sg.Num)
 
 		// assign a port by counting tenants in this storage group
 		totalTenantsCountQuery := `
@@ -218,7 +218,7 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sc *StorageGroup) 
 		WHERE 
 		      storage_group_id=$1`
 		var totalTenantsCount int32
-		row := ctx.Tx.QueryRow(totalTenantsCountQuery, sc.ID)
+		row := ctx.Tx.QueryRow(totalTenantsCountQuery, sg.ID)
 		err := row.Scan(&totalTenantsCount)
 		if err != nil {
 			ch <- &StorageGroupTenantResult{
@@ -239,7 +239,7 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sc *StorageGroup) 
 				                                          "service_name")
 			  VALUES
 				($1,$2,$3,$4)`
-		_, err = ctx.Tx.Exec(query, tenant.ID, sc.ID, port, serviceName)
+		_, err = ctx.Tx.Exec(query, tenant.ID, sg.ID, port, serviceName)
 		if err != nil {
 			ch <- &StorageGroupTenantResult{
 				Error: err,
@@ -250,7 +250,7 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sc *StorageGroup) 
 		ch <- &StorageGroupTenantResult{
 			StorageGroupTenant: &StorageGroupTenant{
 				Tenant:       tenant,
-				StorageGroup: sc,
+				StorageGroup: sg,
 				Port:         port,
 				ServiceName:  serviceName,
 			},

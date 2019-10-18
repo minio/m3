@@ -19,6 +19,7 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -81,7 +82,7 @@ func ListPods() {
 }
 
 //Creates a headless service that will point to a specific node inside a storage group
-func CreateSGHostService(sc *StorageGroup, hostNum string) error {
+func CreateSGHostService(sg *StorageGroup, hostNum string) error {
 	config := getConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
@@ -89,7 +90,7 @@ func CreateSGHostService(sc *StorageGroup, hostNum string) error {
 		return err
 	}
 
-	serviceName := fmt.Sprintf("sg-%d-host-%s", sc.Num, hostNum)
+	serviceName := fmt.Sprintf("sg-%d-host-%s", sg.Num, hostNum)
 
 	scSvc := v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -250,8 +251,8 @@ func CreateTenantServiceInStorageGroup(sct *StorageGroupTenant) {
 
 }
 
-func nodeNameForSCHostNum(sc *StorageGroup, hostNum string) string {
-	switch sc.Num {
+func nodeNameForSCHostNum(sg *StorageGroup, hostNum string) string {
+	switch sg.Num {
 	case 1:
 		switch hostNum {
 		case "1":
@@ -289,7 +290,7 @@ const (
 
 //Creates a service that will resolve to any of the hosts within the storage group this tenant lives in
 // This will create a deployment for the provided `StorageGroup` using the provided list of `StorageGroupTenant`
-func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sc *StorageGroup, hostNum string) error {
+func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup, hostNum string) error {
 	config := getConfig()
 	// creates the clientset to interact with kubernetes
 	clientset, err := kubernetes.NewForConfig(config)
@@ -297,12 +298,12 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sc *StorageGroup
 		return err
 	}
 
-	scHostName := fmt.Sprintf("sg-%d-host-%s", sc.Num, hostNum)
+	scHostName := fmt.Sprintf("sg-%d-host-%s", sg.Num, hostNum)
 	var replicas int32 = 1
 
 	mainPodSpec := v1.PodSpec{
 		NodeSelector: map[string]string{
-			"kubernetes.io/hostname": nodeNameForSCHostNum(sc, hostNum),
+			"kubernetes.io/hostname": nodeNameForSCHostNum(sg, hostNum),
 		},
 	}
 
@@ -320,7 +321,7 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sc *StorageGroup
 				fmt.Sprintf(":%d", sgTenant.Port),
 				fmt.Sprintf(
 					"http://sg-%d-host-{1...%d}:%d/mnt/tdisk{1...%d}",
-					sc.Num,
+					sg.Num,
 					MaxNumberHost,
 					sgTenant.Port,
 					MaxNumberDiskPerNode),
@@ -379,7 +380,7 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sc *StorageGroup
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app": scHostName,
-						"sg":  fmt.Sprintf("storage-group-%d", sc.Num),
+						"sg":  fmt.Sprintf("storage-group-%d", sg.Num),
 					},
 				},
 				Spec: mainPodSpec,
@@ -398,16 +399,16 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sc *StorageGroup
 }
 
 // spins up the tenant on the target storage group, waits for it to start, then shuts it down
-func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sc *StorageGroup) chan error {
+func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
-		if tenant == nil || sc == nil {
+		if tenant == nil || sg == nil {
 			ch <- errors.New("nil Tenant or StorageGroup passed")
 			return
 		}
 		// assign the tenant to the storage group
-		scTenantResult := <-createTenantInStorageGroup(ctx, tenant, sc)
+		scTenantResult := <-createTenantInStorageGroup(ctx, tenant, sg)
 		if scTenantResult.Error != nil {
 			ch <- scTenantResult.Error
 			return
@@ -415,7 +416,7 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sc *StorageGrou
 		// start the jobs that create the tenant folder on each disk on each node of the storage group
 		var jobChs []chan error
 		for i := 1; i <= MaxNumberHost; i++ {
-			jobCh := CreateTenantFolderInDiskAndWait(tenant, sc, i)
+			jobCh := CreateTenantFolderInDiskAndWait(tenant, sg, i)
 			jobChs = append(jobChs, jobCh)
 		}
 		// wait for all the jobs to complete
@@ -429,7 +430,7 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sc *StorageGrou
 
 		CreateTenantServiceInStorageGroup(scTenantResult.StorageGroupTenant)
 		// call for the storage group to refresh
-		err := <-ReDeployStorageGroup(ctx, sc)
+		err := <-ReDeployStorageGroup(ctx, sg)
 		if err != nil {
 			ch <- err
 		}
@@ -438,7 +439,7 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sc *StorageGrou
 	return ch
 }
 
-func CreateTenantFolderInDiskAndWait(tenant *Tenant, sc *StorageGroup, hostNumber int) chan error {
+func CreateTenantFolderInDiskAndWait(tenant *Tenant, sg *StorageGroup, hostNumber int) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
@@ -453,7 +454,7 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sc *StorageGroup, hostNumbe
 		var backoff int32 = 0
 		var ttlJob int32 = 60
 
-		jobName := fmt.Sprintf("provision-sg-%d-host-%d-%s-job", sc.Num, hostNumber, tenant.Name)
+		jobName := fmt.Sprintf("provision-sg-%d-host-%d-%s-job", sg.Num, hostNumber, tenant.Name)
 		job := batchv1.Job{
 			TypeMeta: metav1.TypeMeta{
 				Kind: "Job",
@@ -470,7 +471,7 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sc *StorageGroup, hostNumbe
 						Containers:    nil,
 						RestartPolicy: "Never",
 						NodeSelector: map[string]string{
-							"kubernetes.io/hostname": nodeNameForSCHostNum(sc, fmt.Sprintf("%d", hostNumber)),
+							"kubernetes.io/hostname": nodeNameForSCHostNum(sg, fmt.Sprintf("%d", hostNumber)),
 						},
 					},
 				},
@@ -543,11 +544,11 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sc *StorageGroup, hostNumbe
 }
 
 // Based on the current list of tenants for the `StorageGroup` it re-deploys it.
-func ReDeployStorageGroup(ctx *Context, sc *StorageGroup) chan error {
+func ReDeployStorageGroup(ctx *Context, sg *StorageGroup) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
-		tenants := <-GetListOfTenantsForStorageGroup(ctx, sc)
+		tenants := <-GetListOfTenantsForStorageGroup(ctx, sg)
 
 		config := getConfig()
 		// creates the clientset
@@ -558,7 +559,7 @@ func ReDeployStorageGroup(ctx *Context, sc *StorageGroup) chan error {
 		}
 		// for each host in storage clsuter, create a deployment
 		for i := 1; i <= MaxNumberHost; i++ {
-			scHostName := fmt.Sprintf("sg-%d-host-%d", sc.Num, i)
+			scHostName := fmt.Sprintf("sg-%d-host-%d", sg.Num, i)
 			// TODO: Upgrade this logic so we don't delete the current deployment
 			// does the deployment exist?
 			res, err := clientset.AppsV1().Deployments("default").Get(scHostName, metav1.GetOptions{})
@@ -576,7 +577,7 @@ func ReDeployStorageGroup(ctx *Context, sc *StorageGroup) chan error {
 			}
 			err = CreateDeploymentWithTenants(
 				tenants,
-				sc,
+				sg,
 				fmt.Sprintf("%d", i))
 			if err != nil {
 				ch <- err
@@ -592,6 +593,28 @@ func ReDeployStorageGroup(ctx *Context, sc *StorageGroup) chan error {
 			//		return
 			//	}
 			//}
+		}
+	}()
+	return ch
+}
+
+func waitDeploymentLive(scHostName string, port int32) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		targetURL := fmt.Sprintf("http://%s:%d/minio/health/live", scHostName, port)
+		for {
+			resp, err := http.Get(targetURL)
+			if err != nil {
+				// TODO: Return error if it's not a "not found" error
+				fmt.Println(err)
+			}
+			if resp != nil && resp.StatusCode == http.StatusOK {
+				fmt.Println("host available")
+				return
+			}
+			fmt.Println("host not available")
+			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 	return ch
