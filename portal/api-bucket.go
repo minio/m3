@@ -69,9 +69,7 @@ func ListBuckets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, bucket := range buckets {
-		bucketLists.Buckets = append(bucketLists.Buckets, bucket)
-	}
+	bucketLists.Buckets = append(bucketLists.Buckets, buckets...)
 
 	output, err := json.Marshal(bucketLists.Buckets)
 	if err != nil {

@@ -54,9 +54,6 @@ var users = map[string]map[string]map[string]string{
 	},
 }
 
-// TODO: jwtKey should be gotten from a m3 global config
-var jwtKey = []byte("secret_key")
-
 // Credentials requested on the portal to log in
 type Credentials struct {
 	Tenant   string `json:"tenant"`

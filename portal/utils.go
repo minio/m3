@@ -58,8 +58,6 @@ func toLookupType(s string) minio.BucketLookupType {
 	return minio.BucketLookupAuto
 }
 
-func returnHTTPError() {}
-
 // UTCNow - returns current UTC time.
 func UTCNow() time.Time {
 	return time.Now().UTC()
