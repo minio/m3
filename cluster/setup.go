@@ -38,17 +38,19 @@ const (
 // Setups m3 on the kubernetes deployment that we are installed to
 func SetupM3() {
 	fmt.Println("Setting up m3 namespace")
-	SetupM3Namespace()
-	fmt.Println("setting up nginx")
-	SetupNginxLoadBalancer()
+	setupM3Namespace()
+	fmt.Println("Setting up m3 secrets")
+	setupM3Secrets()
+    fmt.Println("setting up nginx")
+    SetupNginxLoadBalancer()
 	fmt.Println("Setting up postgres")
-	SetupPostgres()
+	setupPostgres()
 	fmt.Println("Running Migrations")
 	RunMigrations()
 }
 
-// Setups the namcespace used by the provisioning service
-func SetupM3Namespace() {
+// setupM3Namespace ...
+func setupM3Namespace() {
 	config := getConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
@@ -68,9 +70,37 @@ func SetupM3Namespace() {
 	}
 }
 
-// Setups a postgres used by the provisioning service
-func SetupPostgres() {
+// setupM3Secrets creates a kubernetes secrets
+func setupM3Secrets() {
+	config := getConfig()
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		fmt.Println(err)
+		panic(err.Error())
+	}
+	// Create secret for JWT key for rest api
+	secret := v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "jwtkey",
+		},
+		Data: map[string][]byte{
+			"M3_JWT_KEY": []byte("jwtSecretKey"),
+		},
+	}
+	res, err := clientset.CoreV1().Secrets("default").Create(&secret)
+	if err != nil {
+		fmt.Println(err)
+		panic(err.Error())
+	}
+	if res.Name == "" {
+		fmt.Println(err)
+		panic(err.Error())
+	}
+}
 
+// setupPostgres sets up a postgres used by the provisioning service
+func setupPostgres() {
 	config := getConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
@@ -122,7 +152,7 @@ func SetupPostgres() {
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Println("done with postgres secrets")
+	fmt.Println("done with postgres config maps")
 	fmt.Println(resSecret.String())
 
 	var replicas int32 = 1
