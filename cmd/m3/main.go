@@ -17,7 +17,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -33,7 +32,7 @@ var appCmds = []cli.Command{
 
 func main() {
 	args := os.Args
-	// Set the mcs app name.
+	// Set the m3 app name.
 	appName := filepath.Base(args[0])
 	// Run the app - exit on error.
 	if err := registerApp(appName).Run(args); err != nil {
@@ -52,8 +51,7 @@ func registerApp(name string) *cli.App {
 	app.Usage = "Starts MinIO Kubernetes Cloud"
 	app.Commands = commands
 	app.Action = func(c *cli.Context) error {
-		fmt.Println(app.Name + " started")
-		return nil
+		return cli.ShowAppHelp(c)
 	}
 
 	return app
