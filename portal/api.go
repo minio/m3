@@ -25,17 +25,23 @@ import (
 )
 
 // StartAPIPortal starts the portal handling the following routes:
+//	/login/ :
+//		Method: POST
+//		Description: Allows authentication and returns a Token
+//		Body payload request: {"username": "<user_name>", "password": "<pswd>", "tenant": <tenant_name>}
+//		Returns: {"token":"<jwt_token>"}
 // 	/version/ :
 // 		Description: Version of the portal API
 //		Methods: GET
 //	/admin/info/ :
 //		Description: TODO
+//	Require a valid Token as Header:
 //	/buckets/ :
 //		Method: GET
 //			Description: List of buckets
 // 		Method: POST
 //			Description: Creates a new Bucket
-//			Body payload request: {"bucketName": <name_of_bucket>}
+//			Body payload request: {"bucketName": "<name_of_bucket>"}
 // 	/buckets/{bucketName} :
 //		Method: GET
 // 			Description: Returns bucket info
