@@ -21,6 +21,8 @@ import (
 	"log"
 
 	"github.com/golang-migrate/migrate/v4"
+	portal "github.com/minio/m3/portal"
+
 	// the postgres driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	// the file driver for go-migrate
@@ -85,7 +87,7 @@ func setupM3Secrets() {
 			Name: "jwtkey",
 		},
 		Data: map[string][]byte{
-			"M3_JWT_KEY": []byte("jwtSecretKey"),
+			"M3_JWT_KEY": []byte(portal.GetRandString(64)),
 		},
 	}
 	res, err := clientset.CoreV1().Secrets("default").Create(&secret)

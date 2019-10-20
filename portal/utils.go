@@ -17,6 +17,9 @@
 package portal
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"fmt"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -61,4 +64,19 @@ func toLookupType(s string) minio.BucketLookupType {
 // UTCNow - returns current UTC time.
 func UTCNow() time.Time {
 	return time.Now().UTC()
+}
+
+// GetRandString generates a random string with the defined size length
+func GetRandString(size int) string {
+	rb := make([]byte, size)
+	_, err := rand.Read(rb)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	rs := base64.URLEncoding.EncodeToString(rb)
+
+	fmt.Println(rs)
+	return rs
 }

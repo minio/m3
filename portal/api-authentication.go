@@ -33,7 +33,7 @@ import (
 
 // defaultJWTExpTime is the Portal expiration time for the authentication token.
 // Default is five minutes
-const defaultJWTExpTime = 5 * time.Minute
+const defaultJWTExpTime = 12 * time.Hour
 
 var (
 	errAuthentication = errors.New("Authentication failed, check your access credentials")
