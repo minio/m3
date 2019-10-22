@@ -82,7 +82,13 @@ This is benign and can be fixed with the following steps,
 
 ## Adding a tenant
 ```shell
-  ./m3 tenant add -n company-name --short_name comp-name
+  ./m3 tenant add company-name
+```
+
+If the company name is not url-friendly a short name will be generated, but it can also be specified.
+
+```shell
+  ./m3 tenant add "Commpany® Inc." --short_name company-inc
 ```
 
 ## Accessing the tenant MinIO service via browser UI
