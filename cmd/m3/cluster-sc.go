@@ -17,8 +17,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/minio/cli"
 )
 
@@ -26,13 +24,12 @@ import (
 var storageClusterCmd = cli.Command{
 	Name:   "sc",
 	Usage:  "storage cluster sub commands",
-	Action: defClusterCmd,
+	Action: showClusterHelp,
 	Subcommands: []cli.Command{
 		storageGroupCmd,
 	},
 }
 
-func defClusterCmd(ctx *cli.Context) error {
-	fmt.Println("run a sub command")
-	return nil
+func showClusterHelp(ctx *cli.Context) error {
+	return cli.ShowAppHelp(ctx)
 }
