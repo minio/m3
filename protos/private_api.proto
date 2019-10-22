@@ -20,79 +20,9 @@ option java_multiple_files = true;
 option java_package = "io.min.m3.private-api";
 option java_outer_classname = "PrivateApiProto";
 
-package v3;
+package m3;
 
 service PrivateAPI {
-    // Registers a new Tenant and a Tenant Admin account
-    rpc RegisterTenant (RegisterAccountRequest) returns (RegisterAccountResponse) {
-    }
-    // Returns metrics around the authenticated tenant account if the tenant is an admin or has access
-    rpc Metrics (MetricsRequest) returns (MetricsResponse) {
-    }
+
 }
 
-// Message containing details of the Tenant Admin and the tenant that is going to be created
-message RegisterAccountRequest {
-    string full_name = 1;
-    string company = 3;
-    string company_short_name = 4;
-    string email = 5;
-    string password = 6;
-    // Portal that handles the payment details should
-    string payment_id = 7;
-}
-
-// Response on wether the account was created or not
-message RegisterAccountResponse {
-    string error = 1;
-    string jwt_token = 2;
-}
-
-// A request for metrics on the authenticated tenant
-message MetricsRequest {
-}
-// Capacity related metrics
-message CapacityMetrics {
-    // number of buckets on the account
-    int32 buckets = 1;
-    // A number of bytes representing the total usage on the account
-    int64 total_data = 2;
-}
-
-// Networking related metrics
-message NetworkMetrics {
-    // Current period amount of egress
-    int64 current_egress = 1;
-    // Current period amount of egress
-    int64 current_ingress = 2;
-}
-
-message MetricsResponse {
-    CapacityMetrics capacity = 1;
-    NetworkMetrics network = 2;
-}
-
-message DocSimilarityRequest {
-    repeated string phrase1 = 1;
-    repeated string phrase2 = 2;
-}
-
-message DocSimilarityResponse {
-    repeated float sim_score = 1;
-}
-
-message ParsedText {
-    repeated Sentence sentences = 1;
-}
-
-message Sentence {
-    repeated Token tokens = 1;
-}
-
-message Token {
-    string text = 1;
-    string pos = 2;
-    string tag = 3;
-    string dep = 4;
-    string lemma = 5;
-}
