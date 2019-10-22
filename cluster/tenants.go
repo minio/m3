@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -89,25 +90,9 @@ func InsertTenant(ctx *Context, tenantName string, tenantShortName string) chan 
 	ch := make(chan AddTenantResult)
 	go func() {
 		defer close(ch)
-		// check if the tenant short name is unique
-		checkUniqueQuery := `
-		SELECT 
-		       COUNT(*) 
-		FROM 
-		     m3.provisioning.tenants 
-		WHERE 
-		      short_name=$1`
-		var totalCollisions int
-		row := ctx.QueryRow(checkUniqueQuery, tenantShortName)
-		err := row.Scan(&totalCollisions)
+		err := validTenantShortName(ctx, tenantShortName)
 		if err != nil {
-			fmt.Println(err)
 			ch <- AddTenantResult{Error: err}
-			return
-		}
-		if totalCollisions > 0 {
-			ch <- AddTenantResult{Error: errors.New("A tenant with that short name already exists")}
-			return
 		}
 		// insert the new tenant
 		tenantID := uuid.NewV4()
@@ -140,4 +125,35 @@ func InsertTenant(ctx *Context, tenantName string, tenantShortName string) chan 
 
 	}()
 	return ch
+}
+
+func validTenantShortName(ctx *Context, tenantShortName string) error {
+	// check if the tenant short name consists valid characters
+	r, err := regexp.Compile(`^[a-z0-9-]{2,64}$`)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	if !r.MatchString(tenantShortName) {
+		return errors.New("A tenant with that short name is 2-64 characters which is only number, lowercase, dash(-)")
+	}
+	// check if the tenant short name is unique
+	checkUniqueQuery := `
+		SELECT 
+		       COUNT(*) 
+		FROM 
+		     m3.provisioning.tenants 
+		WHERE 
+		      short_name=$1`
+	var totalCollisions int
+	row := ctx.QueryRow(checkUniqueQuery, tenantShortName)
+	err = row.Scan(&totalCollisions)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	if totalCollisions > 0 {
+		return errors.New("A tenant with that short name already exists")
+	}
+	return nil
 }
