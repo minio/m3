@@ -46,6 +46,10 @@ service PublicAPI {
     rpc DeleteBucket (DeleteBucketRequest) returns (Bucket) {
     }
 
+    // Change Bucket access control
+    rpc ChangeBucketAccessControl (AccessControlRequest) returns (AccessControlResponse) {
+    }
+
     // User
     // List Users
     rpc ListUsers (ListUsersRequest) returns (ListUsersResponse) {
@@ -93,6 +97,10 @@ service PublicAPI {
     rpc InfoServiceAccount (ServiceAccountActionRequest) returns (ServiceAccount) {
     }
 
+    // Get details of an individual ServiceAccount
+    rpc AssignPermissionsToServiceAccount (AddPermissionsSARequest) returns (AddPermissionsSAResponse) {
+    }
+
     // Permission
 
     // List Permissions
@@ -109,6 +117,11 @@ service PublicAPI {
     // Remove a Permission
     rpc InfoPermission (PermissionActionRequest) returns (Permission) {
     }
+
+    // Get details of an individual ServiceAccount
+    rpc AssignPermissionToMultipleServiceAccounts (MultiAddPermissionToSAsRequest) returns (MultiAddPermissionToSAsResponse) {
+    }
+
 }
 
 // Message containing details of the Tenant Admin and the tenant that is going to be created
@@ -182,12 +195,30 @@ message Bucket {
     int64 size = 2;
 }
 
+enum Access {
+    PRIVATE = 0;
+    PUBLIC = 1;
+}
+
+
 message MakeBucketRequest {
     string name = 1;
+    Access access = 2;
 }
 
 message DeleteBucketRequest {
     string name = 1;
+}
+
+
+message AccessControlRequest {
+    string name = 1;
+    Access access = 2;
+}
+
+message AccessControlResponse {
+    string error = 1;
+    string status = 2;
 }
 
 // Request a list of users on the tenant account
@@ -312,3 +343,24 @@ message PermissionActionResponse {
     string status = 2;
 }
 
+message AddPermissionsSARequest {
+    string service_account_id = 1;
+    // list of permission id, an absence of a permission_id means it's not desired and should be removed
+    // from the assigned list
+    repeated string permission_id = 2;
+}
+
+message AddPermissionsSAResponse {
+    string error = 1;
+    string status = 2;
+}
+
+message MultiAddPermissionToSAsRequest {
+    string permission_id = 1;
+    repeated string service_account_id = 2;
+}
+
+message MultiAddPermissionToSAsResponse {
+    string error = 1;
+    string status = 2;
+}

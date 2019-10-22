@@ -1,0 +1,72 @@
+type: google.api.Service
+config_version: 3
+
+http:
+  rules:
+    - selector: m3.PublicAPI.RegisterTenant
+      post: /api/v1/accounts/signup
+      body: "*"
+    - selector: m3.PublicAPI.Login
+      post: /api/v1/accounts/login
+      body: "*"
+    - selector: m3.PublicAPI.Metrics
+      get: /api/v1/metrics
+    # Buckets
+    - selector: m3.PublicAPI.ListBuckets
+      get: /api/v1/buckets
+    - selector: m3.PublicAPI.MakeBucket
+      post: /api/v1/buckets
+      body: "*"
+    - selector: m3.PublicAPI.DeleteBucket
+      delete: /api/v1/buckets/{name}
+    - selector: m3.PublicAPI.ChangeBucketAccessControl
+      post: /api/v1/buckets/{name}/access_control
+      body: "*"
+    # Users
+    - selector: m3.PublicAPI.ListUsers
+      get: /api/v1/users
+    - selector: m3.PublicAPI.AddUser
+      post: /api/v1/users
+      body: "*"
+    - selector: m3.PublicAPI.RemoveUser
+      delete: /api/v1/users/{id}
+    - selector: m3.PublicAPI.InfoUser
+      get: /api/v1/users/{id}
+    - selector: m3.PublicAPI.DisableUser
+      post: /api/v1/users/{id}/disable
+      body: "*"
+    - selector: m3.PublicAPI.EnableUser
+      post: /api/v1/users/{id}/enable
+      body: "*"
+    # Service Accounts
+    - selector: m3.PublicAPI.ListServiceAccounts
+      get: /api/v1/service_accounts
+    - selector: m3.PublicAPI.CreateServiceAccount
+      post: /api/v1/service_accounts
+      body: "*"
+    - selector: m3.PublicAPI.RemoveServiceAccount
+      delete: /api/v1/service_accounts/{id}
+    - selector: m3.PublicAPI.InfoServiceAccount
+      get: /api/v1/service_accounts/{id}
+    - selector: m3.PublicAPI.DisableServiceAccount
+      post: /api/v1/service_accounts/{id}/disable
+      body: "*"
+    - selector: m3.PublicAPI.EnableServiceAccount
+      post: /api/v1/service_accounts/{id}/enable
+      body: "*"
+    - selector: m3.PublicAPI.AssignPermissionsToServiceAccount
+      post: /api/v1/service_accounts/{id}/assign_permissions
+      body: "*"
+    # Permissions
+    - selector: m3.PublicAPI.ListPermissions
+      get: /api/v1/permissions
+    - selector: m3.PublicAPI.AddPermission
+      post: /api/v1/permissions
+      body: "*"
+    - selector: m3.PublicAPI.RemovePermission
+      delete: /api/v1/permissions/{id}
+    - selector: m3.PublicAPI.InfoPermission
+      get: /api/v1/permissions/{id}
+    - selector: m3.PublicAPI.AssignPermissionToMultipleServiceAccounts
+      post: /api/v1/permissions/{id}/assign_to_service_accounts
+      body: "*"
