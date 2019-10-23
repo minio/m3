@@ -344,7 +344,7 @@ message PermissionActionResponse {
 }
 
 message AddPermissionsSARequest {
-    string service_account_id = 1;
+    string id = 1;
     // list of permission id, an absence of a permission_id means it's not desired and should be removed
     // from the assigned list
     repeated string permission_id = 2;
@@ -356,7 +356,7 @@ message AddPermissionsSAResponse {
 }
 
 message MultiAddPermissionToSAsRequest {
-    string permission_id = 1;
+    string id = 1;
     repeated string service_account_id = 2;
 }
 
