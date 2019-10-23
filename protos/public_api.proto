@@ -46,7 +46,7 @@ service PublicAPI {
     rpc DeleteBucket (DeleteBucketRequest) returns (Bucket) {
     }
 
-    // Change Bucket access control
+    // Change Bucket access control between private and public.
     rpc ChangeBucketAccessControl (AccessControlRequest) returns (AccessControlResponse) {
     }
 
@@ -97,7 +97,7 @@ service PublicAPI {
     rpc InfoServiceAccount (ServiceAccountActionRequest) returns (ServiceAccount) {
     }
 
-    // Get details of an individual ServiceAccount
+    // Assign multiple permissions to this service account
     rpc AssignPermissionsToServiceAccount (AddPermissionsSARequest) returns (AddPermissionsSAResponse) {
     }
 
@@ -118,7 +118,7 @@ service PublicAPI {
     rpc InfoPermission (PermissionActionRequest) returns (Permission) {
     }
 
-    // Get details of an individual ServiceAccount
+    // Assign this permission to multiple service accounts
     rpc AssignPermissionToMultipleServiceAccounts (MultiAddPermissionToSAsRequest) returns (MultiAddPermissionToSAsResponse) {
     }
 
