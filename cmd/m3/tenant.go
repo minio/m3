@@ -17,8 +17,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/minio/cli"
 )
 
@@ -33,6 +31,5 @@ var tenantCmd = cli.Command{
 }
 
 func tenantDefCmd(ctx *cli.Context) error {
-	fmt.Println("run a sub command for now")
-	return nil
+	return cli.ShowAppHelp(ctx)
 }

@@ -1,3 +1,8 @@
+By contributing to m3, you agree to assign the copyright to MinIO.
+
+The contributed source files needs to have the following notice:
+
+```
 // This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2019 MinIO, Inc.
 //
@@ -13,16 +18,4 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-syntax = "proto3";
-
-
-option java_multiple_files = true;
-option java_package = "io.min.m3.private-api";
-option java_outer_classname = "PrivateApiProto";
-
-package m3;
-
-service PrivateAPI {
-
-}
-
+ ```

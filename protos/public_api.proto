@@ -20,12 +20,16 @@ option java_multiple_files = true;
 option java_package = "io.min.m3.public-api";
 option java_outer_classname = "PublicApiProto";
 
-package v3;
+package m3;
 
 service PublicAPI {
     // Registers a new Tenant and a Tenant Admin account
     rpc RegisterTenant (RegisterAccountRequest) returns (RegisterAccountResponse) {
     }
+    // Login
+    rpc Login (LoginRequest) returns (LoginResponse) {
+    }
+
     // Returns metrics around the authenticated tenant account if the tenant is an admin or has access
     rpc Metrics (MetricsRequest) returns (MetricsResponse) {
     }
@@ -35,14 +39,24 @@ service PublicAPI {
     // List Buckets
     rpc ListBuckets (ListBucketsRequest) returns (ListBucketsResponse) {
     }
-    // List Buckets
+    // Make a bucket
     rpc MakeBucket (MakeBucketRequest) returns (Bucket) {
+    }
+    // Delete Bucket
+    rpc DeleteBucket (DeleteBucketRequest) returns (Bucket) {
+    }
+
+    // Change Bucket access control between private and public.
+    rpc ChangeBucketAccessControl (AccessControlRequest) returns (AccessControlResponse) {
     }
 
     // User
-
     // List Users
     rpc ListUsers (ListUsersRequest) returns (ListUsersResponse) {
+    }
+
+    // Add a User
+    rpc AddUser (AddUserRequest) returns (User) {
     }
 
     // Disable a User
@@ -55,82 +69,68 @@ service PublicAPI {
     // Remove a User
     rpc RemoveUser (UserActionRequest) returns (UserActionResponse) {
     }
-    // Remove a User
+    // Get details for an individual User
     rpc InfoUser (UserActionRequest) returns (User) {
     }
 
-    // Token
+    // ServiceAccount
 
-    // List Tokens for a User
-    rpc ListTokens (ListTokensRequest) returns (ListTokensResponse) {
-    }
-
-    // Generates a token for the given user
-    // This is the only time the secret key will be returned\
-    rpc GenerateToken (GenerateTokenRequest) returns (GenerateTokenResponse) {
-    }
-    // Disable a Token
-    rpc DisableToken (TokenActionRequest) returns (TokenActionResponse) {
+    // List ServiceAccounts
+    rpc ListServiceAccounts (ListServiceAccountsRequest) returns (ListServiceAccountsResponse) {
     }
 
-    // Enable a Token
-    rpc EnableToken (TokenActionRequest) returns (TokenActionResponse) {
+    // Generates a ServiceAccount for the given user
+    // This is the only time the secret key will be returned
+    rpc CreateServiceAccount (CreateServiceAccountRequest) returns (CreateServiceAccountResponse) {
     }
-    // Remove a Token
-    rpc RemoveToken (TokenActionRequest) returns (TokenActionResponse) {
-    }
-    // Remove a Token
-    rpc InfoToken (TokenActionRequest) returns (Token) {
+    // Disable a ServiceAccount
+    rpc DisableServiceAccount (ServiceAccountActionRequest) returns (ServiceAccountActionResponse) {
     }
 
-    // Group
-
-    // List Groups
-    rpc ListGroups (ListGroupsRequest) returns (ListGroupsResponse) {
+    // Enable a ServiceAccount
+    rpc EnableServiceAccount (ServiceAccountActionRequest) returns (ServiceAccountActionResponse) {
     }
-    // Disable a Group
-    rpc DisableGroup (GroupActionRequest) returns (GroupActionResponse) {
+    // Remove a ServiceAccount
+    rpc RemoveServiceAccount (ServiceAccountActionRequest) returns (ServiceAccountActionResponse) {
     }
-
-    // Enable a Group
-    rpc EnableGroup (GroupActionRequest) returns (GroupActionResponse) {
-    }
-    // Remove a Group
-    rpc RemoveGroup (GroupActionRequest) returns (GroupActionResponse) {
-    }
-    // Remove a Group
-    rpc InfoGroup (GroupActionRequest) returns (Group) {
+    // Get details of an individual ServiceAccount
+    rpc InfoServiceAccount (ServiceAccountActionRequest) returns (ServiceAccount) {
     }
 
-    // Policy
-
-    // List Policies
-    rpc ListPolicies (ListPoliciesRequest) returns (ListPoliciesResponse) {
-    }
-    // Disable a Policy
-    rpc DisablePolicy (PolicyActionRequest) returns (PolicyActionResponse) {
+    // Assign multiple permissions to this service account
+    rpc AssignPermissionsToServiceAccount (AddPermissionsSARequest) returns (AddPermissionsSAResponse) {
     }
 
-    // Enable a Policy
-    rpc EnablePolicy (PolicyActionRequest) returns (PolicyActionResponse) {
+    // Permission
+
+    // List Permissions
+    rpc ListPermissions (ListPermissionsRequest) returns (ListPermissionsResponse) {
     }
-    // Remove a Policy
-    rpc RemovePolicy (PolicyActionRequest) returns (PolicyActionResponse) {
+
+    // Add a Permission
+    rpc AddPermission (Permission) returns (Permission) {
     }
-    // Remove a Policy
-    rpc InfoPolicy (PolicyActionRequest) returns (Policy) {
+
+    // Remove a Permission
+    rpc RemovePermission (PermissionActionRequest) returns (PermissionActionResponse) {
     }
+    // Remove a Permission
+    rpc InfoPermission (PermissionActionRequest) returns (Permission) {
+    }
+
+    // Assign this permission to multiple service accounts
+    rpc AssignPermissionToMultipleServiceAccounts (MultiAddPermissionToSAsRequest) returns (MultiAddPermissionToSAsResponse) {
+    }
+
 }
 
 // Message containing details of the Tenant Admin and the tenant that is going to be created
 message RegisterAccountRequest {
     string full_name = 1;
-    string company = 3;
-    string company_short_name = 4;
-    string email = 5;
-    string password = 6;
-    // Portal that handles the payment details should
-    string payment_id = 7;
+    string company = 2;
+    string company_short_name = 3;
+    string email = 4;
+    string password = 5;
 }
 
 // Response on wether the account was created or not
@@ -139,11 +139,22 @@ message RegisterAccountResponse {
     string jwt_token = 2;
 }
 
+message LoginRequest {
+    string company = 1;
+    string email = 2;
+    string password = 3;
+}
+
+message LoginResponse {
+    string error = 1;
+    string jwt_token = 2;
+}
+
 // A request for metrics on the authenticated tenant
 message MetricsRequest {
 }
 // Capacity related metrics
-message CapacityMetrics {
+message UsageMetrics {
     // number of buckets on the account
     int32 buckets = 1;
     // A number of bytes representing the total usage on the account
@@ -154,13 +165,11 @@ message CapacityMetrics {
 message NetworkMetrics {
     // Current period amount of egress
     int64 current_egress = 1;
-    // Current period amount of egress
-    int64 current_ingress = 2;
 }
 
 // Information to build a basic dashboard
 message MetricsResponse {
-    CapacityMetrics capacity = 1;
+    UsageMetrics usage = 1;
     NetworkMetrics network = 2;
 }
 
@@ -186,8 +195,30 @@ message Bucket {
     int64 size = 2;
 }
 
+enum Access {
+    PRIVATE = 0;
+    PUBLIC = 1;
+}
+
+
 message MakeBucketRequest {
     string name = 1;
+    Access access = 2;
+}
+
+message DeleteBucketRequest {
+    string name = 1;
+}
+
+
+message AccessControlRequest {
+    string name = 1;
+    Access access = 2;
+}
+
+message AccessControlResponse {
+    string error = 1;
+    string status = 2;
 }
 
 // Request a list of users on the tenant account
@@ -208,6 +239,13 @@ message ListUsersResponse {
     int32 total_users = 3;
 }
 
+message AddUserRequest {
+    string name = 1;
+    string email = 2;
+    // optional
+    string password = 3;
+}
+
 message User {
     // Identifier for the user
     string name = 1;
@@ -215,7 +253,7 @@ message User {
 }
 
 message UserActionRequest {
-    string user_name = 1;
+    string id = 1;
 }
 
 message UserActionResponse {
@@ -223,28 +261,28 @@ message UserActionResponse {
     string status = 2;
 }
 
-// Request a list of tokens on the tenant account
-message ListTokensRequest {
+// Request a list of ServiceAccounts on the tenant account
+message ListServiceAccountsRequest {
     string sort_by = 1;
     int32 offset = 2;
-    // a query to filter tokens with
+    // a query to filter ServiceAccounts with
     string query = 3;
 }
 
-// Request a list of tokens on the tenant account
-message ListTokensResponse {
-    // if any error, like user not allowed to list tokens
+// Request a list of ServiceAccounts on the tenant account
+message ListServiceAccountsResponse {
+    // if any error, like user not allowed to list ServiceAccounts
     string error = 1;
-    // list of resulting tokens
-    repeated Token tokens = 2;
-    // number of tokens on the tenant account
-    int32 total_tokens = 3;
+    // list of resulting ServiceAccounts
+    repeated ServiceAccount ServiceAccounts = 2;
+    // number of ServiceAccounts on the tenant account
+    int32 total_ServiceAccounts = 3;
 }
 
-message Token {
-    // Identifier for the token
+message ServiceAccount {
+    // Identifier for the ServiceAccount
     string access_key = 1;
-    // State of the token
+    // State of the ServiceAccount
     enum Status {
         ACTIVE = 0;
         INACTIVE = 1;
@@ -252,88 +290,77 @@ message Token {
     Status status = 2;
 }
 
-message TokenActionRequest {
-    // Access key to apply the action to
-    string access_key = 1;
+message ServiceAccountActionRequest {
+    string id = 1;
 }
 
-message TokenActionResponse {
+message ServiceAccountActionResponse {
     // If any error happened
     string error = 1;
 }
 
-message GenerateTokenRequest {
+message CreateServiceAccountRequest {
     string user_access_key = 1;
 }
-message GenerateTokenResponse {
+message CreateServiceAccountResponse {
     string access_key = 1;
     string secret_key = 2;
 }
 
-// Request a list of groups on the tenant account
-message ListGroupsRequest {
+// Request a list of Permissions on the tenant account
+message ListPermissionsRequest {
     string sort_by = 1;
     int32 offset = 2;
-    // a query to filter groups with
+    // a query to filter Permissions with
     string query = 3;
 }
 
-// Request a list of groups on the tenant account
-message ListGroupsResponse {
-    // if any error, like user not allowed to list groups
+// Request a list of Permissions on the tenant account
+message ListPermissionsResponse {
+    // if any error, like user not allowed to list Permissions
     string error = 1;
-    // list of resulting groups
-    repeated Group groups = 2;
-    // number of groups on the tenant account
-    int32 total_groups = 3;
+    // list of resulting Permissions
+    repeated Permission Permissions = 2;
+    // number of Permissions on the tenant account
+    int32 total_Permissions = 3;
 }
 
-message Group {
-    // Group identifier
+// Permission resource
+message Permission {
+    // Identifier for the Permission
     string name = 1;
-    string description = 2;
+    string effect = 2;
+    repeated string resources = 3;
+    repeated string actions = 4;
 }
 
-message GroupActionRequest {
-    string group_name = 1;
+message PermissionActionRequest {
+    // Identifier for the Permission
+    string id = 1;
 }
-
-message GroupActionResponse {
+message PermissionActionResponse {
     string error = 1;
     string status = 2;
 }
 
-// Request a list of policies on the tenant account
-message ListPoliciesRequest {
-    string sort_by = 1;
-    int32 offset = 2;
-    // a query to filter policies with
-    string query = 3;
+message AddPermissionsSARequest {
+    string id = 1;
+    // list of permission id, an absence of a permission_id means it's not desired and should be removed
+    // from the assigned list
+    repeated string permission_id = 2;
 }
 
-// Request a list of policies on the tenant account
-message ListPoliciesResponse {
-    // if any error, like user not allowed to list policies
-    string error = 1;
-    // list of resulting policies
-    repeated Policy policies = 2;
-    // number of policies on the tenant account
-    int32 total_policies = 3;
-}
-
-// Policy resource
-message Policy {
-    // Identifier for the policy
-    string name = 1;
-    string description = 2;
-}
-
-message PolicyActionRequest {
-    // Identifier for the policy
-    string policy_name = 1;
-}
-message PolicyActionResponse {
+message AddPermissionsSAResponse {
     string error = 1;
     string status = 2;
 }
 
+message MultiAddPermissionToSAsRequest {
+    string id = 1;
+    repeated string service_account_id = 2;
+}
+
+message MultiAddPermissionToSAsResponse {
+    string error = 1;
+    string status = 2;
+}
