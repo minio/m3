@@ -136,7 +136,7 @@ message RegisterAccountRequest {
 // Response on wether the account was created or not
 message RegisterAccountResponse {
     string error = 1;
-    string jwt_ServiceAccount = 2;
+    string jwt_token = 2;
 }
 
 message LoginRequest {
