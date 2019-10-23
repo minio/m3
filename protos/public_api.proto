@@ -147,7 +147,7 @@ message LoginRequest {
 
 message LoginResponse {
     string error = 1;
-    string jwt_ServiceAccount = 2;
+    string jwt_token = 2;
 }
 
 // A request for metrics on the authenticated tenant
