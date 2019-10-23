@@ -1,4 +1,4 @@
-create table atenantschema.users
+create table users
 (
     id           uuid                                   not null
         constraint users_pk
@@ -13,12 +13,12 @@ create table atenantschema.users
 
 
 create unique index users_email_uindex
-    on atenantschema.users (email);
+    on users (email);
 
 create index users_password_index
-    on atenantschema.users (password);
+    on users (password);
 
-create table atenantschema.service_accounts
+create table service_accounts
 (
     id           uuid                                   not null
         constraint service_accounts_pk
@@ -30,18 +30,18 @@ create table atenantschema.service_accounts
 );
 
 
-create table atenantschema.credentials
+create table credentials
 (
     access_key         varchar(256)                           not null
         constraint credentials_pk
             primary key,
     user_id            uuid
         constraint credentials_users_id_fk
-            references atenantschema.users
+            references users
             on delete cascade,
     service_account_id uuid
         constraint credentials_service_accounts_id_fk
-            references atenantschema.service_accounts
+            references service_accounts
             on delete cascade,
     ui_credential      boolean                  default false,
     created_by         varchar(256)                           not null,
@@ -49,7 +49,7 @@ create table atenantschema.credentials
 );
 
 
-create table atenantschema.permissions
+create table permissions
 (
     id           uuid                                   not null
         constraint policy_statements_pk
@@ -60,36 +60,36 @@ create table atenantschema.permissions
 );
 
 
-create table atenantschema.permissions_resources
+create table permissions_resources
 (
     id           uuid                                   not null
         constraint policy_statement_resources_pk
             primary key,
     statement_id uuid
         constraint policy_statement_resources_policy_statements_id_fk
-            references atenantschema.permissions,
+            references permissions,
     resource     varchar(512)                           not null,
     created_by   varchar(256)                           not null,
     created_date timestamp with time zone default now() not null
 );
 
 
-create table atenantschema.service_accounts_permissions
+create table service_accounts_permissions
 (
     service_account_id uuid                                   not null
         constraint service_accounts_permissions_service_accounts_id_fk
-            references atenantschema.service_accounts
+            references service_accounts
             on delete cascade,
     permission_id      uuid                                   not null
         constraint service_accounts_permissions_permissions_id_fk
-            references atenantschema.permissions
+            references permissions
             on delete cascade,
     created_by         varchar(256)                           not null,
     created_date       timestamp with time zone default now() not null
 );
 
 
-create table atenantschema.actions
+create table actions
 (
     id          uuid not null
         constraint actions_pk
@@ -99,16 +99,40 @@ create table atenantschema.actions
 );
 
 
-create table atenantschema.permissions_actions
+create table permissions_actions
 (
     permission_id uuid
         constraint permissions_actions_permissions_id_fk
-            references atenantschema.permissions
+            references permissions
             on delete cascade,
     action_id     uuid                                   not null
         constraint permissions_actions_actions_id_fk
-            references atenantschema.actions,
+            references actions,
     created_by    varchar(256)                           not null,
     created_date  timestamp with time zone default now() not null
 );
+
+
+create table api_logs
+(
+    id           serial                                 not null
+        constraint api_logs_pk
+            primary key,
+    api          varchar(256)                           not null,
+    payload      text,
+    created_date timestamp with time zone default now() not null,
+    session_id   varchar(256),
+    user_email   varchar(256)
+);
+
+
+create index api_logs_api_index
+    on api_logs (api);
+
+create index api_logs_session_id_index
+    on api_logs (session_id);
+
+create index api_logs_user_email_index
+    on api_logs (user_email);
+
 
