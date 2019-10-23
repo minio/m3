@@ -86,6 +86,8 @@ create table provisioning.node_volumes
     mount_path varchar(256)
 );
 
+--  Table to store Disks attached to a node and their mount points
+
 create table provisioning.disks
 (
     id          uuid not null
