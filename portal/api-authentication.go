@@ -32,7 +32,7 @@ import (
 )
 
 // defaultJWTExpTime is the Portal expiration time for the authentication token.
-// Default is five minutes
+// Default is 12 hours
 const defaultJWTExpTime = 12 * time.Hour
 
 var (

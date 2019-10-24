@@ -17,19 +17,36 @@
 package main
 
 import (
-	"github.com/minio/cli"
-	"github.com/minio/m3/portal"
+	"context"
+	"fmt"
+	"log"
+	"time"
+
+	pb "github.com/minio/m3/portal-client/stubs"
+	"google.golang.org/grpc"
 )
 
-// list files and folders.
-var portalCmd = cli.Command{
-	Name:   "portal",
-	Usage:  "starts portal",
-	Action: startAPIPortalCmd,
-}
+const (
+	address = "localhost:50051"
+)
 
-func startAPIPortalCmd(ctx *cli.Context) error {
-	// portal.StartAPIPortal()
-	portal.InitPortalGRPCServer()
-	return nil
+func main() {
+	// Set up a connection to the server.
+	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+	c := pb.NewPublicAPIClient(conn)
+
+	// Contact the server and print out its response.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	r, err := c.Login(ctx, &pb.LoginRequest{Company: "acme", Email: "cesnietor@acme.com", Password: "cesnietor_hashed"})
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+	token := r.GetJwtToken()
+	fmt.Println(r.GetError(), token)
+
 }

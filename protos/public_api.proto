@@ -13,8 +13,8 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-syntax = "proto3";
 
+syntax = "proto3";
 
 option java_multiple_files = true;
 option java_package = "io.min.m3.public-api";
