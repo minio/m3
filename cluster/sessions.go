@@ -19,7 +19,6 @@ package cluster
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"log"
 	"os"
@@ -50,6 +49,59 @@ func GetInstance() *Singleton {
 	return instance
 }
 
+type DbConfig struct {
+	Host string
+	Port string
+	User string
+	Pass string
+	Name string
+	Ssl  bool
+}
+
+// Returns a `DbConfig` object with the values for the database by either reading them from the environment or
+// defaulting them to a known value.
+func GetDbConfig() *DbConfig {
+	dbHost := "localhost"
+	if os.Getenv("DB_HOSTNAME") != "" {
+		dbHost = os.Getenv("DB_HOSTNAME")
+	}
+
+	dbPort := "5432"
+	if os.Getenv("DB_PORT") != "" {
+		dbPort = os.Getenv("DB_PORT")
+	}
+
+	dbUser := "postgres"
+	if os.Getenv("DB_USER") != "" {
+		dbUser = os.Getenv("DB_USER")
+	}
+
+	dbPass := "m3meansmkube"
+	if os.Getenv("DB_PASSWORD") != "" {
+		dbPass = os.Getenv("DB_PASSWORD")
+	}
+	dbSsl := false
+	if os.Getenv("DB_SSL") != "" {
+		if os.Getenv("DB_SSL") == "true" {
+			dbSsl = true
+		}
+	}
+
+	dbName := "m3"
+	if os.Getenv("DB_NAME") != "" {
+		dbName = os.Getenv("DB_NAME")
+	}
+	return &DbConfig{
+		Host: dbHost,
+		Port: dbPort,
+		User: dbUser,
+		Pass: dbPass,
+		Name: dbName,
+		Ssl:  dbSsl,
+	}
+}
+
+// Creates a connection to the DB and returns it
 func ConnectToDb(ctx context.Context) chan *sql.DB {
 	ch := make(chan *sql.DB)
 	go func() {
@@ -57,44 +109,15 @@ func ConnectToDb(ctx context.Context) chan *sql.DB {
 		select {
 		case <-ctx.Done():
 		default:
-			dbHost := "localhost"
-			if os.Getenv("DB_HOSTNAME") != "" {
-				dbHost = os.Getenv("DB_HOSTNAME")
-				fmt.Println("USER DB HOST", dbHost)
+			// Get the Database configuration
+			dbConfg := GetDbConfig()
+			dbStr := "host=" + dbConfg.Host + " port=" + dbConfg.Port + " user=" + dbConfg.User
+			if dbConfg.Pass != "" {
+				dbStr = dbStr + " password=" + dbConfg.Pass
 			}
 
-			dbPort := "5432"
-			if os.Getenv("DB_PORT") != "" {
-				dbPort = os.Getenv("DB_PORT")
-			}
-
-			dbUser := "postgres"
-			if os.Getenv("DB_USER") != "" {
-				dbUser = os.Getenv("DB_USER")
-			}
-
-			dbPass := "m3meansmkube"
-			if os.Getenv("DB_PASSWORD") != "" {
-				dbPass = os.Getenv("DB_PASSWORD")
-			}
-			dbSsl := false
-			if os.Getenv("DB_SSL") != "" {
-				if os.Getenv("DB_SSL") == "true" {
-					dbSsl = true
-				}
-			}
-
-			dbName := "m3"
-			if os.Getenv("DB_NAME") != "" {
-				dbName = os.Getenv("DB_NAME")
-			}
-			dbStr := "host=" + dbHost + " port=" + dbPort + " user=" + dbUser
-			if dbPass != "" {
-				dbStr = dbStr + " password=" + dbPass
-			}
-
-			dbStr = dbStr + " dbname=" + dbName
-			if dbSsl {
+			dbStr = dbStr + " dbname=" + dbConfg.Name
+			if dbConfg.Ssl {
 				dbStr = dbStr + " sslmode=enable"
 			} else {
 				dbStr = dbStr + " sslmode=disable"
