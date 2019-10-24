@@ -49,16 +49,23 @@ func GetInstance() *Singleton {
 	return instance
 }
 
+// DbConfig holds the configuration to connect to a database
 type DbConfig struct {
+	// Hostname
 	Host string
+	// Port
 	Port string
+	// User
 	User string
-	Pass string
+	// Password
+	Pwd string
+	// Database Name
 	Name string
-	Ssl  bool
+	// Whether SSL is enabled on the connection or not
+	Ssl bool
 }
 
-// Returns a `DbConfig` object with the values for the database by either reading them from the environment or
+// GetDbConfig returns a `DbConfig` object with the values for the database by either reading them from the environment or
 // defaulting them to a known value.
 func GetDbConfig() *DbConfig {
 	dbHost := "localhost"
@@ -95,7 +102,7 @@ func GetDbConfig() *DbConfig {
 		Host: dbHost,
 		Port: dbPort,
 		User: dbUser,
-		Pass: dbPass,
+		Pwd:  dbPass,
 		Name: dbName,
 		Ssl:  dbSsl,
 	}
@@ -112,8 +119,8 @@ func ConnectToDb(ctx context.Context) chan *sql.DB {
 			// Get the Database configuration
 			dbConfg := GetDbConfig()
 			dbStr := "host=" + dbConfg.Host + " port=" + dbConfg.Port + " user=" + dbConfg.User
-			if dbConfg.Pass != "" {
-				dbStr = dbStr + " password=" + dbConfg.Pass
+			if dbConfg.Pwd != "" {
+				dbStr = dbStr + " password=" + dbConfg.Pwd
 			}
 
 			dbStr = dbStr + " dbname=" + dbConfg.Name

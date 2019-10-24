@@ -252,7 +252,7 @@ func RunMigrations() {
 	}
 	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		dbConfg.User,
-		dbConfg.Pass,
+		dbConfg.Pwd,
 		dbConfg.Host,
 		dbConfg.Port,
 		dbConfg.Name,
