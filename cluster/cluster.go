@@ -23,11 +23,10 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
+	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	extensionsv1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
@@ -199,12 +198,13 @@ type TenantConfiguration struct {
 func CreateTenantSecrets(tenant *Tenant, tenantConfig *TenantConfiguration) error {
 	// creates the clientset
 	clientset, err := k8sClient()
+
 	if err != nil {
 		return err
 	}
 
+	// Store tenant's MinIO server admin credentials as a Kubernetes secret
 	secretsName := fmt.Sprintf("%s-env", tenant.ShortName)
-
 	secret := v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: secretsName,
@@ -217,14 +217,8 @@ func CreateTenantSecrets(tenant *Tenant, tenantConfig *TenantConfiguration) erro
 			minioSecretKey: []byte(tenantConfig.SecretKey),
 		},
 	}
-	res, err := clientset.CoreV1().Secrets("default").Create(&secret)
-	if err != nil {
-		return err
-	}
-	if res.Name == "" {
-		return errors.New("error adding secret to kubernetes")
-	}
-	return nil
+	_, err = clientset.CoreV1().Secrets("default").Create(&secret)
+	return err
 }
 
 //Creates a service that will resolve to any of the hosts within the storage group this tenant lives in
@@ -318,67 +312,10 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 		},
 	}
 
-	for i := range tenants {
-		sgTenant := tenants[i]
-		envName := fmt.Sprintf("%s-env", sgTenant.ShortName)
-		volumeMounts := []v1.VolumeMount{}
-		tenantContainer := v1.Container{
-			Name:            fmt.Sprintf("%s-minio-%s", sgTenant.Tenant.ShortName, hostNum),
-			Image:           "minio/minio:edge",
-			ImagePullPolicy: "IfNotPresent",
-			Args: []string{
-				"server",
-				"--address",
-				fmt.Sprintf(":%d", sgTenant.Port),
-				fmt.Sprintf(
-					"http://sg-%d-host-{1...%d}:%d/mnt/tdisk{1...%d}",
-					sg.Num,
-					MaxNumberHost,
-					sgTenant.Port,
-					MaxNumberDiskPerNode),
-			},
-			Ports: []v1.ContainerPort{
-				{
-					Name:          "http",
-					ContainerPort: sgTenant.Port,
-				},
-			},
-			EnvFrom: []v1.EnvFromSource{
-				{
-					SecretRef: &v1.SecretEnvSource{
-						LocalObjectReference: v1.LocalObjectReference{Name: envName},
-					},
-				},
-			},
-			LivenessProbe: &v1.Probe{
-				Handler: v1.Handler{
-					HTTPGet: &v1.HTTPGetAction{
-						Path: "/minio/health/live",
-						Port: intstr.IntOrString{
-							IntVal: sgTenant.Port,
-						},
-					},
-				},
-				InitialDelaySeconds: 120,
-				PeriodSeconds:       20,
-			},
-		}
-		//volumes that will be used by this sgTenant
-		for vi := 1; vi <= MaxNumberDiskPerNode; vi++ {
-			vname := fmt.Sprintf("%s-pv-%d", sgTenant.Tenant.ShortName, vi)
-			volumenSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: fmt.Sprintf("/mnt/disk%d/%s", vi, sgTenant.Tenant.ShortName)}}
-			hostPathVolume := v1.Volume{Name: vname, VolumeSource: volumenSource}
-			mainPodSpec.Volumes = append(mainPodSpec.Volumes, hostPathVolume)
-
-			mount := v1.VolumeMount{
-				Name:      vname,
-				MountPath: fmt.Sprintf("/mnt/tdisk%d", vi),
-			}
-			volumeMounts = append(volumeMounts, mount)
-		}
-		tenantContainer.VolumeMounts = volumeMounts
-
+	for _, sgTenant := range tenants {
+		tenantContainer, tenantVolume := mkTenantMinioContainer(sgTenant, hostNum)
 		mainPodSpec.Containers = append(mainPodSpec.Containers, tenantContainer)
+		mainPodSpec.Volumes = append(mainPodSpec.Volumes, tenantVolume...)
 	}
 
 	deployment := v1beta1.Deployment{
@@ -399,14 +336,8 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 		},
 	}
 
-	res, err := extV1beta1API(clientset).Deployments("default").Create(&deployment)
-	if err != nil {
-		return err
-	}
-	if res.Name == "" {
-		return errors.New("error creating the deployment on kubernetes")
-	}
-	return nil
+	_, err = extV1beta1API(clientset).Deployments("default").Create(&deployment)
+	return err
 }
 
 // spins up the tenant on the target storage group, waits for it to start, then shuts it down
@@ -441,7 +372,7 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGrou
 
 		CreateTenantServiceInStorageGroup(sgTenantResult.StorageGroupTenant)
 		// call for the storage group to refresh
-		err := <-ReDeployStorageGroup(ctx, sg)
+		err := <-ReDeployStorageGroup(ctx, sgTenantResult.StorageGroupTenant)
 		if err != nil {
 			ch <- err
 		}
@@ -621,11 +552,15 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sg *StorageGroup, hostNumbe
 }
 
 // Based on the current list of tenants for the `StorageGroup` it re-deploys it.
-func ReDeployStorageGroup(ctx *Context, sg *StorageGroup) chan error {
+func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan error {
 	ch := make(chan error)
+	sg := sgTenant.StorageGroup
 	go func() {
 		defer close(ch)
 		tenants := <-GetListOfTenantsForStorageGroup(ctx, sg)
+		if len(tenants) == 0 {
+			return
+		}
 
 		// creates the clientset
 		clientset, err := k8sClient()
@@ -633,32 +568,40 @@ func ReDeployStorageGroup(ctx *Context, sg *StorageGroup) chan error {
 			ch <- err
 			return
 		}
-		// for each host in storage clsuter, create a deployment
+
+		// for each host in storage cluster, create a deployment
 		for i := 1; i <= MaxNumberHost; i++ {
+			hostNum := fmt.Sprintf("%d", i)
 			sgHostName := fmt.Sprintf("sg-%d-host-%d", sg.Num, i)
-			// TODO: Upgrade this logic so we don't delete the current deployment
-			// does the deployment exist?
-			res, err := extV1beta1API(clientset).Deployments("default").Get(sgHostName, metav1.GetOptions{})
-			if err != nil && (res == nil || res.Name != "") {
-				ch <- err
-				return
-			}
-			// if the deployment exist, delete FOR NOW
-			if res.Name != "" {
-				err = extV1beta1API(clientset).Deployments("default").Delete(sgHostName, nil)
-				if err != nil {
+			deployment, err := clientset.ExtensionsV1beta1().Deployments("default").Get(sgHostName, metav1.GetOptions{})
+			switch {
+			case k8errors.IsNotFound(err): // No deployment for sgHostname is present in the storage cluster, CREATE it
+				if err = CreateDeploymentWithTenants(
+					tenants,
+					sg,
+					hostNum); err != nil {
 					ch <- err
 					return
 				}
-			}
-			err = CreateDeploymentWithTenants(
-				tenants,
-				sg,
-				fmt.Sprintf("%d", i))
-			if err != nil {
+
+			case err != nil: // Other kubernetes client errors
 				ch <- err
 				return
+			default: // A deployment is present in the storage cluster, UPDATE it with new tenant containers and volumes
+				currPodSpec := deployment.Spec.Template.Spec
+				// Add tenant containers and volumes to the current pod spec
+				tenantContainer, tenantVolumes := mkTenantMinioContainer(sgTenant, hostNum)
+				currPodSpec.Containers = append(currPodSpec.Containers, tenantContainer)
+				currPodSpec.Volumes = append(currPodSpec.Volumes, tenantVolumes...)
+				// Set deployment with the updated pod spec
+				deployment.Spec.Template.Spec = currPodSpec
+				if _, err = clientset.ExtensionsV1beta1().Deployments("default").Update(deployment); err != nil {
+					ch <- err
+					return
+				}
+
 			}
+
 			// TODO: wait for the deployment to come online before replacing the next deployment
 			// to know when the past deployment is online, we will expect at least 1 tenant to reply with it's
 			// liveliness probe
@@ -672,98 +615,4 @@ func ReDeployStorageGroup(ctx *Context, sg *StorageGroup) chan error {
 		}
 	}()
 	return ch
-}
-
-// ReDeployNginxResolver destroy current nginx deployment and replace it with a new want that will take latest configMap configuration
-func ReDeployNginxResolver(ctx *Context) chan error {
-	ch := make(chan error)
-	go func() {
-		defer close(ch)
-		// creates the clientset
-		clientset, _ := k8sClient()
-		// does the deployment exist?
-		res, err := extV1beta1API(clientset).Deployments("default").Get("nginx-resolver", metav1.GetOptions{})
-		if err != nil && (res == nil || res.Name != "") {
-			ch <- err
-			return
-		}
-		// if the deployment exist, delete FOR NOW
-		if res.Name != "" {
-			err = extV1beta1API(clientset).Deployments("default").Delete("nginx-resolver", nil)
-			if err != nil {
-				ch <- err
-				return
-			}
-		}
-		DeployNginxResolver()
-	}()
-	return ch
-}
-
-// DeployNginxResolver create a new nginx-resolver deployment
-func DeployNginxResolver() {
-	// creates the clientset
-	clientset, err := k8sClient()
-
-	var replicas int32 = 1
-
-	mainPodSpec := v1.PodSpec{
-		Containers: []v1.Container{
-			{
-				Name:            "nginx-resolver",
-				Image:           "nginx",
-				ImagePullPolicy: "IfNotPresent",
-				Ports: []v1.ContainerPort{
-					{
-						Name:          "http",
-						ContainerPort: 80,
-					},
-				},
-				VolumeMounts: []v1.VolumeMount{
-					{
-						Name:      "nginx-configuration",
-						MountPath: "/etc/nginx/nginx.conf",
-						SubPath:   "nginx.conf",
-					},
-				},
-			},
-		},
-		Volumes: []v1.Volume{
-			{
-				Name: "nginx-configuration",
-				VolumeSource: v1.VolumeSource{
-					ConfigMap: &v1.ConfigMapVolumeSource{
-						LocalObjectReference: v1.LocalObjectReference{
-							Name: "nginx-configuration",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	deployment := v1beta1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "nginx-resolver",
-		},
-		Spec: v1beta1.DeploymentSpec{
-			Replicas: &replicas,
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": "nginx-resolver",
-					},
-				},
-				Spec: mainPodSpec,
-			},
-		},
-	}
-
-	resDeployment, err := extV1beta1API(clientset).Deployments("default").Create(&deployment)
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println("done creating nginx-resolver deployment ")
-	fmt.Println(resDeployment.String())
-
 }
