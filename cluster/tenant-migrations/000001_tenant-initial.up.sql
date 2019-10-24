@@ -52,7 +52,7 @@ create table credentials
 create table permissions
 (
     id           uuid                                   not null
-        constraint policy_statements_pk
+        constraint permissions_pk
             primary key,
     effect       varchar(64)                            not null,
     created_by   varchar(256)                           not null,
@@ -63,10 +63,10 @@ create table permissions
 create table permissions_resources
 (
     id           uuid                                   not null
-        constraint policy_statement_resources_pk
+        constraint permissions_resources_pk
             primary key,
-    statement_id uuid
-        constraint policy_statement_resources_policy_statements_id_fk
+    permission_id uuid
+        constraint permissions_resources_permissions_id_fk
             references permissions,
     resource     varchar(512)                           not null,
     created_by   varchar(256)                           not null,

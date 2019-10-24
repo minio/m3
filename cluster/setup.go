@@ -243,9 +243,23 @@ events {
 // This runs all the migrations on the cluster/migrations folder, if some migrations were already applied it then will
 // apply the missing migrations.
 func RunMigrations() {
+	// Get the Database configuration
+	dbConfg := GetDbConfig()
+	// Build the database URL connection
+	sslMode := "disable"
+	if dbConfg.Ssl {
+		sslMode = "enable"
+	}
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		dbConfg.User,
+		dbConfg.Pwd,
+		dbConfg.Host,
+		dbConfg.Port,
+		dbConfg.Name,
+		sslMode)
 	m, err := migrate.New(
 		"file://cluster/migrations",
-		"postgres://postgres:m3meansmkube@localhost:5432/m3?sslmode=disable")
+		databaseURL)
 	if err != nil {
 		log.Println("error connecting to database or reading migrations")
 		log.Fatal(err)
