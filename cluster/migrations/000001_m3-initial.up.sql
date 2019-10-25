@@ -86,5 +86,22 @@ create table provisioning.node_volumes
     mount_path varchar(256)
 );
 
+--  Table to store Disks attached to a node and their mount points
+
+create table provisioning.disks
+(
+    id          uuid not null
+        constraint disks_pk
+            primary key,
+    node_id     uuid
+        constraint disks_nodes_id_fk
+            references provisioning.nodes,
+    mount_point varchar(512),
+    capacity    bigint
+);
+
+comment on column provisioning.disks.capacity is 'Capacity in bytes';
+
+
 
 

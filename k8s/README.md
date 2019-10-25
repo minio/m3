@@ -93,5 +93,6 @@ If the company name is not url-friendly a short name will be generated, but it c
 
 ## Accessing the tenant MinIO service via browser UI
 ```shell
-  kubectl port-forward svc/comp-name 9001
+  kubectl port-forward svc/nginx-resolver 1337:80
 ```
+Then in your browser go to: http://company-short-name.s3.localhost:1337/, you can add more tenants and access them via a subdomain in localhost for now.
