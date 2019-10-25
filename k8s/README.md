@@ -77,7 +77,7 @@ This is benign and can be fixed with the following steps,
 
 ## Creating a Storage Group
 ```shell
-  ./m3 cluster sc sg add -n my-dc-rack-1
+  ./m3 cluster sc sg add --name my-dc-rack-1
 ```
 
 ## Adding a tenant
