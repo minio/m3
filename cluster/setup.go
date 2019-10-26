@@ -18,8 +18,10 @@ package cluster
 
 import (
 	"fmt"
-	"github.com/golang-migrate/migrate/v4"
 	"log"
+
+	"github.com/golang-migrate/migrate/v4"
+
 	// the postgres driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	// the file driver for go-migrate
