@@ -28,7 +28,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -49,9 +48,8 @@ func SetupM3() {
 
 // Setups the namcespace used by the provisioning service
 func SetupM3Namespace() {
-	config := getConfig()
 	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := k8sClient()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -70,10 +68,8 @@ func SetupM3Namespace() {
 
 // Setups a postgres used by the provisioning service
 func SetupPostgres() {
-
-	config := getConfig()
 	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := k8sClient()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -167,7 +163,7 @@ func SetupPostgres() {
 		},
 	}
 
-	resDeployment, err := clientset.ExtensionsV1beta1().Deployments(m3SystemNamespace).Create(&deployment)
+	resDeployment, err := extV1beta1API(clientset).Deployments(m3SystemNamespace).Create(&deployment)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -178,9 +174,8 @@ func SetupPostgres() {
 
 // SetupNginxLoadBalancer setups the loadbalancer/reverse proxy used to resolve the tenants subdomains
 func SetupNginxLoadBalancer() {
-	config := getConfig()
 	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := k8sClient()
 	if err != nil {
 		panic(err.Error())
 	}
