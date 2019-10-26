@@ -189,8 +189,14 @@ func CreateSGHostService(sg *StorageGroup, hostNum string) error {
 	return nil
 }
 
+// Holds the configuration for a Tenant
+type TenantConfiguration struct {
+	AccessKey string
+	SecretKey string
+}
+
 // CreateTenantSecrets creates the "secrets" of a tenant.
-func CreateTenantSecrets(tenant *Tenant) error {
+func CreateTenantSecrets(tenant *Tenant, tenantConfig *TenantConfiguration) error {
 	// creates the clientset
 	clientset, err := k8sClient()
 	if err != nil {
@@ -207,8 +213,8 @@ func CreateTenantSecrets(tenant *Tenant) error {
 			},
 		},
 		Data: map[string][]byte{
-			"MINIO_ACCESS_KEY": []byte("minio"),
-			"MINIO_SECRET_KEY": []byte("minio123"),
+			"MINIO_ACCESS_KEY": []byte(tenantConfig.AccessKey),
+			"MINIO_SECRET_KEY": []byte(tenantConfig.SecretKey),
 		},
 	}
 	res, err := clientset.CoreV1().Secrets("default").Create(&secret)
