@@ -23,6 +23,8 @@ import (
 	"log"
 	"regexp"
 
+	"github.com/golang-migrate/migrate/v4"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -56,6 +58,9 @@ func AddTenant(name string, shortName string) error {
 	}
 	fmt.Println(fmt.Sprintf("Registered as tenant %s\n", tenantResult.Tenant.ID.String()))
 
+	// provision the tenant schema and run the migrations
+	tenantSchemaCh := ProvisionTenantDB(shortName)
+
 	// find a cluster where to allocate the tenant
 	sg := <-SelectSGWithSpace(ctx)
 
@@ -81,11 +86,19 @@ func AddTenant(name string, shortName string) error {
 		tx.Rollback()
 		return err
 	}
+	// check if we were able to provision the schema and be done running the migrations
+	err = <-tenantSchemaCh
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	// announce the tenant on the router
 	err = <-UpdateNginxConfiguration(ctx)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	// if no error happened to this point
 	err = tx.Commit()
 	return err
@@ -162,4 +175,83 @@ func validTenantShortName(ctx *Context, tenantShortName string) error {
 		return errors.New("A tenant with that short name already exists")
 	}
 	return nil
+}
+
+// CreateTenantSchema creates a db schema for the tenant
+func CreateTenantSchema(tenantName string) error {
+
+	// get the DB connection for the tenant
+	db := GetInstance().GetTenantDB(tenantName)
+
+	// Since we cannot parametrize the tenant name into create schema
+	// we are going to validate the tenant name
+	r, err := regexp.Compile(`^[a-z0-9-]{2,64}$`)
+	if err != nil {
+		return err
+	}
+	if !r.MatchString(tenantName) {
+		return errors.New("not a valid tenant name")
+	}
+
+	// format in the tenant name assuming it's safe
+	query := fmt.Sprintf(`CREATE SCHEMA %s`, tenantName)
+
+	_, err = db.Exec(query)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ProvisionTenantDB runs the tenant migrations for the provided tenant
+func ProvisionTenantDB(tenantName string) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		// first provision the schema
+		err := CreateTenantSchema(tenantName)
+		if err != nil {
+			ch <- err
+		}
+		// second run the migrations
+		err = <-MigrateTenantDB(tenantName)
+		if err != nil {
+			ch <- err
+		}
+	}()
+	return ch
+}
+
+// MigrateTenantDB executes the migrations for a given tenant, this may take time.
+func MigrateTenantDB(tenantName string) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		// Get the Database configuration
+		dbConfg := GetTenantDBConfig(tenantName)
+		// Build the database URL connection
+		sslMode := "disable"
+		if dbConfg.Ssl {
+			sslMode = "enable"
+		}
+		databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&search_path=%s",
+			dbConfg.User,
+			dbConfg.Pwd,
+			dbConfg.Host,
+			dbConfg.Port,
+			dbConfg.Name,
+			sslMode,
+			dbConfg.SchemaName)
+
+		m, err := migrate.New(
+			"file://cluster/tenant-migrations",
+			databaseURL)
+		if err != nil {
+			ch <- err
+		}
+		if err := m.Up(); err != nil {
+			ch <- err
+		}
+	}()
+	return ch
 }

@@ -17,6 +17,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/minio/cli"
 	"github.com/minio/m3/cluster"
 )
@@ -25,10 +27,17 @@ import (
 var setupDbCmd = cli.Command{
 	Name:   "db",
 	Usage:  "runs the migrations for the setup db",
-	Action: doMigrations,
+	Action: setupDB,
 }
 
-func doMigrations(ctx *cli.Context) error {
+func setupDB(ctx *cli.Context) error {
+	// setup the tenants shared db
+	err := cluster.CreateTenantsSharedDatabase()
+	if err != nil {
+		// this error could be because the database already exists, so we are going to tolerate it.
+		fmt.Println(err)
+	}
+	// run the migrations
 	cluster.RunMigrations()
 	return nil
 }

@@ -21,6 +21,7 @@ import (
 	"log"
 
 	"github.com/golang-migrate/migrate/v4"
+
 	// the postgres driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	// the file driver for go-migrate
@@ -239,7 +240,7 @@ events {
 // apply the missing migrations.
 func RunMigrations() {
 	// Get the Database configuration
-	dbConfg := GetDbConfig()
+	dbConfg := GetM3DbConfig()
 	// Build the database URL connection
 	sslMode := "disable"
 	if dbConfg.Ssl {
@@ -263,4 +264,20 @@ func RunMigrations() {
 		log.Println("Error migrating up")
 		log.Fatal(err)
 	}
+}
+
+// CreateTenantSchema creates a db schema for the tenant
+func CreateTenantsSharedDatabase() error {
+
+	// get the DB connection for the tenant
+	db := GetInstance().Db
+
+	// format in the tenant name assuming it's safe
+	query := fmt.Sprintf(`CREATE DATABASE tenants`)
+
+	_, err := db.Exec(query)
+	if err != nil {
+		return err
+	}
+	return nil
 }
