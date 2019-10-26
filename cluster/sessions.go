@@ -19,7 +19,6 @@ package cluster
 import (
 	"context"
 	"database/sql"
-
 	"log"
 	"os"
 	"sync"
@@ -29,7 +28,8 @@ import (
 )
 
 type Singleton struct {
-	Db *sql.DB
+	Db         *sql.DB
+	tenantsCnx map[string]*sql.DB
 }
 
 var instance *Singleton
@@ -40,10 +40,17 @@ func GetInstance() *Singleton {
 	once.Do(func() {
 		// Wait for the DB connection
 		ctx := context.Background()
-		db := <-ConnectToDb(ctx)
+
+		// Get the m3 Database configuration
+		config := GetM3DbConfig()
+		db := <-ConnectToDb(ctx, config)
+
+		//build connections cache
+		cnxCache := make(map[string]*sql.DB)
 
 		instance = &Singleton{
-			Db: db,
+			Db:         db,
+			tenantsCnx: cnxCache,
 		}
 	})
 	return instance
@@ -63,11 +70,13 @@ type DbConfig struct {
 	Name string
 	// Whether SSL is enabled on the connection or not
 	Ssl bool
+	// Schema name
+	SchemaName string
 }
 
-// GetDbConfig returns a `DbConfig` object with the values for the database by either reading them from the environment or
+// GetM3DbConfig returns a `DbConfig` object with the values for the database by either reading them from the environment or
 // defaulting them to a known value.
-func GetDbConfig() *DbConfig {
+func GetM3DbConfig() *DbConfig {
 	dbHost := "localhost"
 	if os.Getenv("DB_HOSTNAME") != "" {
 		dbHost = os.Getenv("DB_HOSTNAME")
@@ -109,22 +118,20 @@ func GetDbConfig() *DbConfig {
 }
 
 // Creates a connection to the DB and returns it
-func ConnectToDb(ctx context.Context) chan *sql.DB {
+func ConnectToDb(ctx context.Context, config *DbConfig) chan *sql.DB {
 	ch := make(chan *sql.DB)
 	go func() {
 		defer close(ch)
 		select {
 		case <-ctx.Done():
 		default:
-			// Get the Database configuration
-			dbConfg := GetDbConfig()
-			dbStr := "host=" + dbConfg.Host + " port=" + dbConfg.Port + " user=" + dbConfg.User
-			if dbConfg.Pwd != "" {
-				dbStr = dbStr + " password=" + dbConfg.Pwd
+			dbStr := "host=" + config.Host + " port=" + config.Port + " user=" + config.User
+			if config.Pwd != "" {
+				dbStr = dbStr + " password=" + config.Pwd
 			}
 
-			dbStr = dbStr + " dbname=" + dbConfg.Name
-			if dbConfg.Ssl {
+			dbStr = dbStr + " dbname=" + config.Name
+			if config.Ssl {
 				dbStr = dbStr + " sslmode=enable"
 			} else {
 				dbStr = dbStr + " sslmode=disable"
@@ -138,4 +145,31 @@ func ConnectToDb(ctx context.Context) chan *sql.DB {
 		}
 	}()
 	return ch
+}
+
+// GetTenantDB returns a database connection to the tenant being accessed, if the connection has been established
+// then it's returned from a local cache, else it's created, cached and returned.
+func (s *Singleton) GetTenantDB(tenantName string) *sql.DB {
+	// Right now all tenants share a single connection
+	tenantName = "tenants"
+	// if we find the connection in the cache, return it
+	if db, ok := s.tenantsCnx[tenantName]; ok {
+		//do something here
+		return db
+	}
+	// if we reach this point, there was no connection in cache, connect and return the connection
+	ctx := context.Background()
+	// Get the tenant DB configuration
+	config := GetTenantDBConfig(tenantName)
+	tenantDbCnx := <-ConnectToDb(ctx, config)
+	s.tenantsCnx[tenantName] = tenantDbCnx
+	return s.tenantsCnx[tenantName]
+}
+
+func GetTenantDBConfig(tenantName string) *DbConfig {
+	// right now all tenants live on the same server as m3, but on a different DB
+	config := GetM3DbConfig()
+	config.Name = "tenants"
+	config.SchemaName = tenantName
+	return config
 }
