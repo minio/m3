@@ -43,15 +43,11 @@ var tenantMbCmd = cli.Command{
 	},
 }
 
-// Command to add a new tenant, it has a mandatory parameter for the tenant name and an optional parameter for
-// the short name, if the short name cannot be inferred from the name (in case of unicode) the command will fail.
+// Command to make a bucket on a tenant, it will need the tenant shortname and the desired bucketname.
 // sample usage:
-//     m3 tenant add tenant-1
-//     m3 tenant add --name tenant-1
-//     m3 tenant add tenant-1 --short_name tenant1
-//     m3 tenant add --name tenant-1 --short_name tenant1
+//     m3 tenant mb tenant-1 bucket-name
+//     m3 tenant mb --tenant tenant-1 --bucket_name bucket-name
 func tenantMb(ctx *cli.Context) error {
-	fmt.Println("hello")
 	tenantShortName := ctx.String("tenant")
 	bucketName := ctx.String("bucket_name")
 	if tenantShortName == "" && ctx.Args().Get(0) != "" {
