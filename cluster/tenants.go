@@ -25,6 +25,7 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	pq "github.com/lib/pq"
+	"github.com/minio/minio-go/v6"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -306,6 +307,63 @@ func AddUser(tenantShortName string, userEmail string, userPassword string) erro
 	}
 
 	// if no error happened to this point commit transaction
+	err = tx.Commit()
+	if err != nil {
+		return nil
+	}
+	return nil
+}
+
+// MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
+// TODO: allow to spcify the user performing the action (like in the API/gRPC case)
+func MakeBucket(tenantShortName string, bucketName string) error {
+	// validate bucket name
+	if bucketName != "" {
+		var re = regexp.MustCompile(`^[a-z0-9-]{3,}$`)
+		if !re.MatchString(bucketName) {
+			return errors.New("a valid bucket name is needed")
+		}
+	}
+	// Get Database connection and app Context
+	db := GetInstance().Db
+	bgCtx := context.Background()
+	tx, err := db.BeginTx(bgCtx, nil)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	ctx := NewContext(bgCtx, tx)
+	// Get in which SG is the tenant located
+	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortName)
+
+	// Get the credentials for a tenant
+	tenantConf, err := GetTenantConfig(sgt.Tenant.ShortName)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Build tenant address
+	tenantAddress := fmt.Sprintf("%s:%d", sgt.ServiceName, sgt.Port)
+	// Initialize minio client object.
+	minioClient, err := minio.New(tenantAddress,
+		tenantConf.AccessKey,
+		tenantConf.SecretKey,
+		false)
+
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Create Buket
+	err = minioClient.MakeBucket(bucketName, "us-east-1")
+
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
 	err = tx.Commit()
 	if err != nil {
 		return nil

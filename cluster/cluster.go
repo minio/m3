@@ -213,8 +213,8 @@ func CreateTenantSecrets(tenant *Tenant, tenantConfig *TenantConfiguration) erro
 			},
 		},
 		Data: map[string][]byte{
-			"MINIO_ACCESS_KEY": []byte(tenantConfig.AccessKey),
-			"MINIO_SECRET_KEY": []byte(tenantConfig.SecretKey),
+			minioAccessKey: []byte(tenantConfig.AccessKey),
+			minioSecretKey: []byte(tenantConfig.SecretKey),
 		},
 	}
 	res, err := clientset.CoreV1().Secrets("default").Create(&secret)
