@@ -30,6 +30,7 @@ import (
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	extensionsv1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	"k8s.io/client-go/rest"
 	//
 	// Uncomment to load all auth plugins
@@ -60,11 +61,20 @@ func getConfig() *rest.Config {
 	return config
 }
 
-func ListPods() {
+// k8sClient returns kubernetes client using getConfig for its config
+func k8sClient() (*kubernetes.Clientset, error) {
+	return kubernetes.NewForConfig(getConfig())
+}
 
-	config := getConfig()
+// extv1beta1API encapsulates the v1beta1 kubernetes interface to ensure all
+// deployment related APIs are of the same version
+func extV1beta1API(client *kubernetes.Clientset) extensionsv1beta1.ExtensionsV1beta1Interface {
+	return client.ExtensionsV1beta1()
+}
+
+func ListPods() {
 	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := k8sClient()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -83,9 +93,7 @@ func ListPods() {
 
 //Creates a headless service that will point to a specific node inside a storage group
 func CreateSGHostService(sg *StorageGroup, hostNum string) error {
-	config := getConfig()
-	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := k8sClient()
 	if err != nil {
 		return err
 	}
@@ -181,11 +189,16 @@ func CreateSGHostService(sg *StorageGroup, hostNum string) error {
 	return nil
 }
 
+// Holds the configuration for a Tenant
+type TenantConfiguration struct {
+	AccessKey string
+	SecretKey string
+}
+
 // CreateTenantSecrets creates the "secrets" of a tenant.
-func CreateTenantSecrets(tenant *Tenant) error {
-	config := getConfig()
+func CreateTenantSecrets(tenant *Tenant, tenantConfig *TenantConfiguration) error {
 	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := k8sClient()
 	if err != nil {
 		return err
 	}
@@ -200,8 +213,8 @@ func CreateTenantSecrets(tenant *Tenant) error {
 			},
 		},
 		Data: map[string][]byte{
-			"MINIO_ACCESS_KEY": []byte("minio"),
-			"MINIO_SECRET_KEY": []byte("minio123"),
+			"MINIO_ACCESS_KEY": []byte(tenantConfig.AccessKey),
+			"MINIO_SECRET_KEY": []byte(tenantConfig.SecretKey),
 		},
 	}
 	res, err := clientset.CoreV1().Secrets("default").Create(&secret)
@@ -216,9 +229,8 @@ func CreateTenantSecrets(tenant *Tenant) error {
 
 //Creates a service that will resolve to any of the hosts within the storage group this tenant lives in
 func CreateTenantServiceInStorageGroup(sgt *StorageGroupTenant) {
-	config := getConfig()
 	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := k8sClient()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -291,9 +303,8 @@ const (
 //Creates a service that will resolve to any of the hosts within the storage group this tenant lives in
 // This will create a deployment for the provided `StorageGroup` using the provided list of `StorageGroupTenant`
 func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup, hostNum string) error {
-	config := getConfig()
 	// creates the clientset to interact with kubernetes
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := k8sClient()
 	if err != nil {
 		return err
 	}
@@ -388,7 +399,7 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 		},
 	}
 
-	res, err := clientset.ExtensionsV1beta1().Deployments("default").Create(&deployment)
+	res, err := extV1beta1API(clientset).Deployments("default").Create(&deployment)
 	if err != nil {
 		return err
 	}
@@ -445,9 +456,8 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 	go func() {
 		defer close(ch)
 		tenantRoutes := <-GetAllTenantRoutes(ctx)
-		config := getConfig()
 		// creates the clientset
-		clientset, err := kubernetes.NewForConfig(config)
+		clientset, err := k8sClient()
 		if err != nil {
 			ch <- err
 			return
@@ -513,9 +523,7 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sg *StorageGroup, hostNumbe
 	go func() {
 		defer close(ch)
 		// create the tenant folder on each node via job
-		config := getConfig()
-		// creates the clientset
-		clientset, err := kubernetes.NewForConfig(config)
+		clientset, err := k8sClient()
 		if err != nil {
 			ch <- err
 			return
@@ -619,9 +627,8 @@ func ReDeployStorageGroup(ctx *Context, sg *StorageGroup) chan error {
 		defer close(ch)
 		tenants := <-GetListOfTenantsForStorageGroup(ctx, sg)
 
-		config := getConfig()
 		// creates the clientset
-		clientset, err := kubernetes.NewForConfig(config)
+		clientset, err := k8sClient()
 		if err != nil {
 			ch <- err
 			return
@@ -631,14 +638,14 @@ func ReDeployStorageGroup(ctx *Context, sg *StorageGroup) chan error {
 			sgHostName := fmt.Sprintf("sg-%d-host-%d", sg.Num, i)
 			// TODO: Upgrade this logic so we don't delete the current deployment
 			// does the deployment exist?
-			res, err := clientset.AppsV1().Deployments("default").Get(sgHostName, metav1.GetOptions{})
+			res, err := extV1beta1API(clientset).Deployments("default").Get(sgHostName, metav1.GetOptions{})
 			if err != nil && (res == nil || res.Name != "") {
 				ch <- err
 				return
 			}
 			// if the deployment exist, delete FOR NOW
 			if res.Name != "" {
-				err = clientset.AppsV1().Deployments("default").Delete(sgHostName, nil)
+				err = extV1beta1API(clientset).Deployments("default").Delete(sgHostName, nil)
 				if err != nil {
 					ch <- err
 					return
@@ -672,19 +679,17 @@ func ReDeployNginxResolver(ctx *Context) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
-
-		config := getConfig()
 		// creates the clientset
-		clientset, _ := kubernetes.NewForConfig(config)
+		clientset, _ := k8sClient()
 		// does the deployment exist?
-		res, err := clientset.AppsV1().Deployments("default").Get("nginx-resolver", metav1.GetOptions{})
+		res, err := extV1beta1API(clientset).Deployments("default").Get("nginx-resolver", metav1.GetOptions{})
 		if err != nil && (res == nil || res.Name != "") {
 			ch <- err
 			return
 		}
 		// if the deployment exist, delete FOR NOW
 		if res.Name != "" {
-			err = clientset.AppsV1().Deployments("default").Delete("nginx-resolver", nil)
+			err = extV1beta1API(clientset).Deployments("default").Delete("nginx-resolver", nil)
 			if err != nil {
 				ch <- err
 				return
@@ -697,9 +702,8 @@ func ReDeployNginxResolver(ctx *Context) chan error {
 
 // DeployNginxResolver create a new nginx-resolver deployment
 func DeployNginxResolver() {
-	config := getConfig()
 	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := k8sClient()
 
 	var replicas int32 = 1
 
@@ -755,7 +759,7 @@ func DeployNginxResolver() {
 		},
 	}
 
-	resDeployment, err := clientset.ExtensionsV1beta1().Deployments("default").Create(&deployment)
+	resDeployment, err := extV1beta1API(clientset).Deployments("default").Create(&deployment)
 	if err != nil {
 		panic(err.Error())
 	}

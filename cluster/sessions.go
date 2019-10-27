@@ -19,8 +19,6 @@ package cluster
 import (
 	"context"
 	"database/sql"
-	"fmt"
-
 	"log"
 	"os"
 	"sync"
@@ -30,7 +28,8 @@ import (
 )
 
 type Singleton struct {
-	Db *sql.DB
+	Db         *sql.DB
+	tenantsCnx map[string]*sql.DB
 }
 
 var instance *Singleton
@@ -41,60 +40,98 @@ func GetInstance() *Singleton {
 	once.Do(func() {
 		// Wait for the DB connection
 		ctx := context.Background()
-		db := <-ConnectToDb(ctx)
+
+		// Get the m3 Database configuration
+		config := GetM3DbConfig()
+		db := <-ConnectToDb(ctx, config)
+
+		//build connections cache
+		cnxCache := make(map[string]*sql.DB)
 
 		instance = &Singleton{
-			Db: db,
+			Db:         db,
+			tenantsCnx: cnxCache,
 		}
 	})
 	return instance
 }
 
-func ConnectToDb(ctx context.Context) chan *sql.DB {
+// DbConfig holds the configuration to connect to a database
+type DbConfig struct {
+	// Hostname
+	Host string
+	// Port
+	Port string
+	// User
+	User string
+	// Password
+	Pwd string
+	// Database Name
+	Name string
+	// Whether SSL is enabled on the connection or not
+	Ssl bool
+	// Schema name
+	SchemaName string
+}
+
+// GetM3DbConfig returns a `DbConfig` object with the values for the database by either reading them from the environment or
+// defaulting them to a known value.
+func GetM3DbConfig() *DbConfig {
+	dbHost := "localhost"
+	if os.Getenv("DB_HOSTNAME") != "" {
+		dbHost = os.Getenv("DB_HOSTNAME")
+	}
+
+	dbPort := "5432"
+	if os.Getenv("DB_PORT") != "" {
+		dbPort = os.Getenv("DB_PORT")
+	}
+
+	dbUser := "postgres"
+	if os.Getenv("DB_USER") != "" {
+		dbUser = os.Getenv("DB_USER")
+	}
+
+	dbPass := "m3meansmkube"
+	if os.Getenv("DB_PASSWORD") != "" {
+		dbPass = os.Getenv("DB_PASSWORD")
+	}
+	dbSsl := false
+	if os.Getenv("DB_SSL") != "" {
+		if os.Getenv("DB_SSL") == "true" {
+			dbSsl = true
+		}
+	}
+
+	dbName := "m3"
+	if os.Getenv("DB_NAME") != "" {
+		dbName = os.Getenv("DB_NAME")
+	}
+	return &DbConfig{
+		Host: dbHost,
+		Port: dbPort,
+		User: dbUser,
+		Pwd:  dbPass,
+		Name: dbName,
+		Ssl:  dbSsl,
+	}
+}
+
+// Creates a connection to the DB and returns it
+func ConnectToDb(ctx context.Context, config *DbConfig) chan *sql.DB {
 	ch := make(chan *sql.DB)
 	go func() {
 		defer close(ch)
 		select {
 		case <-ctx.Done():
 		default:
-			dbHost := "localhost"
-			if os.Getenv("DB_HOSTNAME") != "" {
-				dbHost = os.Getenv("DB_HOSTNAME")
-				fmt.Println("USER DB HOST", dbHost)
+			dbStr := "host=" + config.Host + " port=" + config.Port + " user=" + config.User
+			if config.Pwd != "" {
+				dbStr = dbStr + " password=" + config.Pwd
 			}
 
-			dbPort := "5432"
-			if os.Getenv("DB_PORT") != "" {
-				dbPort = os.Getenv("DB_PORT")
-			}
-
-			dbUser := "postgres"
-			if os.Getenv("DB_USER") != "" {
-				dbUser = os.Getenv("DB_USER")
-			}
-
-			dbPass := "m3meansmkube"
-			if os.Getenv("DB_PASSWORD") != "" {
-				dbPass = os.Getenv("DB_PASSWORD")
-			}
-			dbSsl := false
-			if os.Getenv("DB_SSL") != "" {
-				if os.Getenv("DB_SSL") == "true" {
-					dbSsl = true
-				}
-			}
-
-			dbName := "m3"
-			if os.Getenv("DB_NAME") != "" {
-				dbName = os.Getenv("DB_NAME")
-			}
-			dbStr := "host=" + dbHost + " port=" + dbPort + " user=" + dbUser
-			if dbPass != "" {
-				dbStr = dbStr + " password=" + dbPass
-			}
-
-			dbStr = dbStr + " dbname=" + dbName
-			if dbSsl {
+			dbStr = dbStr + " dbname=" + config.Name
+			if config.Ssl {
 				dbStr = dbStr + " sslmode=enable"
 			} else {
 				dbStr = dbStr + " sslmode=disable"
@@ -108,4 +145,31 @@ func ConnectToDb(ctx context.Context) chan *sql.DB {
 		}
 	}()
 	return ch
+}
+
+// GetTenantDB returns a database connection to the tenant being accessed, if the connection has been established
+// then it's returned from a local cache, else it's created, cached and returned.
+func (s *Singleton) GetTenantDB(tenantName string) *sql.DB {
+	// Right now all tenants share a single connection
+	tenantName = "tenants"
+	// if we find the connection in the cache, return it
+	if db, ok := s.tenantsCnx[tenantName]; ok {
+		//do something here
+		return db
+	}
+	// if we reach this point, there was no connection in cache, connect and return the connection
+	ctx := context.Background()
+	// Get the tenant DB configuration
+	config := GetTenantDBConfig(tenantName)
+	tenantDbCnx := <-ConnectToDb(ctx, config)
+	s.tenantsCnx[tenantName] = tenantDbCnx
+	return s.tenantsCnx[tenantName]
+}
+
+func GetTenantDBConfig(tenantName string) *DbConfig {
+	// right now all tenants live on the same server as m3, but on a different DB
+	config := GetM3DbConfig()
+	config.Name = "tenants"
+	config.SchemaName = tenantName
+	return config
 }

@@ -30,7 +30,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -51,11 +50,10 @@ func SetupM3() {
 	RunMigrations()
 }
 
-// setupM3Namespace ...
+// setupM3Namespace Setups the namespace used by the provisioning service
 func setupM3Namespace() {
-	config := getConfig()
 	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := k8sClient()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -105,7 +103,7 @@ func SetupM3Secrets() {
 func setupPostgres() {
 	config := getConfig()
 	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := k8sClient()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -199,7 +197,7 @@ func setupPostgres() {
 		},
 	}
 
-	resDeployment, err := clientset.ExtensionsV1beta1().Deployments(m3SystemNamespace).Create(&deployment)
+	resDeployment, err := extV1beta1API(clientset).Deployments(m3SystemNamespace).Create(&deployment)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -210,9 +208,8 @@ func setupPostgres() {
 
 // SetupNginxLoadBalancer setups the loadbalancer/reverse proxy used to resolve the tenants subdomains
 func SetupNginxLoadBalancer() {
-	config := getConfig()
 	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := k8sClient()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -275,9 +272,23 @@ events {
 // This runs all the migrations on the cluster/migrations folder, if some migrations were already applied it then will
 // apply the missing migrations.
 func RunMigrations() {
+	// Get the Database configuration
+	dbConfg := GetM3DbConfig()
+	// Build the database URL connection
+	sslMode := "disable"
+	if dbConfg.Ssl {
+		sslMode = "enable"
+	}
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		dbConfg.User,
+		dbConfg.Pwd,
+		dbConfg.Host,
+		dbConfg.Port,
+		dbConfg.Name,
+		sslMode)
 	m, err := migrate.New(
 		"file://cluster/migrations",
-		"postgres://postgres:m3meansmkube@localhost:5432/m3?sslmode=disable")
+		databaseURL)
 	if err != nil {
 		log.Println("error connecting to database or reading migrations")
 		log.Fatal(err)
@@ -286,4 +297,20 @@ func RunMigrations() {
 		log.Println("Error migrating up")
 		log.Fatal(err)
 	}
+}
+
+// CreateTenantSchema creates a db schema for the tenant
+func CreateTenantsSharedDatabase() error {
+
+	// get the DB connection for the tenant
+	db := GetInstance().Db
+
+	// format in the tenant name assuming it's safe
+	query := fmt.Sprintf(`CREATE DATABASE tenants`)
+
+	_, err := db.Exec(query)
+	if err != nil {
+		return err
+	}
+	return nil
 }
