@@ -19,6 +19,7 @@ package portal
 import (
 	"context"
 	"log"
+	"time"
 
 	pb "github.com/minio/m3/portal/stubs"
 	"github.com/minio/minio-go/v6"
@@ -26,14 +27,17 @@ import (
 
 // ListBuckets implements PublicAPIServer
 func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*pb.ListBucketsResponse, error) {
-	log.Printf("Calling ListBuckets")
+	log.Printf("Calling ListBuckests")
+	time.Sleep(10 * time.Second)
+
 	var bucketLists pb.ListBucketsResponse
 	ssl := true
 
-	// Validate request token
-	// _, err := ValidateWebToken(w, r)
+	// // Validate request token
+	// fmt.Println("Validating token...")
+	// _, err := ValidateGRPCToken(ctx)
 	// if err != nil {
-	// 	return
+	// 	return &bucketLists, err
 	// }
 
 	// DEMO
@@ -60,6 +64,6 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 			},
 		)
 	}
-
+	log.Printf("Done calling ListBuckests.")
 	return &bucketLists, nil
 }

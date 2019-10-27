@@ -22,16 +22,13 @@ import (
 )
 
 // list files and folders.
-var setupCmd = cli.Command{
-	Name:   "setup",
-	Usage:  "Setups the m3 cluster",
-	Action: setupDefCmd,
-	Subcommands: []cli.Command{
-		setupDbCmd, setupK8sSecretsCmd,
-	},
+var setupK8sSecretsCmd = cli.Command{
+	Name:   "secrets",
+	Usage:  "Sets the Kubernetes Deployment secrets",
+	Action: setupK8sSecrets,
 }
 
-func setupDefCmd(ctx *cli.Context) error {
-	cluster.SetupM3()
+func setupK8sSecrets(ctx *cli.Context) error {
+	cluster.SetupM3Secrets()
 	return nil
 }

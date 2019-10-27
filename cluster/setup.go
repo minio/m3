@@ -42,7 +42,7 @@ func SetupM3() {
 	fmt.Println("Setting up m3 namespace")
 	setupM3Namespace()
 	fmt.Println("Setting up m3 secrets")
-	setupM3Secrets()
+	SetupM3Secrets()
 	fmt.Println("setting up nginx")
 	SetupNginxLoadBalancer()
 	fmt.Println("Setting up postgres")
@@ -72,8 +72,8 @@ func setupM3Namespace() {
 	}
 }
 
-// setupM3Secrets creates a kubernetes secrets
-func setupM3Secrets() {
+// SetupM3Secrets creates a kubernetes secrets
+func SetupM3Secrets() {
 	config := getConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
