@@ -21,9 +21,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	jwtgo "github.com/dgrijalva/jwt-go"
+	pq "github.com/lib/pq"
+	cluster "github.com/minio/m3/cluster"
+	common "github.com/minio/m3/common"
 	pb "github.com/minio/m3/portal/stubs"
+	uuid "github.com/satori/go.uuid"
 	metadata "google.golang.org/grpc/metadata"
 )
 
@@ -40,6 +45,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 	pwd := in.GetPassword()
 
 	// Password validation
+	fmt.Println("Getting User from db...")
 	user, ok := getUser(tenant, email)
 	// If a password exists for the given user
 	// AND, if it is the same as the password we received, then we can move ahead
@@ -52,14 +58,38 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 		return &res, err
 	}
 
+	// Add the session within a transaction in case anything goes wrong during the adding process
+	db := cluster.GetInstance().Db
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return &res, err
+	}
+	loginCtx := cluster.NewContext(ctx, tx)
+
+	sessionID := common.GetRandString(32, "sha256")
+	userID := uuid.NewV4()
+
+	// insert a new session with random string as id
+	query :=
+		`INSERT INTO
+				m3.provisioning.sessions ("id","user_id", "occurred_at")
+			  VALUES
+				($1,$2,$3)`
+
+	_, err = loginCtx.Tx.Exec(query, sessionID, userID, time.Now())
+	if err != nil {
+		return &res, err
+	}
+	fmt.Println("sessionID: ", sessionID)
+
+	// Get JWT token
 	// Declare the token with signing method and the claims
 	token := jwtgo.NewWithClaims(jwtgo.SigningMethodHS512, jwtgo.StandardClaims{
 		// Declare the expiration time of the token
 		ExpiresAt: UTCNow().Add(defaultJWTExpTime).Unix(),
-		Subject:   user.UUID,
+		Subject:   sessionID,
 	})
-	// TODO: change this to create a session for the users
-	// Create the JWT string
+	// Create the JWT string  and sign it
 	jwtKey, err := getJWTSecretKey()
 	if err != nil {
 		fmt.Println(err)
@@ -131,4 +161,59 @@ func webTokenCallback(jwtToken *jwtgo.Token) (interface{}, error) {
 	}
 
 	return nil, errAuthentication
+}
+
+// getUser returns the user struct
+func getUser(tenant string, email string) (user User, ok bool) {
+	// TODO: validate password (GetUser user.key, user.uuid)
+	bgCtx := context.Background()
+	db := cluster.GetInstance().GetTenantDB(tenant)
+	tx, err := db.BeginTx(bgCtx, nil)
+	if err != nil {
+		panic(err)
+		return user, false
+	}
+	loginCtx := cluster.NewContext(bgCtx, tx)
+
+	// Block --- add mock user // TODO: create it through cli
+	quoted := pq.QuoteIdentifier(tenant)
+	userID := uuid.NewV4()
+	query := fmt.Sprintf(`
+		INSERT INTO
+				tenants.%s.users ("id","email","password")
+			  VALUES
+				($1,$2,$3)`, quoted)
+	stmt, err := loginCtx.Tx.Prepare(query)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer stmt.Close()
+	_, err = loginCtx.Tx.Exec(query, userID, "cesnietor@acme.com", "cesnietor_hashed")
+	if err != nil {
+		panic(err)
+		return user, false
+	}
+	// Block ---
+
+	// Get user from tenants database
+	quoted := pq.QuoteIdentifier(tenant)
+	queryUser := fmt.Sprintf(`
+		SELECT 
+				t1.id, t1.email, t1.password
+			FROM 
+				tenants.%s.users t1
+			WHERE email=$1`, quoted)
+
+	row := loginCtx.Tx.QueryRow(queryUser, email)
+	var userEmail string
+	err = row.Scan(&user.UUID, &userEmail, &user.Password)
+	if err != nil {
+		panic(err)
+		return user, false
+	}
+
+	fmt.Println("email gotten: ", userEmail)
+	// if no error happened to this point
+	err = loginCtx.Tx.Commit()
+	return user, true
 }

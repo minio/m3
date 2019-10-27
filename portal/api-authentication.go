@@ -39,21 +39,6 @@ var (
 	errAuthentication = errors.New("Authentication failed, check your access credentials")
 )
 
-// temporary user db for testing
-// {"userid":"hashedpassword",...}
-var users = map[string]map[string]map[string]string{
-	"acme": {
-		"cesnietor@acme.com": {
-			"password": "cesnietor_hashed",
-			"uuid":     "123e4567-e89b-12d3-a456-426655440000",
-		},
-		"daniel@acme.com": {
-			"password": "daniel_hashed",
-			"uuid":     "00112233-4455-6677-8899-aabbccddeeff",
-		},
-	},
-}
-
 // Credentials requested on the portal to log in
 type Credentials struct {
 	Tenant   string `json:"tenant"`
@@ -164,18 +149,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	w.Write(output)
 }
 
-// getUser returns the user struct
-func getUser(tenant string, username string) (user User, ok bool) {
-	// TODO: get user from db and validate password (GetUser user.key, user.uuid)
-	dbUser, ok := users[tenant][username]
-	if !ok {
-		return user, ok
-	}
-	user.Password = dbUser["password"]
-	user.UUID = dbUser["uuid"]
-	return user, ok
-}
-
 // ValidateWebToken extracts the token from the header of the request and validates it
 func ValidateWebToken(w http.ResponseWriter, r *http.Request) (bool, error) {
 	// Get the JWT string from Header
@@ -214,26 +187,4 @@ func ValidateWebToken(w http.ResponseWriter, r *http.Request) (bool, error) {
 		return false, err
 	}
 	return true, nil
-}
-
-func webTokenCallback(jwtToken *jwtgo.Token) (interface{}, error) {
-	if _, ok := jwtToken.Method.(*jwtgo.SigningMethodHMAC); !ok {
-		return nil, fmt.Errorf("Unexpected signing method: %v", jwtToken.Header["alg"])
-	}
-
-	if err := jwtToken.Claims.Valid(); err != nil {
-		return nil, errAuthentication
-	}
-
-	jwtKey, err := getJWTSecretKey()
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-
-	if _, ok := jwtToken.Claims.(*jwtgo.StandardClaims); ok {
-		return jwtKey, nil
-	}
-
-	return nil, errAuthentication
 }

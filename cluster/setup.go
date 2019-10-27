@@ -21,7 +21,7 @@ import (
 	"log"
 
 	"github.com/golang-migrate/migrate/v4"
-	portal "github.com/minio/m3/portal"
+	common "github.com/minio/m3/common"
 
 	// the postgres driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -30,6 +30,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -85,7 +86,7 @@ func SetupM3Secrets() {
 			Name: "jwtkey",
 		},
 		Data: map[string][]byte{
-			"M3_JWT_KEY": []byte(portal.GetRandString(64)),
+			"M3_JWT_KEY": []byte(common.GetRandString(64, "default")),
 		},
 	}
 	res, err := clientset.CoreV1().Secrets("default").Create(&secret)
@@ -101,7 +102,6 @@ func SetupM3Secrets() {
 
 // setupPostgres sets up a postgres used by the provisioning service
 func setupPostgres() {
-	config := getConfig()
 	// creates the clientset
 	clientset, err := k8sClient()
 	if err != nil {
