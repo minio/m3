@@ -101,17 +101,3 @@ create table provisioning.disks
 );
 
 comment on column provisioning.disks.capacity is 'Capacity in bytes';
-
---  Table to store sessions of a <tenant>.user
-
-create table provisioning.sessions
-(
-    id          varchar(256) not null
-        constraint sessions_pk
-            primary key,
-    user_id     uuid not null,
-    occurred_at timestamp with time zone default now() not null,
-    last_event  timestamp with time zone default now()
-);
-
-

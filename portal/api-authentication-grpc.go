@@ -88,7 +88,7 @@ func getJWTSecretKey() ([]byte, error) {
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		fmt.Println(err)
-		panic(err.Error())
+		return []byte{}, err
 	}
 	res, err := clientset.CoreV1().Secrets("default").Get("jwtkey", metav1.GetOptions{})
 	return []byte(string(res.Data["M3_JWT_KEY"])), err
@@ -147,30 +147,8 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 	}
 	fmt.Println("sessionID: ", sessionID)
 
-	// Get JWT token
-	// Declare the token with signing method and the claims
-	token := jwtgo.NewWithClaims(jwtgo.SigningMethodHS512, jwtgo.StandardClaims{
-		// Declare the expiration time of the token
-		ExpiresAt: UTCNow().Add(defaultJWTExpTime).Unix(),
-		Subject:   sessionID,
-	})
-	// Create the JWT string  and sign it
-	jwtKey, err := getJWTSecretKey()
-	if err != nil {
-		tx.Rollback()
-		res.Error = err.Error()
-		return &res, err
-	}
-	tokenString, err := token.SignedString(jwtKey)
-	if err != nil {
-		// If there is an error in creating the JWT return an internal server error
-		fmt.Println(err)
-		res.Error = err.Error()
-		return &res, err
-	}
-
-	// Return Token in Response
-	res.JwtToken = tokenString
+	// Return session in Token Response
+	res.JwtToken = sessionID
 
 	// if no error happened to this point commit transaction
 	err = tx.Commit()
