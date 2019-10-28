@@ -33,13 +33,6 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 	var bucketLists pb.ListBucketsResponse
 	ssl := true
 
-	// // Validate request token
-	// fmt.Println("Validating token...")
-	// _, err := ValidateGRPCToken(ctx)
-	// if err != nil {
-	// 	return &bucketLists, err
-	// }
-
 	// DEMO
 	// Initialize minio client object.
 	minioClient, err := minio.New("play.min.io",
