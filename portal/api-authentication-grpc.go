@@ -32,28 +32,25 @@ import (
 	metadata "google.golang.org/grpc/metadata"
 )
 
-// Login Handles the Login request by receiving the user credentials
+// Login handles the Login request by receiving the user credentials
 // and returning a hashed token.
 func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginResponse, error) {
 	log.Printf("Calling Login")
 	// Create Credentials
 	// TODO: validate credentials: username->email, tenant->shortname?
 	var res pb.LoginResponse
-
 	tenant := in.GetCompany()
 	email := in.GetEmail()
 	pwd := in.GetPassword()
 
 	// Password validation
-	fmt.Println("Getting User from db...")
 	user, ok := getUser(tenant, email)
 	// If a password exists for the given user
 	// AND, if it is the same as the password we received, then we can move ahead
-	// if NOT, then we return an "Unauthorized" status
 	expectedPwd := user.Password
 	// TODO: password will come not hashed and stored hashed so we need to hash it and compare it against db
 	if !ok || expectedPwd != pwd {
-		err := errors.New("wrong password")
+		err := errors.New("Wrong tenant, email or password")
 		res.Error = err.Error()
 		return &res, err
 	}
@@ -62,22 +59,28 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 	db := cluster.GetInstance().Db
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
+		tx.Rollback()
+		res.Error = err.Error()
 		return &res, err
 	}
-	loginCtx := cluster.NewContext(ctx, tx)
 
+	// Set query parameters
+	loginCtx := cluster.NewContext(ctx, tx)
+	// Insert a new session with random string as id
 	sessionID := common.GetRandString(32, "sha256")
 	userID := uuid.NewV4()
 
-	// insert a new session with random string as id
 	query :=
 		`INSERT INTO
 				m3.provisioning.sessions ("id","user_id", "occurred_at")
 			  VALUES
 				($1,$2,$3)`
 
+	// Execute Query
 	_, err = loginCtx.Tx.Exec(query, sessionID, userID, time.Now())
 	if err != nil {
+		tx.Rollback()
+		res.Error = err.Error()
 		return &res, err
 	}
 	fmt.Println("sessionID: ", sessionID)
@@ -92,7 +95,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 	// Create the JWT string  and sign it
 	jwtKey, err := getJWTSecretKey()
 	if err != nil {
-		fmt.Println(err)
+		tx.Rollback()
 		res.Error = err.Error()
 		return &res, err
 	}
@@ -106,6 +109,13 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 
 	// Return Token in Response
 	res.JwtToken = tokenString
+
+	// if no error happened to this point commit transaction
+	err = tx.Commit()
+	if err != nil {
+		res.Error = err.Error()
+		return &res, err
+	}
 	return &res, nil
 }
 
@@ -163,39 +173,23 @@ func webTokenCallback(jwtToken *jwtgo.Token) (interface{}, error) {
 	return nil, errAuthentication
 }
 
-// getUser returns the user struct
+// getUser searchs for the user in the defined tenant's database
+// and returns the User if it was found
 func getUser(tenant string, email string) (user User, ok bool) {
-	// TODO: validate password (GetUser user.key, user.uuid)
+
 	bgCtx := context.Background()
 	db := cluster.GetInstance().GetTenantDB(tenant)
+
 	tx, err := db.BeginTx(bgCtx, nil)
 	if err != nil {
+		tx.Rollback()
 		panic(err)
 		return user, false
 	}
 	loginCtx := cluster.NewContext(bgCtx, tx)
 
-	// Block --- add mock user // TODO: create it through cli
-	quoted := pq.QuoteIdentifier(tenant)
-	userID := uuid.NewV4()
-	query := fmt.Sprintf(`
-		INSERT INTO
-				tenants.%s.users ("id","email","password")
-			  VALUES
-				($1,$2,$3)`, quoted)
-	stmt, err := loginCtx.Tx.Prepare(query)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer stmt.Close()
-	_, err = loginCtx.Tx.Exec(query, userID, "cesnietor@acme.com", "cesnietor_hashed")
-	if err != nil {
-		panic(err)
-		return user, false
-	}
-	// Block ---
-
 	// Get user from tenants database
+	var userEmail string
 	quoted := pq.QuoteIdentifier(tenant)
 	queryUser := fmt.Sprintf(`
 		SELECT 
@@ -203,17 +197,19 @@ func getUser(tenant string, email string) (user User, ok bool) {
 			FROM 
 				tenants.%s.users t1
 			WHERE email=$1`, quoted)
-
 	row := loginCtx.Tx.QueryRow(queryUser, email)
-	var userEmail string
+
+	// Save the resulted query on the User struct
 	err = row.Scan(&user.UUID, &userEmail, &user.Password)
 	if err != nil {
-		panic(err)
+		tx.Rollback()
 		return user, false
 	}
 
-	fmt.Println("email gotten: ", userEmail)
-	// if no error happened to this point
+	// if no error happened to this point commit transaction
 	err = loginCtx.Tx.Commit()
+	if err != nil {
+		return user, false
+	}
 	return user, true
 }

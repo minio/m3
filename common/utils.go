@@ -33,13 +33,11 @@ func GetRandString(size int, method string) string {
 		fmt.Println(err)
 	}
 
-	rs := base64.URLEncoding.EncodeToString(rb)
-	fmt.Println(rs)
+	randStr := base64.URLEncoding.EncodeToString(rb)
 	if method == "sha256" {
 		h := sha256.New()
-		h.Write([]byte("rs"))
-		rs = fmt.Sprintf("%x", h.Sum(nil))
+		h.Write([]byte(randStr))
+		randStr = fmt.Sprintf("%x", h.Sum(nil))
 	}
-	fmt.Println(rs)
-	return rs
+	return randStr
 }

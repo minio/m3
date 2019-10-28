@@ -42,7 +42,7 @@ func main() {
 	// Contact the server and print out its response.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := c.Login(ctx, &pb.LoginRequest{Company: "acme", Email: "cesnietor@acme.com", Password: "cesnietor_hashed"})
+	r, err := c.Login(ctx, &pb.LoginRequest{Company: "acmedot", Email: "hi@acme.com", Password: "password123"})
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
