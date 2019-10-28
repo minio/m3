@@ -29,7 +29,6 @@ var portalCmd = cli.Command{
 }
 
 func startAPIPortalCmd(ctx *cli.Context) error {
-	// portal.StartAPIPortal()
 	portal.InitPortalGRPCServer()
 	return nil
 }

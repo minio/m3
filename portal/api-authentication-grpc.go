@@ -30,7 +30,69 @@ import (
 	pb "github.com/minio/m3/portal/stubs"
 	uuid "github.com/satori/go.uuid"
 	metadata "google.golang.org/grpc/metadata"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
+
+// defaultJWTExpTime is the Portal expiration time for the authentication token.
+// Default is 12 hours
+const defaultJWTExpTime = 12 * time.Hour
+
+var (
+	errAuthentication = errors.New("Authentication failed, check your access credentials")
+)
+
+// Credentials requested on the portal to log in
+type Credentials struct {
+	Tenant   string `json:"tenant"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+// Claims is a struct that will be encoded to a JWT, contains jwtgo.StandardClaims
+// as an embedded type to provide fields like expiry time.
+// Claims should not have secret information
+type Claims struct {
+	jwtgo.StandardClaims
+}
+
+type User struct {
+	Tenant   string
+	IsAdmin  bool
+	Password string
+	UUID     string
+}
+
+type LoginResp struct {
+	Token string `json:"token"`
+}
+
+func getConfig() *rest.Config {
+	//when doing local development, mount k8s api via `kubectl proxy`
+	config := &rest.Config{
+		// TODO: switch to using cluster DNS.
+		Host:            "http://localhost:8001",
+		TLSClientConfig: rest.TLSClientConfig{},
+		BearerToken:     "eyJhbGciOiJSUzI1NiIsImtpZCI6IiJ9.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRhc2hib2FyZC10b2tlbi1mZ2J4NSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJkYXNoYm9hcmQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIyNGE3Mjg1OC00YjE4LTRhZDEtYjM4YS03ZTA2NGM2ODI1ZmEiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6ZGVmYXVsdDpkYXNoYm9hcmQifQ.OTj-gB3OnDA5yDmtRZVF9wxMx-6fT1o3vSmd_lZrCpddTBgSkUb2vnaB8eVDQ_DKN2fHsnWw6JvZoPftJ27gKVZ_dAM_21XwgUJy72_lhI_XLinGcx5TAqObxhLp5-YlCTQPDbVEW56DUs59mvx2KKaYeeS7KE-ORYN4wpH6ecZnhUR7_jhSdJAb9MBp3reUU6Iou2YDfEHtHgrSoF7EpZrQME8zjtTQE0Fkl6YavKA1zjHMg-yKuiFRjLkKcrcXyYa_j4lFXL_ZGEICy94FsjGAPv4iwCqZW9ruTU9EX0B0BbG4xGYEZfgG6B5iqIUdleYzHl86eSpWQMS5H5xguQ",
+		BearerTokenFile: "some/file",
+	}
+
+	return config
+}
+
+// getJWTSecretKey gets jwt secret key from kubernetes secrets
+func getJWTSecretKey() ([]byte, error) {
+	config := getConfig()
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		fmt.Println(err)
+		panic(err.Error())
+	}
+	res, err := clientset.CoreV1().Secrets("default").Get("jwtkey", metav1.GetOptions{})
+	return []byte(string(res.Data["M3_JWT_KEY"])), err
+}
 
 // Login handles the Login request by receiving the user credentials
 // and returning a hashed token.
