@@ -91,6 +91,15 @@ If the company name is not url-friendly a short name will be generated, but it c
   ./m3 tenant add "Commpany® Inc." --short_name company-inc
 ```
 
+## Adding a user to a tenant's database
+```shell
+  ./m3 tenant add-user --tenant company-inc --email user@acme.com --password user1234
+``` 
+or 
+```shell
+  ./m3 tenant company-inc  user@acme.com user1234
+```
+
 ## Accessing the tenant MinIO service via browser UI
 ```shell
   kubectl port-forward svc/nginx-resolver 1337:80
