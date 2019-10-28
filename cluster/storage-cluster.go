@@ -312,6 +312,7 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 		defer close(ch)
 		if tenantShortName == "" {
 			ch <- &StorageGroupTenantResult{Error: errors.New("empty tenant short name")}
+			return
 		}
 		query := `
 			SELECT 
