@@ -235,7 +235,7 @@ func webTokenCallback(jwtToken *jwtgo.Token) (interface{}, error) {
 	return nil, errAuthentication
 }
 
-// getUser searchs for the user in the defined tenant's database
+// getUser searches for the user in the defined tenant's database
 // and returns the User if it was found
 func getUser(tenant string, email string) (user User, ok bool) {
 
@@ -245,7 +245,6 @@ func getUser(tenant string, email string) (user User, ok bool) {
 	tx, err := db.BeginTx(bgCtx, nil)
 	if err != nil {
 		tx.Rollback()
-		panic(err)
 		return user, false
 	}
 	loginCtx := cluster.NewContext(bgCtx, tx)
