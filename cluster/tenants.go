@@ -24,7 +24,7 @@ import (
 	"regexp"
 
 	"github.com/golang-migrate/migrate/v4"
-
+	pq "github.com/lib/pq"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -254,4 +254,61 @@ func MigrateTenantDB(tenantName string) chan error {
 		}
 	}()
 	return ch
+}
+
+// AddUser adds a new user to the tenant's database
+func AddUser(tenantShortName string, userEmail string, userPassword string) error {
+	// validate userEmail
+	if userEmail != "" {
+		// TODO: improve regex
+		var re = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
+		if !re.MatchString(userEmail) {
+			return errors.New("a valid email is needed")
+		}
+	}
+	// validate userPassword
+	if userPassword != "" {
+		// TODO: improve regex or use Go validator
+		var re = regexp.MustCompile(`^[a-zA-Z0-9!@#\$%\^&\*]{8,16}$`)
+		if !re.MatchString(userPassword) {
+			return errors.New("a valid password is needed, minimum 8 characters")
+		}
+	}
+
+	bgCtx := context.Background()
+	db := GetInstance().GetTenantDB(tenantShortName)
+	tx, err := db.BeginTx(bgCtx, nil)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	ctx := NewContext(bgCtx, tx)
+	// Add parameters to query
+	quoted := pq.QuoteIdentifier(tenantShortName)
+	userID := uuid.NewV4()
+	query := fmt.Sprintf(`
+		INSERT INTO
+				tenants.%s.users ("id","email","password")
+			  VALUES
+				($1,$2,$3)`, quoted)
+	stmt, err := ctx.Tx.Prepare(query)
+	if err != nil {
+		tx.Rollback()
+		log.Fatal(err)
+		return err
+	}
+	defer stmt.Close()
+	// Execute query
+	_, err = ctx.Tx.Exec(query, userID, userEmail, userPassword)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// if no error happened to this point commit transaction
+	err = tx.Commit()
+	if err != nil {
+		return nil
+	}
+	return nil
 }
