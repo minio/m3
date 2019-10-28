@@ -66,8 +66,8 @@ func AddTenant(name string, shortName string) error {
 
 	// Generate the Tenant's Access/Secret key and operator
 	tenantConfig := TenantConfiguration{
-		AccessKey: RandomKeyWithLength(16),
-		SecretKey: RandomKeyWithLength(32)}
+		AccessKey: RandomCharString(16),
+		SecretKey: RandomCharString(32)}
 
 	// Create a store for the tenant's configuration
 	err = CreateTenantSecrets(tenantResult.Tenant, &tenantConfig)
