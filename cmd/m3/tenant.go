@@ -27,7 +27,6 @@ var tenantCmd = cli.Command{
 	Action: tenantDefCmd,
 	Subcommands: []cli.Command{
 		addTenantCmd,
-		tenantAddUserCmd,
 	},
 }
 
