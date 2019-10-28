@@ -91,6 +91,15 @@ If the company name is not url-friendly a short name will be generated, but it c
   ./m3 tenant add "Commpany® Inc." --short_name company-inc
 ```
 
+## Making a bucket on a tenant
+```shell
+  ./m3 tenant mb tenant-short-name bucket-name
+```
+or 
+```shell
+  ./m3 tenant mb --tenant_name tenant-short-name --bucket_name bucket-name
+```
+
 ## Adding a user to a tenant's database
 ```shell
   ./m3 tenant add-user --tenant company-inc --email user@acme.com --password user1234
