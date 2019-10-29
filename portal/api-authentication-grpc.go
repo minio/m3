@@ -29,7 +29,6 @@ import (
 	common "github.com/minio/m3/common"
 	pb "github.com/minio/m3/portal/stubs"
 	uuid "github.com/satori/go.uuid"
-	metadata "google.golang.org/grpc/metadata"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -166,60 +165,6 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 		return &res, err
 	}
 	return &res, nil
-}
-
-// ValidateGRPCToken extracts the token from the header of the request and validates it
-func ValidateGRPCToken(ctx context.Context) (bool, error) {
-	// Get the JWT string from context
-	md, ok := metadata.FromIncomingContext(ctx)
-	tknStr := md["token"][0]
-	fmt.Printf("token: %s", tknStr)
-	if !ok {
-		fmt.Println("Error getting Token")
-		return false, errors.New("Error getting Token")
-	}
-
-	// Initialize a new instance of `Claims`
-	claims := &jwtgo.StandardClaims{}
-
-	// Parse the jwtgo string and store the result in `claims`.
-	// Note that we are passsing the key in this method as well.
-	// This method will return an error if the token is invalid
-	// (if it has expired according to the expiry time we set on sign in),
-	// or if the signature does not match
-	tkn, err := jwtgo.ParseWithClaims(tknStr, claims, webTokenCallback)
-	if err != nil {
-		if err == jwtgo.ErrSignatureInvalid {
-			return false, err
-		}
-		return false, err
-	}
-	if !tkn.Valid {
-		return false, err
-	}
-	return true, nil
-}
-
-func webTokenCallback(jwtToken *jwtgo.Token) (interface{}, error) {
-	if _, ok := jwtToken.Method.(*jwtgo.SigningMethodHMAC); !ok {
-		return nil, fmt.Errorf("Unexpected signing method: %v", jwtToken.Header["alg"])
-	}
-
-	if err := jwtToken.Claims.Valid(); err != nil {
-		return nil, errAuthentication
-	}
-
-	jwtKey, err := getJWTSecretKey()
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-
-	if _, ok := jwtToken.Claims.(*jwtgo.StandardClaims); ok {
-		return jwtKey, nil
-	}
-
-	return nil, errAuthentication
 }
 
 // getUser searches for the user in the defined tenant's database

@@ -21,7 +21,6 @@ import (
 	"log"
 
 	"github.com/golang-migrate/migrate/v4"
-	common "github.com/minio/m3/common"
 
 	// the postgres driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -30,7 +29,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -41,8 +39,6 @@ const (
 func SetupM3() {
 	fmt.Println("Setting up m3 namespace")
 	setupM3Namespace()
-	fmt.Println("Setting up m3 secrets")
-	SetupM3Secrets()
 	fmt.Println("setting up nginx")
 	SetupNginxLoadBalancer()
 	fmt.Println("Setting up postgres")
@@ -68,37 +64,6 @@ func setupM3Namespace() {
 	_, err = clientset.CoreV1().Namespaces().Create(&namespace)
 	if err != nil {
 		fmt.Println(err)
-	}
-}
-
-// SetupM3Secrets creates a kubernetes secrets
-func SetupM3Secrets() {
-	config := getConfig()
-	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	// Create secret for JWT key for rest api
-	jwtKey, err := common.GetRandString(64, "default")
-	if err != nil {
-		panic(err.Error())
-	}
-	secret := v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "jwtkey",
-		},
-		Data: map[string][]byte{
-			"M3_JWT_KEY": []byte(jwtKey),
-		},
-	}
-	res, err := clientset.CoreV1().Secrets("default").Create(&secret)
-	if err != nil {
-		panic(err.Error())
-	}
-	if res.Name == "" {
-		panic(err.Error())
 	}
 }
 
