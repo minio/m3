@@ -354,7 +354,8 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 			&sgName,
 			&sgNum)
 		if err != nil {
-			fmt.Println(err)
+			ch <- &StorageGroupTenantResult{Error: err}
+			return
 		}
 
 		tenant = &StorageGroupTenant{
