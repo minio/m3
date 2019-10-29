@@ -331,6 +331,7 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 		foundSomething := rows.Next()
 		if !foundSomething {
 			ch <- &StorageGroupTenantResult{Error: errors.New("tenant not found")}
+			return
 		}
 		var tenant *StorageGroupTenant
 
