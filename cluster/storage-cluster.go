@@ -327,6 +327,7 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 		rows, err := ctx.Tx.Query(query, tenantShortName)
 		if err != nil {
 			ch <- &StorageGroupTenantResult{Error: err}
+			return
 		}
 		foundSomething := rows.Next()
 		if !foundSomething {
