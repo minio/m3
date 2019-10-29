@@ -18,24 +18,22 @@ package portal
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"time"
+
+	"encoding/base64"
 
 	jwtgo "github.com/dgrijalva/jwt-go"
 	pq "github.com/lib/pq"
 	cluster "github.com/minio/m3/cluster"
-	common "github.com/minio/m3/common"
 	pb "github.com/minio/m3/portal/stubs"
 	uuid "github.com/satori/go.uuid"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-)
-
-var (
-	errAuthentication = errors.New("Authentication failed, check your access credentials")
 )
 
 // Credentials requested on the portal to log in
@@ -74,19 +72,6 @@ func getConfig() *rest.Config {
 	}
 
 	return config
-}
-
-// getJWTSecretKey gets jwt secret key from kubernetes secrets
-func getJWTSecretKey() ([]byte, error) {
-	config := getConfig()
-	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		fmt.Println(err)
-		return []byte{}, err
-	}
-	res, err := clientset.CoreV1().Secrets("default").Get("jwtkey", metav1.GetOptions{})
-	return []byte(string(res.Data["M3_JWT_KEY"])), err
 }
 
 // Login handles the Login request by receiving the user credentials
@@ -132,7 +117,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 	// Set query parameters
 	loginCtx := cluster.NewContext(ctx, tx)
 	// Insert a new session with random string as id
-	sessionID, err := common.GetRandString(32, "sha256")
+	sessionID, err := GetRandString(32, "sha256")
 	if err != nil {
 		tx.Rollback()
 		res.Error = err.Error()
@@ -240,4 +225,20 @@ func getTenant(tenantName string) (tenant cluster.Tenant, err error) {
 		return tenant, err
 	}
 	return tenant, nil
+}
+
+// GetRandString generates a random string with the defined size length
+func GetRandString(size int, method string) (string, error) {
+	rb := make([]byte, size)
+	if _, err := io.ReadFull(rand.Reader, rb); err != nil {
+		return "", err
+	}
+
+	randStr := base64.URLEncoding.EncodeToString(rb)
+	if method == "sha256" {
+		h := sha256.New()
+		h.Write([]byte(randStr))
+		randStr = fmt.Sprintf("%x", h.Sum(nil))
+	}
+	return randStr, nil
 }
