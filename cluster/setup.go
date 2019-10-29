@@ -77,25 +77,27 @@ func SetupM3Secrets() {
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		fmt.Println(err)
 		panic(err.Error())
 	}
+
 	// Create secret for JWT key for rest api
+	jwtKey, err := common.GetRandString(64, "default")
+	if err != nil {
+		panic(err.Error())
+	}
 	secret := v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "jwtkey",
 		},
 		Data: map[string][]byte{
-			"M3_JWT_KEY": []byte(common.GetRandString(64, "default")),
+			"M3_JWT_KEY": []byte(jwtKey),
 		},
 	}
 	res, err := clientset.CoreV1().Secrets("default").Create(&secret)
 	if err != nil {
-		fmt.Println(err)
 		panic(err.Error())
 	}
 	if res.Name == "" {
-		fmt.Println(err)
 		panic(err.Error())
 	}
 }

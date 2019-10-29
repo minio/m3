@@ -133,7 +133,12 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 	// Set query parameters
 	loginCtx := cluster.NewContext(ctx, tx)
 	// Insert a new session with random string as id
-	sessionID := common.GetRandString(32, "sha256")
+	sessionID, err := common.GetRandString(32, "sha256")
+	if err != nil {
+		tx.Rollback()
+		res.Error = err.Error()
+		return &res, err
+	}
 	userID := uuid.NewV4()
 
 	query :=

@@ -19,18 +19,17 @@ package common
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"io"
 
 	"encoding/base64"
 	"fmt"
 )
 
 // GetRandString generates a random string with the defined size length
-func GetRandString(size int, method string) string {
+func GetRandString(size int, method string) (string, error) {
 	rb := make([]byte, size)
-	_, err := rand.Read(rb)
-
-	if err != nil {
-		fmt.Println(err)
+	if _, err := io.ReadFull(rand.Reader, rb); err != nil {
+		return "", err
 	}
 
 	randStr := base64.URLEncoding.EncodeToString(rb)
@@ -39,5 +38,5 @@ func GetRandString(size int, method string) string {
 		h.Write([]byte(randStr))
 		randStr = fmt.Sprintf("%x", h.Sum(nil))
 	}
-	return randStr
+	return randStr, nil
 }
