@@ -304,3 +304,75 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) 
 	}()
 	return ch
 }
+
+// Returns a list of tenants that are allocated to the provided `StorageGroup`
+func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan *StorageGroupTenantResult {
+	ch := make(chan *StorageGroupTenantResult)
+	go func() {
+		defer close(ch)
+		if tenantShortName == "" {
+			ch <- &StorageGroupTenantResult{Error: errors.New("empty tenant short name")}
+			return
+		}
+		query := `
+			SELECT 
+			       t1.tenant_id, t1.port, t1.service_name, t2.name, t2.short_name, t1.storage_group_id, t3.name, t3.num
+			FROM 
+			     m3.provisioning.tenants_storage_groups t1
+			LEFT JOIN m3.provisioning.tenants t2
+			ON t1.tenant_id = t2.id
+			LEFT JOIN m3.provisioning.storage_groups t3
+			ON t1.storage_group_id = t3.id
+			WHERE t2.short_name=$1 LIMIT 1`
+		rows, err := ctx.Tx.Query(query, tenantShortName)
+		if err != nil {
+			ch <- &StorageGroupTenantResult{Error: err}
+			return
+		}
+		foundSomething := rows.Next()
+		if !foundSomething {
+			ch <- &StorageGroupTenantResult{Error: errors.New("tenant not found")}
+			return
+		}
+		var tenant *StorageGroupTenant
+
+		var tenantID uuid.UUID
+		var storageGroupID uuid.UUID
+		var tenantName string
+		var tenantShortName string
+		var port int32
+		var sgNum int32
+		var sgName *string
+		var serviceName string
+		err = rows.Scan(
+			&tenantID,
+			&port,
+			&serviceName,
+			&tenantName,
+			&tenantShortName,
+			&storageGroupID,
+			&sgName,
+			&sgNum)
+		if err != nil {
+			ch <- &StorageGroupTenantResult{Error: err}
+			return
+		}
+
+		tenant = &StorageGroupTenant{
+			Tenant: &Tenant{
+				ID:        tenantID,
+				Name:      tenantName,
+				ShortName: tenantShortName,
+			},
+			Port:        port,
+			ServiceName: serviceName,
+			StorageGroup: &StorageGroup{
+				ID:   storageGroupID,
+				Num:  sgNum,
+				Name: sgName,
+			}}
+
+		ch <- &StorageGroupTenantResult{StorageGroupTenant: tenant}
+	}()
+	return ch
+}
