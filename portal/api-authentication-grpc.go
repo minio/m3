@@ -97,12 +97,20 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 	// Create Credentials
 	// TODO: validate credentials: username->email, tenant->shortname?
 	var res pb.LoginResponse
-	tenant := in.GetCompany()
+	tenantName := in.GetCompany()
 	email := in.GetEmail()
 	pwd := in.GetPassword()
 
+	// Search for the tenant on the database
+	tenant, err := getTenant(tenantName)
+	if err != nil {
+		err = errors.New("Tenant not found")
+		res.Error = err.Error()
+		return &res, err
+	}
+
 	// Password validation
-	user, ok := getUser(tenant, email)
+	user, ok := getUser(tenant.Name, email)
 	// If a password exists for the given user
 	// AND, if it is the same as the password we received, then we can move ahead
 	expectedPwd := user.Password
@@ -130,12 +138,12 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 
 	query :=
 		`INSERT INTO
-				m3.provisioning.sessions ("id","user_id", "occurred_at")
+				m3.provisioning.sessions ("id","user_id", "tenant_id", "occurred_at")
 			  VALUES
-				($1,$2,$3)`
+				($1,$2,$3,$4)`
 
 	// Execute Query
-	_, err = loginCtx.Tx.Exec(query, sessionID, userID, time.Now())
+	_, err = loginCtx.Tx.Exec(query, sessionID, userID, tenant.ID, time.Now())
 	if err != nil {
 		tx.Rollback()
 		res.Error = err.Error()
@@ -247,4 +255,39 @@ func getUser(tenant string, email string) (user User, ok bool) {
 		return user, false
 	}
 	return user, true
+}
+
+// getTenant gets the Tenant if it exists on the m3.provisining.tenants table
+// search is done by tenant name
+func getTenant(tenantName string) (tenant cluster.Tenant, err error) {
+	bgCtx := context.Background()
+	db := cluster.GetInstance().Db
+
+	tx, err := db.BeginTx(bgCtx, nil)
+	if err != nil {
+		tx.Rollback()
+		return tenant, err
+	}
+	loginCtx := cluster.NewContext(bgCtx, tx)
+	query :=
+		`SELECT 
+				t1.id, t1.name, t1.short_name
+			FROM 
+				m3.provisioning.tenants t1
+			WHERE name=$1`
+	row := loginCtx.Tx.QueryRow(query, tenantName)
+
+	// Save the resulted query on the User struct
+	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName)
+	if err != nil {
+		tx.Rollback()
+		return tenant, err
+	}
+
+	// if no error happened to this point commit transaction
+	err = loginCtx.Tx.Commit()
+	if err != nil {
+		return tenant, err
+	}
+	return tenant, nil
 }
