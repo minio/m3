@@ -18,8 +18,12 @@ package cluster
 
 import (
 	"crypto/rand"
+	"errors"
+	"fmt"
 	"io"
 	"strings"
+
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Do not use:
@@ -48,4 +52,32 @@ func RandomCharString(n int) string {
 		s.WriteByte(letters[j])
 	}
 	return s.String()
+}
+
+// GetOperatorCredentialsForTenant returns the access/secret keys for a given tenant
+func GetTenantConfig(shortName string) (*TenantConfiguration, error) {
+	clientset, err := k8sClient()
+	if err != nil {
+		return nil, err
+	}
+	// Get the tenant main secret
+	tenantSecretName := fmt.Sprintf("%s-env", shortName)
+	mainSecret, err := clientset.CoreV1().Secrets("default").Get(tenantSecretName, v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	conf := TenantConfiguration{}
+	// Make sure we have the data we need
+	if val, ok := mainSecret.Data[minioAccessKey]; ok {
+		conf.AccessKey = string(val)
+	} else {
+		return nil, errors.New("tenant has no operator access key")
+	}
+	if val, ok := mainSecret.Data[minioSecretKey]; ok {
+		conf.SecretKey = string(val)
+	} else {
+		return nil, errors.New("tenant has no operator secret key")
+	}
+	// Build configuration
+	return &conf, nil
 }

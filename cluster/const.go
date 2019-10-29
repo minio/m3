@@ -14,24 +14,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package cluster
 
-import (
-	"github.com/minio/cli"
+const (
+	minioAccessKey = "MINIO_ACCESS_KEY"
+	minioSecretKey = "MINIO_SECRET_KEY"
 )
-
-// list files and folders.
-var tenantCmd = cli.Command{
-	Name:   "tenant",
-	Usage:  "tenant commands",
-	Action: tenantDefCmd,
-	Subcommands: []cli.Command{
-		addTenantCmd,
-		tenantAddUserCmd,
-		tenantMbCmd,
-	},
-}
-
-func tenantDefCmd(ctx *cli.Context) error {
-	return cli.ShowAppHelp(ctx)
-}
