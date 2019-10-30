@@ -45,7 +45,6 @@ type User struct {
 func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginResponse, error) {
 	// Create Credentials
 	// TODO: validate credentials: username->email, tenant->shortname?
-	var res pb.LoginResponse
 	tenantName := in.GetCompany()
 	email := in.GetEmail()
 	pwd := in.GetPassword()
