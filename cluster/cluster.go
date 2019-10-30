@@ -651,6 +651,7 @@ func ReDeployStorageGroup(ctx *Context, sg *StorageGroup) chan error {
 					return
 				}
 			}
+			time.Sleep(3 * time.Second)
 			err = CreateDeploymentWithTenants(
 				tenants,
 				sg,
@@ -695,6 +696,7 @@ func ReDeployNginxResolver(ctx *Context) chan error {
 				return
 			}
 		}
+		time.Sleep(3 * time.Second)
 		DeployNginxResolver()
 	}()
 	return ch

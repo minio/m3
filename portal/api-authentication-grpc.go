@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -42,10 +41,9 @@ type User struct {
 
 // Login handles the Login request by receiving the user credentials
 // and returning a hashed token.
-func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginResponse, error) {
+func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginResponse, err error) {
 	// Create Credentials
 	// TODO: validate credentials: username->email, tenant->shortname?
-	var res pb.LoginResponse
 	tenantName := in.GetCompany()
 	email := in.GetEmail()
 	pwd := in.GetPassword()
@@ -53,9 +51,10 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 	// Search for the tenant on the database
 	tenant, err := getTenant(tenantName)
 	if err != nil {
-		err = errors.New("Tenant not found")
-		res.Error = err.Error()
-		return &res, err
+		res = &pb.LoginResponse{
+			Error: "Tenant not valid",
+		}
+		return res, nil
 	}
 
 	// Password validation
@@ -64,28 +63,39 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 	// TODO: hash password and pass it to the getUser assuming db has hashed password also.
 	user, err := getUser(tenant.Name, email, pwd)
 	if err != nil {
-		err := errors.New("Wrong tenant, email and/or password")
-		res.Error = err.Error()
-		return &res, err
+		res = &pb.LoginResponse{
+			Error: "Wrong tenant, email and/or password",
+		}
+		return res, nil
 	}
 
 	// Add the session within a transaction in case anything goes wrong during the adding process
 	db := cluster.GetInstance().Db
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		tx.Rollback()
-		res.Error = err.Error()
-		return &res, err
+		res = &pb.LoginResponse{
+			Error: err.Error(),
+		}
+		return res, nil
 	}
 
+	defer func() {
+		if err != nil {
+			res = &pb.LoginResponse{
+				Error: err.Error(),
+			}
+			tx.Rollback()
+			return
+		}
+		// if no error happened to this point commit transaction
+		err = tx.Commit()
+	}()
+
 	// Set query parameters
-	loginCtx := cluster.NewContext(ctx, tx)
 	// Insert a new session with random string as id
 	sessionID, err := GetRandString(32, "sha256")
 	if err != nil {
-		tx.Rollback()
-		res.Error = err.Error()
-		return &res, err
+		return res, err
 	}
 
 	query :=
@@ -95,23 +105,16 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 				($1,$2,$3,$4)`
 
 	// Execute Query
-	_, err = loginCtx.Tx.Exec(query, sessionID, user.UUID, tenant.ID, time.Now())
+	_, err = tx.Exec(query, sessionID, user.UUID, tenant.ID, time.Now())
 	if err != nil {
-		tx.Rollback()
-		res.Error = err.Error()
-		return &res, err
+		return res, err
 	}
 
 	// Return session in Token Response
-	res.JwtToken = sessionID
-
-	// if no error happened to this point commit transaction
-	err = tx.Commit()
-	if err != nil {
-		res.Error = err.Error()
-		return &res, err
+	res = &pb.LoginResponse{
+		JwtToken: sessionID,
 	}
-	return &res, nil
+	return res, nil
 }
 
 // getUser searches for the user in the defined tenant's database
@@ -122,10 +125,19 @@ func getUser(tenant string, email string, password string) (user User, err error
 
 	tx, err := db.BeginTx(bgCtx, nil)
 	if err != nil {
-		tx.Rollback()
 		return user, err
 	}
-	loginCtx := cluster.NewContext(bgCtx, tx)
+
+	// rollback transaction if any error occurs when getUser returns
+	// else, commit transaction
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		// if no error happened to this point commit transaction
+		err = tx.Commit()
+	}()
 
 	// Get user from tenants database
 	quoted := pq.QuoteIdentifier(tenant)
@@ -135,22 +147,16 @@ func getUser(tenant string, email string, password string) (user User, err error
 			FROM 
 				tenants.%s.users t1
 			WHERE email=$1 AND password=$2`, quoted)
-	row := loginCtx.Tx.QueryRow(queryUser, email, password)
+	row := tx.QueryRow(queryUser, email, password)
 
 	// Save the resulted query on the User struct
 	err = row.Scan(&user.UUID, &user.Email, &user.Password, &user.IsAdmin)
 	if err != nil {
-		tx.Rollback()
 		return user, err
 	}
+
 	// add tenant shortname to the User
 	user.Tenant = tenant
-
-	// if no error happened to this point commit transaction
-	err = loginCtx.Tx.Commit()
-	if err != nil {
-		return user, err
-	}
 	return user, nil
 }
 
@@ -162,27 +168,29 @@ func getTenant(tenantName string) (tenant cluster.Tenant, err error) {
 
 	tx, err := db.BeginTx(bgCtx, nil)
 	if err != nil {
-		tx.Rollback()
 		return tenant, err
 	}
-	loginCtx := cluster.NewContext(bgCtx, tx)
+
+	// rollback transaction if any error occurs when getTenant returns
+	// else, commit transaction
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		err = tx.Commit()
+	}()
+
 	query :=
 		`SELECT 
 				t1.id, t1.name, t1.short_name
 			FROM 
 				m3.provisioning.tenants t1
 			WHERE name=$1`
-	row := loginCtx.Tx.QueryRow(query, tenantName)
+	row := tx.QueryRow(query, tenantName)
 
 	// Save the resulted query on the User struct
 	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName)
-	if err != nil {
-		tx.Rollback()
-		return tenant, err
-	}
-
-	// if no error happened to this point commit transaction
-	err = loginCtx.Tx.Commit()
 	if err != nil {
 		return tenant, err
 	}
