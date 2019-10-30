@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"time"
 
 	"encoding/base64"
@@ -31,11 +30,11 @@ import (
 	pq "github.com/lib/pq"
 	cluster "github.com/minio/m3/cluster"
 	pb "github.com/minio/m3/portal/stubs"
-	uuid "github.com/satori/go.uuid"
 )
 
 type User struct {
 	Tenant   string
+	Email    string
 	IsAdmin  bool
 	Password string
 	UUID     string
@@ -44,7 +43,6 @@ type User struct {
 // Login handles the Login request by receiving the user credentials
 // and returning a hashed token.
 func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginResponse, error) {
-	log.Printf("Calling Login")
 	// Create Credentials
 	// TODO: validate credentials: username->email, tenant->shortname?
 	var res pb.LoginResponse
@@ -61,13 +59,12 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 	}
 
 	// Password validation
-	user, ok := getUser(tenant.Name, email)
-	// If a password exists for the given user
-	// AND, if it is the same as the password we received, then we can move ahead
-	expectedPwd := user.Password
-	// TODO: password will come not hashed and stored hashed so we need to hash it and compare it against db
-	if !ok || expectedPwd != pwd {
-		err := errors.New("Wrong tenant, email or password")
+	// Look for the user on the database by email AND pwd,
+	// if it doesn't exist it means that the email AND password don't match, therefore wrong credentials.
+	// TODO: hash password and pass it to the getUser assuming db has hashed password also.
+	user, err := getUser(tenant.Name, email, pwd)
+	if err != nil {
+		err := errors.New("Wrong tenant, email and/or password")
 		res.Error = err.Error()
 		return &res, err
 	}
@@ -90,7 +87,6 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 		res.Error = err.Error()
 		return &res, err
 	}
-	userID := uuid.NewV4()
 
 	query :=
 		`INSERT INTO
@@ -99,13 +95,12 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 				($1,$2,$3,$4)`
 
 	// Execute Query
-	_, err = loginCtx.Tx.Exec(query, sessionID, userID, tenant.ID, time.Now())
+	_, err = loginCtx.Tx.Exec(query, sessionID, user.UUID, tenant.ID, time.Now())
 	if err != nil {
 		tx.Rollback()
 		res.Error = err.Error()
 		return &res, err
 	}
-	fmt.Println("sessionID: ", sessionID)
 
 	// Return session in Token Response
 	res.JwtToken = sessionID
@@ -121,42 +116,42 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 
 // getUser searches for the user in the defined tenant's database
 // and returns the User if it was found
-func getUser(tenant string, email string) (user User, ok bool) {
-
+func getUser(tenant string, email string, password string) (user User, err error) {
 	bgCtx := context.Background()
 	db := cluster.GetInstance().GetTenantDB(tenant)
 
 	tx, err := db.BeginTx(bgCtx, nil)
 	if err != nil {
 		tx.Rollback()
-		return user, false
+		return user, err
 	}
 	loginCtx := cluster.NewContext(bgCtx, tx)
 
 	// Get user from tenants database
-	var userEmail string
 	quoted := pq.QuoteIdentifier(tenant)
 	queryUser := fmt.Sprintf(`
 		SELECT 
-				t1.id, t1.email, t1.password
+				t1.id, t1.email, t1.password, t1.is_admin
 			FROM 
 				tenants.%s.users t1
-			WHERE email=$1`, quoted)
-	row := loginCtx.Tx.QueryRow(queryUser, email)
+			WHERE email=$1 AND password=$2`, quoted)
+	row := loginCtx.Tx.QueryRow(queryUser, email, password)
 
 	// Save the resulted query on the User struct
-	err = row.Scan(&user.UUID, &userEmail, &user.Password)
+	err = row.Scan(&user.UUID, &user.Email, &user.Password, &user.IsAdmin)
 	if err != nil {
 		tx.Rollback()
-		return user, false
+		return user, err
 	}
+	// add tenant shortname to the User
+	user.Tenant = tenant
 
 	// if no error happened to this point commit transaction
 	err = loginCtx.Tx.Commit()
 	if err != nil {
-		return user, false
+		return user, err
 	}
-	return user, true
+	return user, nil
 }
 
 // getTenant gets the Tenant if it exists on the m3.provisining.tenants table
