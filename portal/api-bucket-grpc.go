@@ -17,42 +17,46 @@
 package portal
 
 import (
-	"encoding/json"
+	"context"
 	"log"
-	"net/http"
+	"time"
+
+	pb "github.com/minio/m3/portal/stubs"
+	"github.com/minio/minio-go/v6"
 )
 
-// Compiler checks
-var (
-	_ http.HandlerFunc = AdminServerInfo
-)
+// ListBuckets implements PublicAPIServer
+func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*pb.ListBucketsResponse, error) {
+	log.Printf("Calling ListBuckests")
+	time.Sleep(10 * time.Second)
 
-const (
-	playURL       = "https://play.minio.io:9000"
-	playAccessKey = "Q3AM3UQ867SPQQA43P2F"
-	playSecretKey = "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-)
+	var bucketLists pb.ListBucketsResponse
+	ssl := true
 
-func AdminServerInfo(w http.ResponseWriter, r *http.Request) {
-	if !validRequest(w, r) {
-		return
-	}
+	// DEMO
+	// Initialize minio client object.
+	minioClient, err := minio.New("play.min.io",
+		"Q3AM3UQ867SPQQA43P2F",
+		"zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
+		ssl)
 
-	client, pErr := NewAdminClient(playURL, playAccessKey, playSecretKey)
-	if pErr != nil {
-		log.Printf("Error: Unable to initialize admin connection to '%s' - %v\n", playURL, pErr)
-		return
-	}
-
-	serverInfo, err := client.ServerInfo()
 	if err != nil {
-		log.Printf("Error: Failed to get server info: %v\n", err)
-		return
+		return &bucketLists, err
 	}
-	output, err := json.Marshal(serverInfo)
+
+	buckets, err := minioClient.ListBuckets()
+
 	if err != nil {
-		log.Printf("Error: Failed to marshal server info to JSON: %v\n", err)
-		return
+		return &bucketLists, err
 	}
-	w.Write(output)
+
+	for _, b := range buckets {
+		bucketLists.Buckets = append(bucketLists.Buckets,
+			&pb.Bucket{
+				Name: b.Name,
+			},
+		)
+	}
+	log.Printf("Done calling ListBuckests.")
+	return &bucketLists, nil
 }

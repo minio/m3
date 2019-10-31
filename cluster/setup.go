@@ -38,17 +38,17 @@ const (
 // Setups m3 on the kubernetes deployment that we are installed to
 func SetupM3() {
 	fmt.Println("Setting up m3 namespace")
-	SetupM3Namespace()
+	setupM3Namespace()
 	fmt.Println("setting up nginx")
 	SetupNginxLoadBalancer()
 	fmt.Println("Setting up postgres")
-	SetupPostgres()
+	setupPostgres()
 	fmt.Println("Running Migrations")
 	RunMigrations()
 }
 
-// Setups the namcespace used by the provisioning service
-func SetupM3Namespace() {
+// setupM3Namespace Setups the namespace used by the provisioning service
+func setupM3Namespace() {
 	// creates the clientset
 	clientset, err := k8sClient()
 	if err != nil {
@@ -67,8 +67,8 @@ func SetupM3Namespace() {
 	}
 }
 
-// Setups a postgres used by the provisioning service
-func SetupPostgres() {
+// setupPostgres sets up a postgres used by the provisioning service
+func setupPostgres() {
 	// creates the clientset
 	clientset, err := k8sClient()
 	if err != nil {
@@ -119,7 +119,7 @@ func SetupPostgres() {
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Println("done with postgres secrets")
+	fmt.Println("done with postgres config maps")
 	fmt.Println(resSecret.String())
 
 	var replicas int32 = 1

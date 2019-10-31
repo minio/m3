@@ -115,4 +115,3 @@ create table provisioning.sessions
     last_event  timestamp with time zone default now()           -- stores last event's timestamp within this session
 );
 
-

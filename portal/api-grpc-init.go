@@ -14,21 +14,33 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package portal
 
 import (
-	"github.com/minio/cli"
-	"github.com/minio/m3/portal"
+	"log"
+	"net"
+
+	pb "github.com/minio/m3/portal/stubs"
+	"google.golang.org/grpc"
 )
 
-// list files and folders.
-var portalCmd = cli.Command{
-	Name:   "portal",
-	Usage:  "starts portal",
-	Action: startAPIPortalCmd,
+const (
+	port = ":50051"
+)
+
+// server is used to implement PublicAPIServer
+type server struct {
+	pb.UnimplementedPublicAPIServer
 }
 
-func startAPIPortalCmd(ctx *cli.Context) error {
-	portal.InitPortalGRPCServer()
-	return nil
+func InitPortalGRPCServer() {
+	lis, err := net.Listen("tcp", port)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	s := grpc.NewServer()
+	pb.RegisterPublicAPIServer(s, &server{})
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
 }

@@ -106,7 +106,7 @@ or
 ``` 
 or 
 ```shell
-  ./m3 tenant company-inc  user@acme.com user1234
+  ./m3 tenant add-user company-inc  user@acme.com user1234
 ```
 
 ## Accessing the tenant MinIO service via browser UI
