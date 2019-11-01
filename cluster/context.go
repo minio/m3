@@ -35,7 +35,7 @@ type Context struct {
 	WhoAmI string
 }
 
-// MainTx returns a transaction agains the Main DB, if none has been started, it starts one
+// MainTx returns a transaction against the Main DB, if none has been started, it starts one
 func (c *Context) MainTx() (*sql.Tx, error) {
 	if c.mainTx == nil {
 		db := GetInstance().Db
@@ -57,7 +57,7 @@ func (c *Context) TenantDB() *sql.DB {
 	return c.tenantDB
 }
 
-// TenantTx returns a transaction agains the Tenant DB, if none has been started, it starts one
+// TenantTx returns a transaction against the Tenant DB, if none has been started, it starts one
 func (c *Context) TenantTx() (*sql.Tx, error) {
 	if c.mainTx == nil {
 		db := c.TenantDB()

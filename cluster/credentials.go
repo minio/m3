@@ -31,7 +31,7 @@ type UserUICredentials struct {
 	SecretKey string
 }
 
-// createUserCredentials creates some random access/secret key pair and then stores them on k8s, if successfull
+// createUserCredentials creates some random access/secret key pair and then stores them on k8s, if successful
 // it will create a MinIO User and attach `readwrite` policy, if successful, it will insert this credential to the
 // tenant DB
 func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UUID) error {
