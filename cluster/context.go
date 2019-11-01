@@ -35,6 +35,7 @@ type Context struct {
 	WhoAmI string
 }
 
+// MainTx returns a transaction agains the Main DB, if none has been started, it starts one
 func (c *Context) MainTx() (*sql.Tx, error) {
 	if c.mainTx == nil {
 		db := GetInstance().Db
@@ -47,6 +48,7 @@ func (c *Context) MainTx() (*sql.Tx, error) {
 	return c.mainTx, nil
 }
 
+// TenantDB returns a configured DB connection for the Tenant DB
 func (c *Context) TenantDB() *sql.DB {
 	if c.tenantDB == nil {
 		db := GetInstance().GetTenantDB(c.TenantShortName)
@@ -55,6 +57,7 @@ func (c *Context) TenantDB() *sql.DB {
 	return c.tenantDB
 }
 
+// TenantTx returns a transaction agains the Tenant DB, if none has been started, it starts one
 func (c *Context) TenantTx() (*sql.Tx, error) {
 	if c.mainTx == nil {
 		db := c.TenantDB()
@@ -67,6 +70,7 @@ func (c *Context) TenantTx() (*sql.Tx, error) {
 	return c.tenantTx, nil
 }
 
+// Commit commits the any transaction that was started on this context
 func (c *Context) Commit() error {
 	// commit tenant schema tx
 	if c.tenantTx != nil {
@@ -74,6 +78,8 @@ func (c *Context) Commit() error {
 		if err != nil {
 			return err
 		}
+		// restart the txn
+		c.tenantTx = nil
 	}
 	// commit main schema tx
 	if c.mainTx != nil {
@@ -81,6 +87,8 @@ func (c *Context) Commit() error {
 		if err != nil {
 			return err
 		}
+		// restart the txn
+		c.mainTx = nil
 	}
 	return nil
 }
@@ -92,6 +100,8 @@ func (c *Context) Rollback() error {
 		if err != nil {
 			return err
 		}
+		// restart the txn
+		c.tenantTx = nil
 	}
 	// rollback main schema tx
 	if c.mainTx != nil {
@@ -99,6 +109,8 @@ func (c *Context) Rollback() error {
 		if err != nil {
 			return err
 		}
+		// restart the txn
+		c.mainTx = nil
 	}
 	return nil
 }
