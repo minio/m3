@@ -25,15 +25,90 @@ import (
 // goes wrong during the business logic execution, database objects can be
 // rolled back.
 type Context struct {
-	*sql.Tx
-	Main context.Context
+	// tenant in question
+	TenantShortName string
+	tenantTx        *sql.Tx
+	tenantDB        *sql.DB
+	mainTx          *sql.Tx
+	ControlCtx      context.Context
 	// a user identifier of who is starting the context
 	WhoAmI string
 }
 
-// Creates a new `Context` given an initial transaction and `context.Context`
+func (c *Context) MainTx() (*sql.Tx, error) {
+	if c.mainTx == nil {
+		db := GetInstance().Db
+		tx, err := db.BeginTx(c.ControlCtx, nil)
+		if err != nil {
+			return nil, err
+		}
+		c.mainTx = tx
+	}
+	return c.mainTx, nil
+}
+
+func (c *Context) TenantDB() *sql.DB {
+	if c.tenantDB == nil {
+		db := GetInstance().GetTenantDB(c.TenantShortName)
+		c.tenantDB = db
+	}
+	return c.tenantDB
+}
+
+func (c *Context) TenantTx() (*sql.Tx, error) {
+	if c.mainTx == nil {
+		db := c.TenantDB()
+		tx, err := db.BeginTx(c.ControlCtx, nil)
+		if err != nil {
+			return nil, err
+		}
+		c.tenantTx = tx
+	}
+	return c.tenantTx, nil
+}
+
+func (c *Context) Commit() error {
+	// commit tenant schema tx
+	if c.tenantTx != nil {
+		err := c.tenantTx.Commit()
+		if err != nil {
+			return err
+		}
+	}
+	// commit main schema tx
+	if c.mainTx != nil {
+		err := c.mainTx.Commit()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Context) Rollback() error {
+	// rollback tenant schema tx
+	if c.tenantTx != nil {
+		err := c.tenantTx.Rollback()
+		if err != nil {
+			return err
+		}
+	}
+	// rollback main schema tx
+	if c.mainTx != nil {
+		err := c.mainTx.Rollback()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Creates a new `Context` for a tenant that holds transaction and `context.Context`
 // to control timeouts and cancellations.
-func NewContext(ctx context.Context, tx *sql.Tx) *Context {
-	c := &Context{Tx: tx, Main: ctx, WhoAmI: "command line"}
-	return c
+func NewContext(tenantShortName string) (*Context, error) {
+	// we are going to default the control context to background
+	ctlCtx := context.Background()
+	c := &Context{TenantShortName: tenantShortName, ControlCtx: ctlCtx}
+	return c, nil
+
 }

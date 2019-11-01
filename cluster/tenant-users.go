@@ -17,13 +17,19 @@
 package cluster
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"regexp"
 
 	uuid "github.com/satori/go.uuid"
 )
+
+type User struct {
+	Tenant   string
+	Email    string
+	IsAdmin  bool
+	Password string
+	UUID     uuid.UUID
+}
 
 // AddUser adds a new user to the tenant's database
 func AddUser(tenantShortName string, userEmail string, userPassword string) error {
@@ -44,29 +50,28 @@ func AddUser(tenantShortName string, userEmail string, userPassword string) erro
 		}
 	}
 
-	bgCtx := context.Background()
-	db := GetInstance().GetTenantDB(tenantShortName)
-	tx, err := db.BeginTx(bgCtx, nil)
+	ctx, err := NewContext(tenantShortName)
 	if err != nil {
-		tx.Rollback()
-		return err
+		return nil
 	}
-	ctx := NewContext(bgCtx, tx)
 	// Add parameters to query
 	userID := uuid.NewV4()
 	query := `INSERT INTO
 				users ("id","email","password")
 			  VALUES
 				($1,$2,$3)`
-	stmt, err := ctx.Tx.Prepare(query)
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare(query)
 	if err != nil {
 		tx.Rollback()
-		fmt.Println("here")
 		return err
 	}
 	defer stmt.Close()
 	// Execute query
-	_, err = ctx.Tx.Exec(query, userID, userEmail, userPassword)
+	_, err = tx.Exec(query, userID, userEmail, userPassword)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -84,4 +89,42 @@ func AddUser(tenantShortName string, userEmail string, userPassword string) erro
 		return nil
 	}
 	return nil
+}
+
+// getUser searches for the user in the defined tenant's database
+// and returns the User if it was found
+func GetUser(ctx *Context, tenant string, email string, password string) (user User, err error) {
+	// rollback transaction if any error occurs when getUser returns
+	// else, commit transaction
+	defer func() {
+		if err != nil {
+			ctx.Rollback()
+			return
+		}
+		// if no error happened to this point commit transaction
+		err = ctx.Commit()
+	}()
+
+	// Get user from tenants database
+	queryUser := `
+		SELECT 
+				t1.id, t1.email, t1.password, t1.is_admin
+			FROM 
+				users t1
+			WHERE email=$1 AND password=$2`
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return user, err
+	}
+	row := tx.QueryRow(queryUser, email, password)
+
+	// Save the resulted query on the User struct
+	err = row.Scan(&user.UUID, &user.Email, &user.Password, &user.IsAdmin)
+	if err != nil {
+		return user, err
+	}
+
+	// add tenant shortname to the User
+	user.Tenant = tenant
+	return user, nil
 }

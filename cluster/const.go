@@ -17,6 +17,7 @@
 package cluster
 
 const (
+	Version        = `0.1.0`
 	minioAccessKey = "MINIO_ACCESS_KEY"
 	minioSecretKey = "MINIO_SECRET_KEY"
 	accessKey      = "ACCESS_KEY"

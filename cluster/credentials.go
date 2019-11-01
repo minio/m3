@@ -17,6 +17,7 @@
 package cluster
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -41,26 +42,54 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UU
 
 	err := storeUserUICredentialsSecret(tenantShortName, &userdID, &userUICredentials)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
+	// Tell the tenant MinIO's that this is a new user, and give it `readwrite` access
+
+	// Get in which SG is the tenant located
+	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortName)
+
+	if sgt.Error != nil {
+		return sgt.Error
+	}
+
+	// Get the credentials for a tenant
+	tenantConf, err := GetTenantConfig(sgt.Tenant.Name)
+	if err != nil {
+		return err
+	}
+	// create minio user
+	err = addMinioUser(sgt.StorageGroupTenant, tenantConf, userUICredentials.AccessKey, userUICredentials.SecretKey)
+	if err != nil {
+		return err
+	}
+	// add readwrite canned policy
+	err = addMinioCannedPolicyToUser(sgt.StorageGroupTenant, tenantConf, userUICredentials.AccessKey, "readwrite")
+	if err != nil {
+		return err
+	}
+	// Now insert the credentials into the DB
 	query := `
 		INSERT INTO
 				credentials ("access_key","user_id","ui_credential","created_by")
 			  VALUES
 				($1,$2,$3,$4)`
-	stmt, err := ctx.Tx.Prepare(query)
+	tx, err := ctx.TenantTx()
 	if err != nil {
-		ctx.Tx.Rollback()
+		return err
+	}
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		ctx.Rollback()
 		log.Fatal(err)
 		return err
 	}
 	defer stmt.Close()
 	// Execute query
-	_, err = ctx.Tx.Exec(query, userUICredentials.AccessKey, userdID, true, ctx.WhoAmI)
+	_, err = tx.Exec(query, userUICredentials.AccessKey, userdID, true, ctx.WhoAmI)
 	if err != nil {
-		ctx.Tx.Rollback()
+		ctx.Rollback()
 		return err
 	}
 	return nil
