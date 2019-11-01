@@ -99,16 +99,6 @@ func AddUser(tenantShortName string, userEmail string, userPassword string) erro
 // GetUserWithPwd searches for the user in the defined tenant's database
 // and returns the User if it was found
 func GetUserWithPwd(ctx *Context, tenant string, email string, password string) (user User, err error) {
-	// rollback transaction if any error occurs when getUser returns
-	// else, commit transaction
-	defer func() {
-		if err != nil {
-			ctx.Rollback()
-			return
-		}
-		// if no error happened to this point commit transaction
-		err = ctx.Commit()
-	}()
 	// Hash the password
 	hashedPassword, err := HashPassword(password)
 	if err != nil {
@@ -122,11 +112,8 @@ func GetUserWithPwd(ctx *Context, tenant string, email string, password string) 
 			FROM 
 				users t1
 			WHERE email=$1 AND password=$2`
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return user, err
-	}
-	row := tx.QueryRow(queryUser, email, hashedPassword)
+
+	row := ctx.TenantDB().QueryRow(queryUser, email, hashedPassword)
 
 	// Save the resulted query on the User struct
 	err = row.Scan(&user.UUID, &user.Email, &user.Password, &user.IsAdmin)

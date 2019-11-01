@@ -55,7 +55,6 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	}
 
 	// Add the session within a transaction in case anything goes wrong during the adding process
-
 	defer func() {
 		if err != nil {
 			res = &pb.LoginResponse{
