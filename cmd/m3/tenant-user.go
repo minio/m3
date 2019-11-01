@@ -22,7 +22,7 @@ import "github.com/minio/cli"
 var tenantUserCmd = cli.Command{
 	Name:   "user",
 	Usage:  "user subcommands",
-	Action: showClusterHelp,
+	Action: showTenantUserHelp,
 	Subcommands: []cli.Command{
 		tenantAddUserCmd,
 	},

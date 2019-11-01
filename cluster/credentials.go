@@ -32,7 +32,7 @@ type UserUICredentials struct {
 	SecretKey string
 }
 
-func createUserCredentials(ctx *Context, tenantShortName string, userdId uuid.UUID) error {
+func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UUID) error {
 
 	userUICredentials := UserUICredentials{
 		AccessKey: RandomCharString(16),
@@ -40,7 +40,7 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdId uuid.UU
 
 	// Attempt to store in k8s, if it works, store in DB
 
-	err := storeUserUICredentialsSecret(tenantShortName, &userdId, &userUICredentials)
+	err := storeUserUICredentialsSecret(tenantShortName, &userdID, &userUICredentials)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -59,7 +59,7 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdId uuid.UU
 	}
 	defer stmt.Close()
 	// Execute query
-	_, err = ctx.Tx.Exec(query, userUICredentials.AccessKey, userdId, true, ctx.WhoAmI)
+	_, err = ctx.Tx.Exec(query, userUICredentials.AccessKey, userdID, true, ctx.WhoAmI)
 	if err != nil {
 		ctx.Tx.Rollback()
 		return err
@@ -67,7 +67,7 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdId uuid.UU
 	return nil
 }
 
-func storeUserUICredentialsSecret(tenantShortName string, userId *uuid.UUID, credentials *UserUICredentials) error {
+func storeUserUICredentialsSecret(tenantShortName string, userID *uuid.UUID, credentials *UserUICredentials) error {
 	// creates the clientset
 	clientset, err := k8sClient()
 
@@ -76,7 +76,7 @@ func storeUserUICredentialsSecret(tenantShortName string, userId *uuid.UUID, cre
 	}
 
 	// store the crendential exclusively for this user, this way there can only be 1 credentials per use
-	secretsName := fmt.Sprintf("ui-%s", userId.String())
+	secretsName := fmt.Sprintf("ui-%s", userID.String())
 	secret := v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: secretsName,
@@ -93,6 +93,7 @@ func storeUserUICredentialsSecret(tenantShortName string, userId *uuid.UUID, cre
 	return err
 }
 
+// getUserUICredentials returns the UI access/secret key pair for a given user for a given tenant
 func getUserUICredentials(tenant *Tenant, userId *uuid.UUID) (*UserUICredentials, error) {
 	clientset, err := k8sClient()
 	if err != nil {
