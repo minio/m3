@@ -245,6 +245,11 @@ type StorageGroupTenant struct {
 	ServiceName string
 }
 
+// Address returns the address where the tenant is located on the storage group
+func (sgt *StorageGroupTenant) Address() string {
+	return fmt.Sprintf("%s:%d", sgt.ServiceName, sgt.Port)
+}
+
 type TenantRoute struct {
 	ShortName   string
 	Port        int32

@@ -71,25 +71,25 @@ func AddUser(tenantShortName string, userEmail string, userPassword string) erro
 	}
 	stmt, err := tx.Prepare(query)
 	if err != nil {
-		tx.Rollback()
+		ctx.Rollback()
 		return err
 	}
 	defer stmt.Close()
 	// Execute query
 	_, err = tx.Exec(query, userID, userEmail, hashedPassword)
 	if err != nil {
-		tx.Rollback()
+		ctx.Rollback()
 		return err
 	}
 	// Create this user's credentials so he can interact with it's own buckets/data
 	err = createUserCredentials(ctx, tenantShortName, userID)
 	if err != nil {
-		tx.Rollback()
+		ctx.Rollback()
 		return err
 	}
 
 	// if no error happened to this point commit transaction
-	err = tx.Commit()
+	err = ctx.Commit()
 	if err != nil {
 		return nil
 	}

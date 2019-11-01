@@ -16,13 +16,9 @@
 
 package cluster
 
-import "fmt"
-
 func addMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, accessKey string, secretKey string) error {
-	// Build tenant address
-	tenantAddress := fmt.Sprintf("%s:%d", sgt.ServiceName, sgt.Port)
 	// get an admin with operator keys
-	adminClient, pErr := NewAdminClient(tenantAddress, tenantConf.AccessKey, tenantConf.SecretKey)
+	adminClient, pErr := NewAdminClient(sgt.Address(), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
 		return pErr.Cause
 	}
@@ -35,10 +31,8 @@ func addMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, acce
 }
 
 func addMinioCannedPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, accessKey string, policy string) error {
-	// Build tenant address
-	tenantAddress := fmt.Sprintf("%s:%d", sgt.ServiceName, sgt.Port)
 	// get an admin with operator keys
-	adminClient, pErr := NewAdminClient(tenantAddress, tenantConf.AccessKey, tenantConf.SecretKey)
+	adminClient, pErr := NewAdminClient(sgt.Address(), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
 		return pErr.Cause
 	}

@@ -302,10 +302,8 @@ func MakeBucket(tenantShortName string, bucketName string) error {
 		return err
 	}
 
-	// Build tenant address
-	tenantAddress := fmt.Sprintf("%s:%d", sgt.ServiceName, sgt.Port)
 	// Initialize minio client object.
-	minioClient, err := minio.New(tenantAddress,
+	minioClient, err := minio.New(sgt.Address(),
 		tenantConf.AccessKey,
 		tenantConf.SecretKey,
 		false)
