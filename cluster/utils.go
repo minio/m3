@@ -24,6 +24,8 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"strings"
 
 	"github.com/minio/minio-go/v6"
@@ -117,4 +119,10 @@ func toLookupType(s string) minio.BucketLookupType {
 		return minio.BucketLookupPath
 	}
 	return minio.BucketLookupAuto
+}
+
+// HashPassword hashes the password one way
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
 }

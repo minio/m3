@@ -17,6 +17,7 @@
 package cluster
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -122,4 +123,32 @@ func storeUserUICredentialsSecret(tenantShortName string, userID *uuid.UUID, cre
 	}
 	_, err = clientset.CoreV1().Secrets(tenantShortName).Create(&secret)
 	return err
+}
+
+// GetUserUICredentials returns the UI access/secret key pair for a given user for a given tenant
+func GetUserUICredentials(tenantShortName string, userID *uuid.UUID) (*UserUICredentials, error) {
+	clientset, err := k8sClient()
+	if err != nil {
+		return nil, err
+	}
+	// the user secret is behind it's identifier
+	secretsName := fmt.Sprintf("ui-%s", userID.String())
+	mainSecret, err := clientset.CoreV1().Secrets(tenantShortName).Get(secretsName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	creds := UserUICredentials{}
+	// Make sure we have the data we need
+	if val, ok := mainSecret.Data[accessKey]; ok {
+		creds.AccessKey = string(val)
+	} else {
+		return nil, errors.New("secret has not ui access key")
+	}
+	if val, ok := mainSecret.Data[accessKey]; ok {
+		creds.SecretKey = string(val)
+	} else {
+		return nil, errors.New("secret has not ui secret key")
+	}
+	// Build configuration
+	return &creds, nil
 }

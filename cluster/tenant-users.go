@@ -49,6 +49,11 @@ func AddUser(tenantShortName string, userEmail string, userPassword string) erro
 			return errors.New("a valid password is needed, minimum 8 characters")
 		}
 	}
+	// Hash the password
+	hashedPassword, err := HashPassword(userPassword)
+	if err != nil {
+		return err
+	}
 
 	ctx, err := NewContext(tenantShortName)
 	if err != nil {
@@ -71,7 +76,7 @@ func AddUser(tenantShortName string, userEmail string, userPassword string) erro
 	}
 	defer stmt.Close()
 	// Execute query
-	_, err = tx.Exec(query, userID, userEmail, userPassword)
+	_, err = tx.Exec(query, userID, userEmail, hashedPassword)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -91,9 +96,9 @@ func AddUser(tenantShortName string, userEmail string, userPassword string) erro
 	return nil
 }
 
-// getUser searches for the user in the defined tenant's database
+// GetUserWithPwd searches for the user in the defined tenant's database
 // and returns the User if it was found
-func GetUser(ctx *Context, tenant string, email string, password string) (user User, err error) {
+func GetUserWithPwd(ctx *Context, tenant string, email string, password string) (user User, err error) {
 	// rollback transaction if any error occurs when getUser returns
 	// else, commit transaction
 	defer func() {
@@ -104,6 +109,11 @@ func GetUser(ctx *Context, tenant string, email string, password string) (user U
 		// if no error happened to this point commit transaction
 		err = ctx.Commit()
 	}()
+	// Hash the password
+	hashedPassword, err := HashPassword(password)
+	if err != nil {
+		return user, err
+	}
 
 	// Get user from tenants database
 	queryUser := `
@@ -116,7 +126,7 @@ func GetUser(ctx *Context, tenant string, email string, password string) (user U
 	if err != nil {
 		return user, err
 	}
-	row := tx.QueryRow(queryUser, email, password)
+	row := tx.QueryRow(queryUser, email, hashedPassword)
 
 	// Save the resulted query on the User struct
 	err = row.Scan(&user.UUID, &user.Email, &user.Password, &user.IsAdmin)
