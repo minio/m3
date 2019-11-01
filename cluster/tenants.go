@@ -24,9 +24,10 @@ import (
 	"regexp"
 
 	"github.com/golang-migrate/migrate/v4"
-	pq "github.com/lib/pq"
 	"github.com/minio/minio-go/v6"
 	uuid "github.com/satori/go.uuid"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type Tenant struct {
@@ -58,6 +59,9 @@ func AddTenant(name string, shortName string) error {
 		return tenantResult.Error
 	}
 	fmt.Println(fmt.Sprintf("Registered as tenant %s\n", tenantResult.Tenant.ID.String()))
+
+	// Create tenant namespace
+	namespaceCh := createTenantNamespace(shortName)
 
 	// provision the tenant schema and run the migrations
 	tenantSchemaCh := ProvisionTenantDB(shortName)
@@ -95,6 +99,13 @@ func AddTenant(name string, shortName string) error {
 	}
 	// announce the tenant on the router
 	err = <-UpdateNginxConfiguration(ctx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// wait for the tenant namespace to finish creating
+	err = <-namespaceCh
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -257,63 +268,6 @@ func MigrateTenantDB(tenantName string) chan error {
 	return ch
 }
 
-// AddUser adds a new user to the tenant's database
-func AddUser(tenantShortName string, userEmail string, userPassword string) error {
-	// validate userEmail
-	if userEmail != "" {
-		// TODO: improve regex
-		var re = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
-		if !re.MatchString(userEmail) {
-			return errors.New("a valid email is needed")
-		}
-	}
-	// validate userPassword
-	if userPassword != "" {
-		// TODO: improve regex or use Go validator
-		var re = regexp.MustCompile(`^[a-zA-Z0-9!@#\$%\^&\*]{8,16}$`)
-		if !re.MatchString(userPassword) {
-			return errors.New("a valid password is needed, minimum 8 characters")
-		}
-	}
-
-	bgCtx := context.Background()
-	db := GetInstance().GetTenantDB(tenantShortName)
-	tx, err := db.BeginTx(bgCtx, nil)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	ctx := NewContext(bgCtx, tx)
-	// Add parameters to query
-	quoted := pq.QuoteIdentifier(tenantShortName)
-	userID := uuid.NewV4()
-	query := fmt.Sprintf(`
-		INSERT INTO
-				tenants.%s.users ("id","email","password")
-			  VALUES
-				($1,$2,$3)`, quoted)
-	stmt, err := ctx.Tx.Prepare(query)
-	if err != nil {
-		tx.Rollback()
-		log.Fatal(err)
-		return err
-	}
-	defer stmt.Close()
-	// Execute query
-	_, err = ctx.Tx.Exec(query, userID, userEmail, userPassword)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// if no error happened to this point commit transaction
-	err = tx.Commit()
-	if err != nil {
-		return nil
-	}
-	return nil
-}
-
 // MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
 // TODO: allow to spcify the user performing the action (like in the API/gRPC case)
 func MakeBucket(tenantShortName string, bucketName string) error {
@@ -369,4 +323,28 @@ func MakeBucket(tenantShortName string, bucketName string) error {
 		return nil
 	}
 	return nil
+}
+
+// createTenantNamespace creates a tenant namespace on k8s, returns a channel that will close
+// upon successful namespace creation or error
+func createTenantNamespace(tenantShortName string) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		clientset, err := k8sClient()
+		if err != nil {
+			ch <- err
+			return
+
+		}
+
+		ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: tenantShortName}}
+
+		_, err = clientset.CoreV1().Namespaces().Create(&ns)
+		if err != nil {
+			ch <- err
+			return
+		}
+	}()
+	return ch
 }

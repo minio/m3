@@ -27,11 +27,13 @@ import (
 type Context struct {
 	*sql.Tx
 	Main context.Context
+	// a user identifier of who is starting the context
+	WhoAmI string
 }
 
 // Creates a new `Context` given an initial transaction and `context.Context`
 // to control timeouts and cancellations.
 func NewContext(ctx context.Context, tx *sql.Tx) *Context {
-	c := &Context{Tx: tx, Main: ctx}
+	c := &Context{Tx: tx, Main: ctx, WhoAmI: "command line"}
 	return c
 }

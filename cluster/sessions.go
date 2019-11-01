@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -136,6 +137,10 @@ func ConnectToDb(ctx context.Context, config *DbConfig) chan *sql.DB {
 			} else {
 				dbStr = dbStr + " sslmode=disable"
 			}
+			// if a schema is sepcified, set it as the search path
+			if config.SchemaName != "" {
+				dbStr = fmt.Sprintf("%s search_path=%s", dbStr, config.SchemaName)
+			}
 
 			db, err := sql.Open("postgres", dbStr)
 			if err != nil {
@@ -150,8 +155,6 @@ func ConnectToDb(ctx context.Context, config *DbConfig) chan *sql.DB {
 // GetTenantDB returns a database connection to the tenant being accessed, if the connection has been established
 // then it's returned from a local cache, else it's created, cached and returned.
 func (s *Singleton) GetTenantDB(tenantName string) *sql.DB {
-	// Right now all tenants share a single connection
-	tenantName = "tenants"
 	// if we find the connection in the cache, return it
 	if db, ok := s.tenantsCnx[tenantName]; ok {
 		//do something here

@@ -23,7 +23,7 @@ import (
 	"io"
 	"strings"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Do not use:
@@ -54,7 +54,7 @@ func RandomCharString(n int) string {
 	return s.String()
 }
 
-// GetOperatorCredentialsForTenant returns the access/secret keys for a given tenant
+// GetTenantConfig returns the access/secret keys for a given tenant
 func GetTenantConfig(shortName string) (*TenantConfiguration, error) {
 	clientset, err := k8sClient()
 	if err != nil {
@@ -62,7 +62,7 @@ func GetTenantConfig(shortName string) (*TenantConfiguration, error) {
 	}
 	// Get the tenant main secret
 	tenantSecretName := fmt.Sprintf("%s-env", shortName)
-	mainSecret, err := clientset.CoreV1().Secrets("default").Get(tenantSecretName, v1.GetOptions{})
+	mainSecret, err := clientset.CoreV1().Secrets("default").Get(tenantSecretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

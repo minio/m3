@@ -19,4 +19,6 @@ package cluster
 const (
 	minioAccessKey = "MINIO_ACCESS_KEY"
 	minioSecretKey = "MINIO_SECRET_KEY"
+	accessKey      = "ACCESS_KEY"
+	secretKey      = "SECRET_KEY"
 )

@@ -30,7 +30,7 @@ var (
 
 // Adds a user to the tenant's database
 var tenantAddUserCmd = cli.Command{
-	Name:   "add-user",
+	Name:   "add",
 	Usage:  "Adds a user to the defined tenant",
 	Action: tenantAddUser,
 	Flags: []cli.Flag{
