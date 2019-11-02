@@ -19,6 +19,8 @@ package portal
 import (
 	"context"
 
+	"golang.org/x/crypto/bcrypt"
+
 	cluster "github.com/minio/m3/cluster"
 	pb "github.com/minio/m3/portal/stubs"
 )
@@ -46,8 +48,16 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	// Password validation
 	// Look for the user on the database by email AND pwd,
 	// if it doesn't exist it means that the email AND password don't match, therefore wrong credentials.
-	user, err := cluster.GetUserWithPwd(appCtx, tenant.Name, email, pwd)
+	user, err := cluster.GetUserByEmail(appCtx, tenant.Name, email)
 	if err != nil {
+		res = &pb.LoginResponse{
+			Error: "Wrong tenant, email and/or password",
+		}
+		return res, nil
+	}
+
+	// Comparing the password with the hash
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(in.Password)); err != nil {
 		res = &pb.LoginResponse{
 			Error: "Wrong tenant, email and/or password",
 		}

@@ -96,24 +96,18 @@ func AddUser(tenantShortName string, userEmail string, userPassword string) erro
 	return nil
 }
 
-// GetUserWithPwd searches for the user in the defined tenant's database
+// GetUserByEmail searches for the user in the defined tenant's database
 // and returns the User if it was found
-func GetUserWithPwd(ctx *Context, tenant string, email string, password string) (user User, err error) {
-	// Hash the password
-	hashedPassword, err := HashPassword(password)
-	if err != nil {
-		return user, err
-	}
-
+func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err error) {
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
 				t1.id, t1.email, t1.password, t1.is_admin
 			FROM 
 				users t1
-			WHERE email=$1 AND password=$2`
+			WHERE email=$1 LIMIT 1`
 
-	row := ctx.TenantDB().QueryRow(queryUser, email, hashedPassword)
+	row := ctx.TenantDB().QueryRow(queryUser, email, password)
 
 	// Save the resulted query on the User struct
 	err = row.Scan(&user.UUID, &user.Email, &user.Password, &user.IsAdmin)
