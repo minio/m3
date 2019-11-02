@@ -107,7 +107,7 @@ func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err e
 				users t1
 			WHERE email=$1 LIMIT 1`
 
-	row := ctx.TenantDB().QueryRow(queryUser, email, password)
+	row := ctx.TenantDB().QueryRow(queryUser, email)
 
 	// Save the resulted query on the User struct
 	err = row.Scan(&user.UUID, &user.Email, &user.Password, &user.IsAdmin)
