@@ -18,7 +18,7 @@ package cluster
 
 func addMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, accessKey string, secretKey string) error {
 	// get an admin with operator keys
-	adminClient, pErr := NewAdminClient(sgt.Address(), tenantConf.AccessKey, tenantConf.SecretKey)
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
 		return pErr.Cause
 	}
@@ -32,7 +32,7 @@ func addMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, acce
 
 func addMinioCannedPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, accessKey string, policy string) error {
 	// get an admin with operator keys
-	adminClient, pErr := NewAdminClient(sgt.Address(), tenantConf.AccessKey, tenantConf.SecretKey)
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
 		return pErr.Cause
 	}

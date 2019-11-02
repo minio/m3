@@ -250,6 +250,14 @@ func (sgt *StorageGroupTenant) Address() string {
 	return fmt.Sprintf("%s:%d", sgt.ServiceName, sgt.Port)
 }
 
+// Address returns the address where the tenant is located on the storage group with the http protocol in the url
+func (sgt *StorageGroupTenant) HTTPAddress(ssl bool) string {
+	if ssl {
+		return fmt.Sprintf("https://%s:%d", sgt.ServiceName, sgt.Port)
+	}
+	return fmt.Sprintf("http://%s:%d", sgt.ServiceName, sgt.Port)
+}
+
 type TenantRoute struct {
 	ShortName   string
 	Port        int32
