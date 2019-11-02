@@ -32,7 +32,6 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	// TODO: validate credentials: username->email, tenant->shortname?
 	tenantName := in.GetCompany()
 	email := in.GetEmail()
-	pwd := in.GetPassword()
 
 	// Search for the tenant on the database
 	tenant, err := cluster.GetTenant(tenantName)
