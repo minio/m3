@@ -14,13 +14,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package portal
+package main
 
-// hostConfig configuration of a host.
-type hostConfigV9 struct {
-	URL       string `json:"url"`
-	AccessKey string `json:"accessKey"`
-	SecretKey string `json:"secretKey"`
-	API       string `json:"api"`
-	Lookup    string `json:"lookup"`
+import "github.com/minio/cli"
+
+// list files and folders.
+var tenantUserCmd = cli.Command{
+	Name:   "user",
+	Usage:  "user subcommands",
+	Action: showTenantUserHelp,
+	Subcommands: []cli.Command{
+		tenantAddUserCmd,
+	},
+}
+
+func showTenantUserHelp(ctx *cli.Context) error {
+	return cli.ShowAppHelp(ctx)
 }

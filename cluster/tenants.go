@@ -17,16 +17,15 @@
 package cluster
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
 
 	"github.com/golang-migrate/migrate/v4"
-	pq "github.com/lib/pq"
 	"github.com/minio/minio-go/v6"
 	uuid "github.com/satori/go.uuid"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type Tenant struct {
@@ -41,23 +40,22 @@ type AddTenantResult struct {
 }
 
 func AddTenant(name string, shortName string) error {
-	db := GetInstance().Db
-	bgCtx := context.Background()
-	// Add the tenant within a transaction in case anything goes wrong during the adding process
-	tx, err := db.BeginTx(bgCtx, nil)
+	// Start app context
+	ctx, err := NewContext(shortName)
 	if err != nil {
 		return err
 	}
 
-	ctx := NewContext(bgCtx, tx)
-
 	// register the tenant
 	tenantResult := <-InsertTenant(ctx, name, shortName)
 	if tenantResult.Error != nil {
-		tx.Rollback()
+		ctx.Rollback()
 		return tenantResult.Error
 	}
 	fmt.Println(fmt.Sprintf("Registered as tenant %s\n", tenantResult.Tenant.ID.String()))
+
+	// Create tenant namespace
+	namespaceCh := createTenantNamespace(shortName)
 
 	// provision the tenant schema and run the migrations
 	tenantSchemaCh := ProvisionTenantDB(shortName)
@@ -78,30 +76,37 @@ func AddTenant(name string, shortName string) error {
 
 	if sg.Error != nil {
 		fmt.Println("There was an error adding the tenant, no storage group available.", sg.Error)
-		tx.Rollback()
+		ctx.Rollback()
 		return nil
 	}
 	// provision the tenant on that cluster
 	err = <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sg.StorageGroup)
 	if err != nil {
-		tx.Rollback()
+		ctx.Rollback()
 		return err
 	}
 	// check if we were able to provision the schema and be done running the migrations
 	err = <-tenantSchemaCh
 	if err != nil {
-		tx.Rollback()
+		ctx.Rollback()
 		return err
 	}
 	// announce the tenant on the router
 	err = <-UpdateNginxConfiguration(ctx)
 	if err != nil {
-		tx.Rollback()
+		ctx.Rollback()
+		return err
+	}
+
+	// wait for the tenant namespace to finish creating
+	err = <-namespaceCh
+	if err != nil {
+		ctx.Rollback()
 		return err
 	}
 
 	// if no error happened to this point
-	err = tx.Commit()
+	err = ctx.Commit()
 	return err
 }
 
@@ -122,14 +127,21 @@ func InsertTenant(ctx *Context, tenantName string, tenantShortName string) chan 
 				m3.provisioning.tenants ("id","name","short_name")
 			  VALUES
 				($1, $2, $3)`
-		stmt, err := ctx.Prepare(query)
+		tx, err := ctx.MainTx()
 		if err != nil {
-			log.Fatal(err)
+			ch <- AddTenantResult{Error: err}
+			return
+		}
+		stmt, err := tx.Prepare(query)
+		if err != nil {
+			ch <- AddTenantResult{Error: err}
+			return
 		}
 		defer stmt.Close()
 		_, err = stmt.Exec(tenantID, tenantName, tenantShortName)
 		if err != nil {
-			log.Fatal(err)
+			ch <- AddTenantResult{Error: err}
+			return
 		}
 
 		// return result via channel
@@ -166,7 +178,11 @@ func validTenantShortName(ctx *Context, tenantShortName string) error {
 		WHERE 
 		      short_name=$1`
 	var totalCollisions int
-	row := ctx.QueryRow(checkUniqueQuery, tenantShortName)
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return err
+	}
+	row := tx.QueryRow(checkUniqueQuery, tenantShortName)
 	err = row.Scan(&totalCollisions)
 	if err != nil {
 		fmt.Println(err)
@@ -257,63 +273,6 @@ func MigrateTenantDB(tenantName string) chan error {
 	return ch
 }
 
-// AddUser adds a new user to the tenant's database
-func AddUser(tenantShortName string, userEmail string, userPassword string) error {
-	// validate userEmail
-	if userEmail != "" {
-		// TODO: improve regex
-		var re = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
-		if !re.MatchString(userEmail) {
-			return errors.New("a valid email is needed")
-		}
-	}
-	// validate userPassword
-	if userPassword != "" {
-		// TODO: improve regex or use Go validator
-		var re = regexp.MustCompile(`^[a-zA-Z0-9!@#\$%\^&\*]{8,16}$`)
-		if !re.MatchString(userPassword) {
-			return errors.New("a valid password is needed, minimum 8 characters")
-		}
-	}
-
-	bgCtx := context.Background()
-	db := GetInstance().GetTenantDB(tenantShortName)
-	tx, err := db.BeginTx(bgCtx, nil)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-	ctx := NewContext(bgCtx, tx)
-	// Add parameters to query
-	quoted := pq.QuoteIdentifier(tenantShortName)
-	userID := uuid.NewV4()
-	query := fmt.Sprintf(`
-		INSERT INTO
-				tenants.%s.users ("id","email","password")
-			  VALUES
-				($1,$2,$3)`, quoted)
-	stmt, err := ctx.Tx.Prepare(query)
-	if err != nil {
-		tx.Rollback()
-		log.Fatal(err)
-		return err
-	}
-	defer stmt.Close()
-	// Execute query
-	_, err = ctx.Tx.Exec(query, userID, userEmail, userPassword)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// if no error happened to this point commit transaction
-	err = tx.Commit()
-	if err != nil {
-		return nil
-	}
-	return nil
-}
-
 // MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
 // TODO: allow to spcify the user performing the action (like in the API/gRPC case)
 func MakeBucket(tenantShortName string, bucketName string) error {
@@ -325,35 +284,32 @@ func MakeBucket(tenantShortName string, bucketName string) error {
 		}
 	}
 	// Get Database connection and app Context
-	db := GetInstance().Db
-	bgCtx := context.Background()
-	tx, err := db.BeginTx(bgCtx, nil)
+	ctx, err := NewContext(tenantShortName)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
-
-	ctx := NewContext(bgCtx, tx)
 	// Get in which SG is the tenant located
 	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortName)
+	if sgt.Error != nil {
+		ctx.Rollback()
+		return sgt.Error
+	}
 
 	// Get the credentials for a tenant
 	tenantConf, err := GetTenantConfig(sgt.Tenant.ShortName)
 	if err != nil {
-		tx.Rollback()
+		ctx.Rollback()
 		return err
 	}
 
-	// Build tenant address
-	tenantAddress := fmt.Sprintf("%s:%d", sgt.ServiceName, sgt.Port)
 	// Initialize minio client object.
-	minioClient, err := minio.New(tenantAddress,
+	minioClient, err := minio.New(sgt.Address(),
 		tenantConf.AccessKey,
 		tenantConf.SecretKey,
 		false)
 
 	if err != nil {
-		tx.Rollback()
+		ctx.Rollback()
 		return err
 	}
 
@@ -361,12 +317,56 @@ func MakeBucket(tenantShortName string, bucketName string) error {
 	err = minioClient.MakeBucket(bucketName, "us-east-1")
 
 	if err != nil {
-		tx.Rollback()
+		ctx.Rollback()
 		return err
 	}
-	err = tx.Commit()
+	err = ctx.Commit()
 	if err != nil {
 		return nil
 	}
 	return nil
+}
+
+// createTenantNamespace creates a tenant namespace on k8s, returns a channel that will close
+// upon successful namespace creation or error
+func createTenantNamespace(tenantShortName string) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		clientset, err := k8sClient()
+		if err != nil {
+			ch <- err
+			return
+
+		}
+
+		ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: tenantShortName}}
+
+		_, err = clientset.CoreV1().Namespaces().Create(&ns)
+		if err != nil {
+			ch <- err
+			return
+		}
+	}()
+	return ch
+}
+
+// getTenant gets the Tenant if it exists on the m3.provisining.tenants table
+// search is done by tenant name
+func GetTenant(tenantName string) (tenant Tenant, err error) {
+	query :=
+		`SELECT 
+				t1.id, t1.name, t1.short_name
+			FROM 
+				m3.provisioning.tenants t1
+			WHERE name=$1`
+	// non-transactional query
+	row := GetInstance().Db.QueryRow(query, tenantName)
+
+	// Save the resulted query on the User struct
+	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName)
+	if err != nil {
+		return tenant, err
+	}
+	return tenant, nil
 }

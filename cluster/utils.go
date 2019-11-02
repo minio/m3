@@ -21,9 +21,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
+	"runtime"
+
+	"golang.org/x/crypto/bcrypt"
+
 	"strings"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/minio/minio-go/v6"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Do not use:
@@ -54,7 +60,7 @@ func RandomCharString(n int) string {
 	return s.String()
 }
 
-// GetOperatorCredentialsForTenant returns the access/secret keys for a given tenant
+// GetTenantConfig returns the access/secret keys for a given tenant
 func GetTenantConfig(shortName string) (*TenantConfiguration, error) {
 	clientset, err := k8sClient()
 	if err != nil {
@@ -62,7 +68,7 @@ func GetTenantConfig(shortName string) (*TenantConfiguration, error) {
 	}
 	// Get the tenant main secret
 	tenantSecretName := fmt.Sprintf("%s-env", shortName)
-	mainSecret, err := clientset.CoreV1().Secrets("default").Get(tenantSecretName, v1.GetOptions{})
+	mainSecret, err := clientset.CoreV1().Secrets("default").Get(tenantSecretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -80,4 +86,43 @@ func GetTenantConfig(shortName string) (*TenantConfiguration, error) {
 	}
 	// Build configuration
 	return &conf, nil
+}
+
+// newS3Config simply creates a new Config struct using the passed
+// parameters.
+func newS3Config(appName, url string, hostCfg *hostConfigV9) *Config {
+	// We have a valid alias and hostConfig. We populate the
+	// credentials from the match found in the config file.
+	s3Config := new(Config)
+
+	s3Config.AppName = filepath.Base(appName)
+	s3Config.AppVersion = Version
+	s3Config.AppComments = []string{filepath.Base(appName), runtime.GOOS, runtime.GOARCH}
+
+	s3Config.HostURL = url
+	if hostCfg != nil {
+		s3Config.AccessKey = hostCfg.AccessKey
+		s3Config.SecretKey = hostCfg.SecretKey
+		s3Config.Signature = hostCfg.API
+	}
+	s3Config.Lookup = toLookupType(hostCfg.Lookup)
+	return s3Config
+}
+
+// getLookupType returns the minio.BucketLookupType for lookup
+// option entered on the command line
+func toLookupType(s string) minio.BucketLookupType {
+	switch strings.ToLower(s) {
+	case "dns":
+		return minio.BucketLookupDNS
+	case "path":
+		return minio.BucketLookupPath
+	}
+	return minio.BucketLookupAuto
+}
+
+// HashPassword hashes the password one way
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
 }

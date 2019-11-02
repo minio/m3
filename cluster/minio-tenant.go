@@ -30,7 +30,7 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, hostNum string) (v1.Co
 	volumeMounts := []v1.VolumeMount{}
 	tenantContainer := v1.Container{
 		Name:            fmt.Sprintf("%s-minio-%s", sgTenant.Tenant.ShortName, hostNum),
-		Image:           "minio/minio:edge",
+		Image:           "minio/minio:latest",
 		ImagePullPolicy: "IfNotPresent",
 		Args: []string{
 			"server",

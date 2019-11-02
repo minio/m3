@@ -15,6 +15,7 @@ require (
 	github.com/minio/minio v0.0.0-20190920231956-112729386357
 	github.com/minio/minio-go/v6 v6.0.35
 	github.com/satori/go.uuid v1.2.0
+	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 	golang.org/x/tools v0.0.0-20191015150414-f936694f27bf // indirect
 	google.golang.org/grpc v1.20.1
 	k8s.io/api v0.0.0-20190313115550-3c12c96769cc

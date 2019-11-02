@@ -14,24 +14,22 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package cluster
 
 import (
-	"github.com/minio/cli"
+	"github.com/minio/minio-go/v6"
 )
 
-// list files and folders.
-var tenantCmd = cli.Command{
-	Name:   "tenant",
-	Usage:  "tenant commands",
-	Action: tenantDefCmd,
-	Subcommands: []cli.Command{
-		addTenantCmd,
-		tenantMbCmd,
-		tenantUserCmd,
-	},
-}
-
-func tenantDefCmd(ctx *cli.Context) error {
-	return cli.ShowAppHelp(ctx)
+// Config - see http://docs.amazonwebservices.com/AmazonS3/latest/dev/index.html?RESTAuthentication.html
+type Config struct {
+	AccessKey   string
+	SecretKey   string
+	Signature   string
+	HostURL     string
+	AppName     string
+	AppVersion  string
+	AppComments []string
+	Debug       bool
+	Insecure    bool
+	Lookup      minio.BucketLookupType
 }

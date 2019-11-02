@@ -120,8 +120,8 @@ func SelectSGWithSpace(ctx *Context) chan *StorageGroupResult {
 			     m3.provisioning.storage_groups 
 			OFFSET 
 				floor(random() * (SELECT COUNT(*) FROM m3.provisioning.storage_groups)) LIMIT 1;`
-
-		err := ctx.Tx.QueryRow(query).Scan(&id, &name, &num)
+		// non-transactional query as there cannot be a storage group insert along with a read
+		err := GetInstance().Db.QueryRow(query).Scan(&id, &name, &num)
 		if err != nil {
 			ch <- &StorageGroupResult{Error: err}
 			return
@@ -154,7 +154,13 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*Sto
 			LEFT JOIN m3.provisioning.tenants t2
 			ON t1.tenant_id = t2.id
 			WHERE storage_group_id=$1`
-		rows, err := ctx.Tx.Query(query, sg.ID)
+		// Create a transactional query as a list of tenants may be query as a new tenant is being inserted
+		tx, err := ctx.MainTx()
+		if err != nil {
+			return
+		}
+
+		rows, err := tx.Query(query, sg.ID)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -201,7 +207,12 @@ func GetAllTenantRoutes(ctx *Context) chan []*TenantRoute {
 			LEFT JOIN m3.provisioning.tenants t2
 			ON t1.tenant_id = t2.id
 		`
-		rows, err := ctx.Tx.Query(query)
+		// Transactional query tenants may be query as a new one is being inserted
+		tx, err := ctx.MainTx()
+		if err != nil {
+			return
+		}
+		rows, err := tx.Query(query)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -234,6 +245,19 @@ type StorageGroupTenant struct {
 	ServiceName string
 }
 
+// Address returns the address where the tenant is located on the storage group
+func (sgt *StorageGroupTenant) Address() string {
+	return fmt.Sprintf("%s:%d", sgt.ServiceName, sgt.Port)
+}
+
+// Address returns the address where the tenant is located on the storage group with the http protocol in the url
+func (sgt *StorageGroupTenant) HTTPAddress(ssl bool) string {
+	if ssl {
+		return fmt.Sprintf("https://%s:%d", sgt.ServiceName, sgt.Port)
+	}
+	return fmt.Sprintf("http://%s:%d", sgt.ServiceName, sgt.Port)
+}
+
 type TenantRoute struct {
 	ShortName   string
 	Port        int32
@@ -262,9 +286,14 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) 
 		     m3.provisioning.tenants_storage_groups
 		WHERE 
 		      storage_group_id=$1`
+
+		tx, err := ctx.MainTx()
+		if err != nil {
+			return
+		}
 		var totalTenantsCount int32
-		row := ctx.Tx.QueryRow(totalTenantsCountQuery, sg.ID)
-		err := row.Scan(&totalTenantsCount)
+		row := tx.QueryRow(totalTenantsCountQuery, sg.ID)
+		err = row.Scan(&totalTenantsCount)
 		if err != nil {
 			ch <- &StorageGroupTenantResult{
 				Error: err,
@@ -284,7 +313,7 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) 
 				                                          "service_name")
 			  VALUES
 				($1,$2,$3,$4)`
-		_, err = ctx.Tx.Exec(query, tenant.ID, sg.ID, port, serviceName)
+		_, err = tx.Exec(query, tenant.ID, sg.ID, port, serviceName)
 		if err != nil {
 			ch <- &StorageGroupTenantResult{
 				Error: err,
@@ -324,7 +353,7 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 			LEFT JOIN m3.provisioning.storage_groups t3
 			ON t1.storage_group_id = t3.id
 			WHERE t2.short_name=$1 LIMIT 1`
-		rows, err := ctx.Tx.Query(query, tenantShortName)
+		rows, err := GetInstance().Db.Query(query, tenantShortName)
 		if err != nil {
 			ch <- &StorageGroupTenantResult{Error: err}
 			return

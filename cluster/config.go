@@ -14,22 +14,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package portal
+package cluster
 
-import (
-	"github.com/minio/minio-go/v6"
-)
-
-// Config - see http://docs.amazonwebservices.com/AmazonS3/latest/dev/index.html?RESTAuthentication.html
-type Config struct {
-	AccessKey   string
-	SecretKey   string
-	Signature   string
-	HostURL     string
-	AppName     string
-	AppVersion  string
-	AppComments []string
-	Debug       bool
-	Insecure    bool
-	Lookup      minio.BucketLookupType
+// hostConfig configuration of a host.
+type hostConfigV9 struct {
+	URL       string `json:"url"`
+	AccessKey string `json:"accessKey"`
+	SecretKey string `json:"secretKey"`
+	API       string `json:"api"`
+	Lookup    string `json:"lookup"`
 }
