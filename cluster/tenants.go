@@ -46,6 +46,14 @@ func AddTenant(name string, shortName string) error {
 		return err
 	}
 
+	// first find a cluster where to allocate the tenant
+	sg := <-SelectSGWithSpace(ctx)
+	if sg.Error != nil {
+		fmt.Println("There was an error adding the tenant, no storage group available.", sg.Error)
+		ctx.Rollback()
+		return nil
+	}
+
 	// register the tenant
 	tenantResult := <-InsertTenant(ctx, name, shortName)
 	if tenantResult.Error != nil {
@@ -60,9 +68,6 @@ func AddTenant(name string, shortName string) error {
 	// provision the tenant schema and run the migrations
 	tenantSchemaCh := ProvisionTenantDB(shortName)
 
-	// find a cluster where to allocate the tenant
-	sg := <-SelectSGWithSpace(ctx)
-
 	// Generate the Tenant's Access/Secret key and operator
 	tenantConfig := TenantConfiguration{
 		AccessKey: RandomCharString(16),
@@ -74,25 +79,22 @@ func AddTenant(name string, shortName string) error {
 		return err
 	}
 
-	if sg.Error != nil {
-		fmt.Println("There was an error adding the tenant, no storage group available.", sg.Error)
-		ctx.Rollback()
-		return nil
-	}
 	// provision the tenant on that cluster
 	err = <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sg.StorageGroup)
 	if err != nil {
 		ctx.Rollback()
 		return err
 	}
+	// announce the tenant on the router
+	nginxCh := UpdateNginxConfiguration(ctx)
 	// check if we were able to provision the schema and be done running the migrations
 	err = <-tenantSchemaCh
 	if err != nil {
 		ctx.Rollback()
 		return err
 	}
-	// announce the tenant on the router
-	err = <-UpdateNginxConfiguration(ctx)
+	// wait for router
+	err = <-nginxCh
 	if err != nil {
 		ctx.Rollback()
 		return err
@@ -220,6 +222,32 @@ func CreateTenantSchema(tenantName string) error {
 	return nil
 }
 
+// DestroyTenantSchema will drop the tenant schema from the DB.
+func DestroyTenantSchema(tenantName string) error {
+
+	// get the DB connection for the tenant
+	db := GetInstance().GetTenantDB(tenantName)
+
+	// Since we cannot parametrize the tenant name into create schema
+	// we are going to validate the tenant name
+	r, err := regexp.Compile(`^[a-z0-9-]{2,64}$`)
+	if err != nil {
+		return err
+	}
+	if !r.MatchString(tenantName) {
+		return errors.New("not a valid tenant name")
+	}
+
+	// format in the tenant name assuming it's safe
+	query := fmt.Sprintf(`DROP SCHEMA %s CASCADE`, tenantName)
+
+	_, err = db.Exec(query)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // ProvisionTenantDB runs the tenant migrations for the provided tenant
 func ProvisionTenantDB(tenantName string) chan error {
 	ch := make(chan error)
@@ -232,6 +260,19 @@ func ProvisionTenantDB(tenantName string) chan error {
 		}
 		// second run the migrations
 		err = <-MigrateTenantDB(tenantName)
+		if err != nil {
+			ch <- err
+		}
+	}()
+	return ch
+}
+
+// DeleteTenantDB returns a channel that will close once the schema is deleted
+func DeleteTenantDB(tenantName string) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		err := DestroyTenantSchema(tenantName)
 		if err != nil {
 			ch <- err
 		}
@@ -369,4 +410,175 @@ func GetTenant(tenantName string) (tenant Tenant, err error) {
 		return tenant, err
 	}
 	return tenant, nil
+}
+
+// DeleteTenant runs all the logic to remove a tenant from the cluster.
+// It will delete everything, from schema, to the secrets, all data of that tenant will be lost, except the data on the
+// disk.
+// TODO: Remove the tenant data from the disk
+func DeleteTenant(tenantShortName string) error {
+	// Start app context
+	ctx, err := NewContext(tenantShortName)
+	if err != nil {
+		return err
+	}
+
+	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortName)
+
+	if sgt.Error != nil {
+		return sgt.Error
+	}
+
+	if sgt.StorageGroupTenant == nil {
+		return errors.New("tenant not found in database")
+	}
+
+	// delete database records
+	recordsCh := DeleteTenantRecord(ctx, tenantShortName)
+	// delete tenant schema
+
+	schemaCh := DeleteTenantDB(tenantShortName)
+
+	// purge connection from pool
+
+	GetInstance().RemoveCnx(tenantShortName)
+
+	//delete namesapce
+	nsDeleteCh := deleteTenantNamespace(tenantShortName)
+
+	//delete service
+
+	svcCh := DeleteTenantServiceInStorageGroup(sgt.StorageGroupTenant)
+
+	// wait for record deletion
+	err = <-recordsCh
+	if err != nil {
+		fmt.Println("Error deleting database records", err)
+	}
+
+	// announce the tenant on the router
+	nginxCh := UpdateNginxConfiguration(ctx)
+
+	// redeploy sg
+	sgRefreshCh := ReDeployStorageGroup(ctx, sgt.StorageGroupTenant)
+
+	// wait for deployment refresh
+	err = <-sgRefreshCh
+	if err != nil {
+		fmt.Println("Error updating deployments", err)
+	}
+
+	//delete secret
+
+	secretCh := DeleteTenantSecrets(tenantShortName)
+
+	// wait for schema deletion
+	err = <-schemaCh
+	if err != nil {
+		fmt.Println("Error deleting schema", err)
+	}
+
+	// wait for namespace deletion
+	err = <-nsDeleteCh
+	if err != nil {
+		fmt.Println("Error deleting namespace", err)
+	}
+
+	// wait for service deletion
+	err = <-svcCh
+	if err != nil {
+		fmt.Println("Error deleting service", err)
+	}
+
+	// wait for secret deletion
+	err = <-secretCh
+	if err != nil {
+		fmt.Println("Error deleting secret", err)
+	}
+	// wait for router
+	err = <-nginxCh
+	if err != nil {
+		fmt.Println("error updating router", err)
+	}
+
+	// if no error happened to this point
+	err = ctx.Commit()
+	return err
+}
+
+// DeleteTenantRecord unregisters a tenant from the main DB tenants table,
+// rendering the tenant invisible to the cluster.
+func DeleteTenantRecord(ctx *Context, tenantShortName string) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		// delete storage group references
+		query :=
+			`DELETE FROM 
+				m3.provisioning.tenants_storage_groups t1
+			  WHERE
+			  t1.tenant_id IN (SELECT id FROM m3.provisioning.tenants WHERE short_name=$1 )`
+		tx, err := ctx.MainTx()
+		if err != nil {
+			ch <- err
+			return
+		}
+		stmt, err := tx.Prepare(query)
+		if err != nil {
+			ch <- err
+			return
+		}
+		defer stmt.Close()
+		_, err = stmt.Exec(tenantShortName)
+		if err != nil {
+			ch <- err
+			return
+		}
+
+		// Now delete tenant record
+
+		query =
+			`DELETE FROM 
+				m3.provisioning.tenants
+			  WHERE
+			  short_name=$1`
+		tx, err = ctx.MainTx()
+		if err != nil {
+			ch <- err
+			return
+		}
+		stmt, err = tx.Prepare(query)
+		if err != nil {
+			ch <- err
+			return
+		}
+		defer stmt.Close()
+		_, err = stmt.Exec(tenantShortName)
+		if err != nil {
+			ch <- err
+			return
+		}
+	}()
+	return ch
+}
+
+// deleteTenantNamespace deletes a tenant namespace on k8s
+func deleteTenantNamespace(tenantShortName string) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		clientset, err := k8sClient()
+		if err != nil {
+			ch <- err
+			return
+
+		}
+
+		err = clientset.CoreV1().Namespaces().Delete(tenantShortName, nil)
+		if err != nil {
+			ch <- err
+			return
+		}
+	}()
+	return ch
 }

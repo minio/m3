@@ -162,9 +162,12 @@ func DeleteNginxLBDeployment(clientset *kubernetes.Clientset, deploymentName, ap
 //
 // N B If an nginx-resolver is already running we delete the deployment and create a
 // new one that reads the updated rules.
-func DeployNginxResolver(shouldUpdate bool) {
+func DeployNginxResolver(shouldUpdate bool) error {
 	// creates the clientset
 	clientset, err := k8sClient()
+	if err != nil {
+		return err
+	}
 	if shouldUpdate {
 		// Delete nginx-resolver deployment and wait until all its pods
 		// are deleted too. This is to ensure that the creation of the
@@ -176,14 +179,15 @@ func DeployNginxResolver(shouldUpdate bool) {
 
 		fmt.Println("creating nginx-resolver deployment with updated rules")
 		if _, err = extV1beta1API(clientset).Deployments("default").Create(&nginxLBDeployment); err != nil {
-			panic(err.Error())
+			return err
 		}
 	} else {
 		if _, err = extV1beta1API(clientset).Deployments("default").Create(&nginxLBDeployment); err != nil {
-			panic(err.Error())
+			return err
 		}
 	}
 	fmt.Println("done creating nginx-resolver deployment ")
+	return nil
 }
 
 // UpdateNginxConfiguration Update the nginx.conf ConfigMap used by the nginx-resolver service
