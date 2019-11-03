@@ -19,7 +19,6 @@ package cluster
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -538,68 +537,55 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 				}
 
 				// determine what containers are to be removed
-				var containersToRemove []int
+				var newContainers []v1.Container
 				containerSet := make(map[string]bool)
-				for i, cont := range currPodSpec.Containers {
-					// mark the tenant container as existing on the deployment
-					containerSet[cont.Name] = true
+				for _, cont := range currPodSpec.Containers {
 					// check if the first part of the container is in the tenantSet
 					containerNameParts := strings.Split(cont.Name, "-")
-					if _, ok := tenantsSet[containerNameParts[0]]; !ok {
-						// is not in the tenant set, remove
-						containersToRemove = append(containersToRemove, i)
-					}
-				}
-				// sort descending
-				sort.Slice(containersToRemove, func(i, j int) bool {
-					return containersToRemove[i] > containersToRemove[j]
-				})
-				// remove containers from back to start to respect indexes
-				for index := range containersToRemove {
-					if len(currPodSpec.Containers)-1 == 0 {
-						currPodSpec.Containers = make([]v1.Container, 0)
-					} else {
-						currPodSpec.Containers = append(currPodSpec.Containers[:index], currPodSpec.Containers[index+1:]...)
-					}
-				}
-				// determine whether to add the container
-				for _, tContainer := range tenantContainers {
-					if _, ok := containerSet[tContainer.Name]; !ok {
-						currPodSpec.Containers = append(currPodSpec.Containers, tContainer)
+					if _, ok := tenantsSet[containerNameParts[0]]; ok {
+						// it is, keep it, make sure we dont have this container already
+						if _, ok := containerSet[cont.Name]; !ok {
+							// mark the tenant container as existing on the deployment
+							containerSet[cont.Name] = true
+							newContainers = append(newContainers, cont)
+						}
 					}
 				}
 
+				// determine whether to add the container
+				for _, tContainer := range tenantContainers {
+					if _, ok := containerSet[tContainer.Name]; !ok {
+						newContainers = append(newContainers, tContainer)
+					}
+				}
+				// set the new containers
+				currPodSpec.Containers = newContainers
+
 				//determine which volumes to remove
-				var volumesToRemove []int
+				var newVolumes []v1.Volume
 				volumeSet := make(map[string]bool)
-				for i, vol := range currPodSpec.Volumes {
-					// mark the volume as existing on the deployment
-					volumeSet[vol.Name] = true
-					// check if the first part of the volume is in the tenantSet
+				for _, vol := range currPodSpec.Volumes {
+					// check if the first part of the volume is in the tenantSet, means we still have the tenant
 					volumeNameParts := strings.Split(vol.Name, "-")
-					if _, ok := tenantsSet[volumeNameParts[0]]; !ok {
-						// is not in the volume set, remove
-						volumesToRemove = append(volumesToRemove, i)
+					if _, ok := tenantsSet[volumeNameParts[0]]; ok {
+						// it is, keep it, check if we have not added this already (avoid duplicates)
+						if _, ok := volumeSet[vol.Name]; !ok {
+							volumeSet[vol.Name] = true
+							newVolumes = append(newVolumes, vol)
+						}
+
 					}
 				}
-				// sort descending
-				sort.Slice(volumesToRemove, func(i, j int) bool {
-					return volumesToRemove[i] > volumesToRemove[j]
-				})
-				// remove containers from back to start to respect indexes
-				for index := range volumesToRemove {
-					if len(currPodSpec.Containers)-1 <= 0 {
-						currPodSpec.Volumes = make([]v1.Volume, 0)
-					} else {
-						currPodSpec.Volumes = append(currPodSpec.Volumes[:index], currPodSpec.Volumes[index+1:]...)
-					}
-				}
+
 				// determine which volumes to add
 				for _, vol := range tenantVolumes {
+					//check if we have not added this already (avoid duplicates)
 					if _, ok := volumeSet[vol.Name]; !ok {
-						currPodSpec.Volumes = append(currPodSpec.Volumes, vol)
+						volumeSet[vol.Name] = true
+						newVolumes = append(newVolumes, vol)
 					}
 				}
+				currPodSpec.Volumes = newVolumes
 
 				// Set deployment with the updated pod spec
 				deployment.Spec.Template.Spec = currPodSpec

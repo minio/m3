@@ -29,8 +29,9 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, hostNum string) (v1.Co
 	envName := fmt.Sprintf("%s-env", sgTenant.ShortName)
 	volumeMounts := []v1.VolumeMount{}
 	tenantContainer := v1.Container{
-		Name:            fmt.Sprintf("%s-minio-%s", sgTenant.Tenant.ShortName, hostNum),
-		Image:           "minio/minio:latest",
+		Name:  fmt.Sprintf("%s-minio-%s", sgTenant.Tenant.ShortName, hostNum),
+		Image: "minio/minio:RELEASE.2019-10-12T01-39-57Z",
+		//Image:           "minio/minio:latest",
 		ImagePullPolicy: "IfNotPresent",
 		Args: []string{
 			"server",
