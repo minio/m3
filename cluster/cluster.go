@@ -528,56 +528,66 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 				return
 			default: // A deployment is present in the storage cluster, UPDATE it with new tenant containers and volumes
 				currPodSpec := deployment.Spec.Template.Spec
-				// Add tenant containers and volumes to the current pod spec
-				tenantContainer, tenantVolumes := mkTenantMinioContainer(sgTenant, hostNum)
+				// Determine the list of desired containers and volumes
+				var tenantContainers []v1.Container
+				var tenantVolumes []v1.Volume
+				for _, sgTenant := range tenants {
+					tenantContainer, tenantVolume := mkTenantMinioContainer(sgTenant, hostNum)
+					tenantContainers = append(tenantContainers, tenantContainer)
+					tenantVolumes = append(tenantVolumes, tenantVolume...)
+				}
 
 				// determine what containers are to be removed
-				var removContainers []int
+				var containersToRemove []int
 				containerSet := make(map[string]bool)
 				for i, cont := range currPodSpec.Containers {
-					// mark the tenant container
+					// mark the tenant container as existing on the deployment
 					containerSet[cont.Name] = true
 					// check if the first part of the container is in the tenantSet
 					containerNameParts := strings.Split(cont.Name, "-")
 					if _, ok := tenantsSet[containerNameParts[0]]; !ok {
 						// is not in the tenant set, remove
-						removContainers = append(removContainers, i)
+						containersToRemove = append(containersToRemove, i)
 					}
 				}
 				// sort descending
-				sort.Slice(removContainers, func(i, j int) bool {
-					return removContainers[i] > removContainers[j]
+				sort.Slice(containersToRemove, func(i, j int) bool {
+					return containersToRemove[i] > containersToRemove[j]
 				})
 				// remove containers from back to start to respect indexes
-				for index := range removContainers {
+				for index := range containersToRemove {
 					if len(currPodSpec.Containers)-1 == 0 {
 						currPodSpec.Containers = make([]v1.Container, 0)
 					} else {
 						currPodSpec.Containers = append(currPodSpec.Containers[:index], currPodSpec.Containers[index+1:]...)
 					}
 				}
-				// determine wether to add the container
-				if _, ok := containerSet[tenantContainer.Name]; !ok {
-					currPodSpec.Containers = append(currPodSpec.Containers, tenantContainer)
+				// determine whether to add the container
+				for _, tContainer := range tenantContainers {
+					if _, ok := containerSet[tContainer.Name]; !ok {
+						currPodSpec.Containers = append(currPodSpec.Containers, tContainer)
+					}
 				}
+
 				//determine which volumes to remove
-				var removVolumes []int
+				var volumesToRemove []int
 				volumeSet := make(map[string]bool)
 				for i, vol := range currPodSpec.Volumes {
+					// mark the volume as existing on the deployment
 					volumeSet[vol.Name] = true
 					// check if the first part of the volume is in the tenantSet
 					volumeNameParts := strings.Split(vol.Name, "-")
 					if _, ok := tenantsSet[volumeNameParts[0]]; !ok {
-						// is not in the tenant set, remove
-						removVolumes = append(removVolumes, i)
+						// is not in the volume set, remove
+						volumesToRemove = append(volumesToRemove, i)
 					}
 				}
 				// sort descending
-				sort.Slice(removVolumes, func(i, j int) bool {
-					return removVolumes[i] > removVolumes[j]
+				sort.Slice(volumesToRemove, func(i, j int) bool {
+					return volumesToRemove[i] > volumesToRemove[j]
 				})
 				// remove containers from back to start to respect indexes
-				for index := range removVolumes {
+				for index := range volumesToRemove {
 					if len(currPodSpec.Containers)-1 <= 0 {
 						currPodSpec.Volumes = make([]v1.Volume, 0)
 					} else {
