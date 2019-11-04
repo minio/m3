@@ -17,22 +17,32 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/minio/cli"
 	"github.com/minio/m3/cluster"
 )
 
 // list files and folders.
-var clusterCmd = cli.Command{
-	Name:   "cluster",
-	Usage:  "runs cluster commands",
-	Action: listPodsCmd,
-	Subcommands: []cli.Command{
-		storageClusterCmd,
-		clusterRouterCmd,
-	},
+var routerRefreshCmd = cli.Command{
+	Name:   "refresh",
+	Usage:  "redeploys the cluster router",
+	Action: routerRefresh,
 }
 
-func listPodsCmd(ctx *cli.Context) error {
-	cluster.ListPods()
+// Adds a Storage Group to house multiple tenants
+func routerRefresh(ctx *cli.Context) error {
+	fmt.Println("Refreshing Router")
+	appCtx, err := cluster.NewContext("none")
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	err = <-cluster.UpdateNginxConfiguration(appCtx)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
 	return nil
 }

@@ -17,7 +17,6 @@
 package cluster
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -375,74 +374,6 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGrou
 		err := <-ReDeployStorageGroup(ctx, sgTenantResult.StorageGroupTenant)
 		if err != nil {
 			ch <- err
-		}
-
-	}()
-	return ch
-}
-
-// UpdateNginxConfiguration Update the nginx.conf ConfigMap used by the nginx-resolver service
-func UpdateNginxConfiguration(ctx *Context) chan error {
-	ch := make(chan error)
-	go func() {
-		defer close(ch)
-		tenantRoutes := <-GetAllTenantRoutes(ctx)
-		// creates the clientset
-		clientset, err := k8sClient()
-		if err != nil {
-			ch <- err
-			return
-		}
-		var nginxConfiguration bytes.Buffer
-		nginxConfiguration.WriteString(`
-user nginx;
-worker_processes auto;
-error_log /dev/stdout debug;
-pid /var/run/nginx.pid;
-
-events {
-	worker_connections  1024;
-}
-
-http {
-
-		`)
-		for index := 0; index < len(tenantRoutes); index++ {
-			tenantRoute := tenantRoutes[index]
-			serverBlock := fmt.Sprintf(`
-	server {
-		server_name %s.s3.localhost;
-		location / {
-			proxy_pass http://%s:%d;
-		}
-	}
-
-			`, tenantRoute.ShortName, tenantRoute.ServiceName, tenantRoute.Port)
-			nginxConfiguration.WriteString(serverBlock)
-		}
-		nginxConfiguration.WriteString(`
-}
-		`)
-
-		configMap := v1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "nginx-configuration",
-			},
-			Data: map[string]string{
-				"nginx.conf": nginxConfiguration.String(),
-			},
-		}
-		fmt.Println(nginxConfiguration.String())
-		resConfigMap, err := clientset.CoreV1().ConfigMaps("default").Update(&configMap)
-		if err != nil {
-			panic(err.Error())
-		}
-		fmt.Println(resConfigMap.String())
-
-		err = <-ReDeployNginxResolver(ctx)
-		if err != nil {
-			ch <- err
-			return
 		}
 
 	}()
