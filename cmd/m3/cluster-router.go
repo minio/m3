@@ -18,21 +18,18 @@ package main
 
 import (
 	"github.com/minio/cli"
-	"github.com/minio/m3/cluster"
 )
 
 // list files and folders.
-var clusterCmd = cli.Command{
-	Name:   "cluster",
-	Usage:  "runs cluster commands",
-	Action: listPodsCmd,
+var clusterRouterCmd = cli.Command{
+	Name:   "router",
+	Usage:  "Router sub commands",
+	Action: showRouterHelp,
 	Subcommands: []cli.Command{
-		storageClusterCmd,
-		clusterRouterCmd,
+		routerRefreshCmd,
 	},
 }
 
-func listPodsCmd(ctx *cli.Context) error {
-	cluster.ListPods()
-	return nil
+func showRouterHelp(ctx *cli.Context) error {
+	return cli.ShowAppHelp(ctx)
 }

@@ -17,6 +17,7 @@
 package cluster
 
 import (
+	"bytes"
 	"fmt"
 
 	v1 "k8s.io/api/core/v1"
@@ -183,4 +184,78 @@ func DeployNginxResolver(shouldUpdate bool) {
 		}
 	}
 	fmt.Println("done creating nginx-resolver deployment ")
+}
+
+// UpdateNginxConfiguration Update the nginx.conf ConfigMap used by the nginx-resolver service
+func UpdateNginxConfiguration(ctx *Context) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		tenantRoutes := <-GetAllTenantRoutes(ctx)
+		// creates the clientset
+		clientset, err := k8sClient()
+		if err != nil {
+			ch <- err
+			return
+		}
+		var nginxConfiguration bytes.Buffer
+		nginxConfiguration.WriteString(`
+user nginx;
+worker_processes auto;
+error_log /dev/stdout debug;
+pid /var/run/nginx.pid;
+
+events {
+	worker_connections  1024;
+}
+
+http {
+log_format  main  '$http_host - $remote_addr - $remote_user [$time_local] "$request" '
+                               '$status $body_bytes_sent "$http_referer" '
+                               '"$http_user_agent" "$http_x_forwarded_for"';
+	server {
+		#listen 80 default_server;
+		#listen 443 ssl default_server;
+		server_name _ ;
+		return 404;
+	}
+		`)
+		for index := 0; index < len(tenantRoutes); index++ {
+			tenantRoute := tenantRoutes[index]
+			serverBlock := fmt.Sprintf(`
+	server {
+		server_name %s.s3.localhost;
+		location / {
+			proxy_pass http://%s:%d;
+		}
+	}
+
+			`, tenantRoute.ShortName, tenantRoute.ServiceName, tenantRoute.Port)
+			nginxConfiguration.WriteString(serverBlock)
+		}
+		nginxConfiguration.WriteString(`
+}
+		`)
+
+		configMap := v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "nginx-configuration",
+			},
+			Data: map[string]string{
+				"nginx.conf": nginxConfiguration.String(),
+			},
+		}
+		_, err = clientset.CoreV1().ConfigMaps("default").Update(&configMap)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		err = <-ReDeployNginxResolver(ctx)
+		if err != nil {
+			ch <- err
+			return
+		}
+
+	}()
+	return ch
 }
