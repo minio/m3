@@ -27,7 +27,20 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-func CreateSession(ctx *Context, userID uuid.UUID, tenantID uuid.UUID) (*string, error) {
+const (
+	sessionExpirationTime = time.Minute * 5
+)
+
+type Session struct {
+	ID        string
+	UserID    uuid.UUID
+	TenantID  uuid.UUID
+	OcurredAt time.Time
+	ExpiresAt time.Time
+	Status    string
+}
+
+func CreateSession(ctx *Context, userID uuid.UUID, tenantID uuid.UUID) (*Session, error) {
 	// Set query parameters
 	// Insert a new session with random string as id
 	sessionID, err := GetRandString(32, "sha256")
@@ -37,19 +50,27 @@ func CreateSession(ctx *Context, userID uuid.UUID, tenantID uuid.UUID) (*string,
 
 	query :=
 		`INSERT INTO
-				m3.provisioning.sessions ("id","user_id", "tenant_id", "occurred_at")
+				m3.provisioning.sessions ("id","user_id", "tenant_id", "occurred_at", "expires_at", "status")
 			  VALUES
-				($1,$2,$3,$4)`
+				($1,$2,$3,$4,$5,$6)`
 	tx, err := ctx.MainTx()
 	if err != nil {
 		return nil, err
 	}
+	newSession := &Session{
+		ID:        sessionID,
+		UserID:    userID,
+		TenantID:  tenantID,
+		OcurredAt: time.Now(),
+		ExpiresAt: time.Now().Add(sessionExpirationTime),
+		Status:    "valid",
+	}
 	// Execute Query
-	_, err = tx.Exec(query, sessionID, userID, tenantID, time.Now())
+	_, err = tx.Exec(query, newSession.ID, newSession.UserID, newSession.TenantID, newSession.OcurredAt, newSession.ExpiresAt, newSession.Status)
 	if err != nil {
 		return nil, err
 	}
-	return &sessionID, nil
+	return newSession, nil
 }
 
 // GetRandString generates a random string with the defined size length
