@@ -29,6 +29,7 @@ var tenantCmd = cli.Command{
 		addTenantCmd,
 		tenantMbCmd,
 		tenantUserCmd,
+		tenantDeleteCmd,
 	},
 }
 

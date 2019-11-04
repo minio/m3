@@ -19,7 +19,6 @@ package cluster
 import (
 	"errors"
 	"fmt"
-	"log"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -85,7 +84,6 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UU
 	stmt, err := tx.Prepare(query)
 	if err != nil {
 		ctx.Rollback()
-		log.Fatal(err)
 		return err
 	}
 	defer stmt.Close()

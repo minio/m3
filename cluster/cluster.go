@@ -485,12 +485,19 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sg *StorageGroup, hostNumbe
 // Based on the current list of tenants for the `StorageGroup` it re-deploys it.
 func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan error {
 	ch := make(chan error)
-	sg := sgTenant.StorageGroup
+
 	go func() {
 		defer close(ch)
+		if sgTenant == nil {
+			ch <- errors.New("invalid empty Storage group Tenant")
+		}
+		sg := sgTenant.StorageGroup
 		tenants := <-GetListOfTenantsForStorageGroup(ctx, sg)
-		if len(tenants) == 0 {
-			return
+
+		// we build a set to keep track of existing tenants in this SG
+		tenantsSet := make(map[string]bool)
+		for _, tenant := range tenants {
+			tenantsSet[tenant.Tenant.ShortName] = true
 		}
 
 		// creates the clientset
@@ -520,15 +527,81 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 				return
 			default: // A deployment is present in the storage cluster, UPDATE it with new tenant containers and volumes
 				currPodSpec := deployment.Spec.Template.Spec
-				// Add tenant containers and volumes to the current pod spec
-				tenantContainer, tenantVolumes := mkTenantMinioContainer(sgTenant, hostNum)
-				currPodSpec.Containers = append(currPodSpec.Containers, tenantContainer)
-				currPodSpec.Volumes = append(currPodSpec.Volumes, tenantVolumes...)
+				// Determine the list of desired containers and volumes
+				var tenantContainers []v1.Container
+				var tenantVolumes []v1.Volume
+				for _, sgTenant := range tenants {
+					tenantContainer, tenantVolume := mkTenantMinioContainer(sgTenant, hostNum)
+					tenantContainers = append(tenantContainers, tenantContainer)
+					tenantVolumes = append(tenantVolumes, tenantVolume...)
+				}
+
+				// determine what containers are to be removed
+				var newContainers []v1.Container
+				containerSet := make(map[string]bool)
+				for _, cont := range currPodSpec.Containers {
+					// check if the first part of the container is in the tenantSet
+					containerNameParts := strings.Split(cont.Name, "-")
+					if _, ok := tenantsSet[containerNameParts[0]]; ok {
+						// it is, keep it, make sure we dont have this container already
+						if _, ok := containerSet[cont.Name]; !ok {
+							// mark the tenant container as existing on the deployment
+							containerSet[cont.Name] = true
+							newContainers = append(newContainers, cont)
+						}
+					}
+				}
+
+				// determine whether to add the container
+				for _, tContainer := range tenantContainers {
+					if _, ok := containerSet[tContainer.Name]; !ok {
+						newContainers = append(newContainers, tContainer)
+					}
+				}
+				// set the new containers
+				currPodSpec.Containers = newContainers
+
+				//determine which volumes to remove
+				var newVolumes []v1.Volume
+				volumeSet := make(map[string]bool)
+				for _, vol := range currPodSpec.Volumes {
+					// check if the first part of the volume is in the tenantSet, means we still have the tenant
+					volumeNameParts := strings.Split(vol.Name, "-")
+					if _, ok := tenantsSet[volumeNameParts[0]]; ok {
+						// it is, keep it, check if we have not added this already (avoid duplicates)
+						if _, ok := volumeSet[vol.Name]; !ok {
+							volumeSet[vol.Name] = true
+							newVolumes = append(newVolumes, vol)
+						}
+
+					}
+				}
+
+				// determine which volumes to add
+				for _, vol := range tenantVolumes {
+					//check if we have not added this already (avoid duplicates)
+					if _, ok := volumeSet[vol.Name]; !ok {
+						volumeSet[vol.Name] = true
+						newVolumes = append(newVolumes, vol)
+					}
+				}
+				currPodSpec.Volumes = newVolumes
+
 				// Set deployment with the updated pod spec
 				deployment.Spec.Template.Spec = currPodSpec
-				if _, err = clientset.ExtensionsV1beta1().Deployments("default").Update(deployment); err != nil {
-					ch <- err
-					return
+				// if the deployment ends up being empty (0 containers) delete it
+				if len(currPodSpec.Containers) == 0 {
+					//TODO: Set an informer and don't continue until this is complete
+					if err = clientset.ExtensionsV1beta1().Deployments("default").Delete(deployment.ObjectMeta.Name, nil); err != nil {
+						ch <- err
+						return
+					}
+				} else {
+					//TODO: Set an informer and don't continue until this is complete
+					if _, err = clientset.ExtensionsV1beta1().Deployments("default").Update(deployment); err != nil {
+						ch <- err
+						return
+					}
 				}
 
 			}
@@ -543,6 +616,50 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 			//		return
 			//	}
 			//}
+		}
+	}()
+	return ch
+}
+
+//DeleteTenantServiceInStorageGroup will remove a tenant service from a specified Storage Group
+func DeleteTenantServiceInStorageGroup(sgt *StorageGroupTenant) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		// creates the clientset
+		clientset, err := k8sClient()
+		if err != nil {
+			ch <- err
+		}
+		serviceName := fmt.Sprintf("%s-sg-%d", sgt.Tenant.ShortName, sgt.StorageGroup.Num)
+
+		err = clientset.CoreV1().Services("default").Delete(serviceName, nil)
+		if err != nil {
+			ch <- err
+		}
+	}()
+	return ch
+
+}
+
+// DeleteTenantSecrets removes the tenant main secret. It's operator key will be lost.
+func DeleteTenantSecrets(tenantShortName string) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		// creates the clientset
+		clientset, err := k8sClient()
+
+		if err != nil {
+			ch <- err
+		}
+
+		// Store tenant's MinIO server admin credentials as a Kubernetes secret
+		secretsName := fmt.Sprintf("%s-env", tenantShortName)
+
+		err = clientset.CoreV1().Secrets("default").Delete(secretsName, nil)
+		if err != nil {
+			ch <- err
 		}
 	}()
 	return ch

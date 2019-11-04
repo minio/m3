@@ -176,3 +176,8 @@ func GetTenantDBConfig(tenantName string) *DbConfig {
 	config.SchemaName = tenantName
 	return config
 }
+
+// RemoveCnx removes a tenant DB connection from the cache
+func (s *Singleton) RemoveCnx(tenantName string) {
+	delete(s.tenantsCnx, tenantName)
+}

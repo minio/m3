@@ -37,7 +37,7 @@ func addMinioCannedPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfi
 		return pErr.Cause
 	}
 	// Add the canned policy
-	err := adminClient.AddCannedPolicy(accessKey, policy)
+	err := adminClient.SetPolicy(policy, accessKey, false)
 	if err != nil {
 		return err
 	}
