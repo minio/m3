@@ -59,7 +59,7 @@ func (c *Context) TenantDB() *sql.DB {
 
 // TenantTx returns a transaction against the Tenant DB, if none has been started, it starts one
 func (c *Context) TenantTx() (*sql.Tx, error) {
-	if c.mainTx == nil {
+	if c.tenantTx == nil {
 		db := c.TenantDB()
 		tx, err := db.BeginTx(c.ControlCtx, nil)
 		if err != nil {
