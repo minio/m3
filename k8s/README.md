@@ -102,11 +102,11 @@ or
 
 ## Adding a user to a tenant's database
 ```shell
-  ./m3 tenant add-user --tenant company-inc --email user@acme.com --password user1234
+  ./m3 tenant user add --tenant company-inc --email user@acme.com --password user1234
 ``` 
 or 
 ```shell
-  ./m3 tenant add-user company-inc  user@acme.com user1234
+  ./m3 tenant user add company-inc user@acme.com user1234
 ```
 
 ## Accessing the tenant MinIO service via browser UI
