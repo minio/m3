@@ -20,6 +20,9 @@ import (
 	"context"
 
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	cluster "github.com/minio/m3/cluster"
 	pb "github.com/minio/m3/portal/stubs"
@@ -85,4 +88,43 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 		JwtToken: session.ID,
 	}
 	return res, nil
+}
+
+func (s *server) Logout(ctx context.Context, in *pb.Empty) (*pb.Empty, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.New(codes.InvalidArgument, "Metadata not found").Err()
+	}
+
+	var sessionID string
+	switch sIds := md.Get("sessionId"); len(sIds) {
+	case 0:
+		return nil, status.New(codes.Unauthenticated, "SessionID not found").Err()
+	default:
+		sessionID = sIds[0]
+	}
+
+	// Verify that the session exists on the Session's table and status is valid
+	// Prepare DB instance
+	db := cluster.GetInstance().Db
+	// Get tenant name from the DB
+	getTenantShortnameQ := `SELECT s.id
+                           FROM m3.provisioning.sessions as s 
+                           WHERE s.id=$1 AND s.status=$2`
+	tenantRow := db.QueryRow(getTenantShortnameQ, sessionID, "valid")
+	var sessionDbID string
+	err := tenantRow.Scan(&sessionDbID)
+	if err != nil {
+		return nil, status.New(codes.Unauthenticated, "SessionID invalid").Err()
+	}
+
+	// If session exists on db and is valid, then proceed to update it's status to invalid
+	appCtx, err := cluster.NewContext("none")
+	err = cluster.UpdateSessionStatus(appCtx, sessionID, "invalid")
+	if err != nil {
+		appCtx.Rollback()
+		return nil, status.New(codes.InvalidArgument, err.Error()).Err()
+	}
+	appCtx.Commit()
+	return &pb.Empty{}, nil
 }
