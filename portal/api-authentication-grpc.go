@@ -76,14 +76,13 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 		err = appCtx.Commit()
 	}()
 	// Everything looks good, create session
-	sessionID, err := cluster.CreateSession(appCtx, user.UUID, tenant.ID)
+	session, err := cluster.CreateSession(appCtx, user.UUID, tenant.ID)
 	if err != nil {
 		return res, err
 	}
-
 	// Return session in Token Response
 	res = &pb.LoginResponse{
-		JwtToken: *sessionID,
+		JwtToken: session.ID,
 	}
 	return res, nil
 }

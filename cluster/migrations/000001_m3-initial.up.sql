@@ -103,6 +103,7 @@ create table provisioning.disks
 comment on column provisioning.disks.capacity is 'Capacity in bytes';
 
 --  Table to store sessions of a <tenant>.user
+CREATE TYPE status_type AS ENUM ('valid', 'invalid');
 
 create table provisioning.sessions
 (
@@ -112,6 +113,9 @@ create table provisioning.sessions
     tenant_id   uuid not null, -- user's tenant's id
     user_id     uuid not null, -- user id of the user who initiated the session
     occurred_at timestamp with time zone default now() not null, -- first timestamp of the session
-    last_event  timestamp with time zone default now()           -- stores last event's timestamp within this session
+    last_event  timestamp with time zone default now(),           -- stores last event's timestamp within this session
+    expires_at  timestamp with time zone default now() not null, -- session's expiration time
+    status      status_type not null -- session's status 
 );
+
 
