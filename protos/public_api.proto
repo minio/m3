@@ -29,6 +29,9 @@ service PublicAPI {
     // Login
     rpc Login (LoginRequest) returns (LoginResponse) {
     }
+    // Logout
+    rpc Logout (Empty) returns (Empty) {
+    }
 
     // Returns metrics around the authenticated tenant account if the tenant is an admin or has access
     rpc Metrics (MetricsRequest) returns (MetricsResponse) {
@@ -122,6 +125,9 @@ service PublicAPI {
     rpc AssignPermissionToMultipleServiceAccounts (MultiAddPermissionToSAsRequest) returns (MultiAddPermissionToSAsResponse) {
     }
 
+}
+// Empty message for services that rely on headers
+message Empty {
 }
 
 // Message containing details of the Tenant Admin and the tenant that is going to be created

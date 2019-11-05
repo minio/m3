@@ -73,6 +73,25 @@ func CreateSession(ctx *Context, userID uuid.UUID, tenantID uuid.UUID) (*Session
 	return newSession, nil
 }
 
+func UpdateSessionStatus(ctx *Context, sessionID string, status string) error {
+	// Set query parameters
+	query :=
+		`UPDATE m3.provisioning.sessions 
+			SET status = $1
+		WHERE id=$2`
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return err
+	}
+
+	// Execute Query
+	_, err = tx.Exec(query, status, sessionID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // GetRandString generates a random string with the defined size length
 func GetRandString(size int, method string) (string, error) {
 	rb := make([]byte, size)
