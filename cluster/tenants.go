@@ -314,6 +314,23 @@ func MigrateTenantDB(tenantName string) chan error {
 	return ch
 }
 
+func getMinioTenantInfo(ctx *Context, tenantShortname string) (*StorageGroupTenantResult, *TenantConfiguration, error) {
+	// Get in which SG is the tenant located
+	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortname)
+	if sgt.Error != nil {
+		ctx.Rollback()
+		return nil, nil, sgt.Error
+	}
+
+	// Get the credentials for a tenant
+	tenantConf, err := GetTenantConfig(sgt.Tenant.ShortName)
+	if err != nil {
+		ctx.Rollback()
+		return nil, nil, err
+	}
+	return sgt, tenantConf, nil
+}
+
 // MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
 // TODO: allow to spcify the user performing the action (like in the API/gRPC case)
 func MakeBucket(tenantShortName string, bucketName string) error {
@@ -324,20 +341,15 @@ func MakeBucket(tenantShortName string, bucketName string) error {
 			return errors.New("a valid bucket name is needed")
 		}
 	}
+
 	// Get Database connection and app Context
 	ctx, err := NewContext(tenantShortName)
 	if err != nil {
 		return err
 	}
-	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortName)
-	if sgt.Error != nil {
-		ctx.Rollback()
-		return sgt.Error
-	}
 
 	// Get the credentials for a tenant
-	tenantConf, err := GetTenantConfig(sgt.Tenant.ShortName)
+	sgt, tenantConf, err := getMinioTenantInfo(ctx, tenantShortName)
 	if err != nil {
 		ctx.Rollback()
 		return err
@@ -356,16 +368,68 @@ func MakeBucket(tenantShortName string, bucketName string) error {
 
 	// Create Buket
 	err = minioClient.MakeBucket(bucketName, "us-east-1")
-
 	if err != nil {
 		ctx.Rollback()
 		return err
 	}
+
 	err = ctx.Commit()
 	if err != nil {
 		return nil
 	}
 	return nil
+}
+
+// ListBuckets for the given tenant's short name
+func ListBuckets(tenantShortname string) ([]string, error) {
+	var (
+		err error
+		ctx *Context
+	)
+	// Get Database connection and app Context
+	ctx, err = NewContext(tenantShortname)
+	if err != nil {
+		return []string{}, err
+	}
+
+	var (
+		tenantConf *TenantConfiguration
+		sgt        *StorageGroupTenantResult
+	)
+	sgt, tenantConf, err = getMinioTenantInfo(ctx, tenantShortname)
+	if err != nil {
+		ctx.Rollback()
+		return []string{}, err
+	}
+
+	// Initialize minio client object.
+	var minioClient *minio.Client
+	minioClient, err = minio.New(sgt.Address(),
+		tenantConf.AccessKey,
+		tenantConf.SecretKey,
+		false)
+	if err != nil {
+		ctx.Rollback()
+		return []string{}, err
+	}
+
+	err = ctx.Commit()
+	if err != nil {
+		return []string{}, err
+	}
+
+	var bucketInfos []minio.BucketInfo
+	bucketInfos, err = minioClient.ListBuckets()
+	if err != nil {
+		return []string{}, err
+	}
+
+	var bucketNames []string
+	for _, bucketInfo := range bucketInfos {
+		bucketNames = append(bucketNames, bucketInfo.Name)
+	}
+
+	return bucketNames, err
 }
 
 // createTenantNamespace creates a tenant namespace on k8s, returns a channel that will close
