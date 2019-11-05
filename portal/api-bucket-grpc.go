@@ -18,45 +18,55 @@ package portal
 
 import (
 	"context"
-	"log"
-	"time"
 
+	cluster "github.com/minio/m3/cluster"
 	pb "github.com/minio/m3/portal/stubs"
-	"github.com/minio/minio-go/v6"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-// ListBuckets implements PublicAPIServer
+// MakeBucket makes a bucket after validating the sessionId in the grpc headers in the appropriate tenant's MinIO
+func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (res *pb.Bucket, err error) {
+	// Validate sessionID and get tenant short name using the valid sessionID
+	tenantShortname, err := getTenantShortNameFromSessionID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Make bucket in the tenant's MinIO
+	bucket := in.GetName()
+	err = cluster.MakeBucket(tenantShortname, bucket)
+	if err != nil {
+		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
+	}
+	return &pb.Bucket{Name: bucket, Size: 0}, nil
+}
+
+// ListBuckets lists buckets in the tenant's MinIO after validating the sessionId in the grpc headers
 func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*pb.ListBucketsResponse, error) {
-	log.Printf("Calling ListBuckests")
-	time.Sleep(10 * time.Second)
-
-	var bucketLists pb.ListBucketsResponse
-	ssl := true
-
-	// DEMO
-	// Initialize minio client object.
-	minioClient, err := minio.New("play.min.io",
-		"Q3AM3UQ867SPQQA43P2F",
-		"zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
-		ssl)
-
+	var (
+		err             error
+		tenantShortname string
+	)
+	// Validate sessionID and get tenant short name using the valid sessionID
+	tenantShortname, err = getTenantShortNameFromSessionID(ctx)
 	if err != nil {
-		return &bucketLists, err
+		return nil, err
 	}
 
-	buckets, err := minioClient.ListBuckets()
-
+	// List buckets in the tenant's MinIO
+	var bucketNames []string
+	bucketNames, err = cluster.ListBuckets(tenantShortname)
 	if err != nil {
-		return &bucketLists, err
+		return nil, status.New(codes.Internal, "Failed to list buckets").Err()
 	}
 
-	for _, b := range buckets {
-		bucketLists.Buckets = append(bucketLists.Buckets,
-			&pb.Bucket{
-				Name: b.Name,
-			},
-		)
+	var buckets []*pb.Bucket
+	for _, bucketName := range bucketNames {
+		buckets = append(buckets, &pb.Bucket{Name: bucketName})
 	}
-	log.Printf("Done calling ListBuckests.")
-	return &bucketLists, nil
+	return &pb.ListBucketsResponse{
+		Buckets:      buckets,
+		TotalBuckets: int32(len(buckets)),
+	}, nil
 }
