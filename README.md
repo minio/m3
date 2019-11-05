@@ -20,7 +20,7 @@ $ GO111MODULE="on" go get sigs.k8s.io/kind@v0.5.1
 ## Setup a local kubernetes (`m3cluster`) using kind
 Provision the local kubernetes cluster for test/development
 
-in `/k8s` run:
+inside `/k8s` run:
 
 ```shell
 
@@ -96,7 +96,7 @@ If the company name is not url-friendly a short name will be generated, but it c
 ```
 
 ---
-For development we need to port-forward the kubernetes pods after we add a new tenant or user by running:
+For development we need to port-forward the kubernetes pods after we add a new tenant by running:
 
 ```shell
   sudo -E kubefwd svc -n default
