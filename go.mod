@@ -16,8 +16,11 @@ require (
 	github.com/minio/minio-go/v6 v6.0.35
 	github.com/satori/go.uuid v1.2.0
 	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
+	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9 // indirect
+	golang.org/x/sys v0.0.0-20191029155521-f43be2a4598c // indirect
 	golang.org/x/tools v0.0.0-20191015150414-f936694f27bf // indirect
-	google.golang.org/grpc v1.20.1
+	google.golang.org/genproto v0.0.0-20191028173616-919d9bdd9fe6 // indirect
+	google.golang.org/grpc v1.24.0
 	k8s.io/api v0.0.0-20190313115550-3c12c96769cc
 	k8s.io/apimachinery v0.0.0-20190313115320-c9defaaddf6f
 	k8s.io/client-go v11.0.0+incompatible
