@@ -24,7 +24,6 @@ import (
 )
 
 type User struct {
-	Tenant   string
 	Email    string
 	IsAdmin  bool
 	Password string
@@ -115,7 +114,53 @@ func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err e
 		return user, err
 	}
 
-	// add tenant shortname to the User
-	user.Tenant = tenant
 	return user, nil
+}
+
+// GetUsersForTenant returns a page of users for the provided tenant
+func GetUsersForTenant(ctx *Context, offset int, limit int) ([]*User, error) {
+	if offset < 0 || limit < 0 {
+		return nil, errors.New("invalid offset/limit")
+	}
+
+	// Get user from tenants database
+	queryUser := `
+		SELECT 
+				t1.id, t1.email, t1.is_admin
+			FROM 
+				users t1
+			OFFSET $1 LIMIT $2`
+
+	rows, err := ctx.TenantDB().Query(queryUser, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	var users []*User
+	for rows.Next() {
+		usr := User{}
+		err := rows.Scan(&usr.UUID, &usr.Email, &usr.IsAdmin)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &usr)
+	}
+	return users, nil
+}
+
+// GetUsersForTenant returns a page of users for the provided tenant
+func GetTotalNumberOfUsers(ctx *Context) (int, error) {
+	// Count the users
+	queryUser := `
+		SELECT 
+				COUNT(*)
+			FROM 
+				users`
+
+	row := ctx.TenantDB().QueryRow(queryUser)
+	var count int
+	err := row.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
