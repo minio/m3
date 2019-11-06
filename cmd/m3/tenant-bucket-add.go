@@ -25,10 +25,10 @@ import (
 )
 
 // Makes a bucket within a tenant
-var tenantMbCmd = cli.Command{
-	Name:   "mb",
+var tenantBucketAddCmd = cli.Command{
+	Name:   "add",
 	Usage:  "makes a bucket within the indicated tenant",
-	Action: tenantMb,
+	Action: tenantBucketAdd,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "tenant",
@@ -45,9 +45,9 @@ var tenantMbCmd = cli.Command{
 
 // Command to make a bucket on a tenant, it will need the tenant shortname and the desired bucketname.
 // sample usage:
-//     m3 tenant mb tenant-1 bucket-name
-//     m3 tenant mb --tenant tenant-1 --bucket_name bucket-name
-func tenantMb(ctx *cli.Context) error {
+//     m3 tenant bucket add tenant-1 bucket-name
+//     m3 tenant bucket add --tenant tenant-1 --bucket_name bucket-name
+func tenantBucketAdd(ctx *cli.Context) error {
 	tenantShortName := ctx.String("tenant")
 	bucketName := ctx.String("bucket_name")
 	if tenantShortName == "" && ctx.Args().Get(0) != "" {

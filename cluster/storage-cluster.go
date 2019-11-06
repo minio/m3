@@ -38,35 +38,41 @@ type StorageGroupResult struct {
 }
 
 // Creates a storage group in the DB
-func AddStorageGroup(sgName *string) chan StorageGroupResult {
+func AddStorageGroup(ctx *Context, sgName *string) chan StorageGroupResult {
 	ch := make(chan StorageGroupResult)
 	go func() {
 		defer close(ch)
-		db := GetInstance().Db
+		tx, err := ctx.MainTx()
+		if err != nil {
+			ch <- StorageGroupResult{Error: err}
+			return
+		}
 		sgID := uuid.NewV4()
 		var sgNum int32
 		// insert a new Storage Group with the optional name
 		query :=
 			`INSERT INTO
-				m3.provisioning.storage_groups ("id","name")
+				m3.provisioning.storage_groups ("id", "name", "sys_created_by")
 			  VALUES
-				($1,$2)
+				($1, $2, $3)
 				RETURNING num`
 
-		stmt, err := db.Prepare(query)
+		stmt, err := tx.Prepare(query)
 		if err != nil {
 			ch <- StorageGroupResult{
 				Error: err,
 			}
+			ctx.Rollback()
 			return
 		}
 		defer stmt.Close()
 
-		err = stmt.QueryRow(sgID, sgName).Scan(&sgNum)
+		err = stmt.QueryRow(sgID, sgName, ctx.WhoAmI).Scan(&sgNum)
 		if err != nil {
 			ch <- StorageGroupResult{
 				Error: err,
 			}
+			ctx.Rollback()
 			return
 		}
 		// return result via channel
@@ -310,10 +316,11 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) 
 				                                          "tenant_id",
 				                                          "storage_group_id",
 				                                          "port",
-				                                          "service_name")
+				                                          "service_name",
+				                                          "sys_created_by")
 			  VALUES
-				($1,$2,$3,$4)`
-		_, err = tx.Exec(query, tenant.ID, sg.ID, port, serviceName)
+				($1,$2,$3,$4,$5)`
+		_, err = tx.Exec(query, tenant.ID, sg.ID, port, serviceName, ctx.WhoAmI)
 		if err != nil {
 			ch <- &StorageGroupTenantResult{
 				Error: err,

@@ -24,7 +24,9 @@ create table provisioning.tenants
         constraint tenants_pk
             primary key,
     name       varchar(256) not null,
-    short_name varchar(256) not null
+    short_name varchar(256) not null,
+    sys_created_by   varchar(256)                           not null,
+    sys_created_date timestamp with time zone default now() not null
 );
 
 
@@ -34,7 +36,9 @@ create table provisioning.storage_groups
         constraint storage_groups_pk
             primary key,
     name varchar(256),
-    num  serial not null
+    num  serial not null,
+    sys_created_by   varchar(256)                           not null,
+    sys_created_date timestamp with time zone default now() not null
 );
 
 
@@ -47,7 +51,9 @@ create table provisioning.tenants_storage_groups
         constraint tenants_storage_groups_storage_groups_id_fk
             references provisioning.storage_groups,
     port             integer     not null,
-    service_name     varchar(64) not null
+    service_name     varchar(64) not null,
+    sys_created_by   varchar(256)                           not null,
+    sys_created_date timestamp with time zone default now() not null
 );
 
 
@@ -57,7 +63,9 @@ create table provisioning.nodes
         constraint nodes_pk
             primary key,
     name      varchar(256),
-    k8s_label varchar(256)
+    k8s_label varchar(256),
+    sys_created_by   varchar(256)                           not null,
+    sys_created_date timestamp with time zone default now() not null
 );
 
 
@@ -66,7 +74,9 @@ create table provisioning.storage_clusters
     id   uuid not null
         constraint storage_clusters_pk
             primary key,
-    name varchar(256)
+    name varchar(256),
+    sys_created_by   varchar(256)                           not null,
+    sys_created_date timestamp with time zone default now() not null
 );
 
 
@@ -77,7 +87,9 @@ create table provisioning.storage_clusters_groups
             references provisioning.storage_clusters,
     storage_group_id   uuid not null
         constraint storage_clusters_groups_storage_groups_id_fk
-            references provisioning.storage_groups
+            references provisioning.storage_groups,
+    sys_created_by   varchar(256)                           not null,
+    sys_created_date timestamp with time zone default now() not null
 );
 
 
@@ -89,7 +101,9 @@ create table provisioning.storage_cluster_nodes
     node_id            uuid not null
         constraint storage_cluster_nodes_nodes_id_fk
             references provisioning.nodes,
-    k8s_label          varchar(256)
+    k8s_label          varchar(256),
+    sys_created_by   varchar(256)                           not null,
+    sys_created_date timestamp with time zone default now() not null
 );
 
 
@@ -101,7 +115,9 @@ create table provisioning.node_volumes
     node_id    uuid not null
         constraint node_volumes_nodes_id_fk
             references provisioning.nodes,
-    mount_path varchar(256)
+    mount_path varchar(256),
+    sys_created_by   varchar(256)                           not null,
+    sys_created_date timestamp with time zone default now() not null
 );
 
 --  Table to store Disks attached to a node and their mount points
@@ -115,7 +131,9 @@ create table provisioning.disks
         constraint disks_nodes_id_fk
             references provisioning.nodes,
     mount_point varchar(512),
-    capacity    bigint
+    capacity    bigint,
+    sys_created_by   varchar(256)                           not null,
+    sys_created_date timestamp with time zone default now() not null
 );
 
 comment on column provisioning.disks.capacity is 'Capacity in bytes';
