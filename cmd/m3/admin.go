@@ -14,13 +14,22 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cluster
+package main
 
-const (
-	Version        = `0.1.0`
-	minioAccessKey = "MINIO_ACCESS_KEY"
-	minioSecretKey = "MINIO_SECRET_KEY"
-	accessKey      = "ACCESS_KEY"
-	secretKey      = "SECRET_KEY"
-	m3Namespace    = "default"
+import (
+	"github.com/minio/cli"
 )
+
+// commands to interact with cluster admins
+var adminCmd = cli.Command{
+	Name:   "admin",
+	Usage:  "admin commands",
+	Action: adminHelp,
+	Subcommands: []cli.Command{
+		adminAddCmd,
+	},
+}
+
+func adminHelp(ctx *cli.Context) error {
+	return cli.ShowAppHelp(ctx)
+}

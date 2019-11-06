@@ -27,7 +27,7 @@ type User struct {
 	Email    string
 	IsAdmin  bool
 	Password string
-	UUID     uuid.UUID
+	ID       uuid.UUID
 }
 
 // AddUser adds a new user to the tenant's database
@@ -56,7 +56,7 @@ func AddUser(tenantShortName string, userEmail string, userPassword string) erro
 
 	ctx, err := NewContext(tenantShortName)
 	if err != nil {
-		return nil
+		return err
 	}
 	// Add parameters to query
 	userID := uuid.NewV4()
@@ -90,7 +90,7 @@ func AddUser(tenantShortName string, userEmail string, userPassword string) erro
 	// if no error happened to this point commit transaction
 	err = ctx.Commit()
 	if err != nil {
-		return nil
+		return err
 	}
 	return nil
 }
@@ -109,7 +109,7 @@ func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err e
 	row := ctx.TenantDB().QueryRow(queryUser, email)
 
 	// Save the resulted query on the User struct
-	err = row.Scan(&user.UUID, &user.Email, &user.Password, &user.IsAdmin)
+	err = row.Scan(&user.ID, &user.Email, &user.Password, &user.IsAdmin)
 	if err != nil {
 		return user, err
 	}
@@ -138,7 +138,7 @@ func GetUsersForTenant(ctx *Context, offset int, limit int) ([]*User, error) {
 	var users []*User
 	for rows.Next() {
 		usr := User{}
-		err := rows.Scan(&usr.UUID, &usr.Email, &usr.IsAdmin)
+		err := rows.Scan(&usr.ID, &usr.Email, &usr.IsAdmin)
 		if err != nil {
 			return nil, err
 		}

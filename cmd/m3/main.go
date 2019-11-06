@@ -28,6 +28,7 @@ var appCmds = []cli.Command{
 	clusterCmd,
 	tenantCmd,
 	setupCmd,
+	adminCmd,
 }
 
 func main() {
