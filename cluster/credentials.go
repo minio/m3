@@ -31,6 +31,11 @@ type UserUICredentials struct {
 	SecretKey string
 }
 
+type ServiceAccountCredentials struct {
+	AccessKey string
+	SecretKey string
+}
+
 // createUserCredentials creates some random access/secret key pair and then stores them on k8s, if successful
 // it will create a MinIO User and attach `readwrite` policy, if successful, it will insert this credential to the
 // tenant DB
@@ -74,9 +79,9 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UU
 	// Now insert the credentials into the DB
 	query := `
 		INSERT INTO
-				credentials ("access_key","user_id","ui_credential","created_by")
+				credentials ("access_key","user_id","ui_credential")
 			  VALUES
-				($1,$2,$3,$4)`
+				($1,$2,$3)`
 	tx, err := ctx.TenantTx()
 	if err != nil {
 		return err
@@ -88,7 +93,7 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UU
 	}
 	defer stmt.Close()
 	// Execute query
-	_, err = tx.Exec(query, userUICredentials.AccessKey, userdID, true, ctx.WhoAmI)
+	_, err = tx.Exec(query, userUICredentials.AccessKey, userdID, true)
 	if err != nil {
 		ctx.Rollback()
 		return err
@@ -149,4 +154,55 @@ func GetUserUICredentials(tenantShortName string, userID *uuid.UUID) (*UserUICre
 	}
 	// Build configuration
 	return &creds, nil
+}
+
+// createServiceAccountCredentials creates some random access/secret key pair and then it will create a MinIO User
+// This is the only time the secret of the credentials for the service account will be revealed
+func createServiceAccountCredentials(ctx *Context, tenantShortName string, serviceAccountID uuid.UUID) (*ServiceAccountCredentials, error) {
+	saCredentials := ServiceAccountCredentials{
+		AccessKey: RandomCharString(16),
+		SecretKey: RandomCharString(32)}
+
+	// Tell the tenant MinIO's that this is a new user
+
+	// Get in which SG is the tenant located
+	sgt := <-GetTenantStorageGroupByShortName(tenantShortName)
+
+	if sgt.Error != nil {
+		return nil, sgt.Error
+	}
+
+	// Get the credentials for a tenant
+	tenantConf, err := GetTenantConfig(sgt.Tenant.Name)
+	if err != nil {
+		return nil, err
+	}
+	// create minio user
+	err = addMinioUser(sgt.StorageGroupTenant, tenantConf, saCredentials.AccessKey, saCredentials.SecretKey)
+	if err != nil {
+		return nil, err
+	}
+	// Now insert the credentials into the DB
+	query := `
+		INSERT INTO
+				credentials ("access_key","service_account_id","ui_credential","sys_created_by")
+			  VALUES
+				($1,$2,$3,$4)`
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return nil, err
+	}
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		ctx.Rollback()
+		return nil, err
+	}
+	defer stmt.Close()
+	// Execute query
+	_, err = tx.Exec(query, saCredentials.AccessKey, serviceAccountID, false, ctx.WhoAmI)
+	if err != nil {
+		ctx.Rollback()
+		return nil, err
+	}
+	return &saCredentials, nil
 }

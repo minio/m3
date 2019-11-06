@@ -24,11 +24,11 @@ import (
 	"github.com/minio/m3/cluster"
 )
 
-// List the users for a tenant
-var tenantUserListCmd = cli.Command{
+// List the service accounts for a tenant
+var tenantServiceAccountListCmd = cli.Command{
 	Name:   "list",
-	Usage:  "List the users of a tenant",
-	Action: tenantUserList,
+	Usage:  "List the service accounts of a tenant",
+	Action: tenantServiceAccountList,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "tenant",
@@ -48,15 +48,15 @@ var tenantUserListCmd = cli.Command{
 	},
 }
 
-// tenantUserList lists the users on the tenant, supports pagination via offset and limit
+// tenantServiceAccountList lists the service accounts on the tenant, supports pagination via offset and limit
 // sample usage:
-//     m3 tenant user list acme
+//     m3 tenant service-account list acme
 //  Skip the first 20
-//     m3 tenant user list acme --offset 20
+//     m3 tenant service-account list acme --offset 20
 //  Skip the first 20, list 10 users
-//     m3 tenant user list acme --offset 20 --limit 10
-func tenantUserList(ctx *cli.Context) error {
-	fmt.Println("Tenant Users")
+//     m3 tenant service-account list acme --offset 20 --limit 10
+func tenantServiceAccountList(ctx *cli.Context) error {
+	fmt.Println("Tenant Service Accounts")
 	tenantShortName := ctx.String("tenant")
 	offset := ctx.Int("offset")
 	limit := ctx.Int("limit")
@@ -90,22 +90,31 @@ func tenantUserList(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	users, err := cluster.GetUsersForTenant(appCtx, offset, limit)
+	users, err := cluster.GetServiceAccountsForTenant(appCtx, offset, limit)
 	if err != nil {
-		fmt.Println("Error listing users:", err.Error())
+		fmt.Println("Error listing service accounts:", err.Error())
 		return err
 	}
-	total, err := cluster.GetTotalNumberOfUsers(appCtx)
+	total, err := cluster.GetTotalNumberOfServiceAccounts(appCtx)
 	if err != nil {
-		fmt.Println("Error listing users:", err.Error())
+		fmt.Println("Error listing service accounts:", err.Error())
 		return err
 	}
-	fmt.Println("ID\tEmail\tIs Admin")
+	fmt.Println("ID\tName\tAccess Key\tDescription")
 	// Translate the users to friendly format
-	for _, user := range users {
-		fmt.Println(fmt.Sprintf("%s\t%s\t%t", user.UUID.String(), user.Email, user.IsAdmin))
+	for _, serviceAccount := range users {
+		desc := ""
+		if serviceAccount.Description != nil {
+			desc = *serviceAccount.Description
+		}
+		fmt.Println(fmt.Sprintf("%s\t%s\t%s\t%s", serviceAccount.ID.String(), serviceAccount.Name, serviceAccount.AccessKey, desc))
 	}
-	fmt.Println(fmt.Sprintf("A total of %d users", total))
+	fmt.Println(fmt.Sprintf("A total of %d service accounts", total))
+
+	if total > offset+limit {
+		fmt.Println("For the next page, please run command:")
+		fmt.Printf("\tm3 tenant service-account list %s --offset %d --limit %d\n", tenantShortName, offset+limit, limit)
+	}
 
 	return nil
 }
