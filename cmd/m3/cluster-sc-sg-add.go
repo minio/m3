@@ -45,17 +45,25 @@ func addStorageGroup(ctx *cli.Context) error {
 		name = &nameVal
 	}
 
-	// create a new storage group in the DB
-	storageGroupResult := <-cluster.AddStorageGroup(name)
-	if storageGroupResult.Error != nil {
-		fmt.Println(storageGroupResult.Error)
-		return nil
-	}
-	err := <-cluster.ProvisionServicesForStorageGroup(storageGroupResult.StorageGroup)
+	appCtx, err := cluster.NewContext("")
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		return err
 	}
 
+	// create a new storage group in the DB
+	storageGroupResult := <-cluster.AddStorageGroup(appCtx, name)
+	if storageGroupResult.Error != nil {
+		fmt.Println(storageGroupResult.Error)
+		appCtx.Rollback()
+		return nil
+	}
+	err = <-cluster.ProvisionServicesForStorageGroup(storageGroupResult.StorageGroup)
+	if err != nil {
+		fmt.Println(err)
+		appCtx.Rollback()
+		return nil
+	}
+	// everything seems fine, commit the transaction.
+	appCtx.Commit()
 	return nil
 }

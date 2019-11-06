@@ -82,7 +82,7 @@ func tenantAddUser(ctx *cli.Context) error {
 		return errMissingArguments
 	}
 	// perform the action
-	err := cluster.AddUser(tenantShortName, email, password)
+	err := cluster.AddUser(tenantShortName, &cluster.User{Email: email, Password: password})
 	if err != nil {
 		fmt.Println("Error adding user:", err.Error())
 		return err

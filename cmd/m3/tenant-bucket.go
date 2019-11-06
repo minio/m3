@@ -16,24 +16,18 @@
 
 package main
 
-import (
-	"github.com/minio/cli"
-)
+import "github.com/minio/cli"
 
-// list files and folders.
-var tenantCmd = cli.Command{
-	Name:   "tenant",
-	Usage:  "tenant commands",
-	Action: tenantDefCmd,
+// commands to interact with buckets
+var tenantBucketCmd = cli.Command{
+	Name:   "bucket",
+	Usage:  "bucket subcommands",
+	Action: showTenantBucketHelp,
 	Subcommands: []cli.Command{
-		addTenantCmd,
-		tenantBucketCmd,
-		tenantUserCmd,
-		tenantDeleteCmd,
-		tenantServiceAccountCmd,
+		tenantBucketAddCmd,
 	},
 }
 
-func tenantDefCmd(ctx *cli.Context) error {
+func showTenantBucketHelp(ctx *cli.Context) error {
 	return cli.ShowAppHelp(ctx)
 }

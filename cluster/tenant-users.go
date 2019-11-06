@@ -24,6 +24,7 @@ import (
 )
 
 type User struct {
+	Name     string
 	Email    string
 	IsAdmin  bool
 	Password string
@@ -31,25 +32,33 @@ type User struct {
 }
 
 // AddUser adds a new user to the tenant's database
-func AddUser(tenantShortName string, userEmail string, userPassword string) error {
-	// validate userEmail
-	if userEmail != "" {
+func AddUser(tenantShortName string, newUser *User) error {
+	// validate user Name
+	if newUser.Name != "" {
 		// TODO: improve regex
-		var re = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
-		if !re.MatchString(userEmail) {
-			return errors.New("a valid email is needed")
+		var re = regexp.MustCompile(`^[a-zA-Z ]{4,}$`)
+		if !re.MatchString(newUser.Name) {
+			return errors.New("a valid name is needed")
 		}
 	}
-	// validate userPassword
-	if userPassword != "" {
+
+	// validate user Email
+	// TODO: improve regex
+	var re = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
+	if !re.MatchString(newUser.Email) {
+		return errors.New("a valid email is needed")
+	}
+
+	// validate user Password
+	if newUser.Password != "" {
 		// TODO: improve regex or use Go validator
 		var re = regexp.MustCompile(`^[a-zA-Z0-9!@#\$%\^&\*]{8,16}$`)
-		if !re.MatchString(userPassword) {
+		if !re.MatchString(newUser.Password) {
 			return errors.New("a valid password is needed, minimum 8 characters")
 		}
 	}
 	// Hash the password
-	hashedPassword, err := HashPassword(userPassword)
+	hashedPassword, err := HashPassword(newUser.Password)
 	if err != nil {
 		return err
 	}
@@ -59,11 +68,11 @@ func AddUser(tenantShortName string, userEmail string, userPassword string) erro
 		return nil
 	}
 	// Add parameters to query
-	userID := uuid.NewV4()
+	newUser.UUID = uuid.NewV4()
 	query := `INSERT INTO
-				users ("id","email","password")
+				users ("id","full_name","email","password")
 			  VALUES
-				($1,$2,$3)`
+				($1,$2,$3,$4)`
 	tx, err := ctx.TenantTx()
 	if err != nil {
 		return err
@@ -75,13 +84,13 @@ func AddUser(tenantShortName string, userEmail string, userPassword string) erro
 	}
 	defer stmt.Close()
 	// Execute query
-	_, err = tx.Exec(query, userID, userEmail, hashedPassword)
+	_, err = tx.Exec(query, newUser.UUID, newUser.Name, newUser.Email, hashedPassword)
 	if err != nil {
 		ctx.Rollback()
 		return err
 	}
 	// Create this user's credentials so he can interact with it's own buckets/data
-	err = createUserCredentials(ctx, tenantShortName, userID)
+	err = createUserCredentials(ctx, tenantShortName, newUser.UUID)
 	if err != nil {
 		ctx.Rollback()
 		return err
