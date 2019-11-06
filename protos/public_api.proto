@@ -32,6 +32,9 @@ service PublicAPI {
     // Logout
     rpc Logout (Empty) returns (Empty) {
     }
+    // Reset password
+    rpc ResetPassword (ResetPasswordRequest) returns (Empty){
+    }
 
     // Returns metrics around the authenticated tenant account if the tenant is an admin or has access
     rpc Metrics (MetricsRequest) returns (MetricsResponse) {
@@ -154,6 +157,11 @@ message LoginRequest {
 message LoginResponse {
     string error = 1;
     string jwt_token = 2;
+}
+
+message ResetPasswordRequest {
+    string password = 1;
+    string new_password = 2;
 }
 
 // A request for metrics on the authenticated tenant
