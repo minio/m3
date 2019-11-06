@@ -241,6 +241,8 @@ message ListUsersRequest {
     int32 offset = 2;
     // a query to filter users with
     string query = 3;
+    // max number of results per request
+    int32 limit = 4;
 }
 
 // Request a list of users on the tenant account
@@ -264,6 +266,7 @@ message User {
     // Identifier for the user
     string name = 1;
     string email = 2;
+    string id = 3;
 }
 
 message UserActionRequest {

@@ -44,8 +44,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	appCtx, err := cluster.NewContext(tenantName)
 
 	// Password validation
-	// Look for the user on the database by email AND pwd,
-	// if it doesn't exist it means that the email AND password don't match, therefore wrong credentials.
+	// Look for the user on the database by email
 	user, err := cluster.GetUserByEmail(appCtx, tenant.Name, email)
 	if err != nil {
 		return nil, status.New(codes.Unauthenticated, "Wrong tenant, email and/or password").Err()

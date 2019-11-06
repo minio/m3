@@ -110,7 +110,7 @@ func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err e
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
-				t1.id, t1.email, t1.password, t1.is_admin
+				t1.id, t1.full_name, t1.email, t1.password, t1.is_admin
 			FROM 
 				users t1
 			WHERE email=$1 LIMIT 1`
@@ -118,7 +118,7 @@ func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err e
 	row := ctx.TenantDB().QueryRow(queryUser, email)
 
 	// Save the resulted query on the User struct
-	err = row.Scan(&user.ID, &user.Email, &user.Password, &user.IsAdmin)
+	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.IsAdmin)
 	if err != nil {
 		return user, err
 	}
@@ -127,7 +127,7 @@ func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err e
 }
 
 // GetUsersForTenant returns a page of users for the provided tenant
-func GetUsersForTenant(ctx *Context, offset int, limit int) ([]*User, error) {
+func GetUsersForTenant(ctx *Context, offset int32, limit int32) ([]*User, error) {
 	if offset < 0 || limit < 0 {
 		return nil, errors.New("invalid offset/limit")
 	}
@@ -135,7 +135,7 @@ func GetUsersForTenant(ctx *Context, offset int, limit int) ([]*User, error) {
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
-				t1.id, t1.email, t1.is_admin
+				t1.id, t1.full_name, t1.email, t1.is_admin
 			FROM 
 				users t1
 			OFFSET $1 LIMIT $2`
@@ -147,7 +147,7 @@ func GetUsersForTenant(ctx *Context, offset int, limit int) ([]*User, error) {
 	var users []*User
 	for rows.Next() {
 		usr := User{}
-		err := rows.Scan(&usr.ID, &usr.Email, &usr.IsAdmin)
+		err := rows.Scan(&usr.ID, &usr.Name, &usr.Email, &usr.IsAdmin)
 		if err != nil {
 			return nil, err
 		}
@@ -156,13 +156,13 @@ func GetUsersForTenant(ctx *Context, offset int, limit int) ([]*User, error) {
 	return users, nil
 }
 
-// GetUsersForTenant returns a page of users for the provided tenant
+// GetTotalNumberOfUsers
 func GetTotalNumberOfUsers(ctx *Context) (int, error) {
 	// Count the users
 	queryUser := `
-		SELECT 
+		SELECT
 				COUNT(*)
-			FROM 
+			FROM
 				users`
 
 	row := ctx.TenantDB().QueryRow(queryUser)
