@@ -38,10 +38,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	// Search for the tenant on the database
 	tenant, err := cluster.GetTenant(tenantName)
 	if err != nil {
-		res = &pb.LoginResponse{
-			Error: "Tenant not valid",
-		}
-		return res, nil
+		return nil, status.New(codes.InvalidArgument, "Tenant not valid").Err()
 	}
 	// start app context
 	appCtx, err := cluster.NewContext(tenantName)
@@ -51,26 +48,17 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	// if it doesn't exist it means that the email AND password don't match, therefore wrong credentials.
 	user, err := cluster.GetUserByEmail(appCtx, tenant.Name, email)
 	if err != nil {
-		res = &pb.LoginResponse{
-			Error: "Wrong tenant, email and/or password",
-		}
-		return res, nil
+		return nil, status.New(codes.Unauthenticated, "Wrong tenant, email and/or password").Err()
 	}
 
 	// Comparing the password with the hash
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(in.Password)); err != nil {
-		res = &pb.LoginResponse{
-			Error: "Wrong tenant, email and/or password",
-		}
-		return res, nil
+		return nil, status.New(codes.Unauthenticated, "Wrong tenant, email and/or password").Err()
 	}
 
 	// Add the session within a transaction in case anything goes wrong during the adding process
 	defer func() {
 		if err != nil {
-			res = &pb.LoginResponse{
-				Error: err.Error(),
-			}
 			appCtx.Rollback()
 			return
 		}
@@ -80,7 +68,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	// Everything looks good, create session
 	session, err := cluster.CreateSession(appCtx, user.UUID, tenant.ID)
 	if err != nil {
-		return res, err
+		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 	// Return session in Token Response
 	res = &pb.LoginResponse{
