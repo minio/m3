@@ -104,6 +104,11 @@ For development we need to port-forward the kubernetes pods after we add a new t
   sudo -E kubefwd svc -n default
 ```
 ---
+
+## Adding an Admin User
+```shell
+  ./m3 admin add "Admin Name" admin@email.com 
+```
 ## Making a bucket on a tenant
 ```shell
   ./m3 tenant bucket add tenant-short-name bucket-name
