@@ -68,7 +68,7 @@ func AddUser(tenantShortName string, newUser *User) error {
 		return err
 	}
 	// Add parameters to query
-	newUser.UUID = uuid.NewV4()
+	newUser.ID = uuid.NewV4()
 	query := `INSERT INTO
 				users ("id","full_name","email","password")
 			  VALUES
@@ -84,13 +84,13 @@ func AddUser(tenantShortName string, newUser *User) error {
 	}
 	defer stmt.Close()
 	// Execute query
-	_, err = tx.Exec(query, newUser.UUID, newUser.Name, newUser.Email, hashedPassword)
+	_, err = tx.Exec(query, newUser.ID, newUser.Name, newUser.Email, hashedPassword)
 	if err != nil {
 		ctx.Rollback()
 		return err
 	}
 	// Create this user's credentials so he can interact with it's own buckets/data
-	err = createUserCredentials(ctx, tenantShortName, newUser.UUID)
+	err = createUserCredentials(ctx, tenantShortName, newUser.ID)
 	if err != nil {
 		ctx.Rollback()
 		return err
