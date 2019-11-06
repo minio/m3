@@ -66,7 +66,7 @@ func tenantBucketAdd(ctx *cli.Context) error {
 		return nil
 	}
 	// perform the action
-	err := cluster.MakeBucket(tenantShortName, bucketName)
+	err := cluster.MakeBucket(tenantShortName, bucketName, cluster.BucketPrivate)
 	if err != nil {
 		fmt.Println("Error creating bucket:", err.Error())
 		return nil

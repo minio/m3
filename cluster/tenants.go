@@ -17,11 +17,13 @@
 package cluster
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
 
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/minio/minio-go/pkg/policy"
 	"github.com/minio/minio-go/v6"
 	uuid "github.com/satori/go.uuid"
 	v1 "k8s.io/api/core/v1"
@@ -38,6 +40,13 @@ type AddTenantResult struct {
 	*Tenant
 	Error error
 }
+
+type BucketAccess int32
+
+const (
+	BucketPrivate = BucketAccess(0)
+	BucketPublic  = BucketAccess(1)
+)
 
 func AddTenant(name string, shortName string) error {
 	// Start app context
@@ -340,9 +349,29 @@ func newTenantMinioClient(tenantShortname string) (*minio.Client, error) {
 	return minioClient, nil
 }
 
+func SetBucketAccess(minioClient *minio.Client, bucketName string, accessType BucketAccess) (err error) {
+	// Prepare policyJSON corresponding to the access type
+	var bucketPolicy policy.BucketPolicy
+	switch accessType {
+	case BucketPublic:
+		bucketPolicy = policy.BucketPolicyReadWrite
+	case BucketPrivate:
+		bucketPolicy = policy.BucketPolicyNone
+	}
+
+	bucketAccessPolicy := policy.BucketAccessPolicy{Version: "2012-10-17"}
+	bucketAccessPolicy.Statements = policy.SetPolicy(bucketAccessPolicy.Statements, policy.BucketPolicy(bucketPolicy), bucketName, "")
+	var policyJSON []byte
+	if policyJSON, err = json.Marshal(bucketAccessPolicy); err != nil {
+		return err
+	}
+
+	return minioClient.SetBucketPolicy(bucketName, string(policyJSON))
+}
+
 // MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
 // TODO: allow to spcify the user performing the action (like in the API/gRPC case)
-func MakeBucket(tenantShortname string, bucketName string) error {
+func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) error {
 	// validate bucket name
 	if bucketName != "" {
 		var re = regexp.MustCompile(`^[a-z0-9-]{3,}$`)
@@ -357,8 +386,12 @@ func MakeBucket(tenantShortname string, bucketName string) error {
 		return err
 	}
 
-	// Create the bucket on MinIO
-	return minioClient.MakeBucket(bucketName, "us-east-1")
+	// Create Bucket on tenant's MinIO
+	if err = minioClient.MakeBucket(bucketName, "us-east-1"); err != nil {
+		return err
+	}
+
+	return SetBucketAccess(minioClient, bucketName, accessType)
 }
 
 // ListBuckets for the given tenant's short name
