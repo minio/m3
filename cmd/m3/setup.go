@@ -52,6 +52,5 @@ func setupDefCmd(ctx *cli.Context) error {
 		fmt.Println("An admin email is needed")
 		return errMissingArguments
 	}
-	cluster.SetupM3(name, email)
 	return cluster.SetupM3(name, email)
 }
