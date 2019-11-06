@@ -8,7 +8,7 @@ create table users
     password     varchar(256),
     is_admin     boolean                  default false,
     from_idp     boolean,
-    created_date timestamp with time zone default now() not null
+    sys_created_date timestamp with time zone default now() not null
 );
 
 
@@ -25,10 +25,13 @@ create table service_accounts
             primary key,
     name         varchar(256)                           not null,
     description  text,
-    created_by   varchar(256)                           not null,
-    created_date timestamp with time zone default now() not null
+    sys_created_by   varchar(256)                           not null,
+    sys_created_date timestamp with time zone default now() not null,
+    sys_deleted  boolean                  default false
 );
 
+create index service_accounts_sys_deleted_index
+    on service_accounts (sys_deleted);
 
 create table credentials
 (
@@ -44,9 +47,14 @@ create table credentials
             references service_accounts
             on delete cascade,
     ui_credential      boolean                  default false,
-    created_by         varchar(256)                           not null,
-    created_date       timestamp with time zone default now() not null
+
+    sys_created_by         varchar(256)                           not null,
+    sys_created_date       timestamp with time zone default now() not null,
+    sys_deleted        boolean                  default false
 );
+
+create index credentials_sys_deleted_index
+    on credentials (sys_deleted);
 
 
 create table permissions
@@ -55,22 +63,22 @@ create table permissions
         constraint permissions_pk
             primary key,
     effect       varchar(64)                            not null,
-    created_by   varchar(256)                           not null,
-    created_date timestamp with time zone default now() not null
+    sys_created_by   varchar(256)                           not null,
+    sys_created_date timestamp with time zone default now() not null
 );
 
 
 create table permissions_resources
 (
-    id           uuid                                   not null
+    id            uuid                                   not null
         constraint permissions_resources_pk
             primary key,
     permission_id uuid
         constraint permissions_resources_permissions_id_fk
             references permissions,
-    resource     varchar(512)                           not null,
-    created_by   varchar(256)                           not null,
-    created_date timestamp with time zone default now() not null
+    resource      varchar(512)                           not null,
+    sys_created_by    varchar(256)                           not null,
+    sys_created_date  timestamp with time zone default now() not null
 );
 
 
@@ -84,8 +92,8 @@ create table service_accounts_permissions
         constraint service_accounts_permissions_permissions_id_fk
             references permissions
             on delete cascade,
-    created_by         varchar(256)                           not null,
-    created_date       timestamp with time zone default now() not null
+    sys_created_by         varchar(256)                           not null,
+    sys_created_date       timestamp with time zone default now() not null
 );
 
 
@@ -108,8 +116,8 @@ create table permissions_actions
     action_id     uuid                                   not null
         constraint permissions_actions_actions_id_fk
             references actions,
-    created_by    varchar(256)                           not null,
-    created_date  timestamp with time zone default now() not null
+    sys_created_by    varchar(256)                           not null,
+    sys_created_date  timestamp with time zone default now() not null
 );
 
 
@@ -120,7 +128,7 @@ create table api_logs
             primary key,
     api          varchar(256)                           not null,
     payload      text,
-    created_date timestamp with time zone default now() not null,
+    sys_created_date timestamp with time zone default now() not null,
     session_id   varchar(256),
     user_email   varchar(256)
 );

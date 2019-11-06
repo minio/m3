@@ -126,9 +126,9 @@ func InsertTenant(ctx *Context, tenantName string, tenantShortName string) chan 
 
 		query :=
 			`INSERT INTO
-				m3.provisioning.tenants ("id","name","short_name")
+				m3.provisioning.tenants ("id", "name", "short_name", "sys_created_by")
 			  VALUES
-				($1, $2, $3)`
+				($1, $2, $3, $4)`
 		tx, err := ctx.MainTx()
 		if err != nil {
 			ch <- AddTenantResult{Error: err}
@@ -140,7 +140,7 @@ func InsertTenant(ctx *Context, tenantName string, tenantShortName string) chan 
 			return
 		}
 		defer stmt.Close()
-		_, err = stmt.Exec(tenantID, tenantName, tenantShortName)
+		_, err = stmt.Exec(tenantID, tenantName, tenantShortName, ctx.WhoAmI)
 		if err != nil {
 			ch <- AddTenantResult{Error: err}
 			return
