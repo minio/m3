@@ -23,7 +23,7 @@ import (
 	"github.com/minio/m3/cluster"
 )
 
-// Adds a user to the tenant's database
+// Adds a Service Account to the tenant's DB
 var tenantServiceAccountAddCmd = cli.Command{
 	Name:   "add",
 	Usage:  "Adds a service account to the defined tenant",
@@ -47,10 +47,10 @@ var tenantServiceAccountAddCmd = cli.Command{
 	},
 }
 
-// tenantAddUser Command to add a user to the tenant's database.
+// tenantServiceAccountAdd command to add a service account to the tenant's database.
 // sample usage:
-//     m3 tenant add-user tenant-1 user@acme.com user1234
-//     m3 tenant add-user --tenant tenant-1 --email user@acme.com --password user123
+//     m3 tenant service-account add tenant-1 sa-name
+//     m3 tenant service-account add --tenant tenant-1 --name sa-name --description "optional description"
 func tenantServiceAccountAdd(ctx *cli.Context) error {
 	tenantShortName := ctx.String("tenant")
 	name := ctx.String("name")

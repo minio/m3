@@ -18,7 +18,7 @@ package main
 
 import "github.com/minio/cli"
 
-// list files and folders.
+// list service accounts for a given tenant
 var tenantServiceAccountCmd = cli.Command{
 	Name:   "service-account",
 	Usage:  "service accounts sub-commands",

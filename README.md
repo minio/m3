@@ -120,6 +120,15 @@ or
   ./m3 tenant user add company-inc user@acme.com user1234
 ```
 
+## Adding a service account
+```shell
+  ./m3 tenant service-account add tenant-short-name service-account-name
+```
+or 
+```shell
+  ./m3 tenant service-account add --tenant_name tenant-short-name --name service-account-name --description "optional"
+```
+
 ## Accessing the tenant MinIO service via browser UI
 ```shell
   kubectl port-forward svc/nginx-resolver 1337:80

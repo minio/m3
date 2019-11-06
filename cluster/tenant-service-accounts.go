@@ -29,7 +29,9 @@ type ServiceAccount struct {
 	AccessKey   string
 }
 
-// AddUser adds a new user to the tenant's database
+// AddServiceAccount adds a new service accounts to the tenant's database.
+// It generates the credentials and store them kon k8s, the returns a complete struct with secret and access key.
+// This is the only time the secret is returned.
 func AddServiceAccount(ctx *Context, tenantShortName string, name string, description *string) (*ServiceAccountCredentials, error) {
 
 	// Add parameters to query
@@ -69,13 +71,13 @@ func AddServiceAccount(ctx *Context, tenantShortName string, name string, descri
 	return sa, nil
 }
 
-// GetUsersForTenant returns a page of users for the provided tenant
+// GetServiceAccountsForTenant returns a page of services accounts for the provided tenant
 func GetServiceAccountsForTenant(ctx *Context, offset int, limit int) ([]*ServiceAccount, error) {
 	if offset < 0 || limit < 0 {
 		return nil, errors.New("invalid offset/limit")
 	}
 
-	// Get user from tenants database
+	// Get service accounts from tenants database and paginate
 	queryUser := `
 		SELECT 
 				sa.id, sa.name, sa.description, c.access_key
@@ -103,7 +105,7 @@ func GetServiceAccountsForTenant(ctx *Context, offset int, limit int) ([]*Servic
 	return sas, nil
 }
 
-// GetUsersForTenant returns a page of users for the provided tenant
+// GetTotalNumberOfServiceAccounts returns the total number of service accounts for a tenant
 func GetTotalNumberOfServiceAccounts(ctx *Context) (int, error) {
 	// Count the users
 	queryUser := `
