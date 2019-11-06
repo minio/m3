@@ -9,7 +9,7 @@ create table provisioning.admins
     email varchar(256) not null,
     access_key         varchar(256)                           not null,
     sys_created_by varchar(256) not null,
-    sys_date_created timestamptz default now() not null
+    sys_created_date timestamptz default now() not null
 );
 
 create unique index admins_email_uindex
