@@ -104,11 +104,11 @@ For development we need to port-forward the kubernetes pods after we add a new t
 ---
 ## Making a bucket on a tenant
 ```shell
-  ./m3 tenant mb tenant-short-name bucket-name
+  ./m3 tenant bucket add tenant-short-name bucket-name
 ```
 or 
 ```shell
-  ./m3 tenant mb --tenant_name tenant-short-name --bucket_name bucket-name
+  ./m3 tenant bucket add --tenant_name tenant-short-name --bucket_name bucket-name
 ```
 
 ## Adding a user to a tenant's database
