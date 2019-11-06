@@ -48,7 +48,7 @@ var tenantServiceAccountListCmd = cli.Command{
 	},
 }
 
-// tenantUserList lists the users on the tenant, supports pagination via offset and limit
+// tenantServiceAccountList lists the service accounts on the tenant, supports pagination via offset and limit
 // sample usage:
 //     m3 tenant service-account list acme
 //  Skip the first 20
