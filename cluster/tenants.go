@@ -316,7 +316,7 @@ func MigrateTenantDB(tenantName string) chan error {
 
 func getMinioTenantInfo(ctx *Context, tenantShortname string) (*StorageGroupTenantResult, *TenantConfiguration, error) {
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortname)
+	sgt := <-GetTenantStorageGroupByShortName(tenantShortname)
 	if sgt.Error != nil {
 		ctx.Rollback()
 		return nil, nil, sgt.Error
@@ -487,7 +487,7 @@ func DeleteTenant(tenantShortName string) error {
 		return err
 	}
 
-	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortName)
+	sgt := <-GetTenantStorageGroupByShortName(tenantShortName)
 
 	if sgt.Error != nil {
 		return sgt.Error
