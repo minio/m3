@@ -62,7 +62,7 @@ func AddStorageGroup(ctx *Context, sgName *string) chan StorageGroupResult {
 			ch <- StorageGroupResult{
 				Error: err,
 			}
-			tx.Rollback()
+			ctx.Rollback()
 			return
 		}
 		defer stmt.Close()
@@ -72,7 +72,7 @@ func AddStorageGroup(ctx *Context, sgName *string) chan StorageGroupResult {
 			ch <- StorageGroupResult{
 				Error: err,
 			}
-			tx.Rollback()
+			ctx.Rollback()
 			return
 		}
 		// return result via channel
