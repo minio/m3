@@ -36,15 +36,30 @@ const (
 )
 
 // Setups m3 on the kubernetes deployment that we are installed to
-func SetupM3() {
+func SetupM3(name, email string) error {
+	// setup m3 namespace on k8s
 	fmt.Println("Setting up m3 namespace")
 	setupM3Namespace()
+	// setup nginx router
 	fmt.Println("setting up nginx")
 	SetupNginxLoadBalancer()
+	// setup database
 	fmt.Println("Setting up postgres")
 	setupPostgres()
+	// Add the first cluster admin
+	fmt.Println("Adding the first admin")
+	admin, err := AddAdmin(name, email)
+	if err != nil {
+		fmt.Println("Error adding user:", err.Error())
+		return err
+	}
+	fmt.Printf("Access Key: %s\n", admin.AccessKey)
+	fmt.Printf("Secret Key: %s\n", admin.SecretKey)
+	fmt.Println("Write these credentials down as this is the only time the secret will be shown.")
+	// run migrations
 	fmt.Println("Running Migrations")
 	RunMigrations()
+	return nil
 }
 
 // setupM3Namespace Setups the namespace used by the provisioning service

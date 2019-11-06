@@ -66,7 +66,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 		err = appCtx.Commit()
 	}()
 	// Everything looks good, create session
-	session, err := cluster.CreateSession(appCtx, user.UUID, tenant.ID)
+	session, err := cluster.CreateSession(appCtx, user.ID, tenant.ID)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}

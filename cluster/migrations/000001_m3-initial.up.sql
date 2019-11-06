@@ -1,5 +1,23 @@
 create schema provisioning;
 
+create table provisioning.admins
+(
+    id uuid
+        constraint admins_pk
+            primary key,
+    name varchar(256),
+    email varchar(256) not null,
+    access_key         varchar(256)                           not null,
+    sys_created_by varchar(256) not null,
+    sys_created_date timestamptz default now() not null
+);
+
+create unique index admins_email_uindex
+    on provisioning.admins (email);
+
+create index admins_access_key_uindex
+    on provisioning.admins (access_key);
+
 create table provisioning.tenants
 (
     id         uuid         not null

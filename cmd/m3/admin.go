@@ -17,40 +17,19 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/minio/cli"
-	"github.com/minio/m3/cluster"
 )
 
-// list files and folders.
-var setupCmd = cli.Command{
-	Name:   "setup",
-	Usage:  "Setups the m3 cluster",
-	Action: setupDefCmd,
+// commands to interact with cluster admins
+var adminCmd = cli.Command{
+	Name:   "admin",
+	Usage:  "admin commands",
+	Action: adminHelp,
 	Subcommands: []cli.Command{
-		setupDbCmd,
+		adminAddCmd,
 	},
 }
 
-func setupDefCmd(ctx *cli.Context) error {
-	name := ctx.String("name")
-	email := ctx.String("email")
-	if name == "" && ctx.Args().Get(0) != "" {
-		name = ctx.Args().Get(0)
-	}
-	if email == "" && ctx.Args().Get(1) != "" {
-		email = ctx.Args().Get(1)
-	}
-
-	if name == "" {
-		fmt.Println("An admin name is needed")
-		return errMissingArguments
-	}
-
-	if email == "" {
-		fmt.Println("An admin email is needed")
-		return errMissingArguments
-	}
-	return cluster.SetupM3(name, email)
+func adminHelp(ctx *cli.Context) error {
+	return cli.ShowAppHelp(ctx)
 }

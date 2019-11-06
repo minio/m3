@@ -23,17 +23,30 @@ import (
 	"github.com/minio/m3/cluster"
 )
 
-// list files and folders.
-var setupCmd = cli.Command{
-	Name:   "setup",
-	Usage:  "Setups the m3 cluster",
-	Action: setupDefCmd,
-	Subcommands: []cli.Command{
-		setupDbCmd,
+// Adds a user to the tenant's database
+var adminAddCmd = cli.Command{
+	Name:   "add",
+	Usage:  "Adds an admin to the defined tenant",
+	Action: adminAdd,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "name",
+			Value: "",
+			Usage: "admin name",
+		},
+		cli.StringFlag{
+			Name:  "email",
+			Value: "",
+			Usage: "user email",
+		},
 	},
 }
 
-func setupDefCmd(ctx *cli.Context) error {
+// adminAdd is a command to add a cluster admin.
+// sample usage:
+//     m3 admin add "User Name" user@acme.com
+//     m3 admin add --name "User Name" --email user@acme.com
+func adminAdd(ctx *cli.Context) error {
 	name := ctx.String("name")
 	email := ctx.String("email")
 	if name == "" && ctx.Args().Get(0) != "" {
@@ -44,13 +57,26 @@ func setupDefCmd(ctx *cli.Context) error {
 	}
 
 	if name == "" {
-		fmt.Println("An admin name is needed")
+		fmt.Println("Admin name is needed")
 		return errMissingArguments
 	}
 
 	if email == "" {
-		fmt.Println("An admin email is needed")
+		fmt.Println("Admin email is needed")
 		return errMissingArguments
 	}
-	return cluster.SetupM3(name, email)
+
+	// perform the action
+	admin, err := cluster.AddAdmin(name, email)
+	if err != nil {
+		fmt.Println("Error adding user:", err.Error())
+		return err
+	}
+
+	fmt.Printf("Done adding admin `%s <%s>`\n", admin.Name, admin.Email)
+	fmt.Printf("Access Key: %s\n", admin.AccessKey)
+	fmt.Printf("Secret Key: %s\n", admin.SecretKey)
+	fmt.Println("Write these credentials down as this is the only time the secret will be shown.")
+
+	return nil
 }

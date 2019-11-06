@@ -28,7 +28,7 @@ type User struct {
 	Email    string
 	IsAdmin  bool
 	Password string
-	UUID     uuid.UUID
+	ID       uuid.UUID
 }
 
 // AddUser adds a new user to the tenant's database
@@ -65,10 +65,10 @@ func AddUser(tenantShortName string, newUser *User) error {
 
 	ctx, err := NewContext(tenantShortName)
 	if err != nil {
-		return nil
+		return err
 	}
 	// Add parameters to query
-	newUser.UUID = uuid.NewV4()
+	newUser.ID = uuid.NewV4()
 	query := `INSERT INTO
 				users ("id","full_name","email","password")
 			  VALUES
@@ -84,13 +84,13 @@ func AddUser(tenantShortName string, newUser *User) error {
 	}
 	defer stmt.Close()
 	// Execute query
-	_, err = tx.Exec(query, newUser.UUID, newUser.Name, newUser.Email, hashedPassword)
+	_, err = tx.Exec(query, newUser.ID, newUser.Name, newUser.Email, hashedPassword)
 	if err != nil {
 		ctx.Rollback()
 		return err
 	}
 	// Create this user's credentials so he can interact with it's own buckets/data
-	err = createUserCredentials(ctx, tenantShortName, newUser.UUID)
+	err = createUserCredentials(ctx, tenantShortName, newUser.ID)
 	if err != nil {
 		ctx.Rollback()
 		return err
@@ -99,7 +99,7 @@ func AddUser(tenantShortName string, newUser *User) error {
 	// if no error happened to this point commit transaction
 	err = ctx.Commit()
 	if err != nil {
-		return nil
+		return err
 	}
 	return nil
 }
@@ -118,7 +118,7 @@ func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err e
 	row := ctx.TenantDB().QueryRow(queryUser, email)
 
 	// Save the resulted query on the User struct
-	err = row.Scan(&user.UUID, &user.Email, &user.Password, &user.IsAdmin)
+	err = row.Scan(&user.ID, &user.Email, &user.Password, &user.IsAdmin)
 	if err != nil {
 		return user, err
 	}
@@ -147,7 +147,7 @@ func GetUsersForTenant(ctx *Context, offset int, limit int) ([]*User, error) {
 	var users []*User
 	for rows.Next() {
 		usr := User{}
-		err := rows.Scan(&usr.UUID, &usr.Email, &usr.IsAdmin)
+		err := rows.Scan(&usr.ID, &usr.Email, &usr.IsAdmin)
 		if err != nil {
 			return nil, err
 		}

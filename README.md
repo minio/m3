@@ -63,8 +63,10 @@ $ kubectl get secret $(kubectl get serviceaccount dashboard -o jsonpath="{.secre
 
 2. Run `m3 setup` on the local kubernetes
 ```shell
-   ./m3 setup
+   ./m3 setup "Admin Name" admin@email.com
 ```
+This will setup `mkube` and create the first admin account **Write down the admin access/secret key**
+
 At the moment, you would see the following error message,
 ```
 Running Migrations
@@ -102,6 +104,11 @@ For development we need to port-forward the kubernetes pods after we add a new t
   sudo -E kubefwd svc -n default
 ```
 ---
+
+## Adding an Admin User
+```shell
+  ./m3 admin add "Admin Name" admin@email.com 
+```
 ## Making a bucket on a tenant
 ```shell
   ./m3 tenant bucket add tenant-short-name bucket-name

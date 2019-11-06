@@ -22,4 +22,5 @@ const (
 	minioSecretKey = "MINIO_SECRET_KEY"
 	accessKey      = "ACCESS_KEY"
 	secretKey      = "SECRET_KEY"
+	m3Namespace    = "default"
 )
