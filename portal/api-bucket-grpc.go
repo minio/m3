@@ -35,7 +35,12 @@ func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (res 
 
 	// Make bucket in the tenant's MinIO
 	bucket := in.GetName()
-	err = cluster.MakeBucket(tenantShortname, bucket)
+	accessType := cluster.BucketPrivate
+	if in.GetAccess() == pb.Access_PUBLIC {
+		accessType = cluster.BucketPublic
+	}
+
+	err = cluster.MakeBucket(tenantShortname, bucket, accessType)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
 	}
