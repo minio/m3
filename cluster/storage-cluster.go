@@ -342,7 +342,7 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) 
 }
 
 // Returns a list of tenants that are allocated to the provided `StorageGroup`
-func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan *StorageGroupTenantResult {
+func GetTenantStorageGroupByShortName(tenantShortName string) chan *StorageGroupTenantResult {
 	ch := make(chan *StorageGroupTenantResult)
 	go func() {
 		defer close(ch)

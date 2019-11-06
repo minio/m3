@@ -314,26 +314,35 @@ func MigrateTenantDB(tenantName string) chan error {
 	return ch
 }
 
-func getMinioTenantInfo(ctx *Context, tenantShortname string) (*StorageGroupTenantResult, *TenantConfiguration, error) {
+// newTenantMinioClient creates a MinIO client for the given tenant
+func newTenantMinioClient(tenantShortname string) (*minio.Client, error) {
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortname)
+	sgt := <-GetTenantStorageGroupByShortName(tenantShortname)
 	if sgt.Error != nil {
-		ctx.Rollback()
-		return nil, nil, sgt.Error
+		return nil, sgt.Error
 	}
 
 	// Get the credentials for a tenant
 	tenantConf, err := GetTenantConfig(sgt.Tenant.ShortName)
 	if err != nil {
-		ctx.Rollback()
-		return nil, nil, err
+		return nil, err
 	}
-	return sgt, tenantConf, nil
+
+	// Initialize minio client object.
+	minioClient, err := minio.New(sgt.Address(),
+		tenantConf.AccessKey,
+		tenantConf.SecretKey,
+		false)
+	if err != nil {
+		return nil, err
+	}
+
+	return minioClient, nil
 }
 
 // MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
 // TODO: allow to spcify the user performing the action (like in the API/gRPC case)
-func MakeBucket(tenantShortName string, bucketName string) error {
+func MakeBucket(tenantShortname string, bucketName string) error {
 	// validate bucket name
 	if bucketName != "" {
 		var re = regexp.MustCompile(`^[a-z0-9-]{3,}$`)
@@ -342,78 +351,20 @@ func MakeBucket(tenantShortName string, bucketName string) error {
 		}
 	}
 
-	// Get Database connection and app Context
-	ctx, err := NewContext(tenantShortName)
+	// Get tenant specific MinIO client
+	minioClient, err := newTenantMinioClient(tenantShortname)
 	if err != nil {
 		return err
 	}
 
-	// Get the credentials for a tenant
-	sgt, tenantConf, err := getMinioTenantInfo(ctx, tenantShortName)
-	if err != nil {
-		ctx.Rollback()
-		return err
-	}
-
-	// Initialize minio client object.
-	minioClient, err := minio.New(sgt.Address(),
-		tenantConf.AccessKey,
-		tenantConf.SecretKey,
-		false)
-
-	if err != nil {
-		ctx.Rollback()
-		return err
-	}
-
-	// Create Buket
-	err = minioClient.MakeBucket(bucketName, "us-east-1")
-	if err != nil {
-		ctx.Rollback()
-		return err
-	}
-
-	err = ctx.Commit()
-	if err != nil {
-		return nil
-	}
-	return nil
+	// Create the bucket on MinIO
+	return minioClient.MakeBucket(bucketName, "us-east-1")
 }
 
 // ListBuckets for the given tenant's short name
 func ListBuckets(tenantShortname string) ([]string, error) {
-	var (
-		err error
-		ctx *Context
-	)
-	// Get Database connection and app Context
-	ctx, err = NewContext(tenantShortname)
-	if err != nil {
-		return []string{}, err
-	}
-
-	var (
-		tenantConf *TenantConfiguration
-		sgt        *StorageGroupTenantResult
-	)
-	sgt, tenantConf, err = getMinioTenantInfo(ctx, tenantShortname)
-	if err != nil {
-		ctx.Rollback()
-		return []string{}, err
-	}
-
-	// Initialize minio client object.
-	var minioClient *minio.Client
-	minioClient, err = minio.New(sgt.Address(),
-		tenantConf.AccessKey,
-		tenantConf.SecretKey,
-		false)
-	if err != nil {
-		ctx.Rollback()
-		return []string{}, err
-	}
-
-	err = ctx.Commit()
+	// Get tenant specific MinIO client
+	minioClient, err := newTenantMinioClient(tenantShortname)
 	if err != nil {
 		return []string{}, err
 	}
@@ -423,13 +374,23 @@ func ListBuckets(tenantShortname string) ([]string, error) {
 	if err != nil {
 		return []string{}, err
 	}
-
 	var bucketNames []string
 	for _, bucketInfo := range bucketInfos {
 		bucketNames = append(bucketNames, bucketInfo.Name)
 	}
 
 	return bucketNames, err
+}
+
+// Deletes a bucket in the given tenant's MinIO
+func DeleteBucket(tenantShortname, bucket string) error {
+	// Get tenant specific MinIO client
+	minioClient, err := newTenantMinioClient(tenantShortname)
+	if err != nil {
+		return err
+	}
+
+	return minioClient.RemoveBucket(bucket)
 }
 
 // createTenantNamespace creates a tenant namespace on k8s, returns a channel that will close
@@ -487,7 +448,7 @@ func DeleteTenant(tenantShortName string) error {
 		return err
 	}
 
-	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortName)
+	sgt := <-GetTenantStorageGroupByShortName(tenantShortName)
 
 	if sgt.Error != nil {
 		return sgt.Error
