@@ -16,24 +16,19 @@
 
 package main
 
-import (
-	"github.com/minio/cli"
-)
+import "github.com/minio/cli"
 
-// list files and folders.
-var tenantCmd = cli.Command{
-	Name:   "tenant",
-	Usage:  "tenant commands",
-	Action: tenantDefCmd,
+// list service accounts for a given tenant
+var tenantServiceAccountCmd = cli.Command{
+	Name:   "service-account",
+	Usage:  "service accounts sub-commands",
+	Action: showTenantServiceAccountHelp,
 	Subcommands: []cli.Command{
-		addTenantCmd,
-		tenantBucketCmd,
-		tenantUserCmd,
-		tenantDeleteCmd,
-		tenantServiceAccountCmd,
+		tenantServiceAccountAddCmd,
+		tenantServiceAccountListCmd,
 	},
 }
 
-func tenantDefCmd(ctx *cli.Context) error {
+func showTenantServiceAccountHelp(ctx *cli.Context) error {
 	return cli.ShowAppHelp(ctx)
 }
