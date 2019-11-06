@@ -53,5 +53,5 @@ func setupDefCmd(ctx *cli.Context) error {
 		return errMissingArguments
 	}
 	cluster.SetupM3(name, email)
-	return nil
+	return cluster.SetupM3(name, email)
 }
