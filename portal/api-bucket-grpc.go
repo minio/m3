@@ -70,3 +70,24 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 		TotalBuckets: int32(len(buckets)),
 	}, nil
 }
+
+// DeleteBucket deletes bucket in the tenant's MinIO
+// N B sessionId is expected to be present in the grpc headers
+func (s *server) DeleteBucket(ctx context.Context, in *pb.DeleteBucketRequest) (*pb.Bucket, error) {
+	var (
+		err             error
+		tenantShortname string
+	)
+	// Validate sessionID and get tenant short name using the valid sessionID
+	tenantShortname, err = getTenantShortNameFromSessionID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	bucket := in.GetName()
+	err = cluster.DeleteBucket(tenantShortname, bucket)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	return &pb.Bucket{Name: bucket}, nil
+}
