@@ -9,6 +9,12 @@ http:
     - selector: m3.PublicAPI.Login
       post: /api/v1/accounts/login
       body: "*"
+    - selector: m3.PublicAPI.Logout
+      post: /api/v1/accounts/logout
+      body: "*"
+    - selector: m3.PublicAPI.ResetPassword
+      patch: /api/v1/accounts/reset_password
+      body: "*"
     - selector: m3.PublicAPI.Metrics
       get: /api/v1/metrics
     # Buckets

@@ -96,7 +96,7 @@ func (s *server) Logout(ctx context.Context, in *pb.Empty) (*pb.Empty, error) {
 		sessionRowID string
 	)
 	if sessionRowID, err = validateSessionID(ctx); err != nil {
-		return &pb.Empty{}, nil
+		return nil, err
 	}
 
 	appCtx, err = cluster.NewContext("none")
