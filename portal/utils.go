@@ -72,36 +72,7 @@ func getSessionRowIDAndTenantName(ctx context.Context) (string, string, error) {
 
 	// Check if session id is expired then change status
 	if err == sql.ErrNoRows {
-		// TODO: Abstract Update functionality
-		// Get expired session_id from the DB
-		getSessionIDQ := `SELECT s.id
-                           FROM m3.provisioning.sessions as s 
-                           WHERE s.id=$1 AND s.status=$2 AND NOW() >= s.expires_at`
-
-		tenantRow := db.QueryRow(getSessionIDQ, sessionID, sessionValid)
-		err = tenantRow.Scan(&sessionRowID)
-		// If session id exists, change the status to invalid
-		if err == nil && sessionRowID != "" {
-			setSessionStatusQ :=
-				`UPDATE m3.provisioning.sessions 
-				 SET status = $1
-				 WHERE id=$2`
-
-			tx, err := db.BeginTx(ctx, nil)
-			if err != nil {
-				return "", "", status.New(codes.Internal, err.Error()).Err()
-			}
-
-			// Execute query
-			_, err = tx.Exec(setSessionStatusQ, sessionInvalid, sessionRowID)
-			if err != nil {
-				// Error setting session to invalid status
-				tx.Rollback()
-				return "", "", status.New(codes.Internal, "Error on session validation").Err()
-			}
-			return "", "", status.New(codes.Unauthenticated, "Session expired").Err()
-		}
-		return "", "", status.New(codes.Unauthenticated, "No matching session found").Err()
+		return "", "", status.New(codes.Unauthenticated, "Session invalid or expired").Err()
 	}
 	if err != nil {
 		return "", "", status.New(codes.Unauthenticated, err.Error()).Err()
