@@ -44,8 +44,9 @@ type AddTenantResult struct {
 type BucketAccess int32
 
 const (
-	BucketPrivate = BucketAccess(0)
-	BucketPublic  = BucketAccess(1)
+	BucketPrivate BucketAccess = iota
+	BucketPublic
+	BucketCustom
 )
 
 func AddTenant(name string, shortName string) error {
@@ -394,25 +395,69 @@ func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) err
 	return SetBucketAccess(minioClient, bucketName, accessType)
 }
 
+type TenantBucketInfo struct {
+	Name   string
+	Access BucketAccess
+}
+
+// GetBucketAccess returns the access type for the given bucket name
+func GetBucketAccess(minioClient *minio.Client, bucketName string) (BucketAccess, error) {
+	policyJSON, err := minioClient.GetBucketPolicy(bucketName)
+	if err != nil {
+		return BucketCustom, err
+	}
+
+	// If no policy is set on the bucket, it is private by default
+	if len(policyJSON) == 0 {
+		return BucketPrivate, nil
+	}
+
+	var bucketPolicy policy.BucketAccessPolicy
+	err = json.Unmarshal([]byte(policyJSON), &bucketPolicy)
+	if err != nil {
+		return BucketCustom, err
+	}
+
+	var bucketAccess BucketAccess
+	switch policy.GetPolicy(bucketPolicy.Statements, bucketName, "") {
+	case policy.BucketPolicyNone:
+		bucketAccess = BucketPrivate
+	case policy.BucketPolicyReadWrite:
+		bucketAccess = BucketPublic
+	default:
+		bucketAccess = BucketCustom
+	}
+
+	return bucketAccess, nil
+}
+
 // ListBuckets for the given tenant's short name
-func ListBuckets(tenantShortname string) ([]string, error) {
+func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 	// Get tenant specific MinIO client
 	minioClient, err := newTenantMinioClient(tenantShortname)
 	if err != nil {
-		return []string{}, err
+		return []TenantBucketInfo{}, err
 	}
 
-	var bucketInfos []minio.BucketInfo
-	bucketInfos, err = minioClient.ListBuckets()
+	var buckets []minio.BucketInfo
+	buckets, err = minioClient.ListBuckets()
 	if err != nil {
-		return []string{}, err
-	}
-	var bucketNames []string
-	for _, bucketInfo := range bucketInfos {
-		bucketNames = append(bucketNames, bucketInfo.Name)
+		return []TenantBucketInfo{}, err
 	}
 
-	return bucketNames, err
+	var (
+		accessType  BucketAccess
+		bucketInfos []TenantBucketInfo
+	)
+	for _, bucket := range buckets {
+		accessType, err = GetBucketAccess(minioClient, bucket.Name)
+		if err != nil {
+			return []TenantBucketInfo{}, err
+		}
+		bucketInfos = append(bucketInfos, TenantBucketInfo{Name: bucket.Name, Access: accessType})
+	}
+
+	return bucketInfos, err
 }
 
 // Deletes a bucket in the given tenant's MinIO

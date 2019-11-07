@@ -47,6 +47,21 @@ func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (res 
 	return &pb.Bucket{Name: bucket, Size: 0}, nil
 }
 
+// bucketAccess converts BucketAccess type returned by cluster package to proto
+// buf Access type
+func bucketAccess(accessType cluster.BucketAccess) pb.Access {
+	var access pb.Access
+	switch accessType {
+	case cluster.BucketPublic:
+		access = pb.Access_PUBLIC
+	case cluster.BucketPrivate:
+		access = pb.Access_PRIVATE
+	default:
+		access = pb.Access_CUSTOM
+	}
+	return access
+}
+
 // ListBuckets lists buckets in the tenant's MinIO after validating the sessionId in the grpc headers
 func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*pb.ListBucketsResponse, error) {
 	var (
@@ -60,15 +75,18 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 	}
 
 	// List buckets in the tenant's MinIO
-	var bucketNames []string
-	bucketNames, err = cluster.ListBuckets(tenantShortname)
+	var bucketInfos []cluster.TenantBucketInfo
+	bucketInfos, err = cluster.ListBuckets(tenantShortname)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Failed to list buckets").Err()
 	}
 
 	var buckets []*pb.Bucket
-	for _, bucketName := range bucketNames {
-		buckets = append(buckets, &pb.Bucket{Name: bucketName})
+	for _, bucketInfo := range bucketInfos {
+		buckets = append(buckets, &pb.Bucket{
+			Name:   bucketInfo.Name,
+			Access: bucketAccess(bucketInfo.Access),
+		})
 	}
 	return &pb.ListBucketsResponse{
 		Buckets:      buckets,
