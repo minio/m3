@@ -53,7 +53,7 @@ service PublicAPI {
     }
 
     // Change Bucket access control between private and public.
-    rpc ChangeBucketAccessControl (AccessControlRequest) returns (AccessControlResponse) {
+    rpc ChangeBucketAccessControl (AccessControlRequest) returns (Empty) {
     }
 
     // User
@@ -231,11 +231,6 @@ message DeleteBucketRequest {
 message AccessControlRequest {
     string name = 1;
     Access access = 2;
-}
-
-message AccessControlResponse {
-    string error = 1;
-    string status = 2;
 }
 
 // Request a list of users on the tenant account

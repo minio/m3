@@ -370,6 +370,17 @@ func SetBucketAccess(minioClient *minio.Client, bucketName string, accessType Bu
 	return minioClient.SetBucketPolicy(bucketName, string(policyJSON))
 }
 
+// ChangeBucketAccess changes access type assigned to the given bucket
+func ChangeBucketAccess(tenantShortname, bucketName string, accessType BucketAccess) error {
+	// Get tenant specific MinIO client
+	minioClient, err := newTenantMinioClient(tenantShortname)
+	if err != nil {
+		return err
+	}
+
+	return SetBucketAccess(minioClient, bucketName, accessType)
+}
+
 // MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
 // TODO: allow to spcify the user performing the action (like in the API/gRPC case)
 func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) error {
