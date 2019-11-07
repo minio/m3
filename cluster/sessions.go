@@ -27,10 +27,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-const (
-	sessionExpirationTime = time.Minute * 5
-)
-
 type Session struct {
 	ID        string
 	UserID    uuid.UUID
@@ -50,23 +46,21 @@ func CreateSession(ctx *Context, userID uuid.UUID, tenantID uuid.UUID) (*Session
 
 	query :=
 		`INSERT INTO
-				m3.provisioning.sessions ("id","user_id", "tenant_id", "occurred_at", "expires_at", "status")
+				m3.provisioning.sessions ("id","user_id", "tenant_id", "status", "occurred_at", "expires_at")
 			  VALUES
-				($1,$2,$3,$4,$5,$6)`
+				($1,$2,$3,$4,NOW(),(NOW() + interval '1 day'))`
 	tx, err := ctx.MainTx()
 	if err != nil {
 		return nil, err
 	}
 	newSession := &Session{
-		ID:        sessionID,
-		UserID:    userID,
-		TenantID:  tenantID,
-		OcurredAt: time.Now(),
-		ExpiresAt: time.Now().Add(sessionExpirationTime),
-		Status:    "valid",
+		ID:       sessionID,
+		UserID:   userID,
+		TenantID: tenantID,
+		Status:   "valid",
 	}
 	// Execute Query
-	_, err = tx.Exec(query, newSession.ID, newSession.UserID, newSession.TenantID, newSession.OcurredAt, newSession.ExpiresAt, newSession.Status)
+	_, err = tx.Exec(query, newSession.ID, newSession.UserID, newSession.TenantID, newSession.Status)
 	if err != nil {
 		return nil, err
 	}
