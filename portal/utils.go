@@ -27,6 +27,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const (
+	sessionValid   = "valid"
+	sessionInvalid = "invalid"
+)
+
 // UTCNow - returns current UTC time.
 func UTCNow() time.Time {
 	return time.Now().UTC()
@@ -53,12 +58,11 @@ func getSessionRowIDAndTenantName(ctx context.Context) (string, string, error) {
 
 	// Prepare DB instance
 	db := cluster.GetInstance().Db
-	timeNow := time.Now()
 	// Get tenant name from the DB
 	getTenantShortnameQ := `SELECT s.id, t.short_name
                            FROM m3.provisioning.sessions as s JOIN m3.provisioning.tenants as t
-                           ON (s.tenant_id = t.id) WHERE s.id=$1 AND s.status=$2 AND $3 < s.expires_at`
-	tenantRow := db.QueryRow(getTenantShortnameQ, sessionID, "valid", timeNow)
+                           ON (s.tenant_id = t.id) WHERE s.id=$1 AND s.status=$2 AND NOW() < s.expires_at`
+	tenantRow := db.QueryRow(getTenantShortnameQ, sessionID, sessionValid)
 
 	var (
 		tenantShortname string
@@ -72,9 +76,9 @@ func getSessionRowIDAndTenantName(ctx context.Context) (string, string, error) {
 		// Get expired session_id from the DB
 		getSessionIDQ := `SELECT s.id
                            FROM m3.provisioning.sessions as s 
-                           WHERE s.id=$1 AND s.status=$2 AND $3 >= s.expires_at`
+                           WHERE s.id=$1 AND s.status=$2 AND NOW() >= s.expires_at`
 
-		tenantRow := db.QueryRow(getSessionIDQ, sessionID, "valid", timeNow)
+		tenantRow := db.QueryRow(getSessionIDQ, sessionID, sessionValid)
 		err = tenantRow.Scan(&sessionRowID)
 		// If session id exists, change the status to invalid
 		if err == nil && sessionRowID != "" {
@@ -89,7 +93,7 @@ func getSessionRowIDAndTenantName(ctx context.Context) (string, string, error) {
 			}
 
 			// Execute query
-			_, err = tx.Exec(setSessionStatusQ, "invalid", sessionRowID)
+			_, err = tx.Exec(setSessionStatusQ, sessionInvalid, sessionRowID)
 			if err != nil {
 				// Error setting session to invalid status
 				tx.Rollback()
