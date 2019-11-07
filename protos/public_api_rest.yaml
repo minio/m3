@@ -30,6 +30,9 @@ http:
       body: "*"
     # Users
     - selector: m3.PublicAPI.ListUsers
+    # Grpc request parameters can be fetched on a GET by 
+    # sending them through the request URL like
+    # /api/v1/users?limit=2&offset=3
       get: /api/v1/users
     - selector: m3.PublicAPI.AddUser
       post: /api/v1/users

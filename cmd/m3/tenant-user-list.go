@@ -90,7 +90,7 @@ func tenantUserList(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	users, err := cluster.GetUsersForTenant(appCtx, offset, limit)
+	users, err := cluster.GetUsersForTenant(appCtx, int32(offset), int32(limit))
 	if err != nil {
 		fmt.Println("Error listing users:", err.Error())
 		return err
