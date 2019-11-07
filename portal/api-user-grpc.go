@@ -92,10 +92,13 @@ func (s *server) DisableUser(ctx context.Context, in *pb.UserActionRequest) (*pb
 	if err != nil {
 		return nil, err
 	}
-	reqUserId := in.GetId()
+	reqUserID := in.GetId()
 	// start app context
 	appCtx, err := cluster.NewContext(tenantShortName)
-	err = cluster.SetUserEnabled(appCtx, reqUserId, false)
+	if err != nil {
+		return nil, status.New(codes.Internal, "Error disabling user").Err()
+	}
+	err = cluster.SetUserEnabled(appCtx, reqUserID, false)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Error disabling user").Err()
 	}
@@ -112,10 +115,13 @@ func (s *server) EnableUser(ctx context.Context, in *pb.UserActionRequest) (*pb.
 	if err != nil {
 		return nil, err
 	}
-	reqUserId := in.GetId()
+	reqUserID := in.GetId()
 	// start app context
 	appCtx, err := cluster.NewContext(tenantShortName)
-	err = cluster.SetUserEnabled(appCtx, reqUserId, true)
+	if err != nil {
+		return nil, status.New(codes.Internal, "Error disabling user").Err()
+	}
+	err = cluster.SetUserEnabled(appCtx, reqUserID, true)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Error enabling user").Err()
 	}
