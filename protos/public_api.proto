@@ -73,6 +73,7 @@ service PublicAPI {
     rpc EnableUser (UserActionRequest) returns (UserActionResponse) {
     }
     // Remove a User
+    // To be depracated
     rpc RemoveUser (UserActionRequest) returns (UserActionResponse) {
     }
     // Get details for an individual User

@@ -29,6 +29,7 @@ type User struct {
 	IsAdmin  bool
 	Password string
 	ID       uuid.UUID
+	Enabled  bool
 }
 
 // AddUser adds a new user to the tenant's database
@@ -104,6 +105,36 @@ func AddUser(tenantShortName string, newUser *User) error {
 	return nil
 }
 
+// SetUserEnabled updates user's `enabled` column to the desired status
+// 	True = Enabled
+// 	False = Disabled
+// Important! Transaction commit should be done outside this function
+func SetUserEnabled(ctx *Context, userId string, status bool) error {
+	// prepare query
+	query := `UPDATE 
+				users
+			  SET enabled = $1
+			  WHERE id=$2
+			  `
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+	// Execute query
+	_, err = stmt.Exec(status, userId)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return nil
+}
+
 // GetUserByEmail searches for the user in the defined tenant's database
 // and returns the User if it was found
 func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err error) {
@@ -135,7 +166,7 @@ func GetUsersForTenant(ctx *Context, offset int32, limit int32) ([]*User, error)
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
-				t1.id, t1.full_name, t1.email, t1.is_admin
+				t1.id, t1.full_name, t1.email, t1.is_admin, t1.enabled
 			FROM 
 				users t1
 			OFFSET $1 LIMIT $2`
@@ -147,7 +178,7 @@ func GetUsersForTenant(ctx *Context, offset int32, limit int32) ([]*User, error)
 	var users []*User
 	for rows.Next() {
 		usr := User{}
-		err := rows.Scan(&usr.ID, &usr.Name, &usr.Email, &usr.IsAdmin)
+		err := rows.Scan(&usr.ID, &usr.Name, &usr.Email, &usr.IsAdmin, &usr.Enabled)
 		if err != nil {
 			return nil, err
 		}
