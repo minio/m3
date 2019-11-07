@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	sessionExpirationTime = time.Minute * 5
+	sessionExpirationTime = time.Hour * 24
 )
 
 type Session struct {

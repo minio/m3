@@ -53,18 +53,50 @@ func getSessionRowIDAndTenantName(ctx context.Context) (string, string, error) {
 
 	// Prepare DB instance
 	db := cluster.GetInstance().Db
+	timeNow := time.Now()
 	// Get tenant name from the DB
 	getTenantShortnameQ := `SELECT s.id, t.short_name
                            FROM m3.provisioning.sessions as s JOIN m3.provisioning.tenants as t
-                           ON (s.tenant_id = t.id) WHERE s.id=$1 AND s.status=$2`
-	tenantRow := db.QueryRow(getTenantShortnameQ, sessionID, "valid")
+                           ON (s.tenant_id = t.id) WHERE s.id=$1 AND s.status=$2 AND $3 < s.expires_at`
+	tenantRow := db.QueryRow(getTenantShortnameQ, sessionID, "valid", timeNow)
 
 	var (
 		tenantShortname string
 		sessionRowID    string
 	)
 	err := tenantRow.Scan(&sessionRowID, &tenantShortname)
+
+	// Check if session id is expired then change status
 	if err == sql.ErrNoRows {
+		// TODO: Abstract Update functionality
+		// Get expired session_id from the DB
+		getSessionIDQ := `SELECT s.id
+                           FROM m3.provisioning.sessions as s 
+                           WHERE s.id=$1 AND s.status=$2 AND $3 >= s.expires_at`
+
+		tenantRow := db.QueryRow(getSessionIDQ, sessionID, "valid", timeNow)
+		err = tenantRow.Scan(&sessionRowID)
+		// If session id exists, change the status to invalid
+		if err == nil && sessionRowID != "" {
+			setSessionStatusQ :=
+				`UPDATE m3.provisioning.sessions 
+				 SET status = $1
+				 WHERE id=$2`
+
+			tx, err := db.BeginTx(ctx, nil)
+			if err != nil {
+				return "", "", status.New(codes.Internal, err.Error()).Err()
+			}
+
+			// Execute query
+			_, err = tx.Exec(setSessionStatusQ, "invalid", sessionRowID)
+			if err != nil {
+				// Error setting session to invalid status
+				tx.Rollback()
+				return "", "", status.New(codes.Internal, "Error on session validation").Err()
+			}
+			return "", "", status.New(codes.Unauthenticated, "Session expired").Err()
+		}
 		return "", "", status.New(codes.Unauthenticated, "No matching session found").Err()
 	}
 	if err != nil {
