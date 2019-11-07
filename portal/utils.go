@@ -28,8 +28,7 @@ import (
 )
 
 const (
-	sessionValid   = "valid"
-	sessionInvalid = "invalid"
+	sessionValid = "valid"
 )
 
 // UTCNow - returns current UTC time.
