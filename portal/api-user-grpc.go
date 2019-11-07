@@ -28,6 +28,7 @@ import (
 
 const (
 	uniqueViolationError = "unique_violation"
+	defaultRequestLimit  = 25
 )
 
 func (s *server) AddUser(ctx context.Context, in *pb.AddUserRequest) (*pb.User, error) {
@@ -61,6 +62,9 @@ func (s *server) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*pb.Li
 
 	reqOffset := in.GetOffset()
 	reqLimit := in.GetLimit()
+	if reqLimit == 0 {
+		reqLimit = defaultRequestLimit
+	}
 	appCtx, err := cluster.NewContext(tenantShortName)
 	if err != nil {
 		return nil, err
