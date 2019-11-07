@@ -108,8 +108,8 @@ func AddUser(tenantShortName string, newUser *User) error {
 // SetUserEnabled updates user's `enabled` column to the desired status
 // 	True = Enabled
 // 	False = Disabled
-// Important! Transaction commit should be done outside this function
-func SetUserEnabled(ctx *Context, userID string, status bool) error {
+func SetUserEnabled(tenantShortName string, userID string, status bool) error {
+	ctx, err := NewContext(tenantShortName)
 	// prepare query
 	query := `UPDATE 
 				users
@@ -122,14 +122,18 @@ func SetUserEnabled(ctx *Context, userID string, status bool) error {
 	}
 	stmt, err := tx.Prepare(query)
 	if err != nil {
-		tx.Rollback()
+		ctx.Rollback()
 		return err
 	}
 	defer stmt.Close()
 	// Execute query
 	_, err = stmt.Exec(status, userID)
 	if err != nil {
-		tx.Rollback()
+		ctx.Rollback()
+		return err
+	}
+	err = ctx.Commit()
+	if err != nil {
 		return err
 	}
 	return nil

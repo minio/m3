@@ -93,16 +93,10 @@ func (s *server) DisableUser(ctx context.Context, in *pb.UserActionRequest) (*pb
 		return nil, err
 	}
 	reqUserID := in.GetId()
-	// start app context
-	appCtx, err := cluster.NewContext(tenantShortName)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Error disabling user").Err()
 	}
-	err = cluster.SetUserEnabled(appCtx, reqUserID, false)
-	if err != nil {
-		return nil, status.New(codes.Internal, "Error disabling user").Err()
-	}
-	err = appCtx.Commit()
+	err = cluster.SetUserEnabled(tenantShortName, reqUserID, false)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Error disabling user").Err()
 	}
@@ -117,15 +111,10 @@ func (s *server) EnableUser(ctx context.Context, in *pb.UserActionRequest) (*pb.
 	}
 	reqUserID := in.GetId()
 	// start app context
-	appCtx, err := cluster.NewContext(tenantShortName)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Error disabling user").Err()
 	}
-	err = cluster.SetUserEnabled(appCtx, reqUserID, true)
-	if err != nil {
-		return nil, status.New(codes.Internal, "Error enabling user").Err()
-	}
-	err = appCtx.Commit()
+	err = cluster.SetUserEnabled(tenantShortName, reqUserID, true)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Error enabling user").Err()
 	}
