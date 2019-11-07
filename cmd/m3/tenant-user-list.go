@@ -100,10 +100,10 @@ func tenantUserList(ctx *cli.Context) error {
 		fmt.Println("Error listing users:", err.Error())
 		return err
 	}
-	fmt.Println("ID\tEmail\tIs Admin")
+	fmt.Println("ID\tEmail\tIs Admin\tEnabled")
 	// Translate the users to friendly format
 	for _, user := range users {
-		fmt.Println(fmt.Sprintf("%s\t%s\t%t", user.ID.String(), user.Email, user.IsAdmin))
+		fmt.Println(fmt.Sprintf("%s\t%s\t%t\t%t", user.ID.String(), user.Email, user.IsAdmin, user.Enabled))
 	}
 	fmt.Println(fmt.Sprintf("A total of %d users", total))
 

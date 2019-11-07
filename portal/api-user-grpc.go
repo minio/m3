@@ -85,3 +85,38 @@ func (s *server) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*pb.Li
 	}
 	return &pb.ListUsersResponse{Users: respUsers, TotalUsers: int32(total)}, nil
 }
+
+func (s *server) DisableUser(ctx context.Context, in *pb.UserActionRequest) (*pb.UserActionResponse, error) {
+	// Validate sessionID and get tenant short name using the valid sessionID
+	tenantShortName, err := getTenantShortNameFromSessionID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	reqUserID := in.GetId()
+	if err != nil {
+		return nil, status.New(codes.Internal, "Error disabling user").Err()
+	}
+	err = cluster.SetUserEnabled(tenantShortName, reqUserID, false)
+	if err != nil {
+		return nil, status.New(codes.Internal, "Error disabling user").Err()
+	}
+	return &pb.UserActionResponse{Status: "false"}, nil
+}
+
+func (s *server) EnableUser(ctx context.Context, in *pb.UserActionRequest) (*pb.UserActionResponse, error) {
+	// Validate sessionID and get tenant short name using the valid sessionID
+	tenantShortName, err := getTenantShortNameFromSessionID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	reqUserID := in.GetId()
+	// start app context
+	if err != nil {
+		return nil, status.New(codes.Internal, "Error disabling user").Err()
+	}
+	err = cluster.SetUserEnabled(tenantShortName, reqUserID, true)
+	if err != nil {
+		return nil, status.New(codes.Internal, "Error enabling user").Err()
+	}
+	return &pb.UserActionResponse{Status: "true"}, nil
+}
