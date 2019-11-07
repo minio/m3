@@ -110,6 +110,9 @@ func AddUser(tenantShortName string, newUser *User) error {
 // 	False = Disabled
 func SetUserEnabled(tenantShortName string, userID string, status bool) error {
 	ctx, err := NewContext(tenantShortName)
+	if err != nil {
+		return err
+	}
 	// prepare query
 	query := `UPDATE 
 				users
