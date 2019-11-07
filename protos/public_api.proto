@@ -207,11 +207,13 @@ message ListBucketsResponse {
 message Bucket {
     string name = 1;
     int64 size = 2;
+    Access access = 3;
 }
 
 enum Access {
     PRIVATE = 0;
     PUBLIC = 1;
+    CUSTOM = 2;
 }
 
 
