@@ -69,7 +69,6 @@ func getSessionRowIDAndTenantName(ctx context.Context) (string, string, error) {
 	)
 	err := tenantRow.Scan(&sessionRowID, &tenantShortname)
 
-	// Check if session id is expired then change status
 	if err == sql.ErrNoRows {
 		return "", "", status.New(codes.Unauthenticated, "Session invalid or expired").Err()
 	}
