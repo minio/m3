@@ -19,9 +19,33 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/minio/cli"
+	"github.com/minio/mc/pkg/console"
+	"github.com/minio/minio/pkg/trie"
+	"github.com/minio/minio/pkg/words"
 )
+
+// Help template for m3.
+var m3HelpTemplate = `NAME:
+  {{.Name}} - {{.Usage}}
+
+DESCRIPTION:
+  {{.Description}}
+
+USAGE:
+  {{.HelpName}} {{if .VisibleFlags}}[FLAGS] {{end}}COMMAND{{if .VisibleFlags}}{{end}} [ARGS...]
+
+COMMANDS:
+  {{range .VisibleCommands}}{{join .Names ", "}}{{ "\t" }}{{.Usage}}
+  {{end}}{{if .VisibleFlags}}
+FLAGS:
+  {{range .VisibleFlags}}{{.}}
+  {{end}}{{end}}
+VERSION:
+  {{.Version}}
+`
 
 var appCmds = []cli.Command{
 	portalCmd,
@@ -36,23 +60,78 @@ func main() {
 	// Set the m3 app name.
 	appName := filepath.Base(args[0])
 	// Run the app - exit on error.
-	if err := registerApp(appName).Run(args); err != nil {
+	if err := newApp(appName).Run(args); err != nil {
 		os.Exit(1)
 	}
 }
 
-func registerApp(name string) *cli.App {
+func newApp(name string) *cli.App {
+	// Collection of m3 commands currently supported are.
+	commands := []cli.Command{}
+
+	// Collection of m3 commands currently supported in a trie tree.
+	commandsTree := trie.NewTrie()
+
+	// registerCommand registers a cli command.
+	registerCommand := func(command cli.Command) {
+		commands = append(commands, command)
+		commandsTree.Insert(command.Name)
+	}
+
 	// register commands
 	for _, cmd := range appCmds {
-		registerCmd(cmd)
+		registerCommand(cmd)
+	}
+
+	findClosestCommands := func(command string) []string {
+		var closestCommands []string
+		for _, value := range commandsTree.PrefixMatch(command) {
+			closestCommands = append(closestCommands, value.(string))
+		}
+
+		sort.Strings(closestCommands)
+		// Suggest other close commands - allow missed, wrongly added and
+		// even transposed characters
+		for _, value := range commandsTree.Walk(commandsTree.Root()) {
+			if sort.SearchStrings(closestCommands, value.(string)) < len(closestCommands) {
+				continue
+			}
+			// 2 is arbitrary and represents the max
+			// allowed number of typed errors
+			if words.DamerauLevenshteinDistance(command, value.(string)) < 2 {
+				closestCommands = append(closestCommands, value.(string))
+			}
+		}
+
+		return closestCommands
+	}
+
+	cli.HelpFlag = cli.BoolFlag{
+		Name:  "help, h",
+		Usage: "show help",
 	}
 
 	app := cli.NewApp()
 	app.Name = name
-	app.Usage = "Starts MinIO Kubernetes Cloud"
+	app.Version = "0.0.1"
+	app.Author = "MinIO, Inc."
+	app.Usage = "MinIO Kubernetes Cloud"
+	app.Description = `MinIO Kubernetes Cloud`
 	app.Commands = commands
-	app.Action = func(c *cli.Context) error {
-		return cli.ShowAppHelp(c)
+	app.HideHelpCommand = true // Hide `help, h` command, we already have `minio --help`.
+	app.CustomAppHelpTemplate = m3HelpTemplate
+	app.CommandNotFound = func(ctx *cli.Context, command string) {
+		console.Printf("‘%s’ is not a m3 sub-command. See ‘m3 --help’.\n", command)
+		closestCommands := findClosestCommands(command)
+		if len(closestCommands) > 0 {
+			console.Println()
+			console.Println("Did you mean one of these?")
+			for _, cmd := range closestCommands {
+				console.Printf("\t‘%s’\n", cmd)
+			}
+		}
+
+		os.Exit(1)
 	}
 
 	return app

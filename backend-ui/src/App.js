@@ -21,7 +21,7 @@ function App() {
     return (
         <div className="App">
             <header className="App-header">
-                <h1>mcs</h1>
+                <h1>m3</h1>
                 <p>
                     {counter}
                 </p>
