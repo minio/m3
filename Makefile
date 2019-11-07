@@ -15,3 +15,9 @@ swagger-def:
 m3:
 	@echo "Building m3 binary to './m3'"
 	@(cd cmd/m3; CGO_ENABLED=0 go build --ldflags "-s -w" -o ../../m3)
+
+clean:
+	@echo "Cleaning up all the generated files"
+	@find . -name '*.test' | xargs rm -fv
+	@find . -name '*~' | xargs rm -fv
+	@rm -rvf m3

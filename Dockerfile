@@ -3,7 +3,7 @@ FROM golang:1.13.1
 ADD go.mod /go/src/github.com/minio/m3/go.mod
 ADD go.sum /go/src/github.com/minio/m3/go.sum
 WORKDIR /go/src/github.com/minio/m3/
-# Get dependancies - will also be cached if we won't change mod/sum
+# Get dependencies - will also be cached if we won't change mod/sum
 RUN go mod download
 
 ADD . /go/src/github.com/minio/m3/
