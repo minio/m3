@@ -26,7 +26,7 @@ import (
 // list files and folders.
 var setupDbCmd = cli.Command{
 	Name:   "db",
-	Usage:  "runs the migrations for the setup db",
+	Usage:  "runs DB migrations",
 	Action: setupDB,
 }
 
