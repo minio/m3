@@ -3,11 +3,27 @@ MinIO Kubernetes Cloud
 
 ## Prerequisites
 
-- [Docker](https://www.docker.com)
+- [Docker](https://docs.docker.com/install/)
 
 - [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
+```
+curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+```
+
 - [Kubefwd](https://github.com/txn2/kubefwd)
+
+```
+go get github.com/txn2/kubefwd/cmd/kubefwd
+```
+
+- [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway)
+
+```
+go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+go get github.com/golang/protobuf/protoc-gen-go
+```
 
 ## Installation
 

@@ -30,7 +30,7 @@ const (
 
 // server is used to implement PublicAPIServer
 type server struct {
-	pb.UnimplementedPublicAPIServer
+	pb.PublicAPIServer
 }
 
 func InitPortalGRPCServer() {

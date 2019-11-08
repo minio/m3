@@ -6,12 +6,9 @@ package m3
 import (
 	context "context"
 	fmt "fmt"
-	math "math"
-
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -2199,6 +2196,7 @@ type PublicAPIClient interface {
 	// Enable a User
 	EnableUser(ctx context.Context, in *UserActionRequest, opts ...grpc.CallOption) (*UserActionResponse, error)
 	// Remove a User
+	// To be depracated
 	RemoveUser(ctx context.Context, in *UserActionRequest, opts ...grpc.CallOption) (*UserActionResponse, error)
 	// Get details for an individual User
 	InfoUser(ctx context.Context, in *UserActionRequest, opts ...grpc.CallOption) (*User, error)
@@ -2510,6 +2508,7 @@ type PublicAPIServer interface {
 	// Enable a User
 	EnableUser(context.Context, *UserActionRequest) (*UserActionResponse, error)
 	// Remove a User
+	// To be depracated
 	RemoveUser(context.Context, *UserActionRequest) (*UserActionResponse, error)
 	// Get details for an individual User
 	InfoUser(context.Context, *UserActionRequest) (*User, error)
@@ -2538,92 +2537,6 @@ type PublicAPIServer interface {
 	InfoPermission(context.Context, *PermissionActionRequest) (*Permission, error)
 	// Assign this permission to multiple service accounts
 	AssignPermissionToMultipleServiceAccounts(context.Context, *MultiAddPermissionToSAsRequest) (*MultiAddPermissionToSAsResponse, error)
-}
-
-// UnimplementedPublicAPIServer can be embedded to have forward compatible implementations.
-type UnimplementedPublicAPIServer struct {
-}
-
-func (*UnimplementedPublicAPIServer) RegisterTenant(ctx context.Context, req *RegisterAccountRequest) (*RegisterAccountResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RegisterTenant not implemented")
-}
-func (*UnimplementedPublicAPIServer) Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
-}
-func (*UnimplementedPublicAPIServer) Logout(ctx context.Context, req *Empty) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
-}
-func (*UnimplementedPublicAPIServer) ResetPassword(ctx context.Context, req *ResetPasswordRequest) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ResetPassword not implemented")
-}
-func (*UnimplementedPublicAPIServer) Metrics(ctx context.Context, req *MetricsRequest) (*MetricsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Metrics not implemented")
-}
-func (*UnimplementedPublicAPIServer) ListBuckets(ctx context.Context, req *ListBucketsRequest) (*ListBucketsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListBuckets not implemented")
-}
-func (*UnimplementedPublicAPIServer) MakeBucket(ctx context.Context, req *MakeBucketRequest) (*Bucket, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method MakeBucket not implemented")
-}
-func (*UnimplementedPublicAPIServer) DeleteBucket(ctx context.Context, req *DeleteBucketRequest) (*Bucket, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteBucket not implemented")
-}
-func (*UnimplementedPublicAPIServer) ChangeBucketAccessControl(ctx context.Context, req *AccessControlRequest) (*AccessControlResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChangeBucketAccessControl not implemented")
-}
-func (*UnimplementedPublicAPIServer) ListUsers(ctx context.Context, req *ListUsersRequest) (*ListUsersResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListUsers not implemented")
-}
-func (*UnimplementedPublicAPIServer) AddUser(ctx context.Context, req *AddUserRequest) (*User, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddUser not implemented")
-}
-func (*UnimplementedPublicAPIServer) DisableUser(ctx context.Context, req *UserActionRequest) (*UserActionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DisableUser not implemented")
-}
-func (*UnimplementedPublicAPIServer) EnableUser(ctx context.Context, req *UserActionRequest) (*UserActionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method EnableUser not implemented")
-}
-func (*UnimplementedPublicAPIServer) RemoveUser(ctx context.Context, req *UserActionRequest) (*UserActionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveUser not implemented")
-}
-func (*UnimplementedPublicAPIServer) InfoUser(ctx context.Context, req *UserActionRequest) (*User, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method InfoUser not implemented")
-}
-func (*UnimplementedPublicAPIServer) ListServiceAccounts(ctx context.Context, req *ListServiceAccountsRequest) (*ListServiceAccountsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListServiceAccounts not implemented")
-}
-func (*UnimplementedPublicAPIServer) CreateServiceAccount(ctx context.Context, req *CreateServiceAccountRequest) (*CreateServiceAccountResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateServiceAccount not implemented")
-}
-func (*UnimplementedPublicAPIServer) DisableServiceAccount(ctx context.Context, req *ServiceAccountActionRequest) (*ServiceAccountActionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DisableServiceAccount not implemented")
-}
-func (*UnimplementedPublicAPIServer) EnableServiceAccount(ctx context.Context, req *ServiceAccountActionRequest) (*ServiceAccountActionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method EnableServiceAccount not implemented")
-}
-func (*UnimplementedPublicAPIServer) RemoveServiceAccount(ctx context.Context, req *ServiceAccountActionRequest) (*ServiceAccountActionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveServiceAccount not implemented")
-}
-func (*UnimplementedPublicAPIServer) InfoServiceAccount(ctx context.Context, req *ServiceAccountActionRequest) (*ServiceAccount, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method InfoServiceAccount not implemented")
-}
-func (*UnimplementedPublicAPIServer) AssignPermissionsToServiceAccount(ctx context.Context, req *AddPermissionsSARequest) (*AddPermissionsSAResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AssignPermissionsToServiceAccount not implemented")
-}
-func (*UnimplementedPublicAPIServer) ListPermissions(ctx context.Context, req *ListPermissionsRequest) (*ListPermissionsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListPermissions not implemented")
-}
-func (*UnimplementedPublicAPIServer) AddPermission(ctx context.Context, req *Permission) (*Permission, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddPermission not implemented")
-}
-func (*UnimplementedPublicAPIServer) RemovePermission(ctx context.Context, req *PermissionActionRequest) (*PermissionActionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemovePermission not implemented")
-}
-func (*UnimplementedPublicAPIServer) InfoPermission(ctx context.Context, req *PermissionActionRequest) (*Permission, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method InfoPermission not implemented")
-}
-func (*UnimplementedPublicAPIServer) AssignPermissionToMultipleServiceAccounts(ctx context.Context, req *MultiAddPermissionToSAsRequest) (*MultiAddPermissionToSAsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AssignPermissionToMultipleServiceAccounts not implemented")
 }
 
 func RegisterPublicAPIServer(s *grpc.Server, srv PublicAPIServer) {
