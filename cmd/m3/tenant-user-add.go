@@ -17,15 +17,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/minio/cli"
 	pb "github.com/minio/m3/api/stubs"
-)
-
-var (
-	errMissingArguments = errors.New("Arguments missing")
 )
 
 // Adds a user to the tenant's database
