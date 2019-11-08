@@ -1,0 +1,625 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "public_api.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "ServiceAccountStatus": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "INACTIVE"
+      ],
+      "default": "ACTIVE",
+      "title": "State of the ServiceAccount"
+    },
+    "m3Access": {
+      "type": "string",
+      "enum": [
+        "PRIVATE",
+        "PUBLIC",
+        "CUSTOM"
+      ],
+      "default": "PRIVATE"
+    },
+    "m3AccessControlRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "access": {
+          "$ref": "#/definitions/m3Access"
+        }
+      }
+    },
+    "m3AccessControlResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "format": "string"
+        },
+        "status": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "m3AddPermissionsSARequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "string"
+        },
+        "permission_id": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string"
+          },
+          "title": "list of permission id, an absence of a permission_id means it's not desired and should be removed\nfrom the assigned list"
+        }
+      }
+    },
+    "m3AddPermissionsSAResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "format": "string"
+        },
+        "status": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "m3AddUserRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "string"
+        },
+        "password": {
+          "type": "string",
+          "format": "string",
+          "title": "optional"
+        }
+      }
+    },
+    "m3Bucket": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "size": {
+          "type": "string",
+          "format": "int64"
+        },
+        "access": {
+          "$ref": "#/definitions/m3Access"
+        }
+      }
+    },
+    "m3CreateServiceAccountRequest": {
+      "type": "object",
+      "properties": {
+        "user_access_key": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "m3CreateServiceAccountResponse": {
+      "type": "object",
+      "properties": {
+        "access_key": {
+          "type": "string",
+          "format": "string"
+        },
+        "secret_key": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "m3DeleteBucketRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "m3Empty": {
+      "type": "object",
+      "title": "Empty message for services that rely on headers"
+    },
+    "m3ListBucketsRequest": {
+      "type": "object",
+      "properties": {
+        "sort_by": {
+          "type": "string",
+          "format": "string"
+        },
+        "offset": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "query": {
+          "type": "string",
+          "format": "string",
+          "title": "a query to filter buckets with"
+        }
+      },
+      "title": "Request what buckets the current tenant user can see"
+    },
+    "m3ListBucketsResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "format": "string",
+          "title": "if any error, like user not allowed to list buckets"
+        },
+        "buckets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/m3Bucket"
+          },
+          "title": "list of resulting buckets"
+        },
+        "total_buckets": {
+          "type": "integer",
+          "format": "int32",
+          "title": "number of buckets accessible to tenant user"
+        }
+      }
+    },
+    "m3ListPermissionsRequest": {
+      "type": "object",
+      "properties": {
+        "sort_by": {
+          "type": "string",
+          "format": "string"
+        },
+        "offset": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "query": {
+          "type": "string",
+          "format": "string",
+          "title": "a query to filter Permissions with"
+        }
+      },
+      "title": "Request a list of Permissions on the tenant account"
+    },
+    "m3ListPermissionsResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "format": "string",
+          "title": "if any error, like user not allowed to list Permissions"
+        },
+        "Permissions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/m3Permission"
+          },
+          "title": "list of resulting Permissions"
+        },
+        "total_Permissions": {
+          "type": "integer",
+          "format": "int32",
+          "title": "number of Permissions on the tenant account"
+        }
+      },
+      "title": "Request a list of Permissions on the tenant account"
+    },
+    "m3ListServiceAccountsRequest": {
+      "type": "object",
+      "properties": {
+        "sort_by": {
+          "type": "string",
+          "format": "string"
+        },
+        "offset": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "query": {
+          "type": "string",
+          "format": "string",
+          "title": "a query to filter ServiceAccounts with"
+        }
+      },
+      "title": "Request a list of ServiceAccounts on the tenant account"
+    },
+    "m3ListServiceAccountsResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "format": "string",
+          "title": "if any error, like user not allowed to list ServiceAccounts"
+        },
+        "ServiceAccounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/m3ServiceAccount"
+          },
+          "title": "list of resulting ServiceAccounts"
+        },
+        "total_ServiceAccounts": {
+          "type": "integer",
+          "format": "int32",
+          "title": "number of ServiceAccounts on the tenant account"
+        }
+      },
+      "title": "Request a list of ServiceAccounts on the tenant account"
+    },
+    "m3ListUsersRequest": {
+      "type": "object",
+      "properties": {
+        "sort_by": {
+          "type": "string",
+          "format": "string"
+        },
+        "offset": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "query": {
+          "type": "string",
+          "format": "string",
+          "title": "a query to filter users with"
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int32",
+          "title": "max number of results per request"
+        }
+      },
+      "title": "Request a list of users on the tenant account"
+    },
+    "m3ListUsersResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "format": "string",
+          "title": "if any error, like user not allowed to list users"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/m3User"
+          },
+          "title": "list of resulting users"
+        },
+        "total_users": {
+          "type": "integer",
+          "format": "int32",
+          "title": "number of users on the tenant account"
+        }
+      },
+      "title": "Request a list of users on the tenant account"
+    },
+    "m3LoginRequest": {
+      "type": "object",
+      "properties": {
+        "company": {
+          "type": "string",
+          "format": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "string"
+        },
+        "password": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "m3LoginResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "format": "string"
+        },
+        "jwt_token": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "m3MakeBucketRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "access": {
+          "$ref": "#/definitions/m3Access"
+        }
+      }
+    },
+    "m3MetricsRequest": {
+      "type": "object",
+      "title": "A request for metrics on the authenticated tenant"
+    },
+    "m3MetricsResponse": {
+      "type": "object",
+      "properties": {
+        "usage": {
+          "$ref": "#/definitions/m3UsageMetrics"
+        },
+        "network": {
+          "$ref": "#/definitions/m3NetworkMetrics"
+        }
+      },
+      "title": "Information to build a basic dashboard"
+    },
+    "m3MultiAddPermissionToSAsRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "string"
+        },
+        "service_account_id": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string"
+          }
+        }
+      }
+    },
+    "m3MultiAddPermissionToSAsResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "format": "string"
+        },
+        "status": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "m3NetworkMetrics": {
+      "type": "object",
+      "properties": {
+        "current_egress": {
+          "type": "string",
+          "format": "int64",
+          "title": "Current period amount of egress"
+        }
+      },
+      "title": "Networking related metrics"
+    },
+    "m3Permission": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "format": "string",
+          "title": "Identifier for the Permission"
+        },
+        "effect": {
+          "type": "string",
+          "format": "string"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string"
+          }
+        }
+      },
+      "title": "Permission resource"
+    },
+    "m3PermissionActionRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "string",
+          "title": "Identifier for the Permission"
+        }
+      }
+    },
+    "m3PermissionActionResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "format": "string"
+        },
+        "status": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "m3RegisterAccountRequest": {
+      "type": "object",
+      "properties": {
+        "full_name": {
+          "type": "string",
+          "format": "string"
+        },
+        "company": {
+          "type": "string",
+          "format": "string"
+        },
+        "company_short_name": {
+          "type": "string",
+          "format": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "string"
+        },
+        "password": {
+          "type": "string",
+          "format": "string"
+        }
+      },
+      "title": "Message containing details of the Tenant Admin and the tenant that is going to be created"
+    },
+    "m3RegisterAccountResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "format": "string"
+        },
+        "jwt_token": {
+          "type": "string",
+          "format": "string"
+        }
+      },
+      "title": "Response on wether the account was created or not"
+    },
+    "m3ResetPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "password": {
+          "type": "string",
+          "format": "string"
+        },
+        "new_password": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "m3ServiceAccount": {
+      "type": "object",
+      "properties": {
+        "access_key": {
+          "type": "string",
+          "format": "string",
+          "title": "Identifier for the ServiceAccount"
+        },
+        "status": {
+          "$ref": "#/definitions/ServiceAccountStatus"
+        }
+      }
+    },
+    "m3ServiceAccountActionRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "m3ServiceAccountActionResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "format": "string",
+          "title": "If any error happened"
+        }
+      }
+    },
+    "m3UsageMetrics": {
+      "type": "object",
+      "properties": {
+        "buckets": {
+          "type": "integer",
+          "format": "int32",
+          "title": "number of buckets on the account"
+        },
+        "total_data": {
+          "type": "string",
+          "format": "int64",
+          "title": "A number of bytes representing the total usage on the account"
+        }
+      },
+      "title": "Capacity related metrics"
+    },
+    "m3User": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "format": "string",
+          "title": "Identifier for the user"
+        },
+        "email": {
+          "type": "string",
+          "format": "string"
+        },
+        "id": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "m3UserActionRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "m3UserActionResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "format": "string"
+        },
+        "status": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    }
+  }
+}
