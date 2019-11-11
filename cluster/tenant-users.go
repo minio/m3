@@ -18,7 +18,9 @@ package cluster
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
+	"time"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -33,7 +35,7 @@ type User struct {
 }
 
 // AddUser adds a new user to the tenant's database
-func AddUser(tenantShortName string, newUser *User) error {
+func AddUser(ctx *Context, newUser *User) error {
 	// validate user Name
 	if newUser.Name != "" {
 		// TODO: improve regex
@@ -64,10 +66,6 @@ func AddUser(tenantShortName string, newUser *User) error {
 		return err
 	}
 
-	ctx, err := NewContext(tenantShortName)
-	if err != nil {
-		return err
-	}
 	// Add parameters to query
 	newUser.ID = uuid.NewV4()
 	query := `INSERT INTO
@@ -90,14 +88,21 @@ func AddUser(tenantShortName string, newUser *User) error {
 		ctx.Rollback()
 		return err
 	}
+
+	// if no error happened to this point commit transaction
+	err = ctx.Commit()
+	if err != nil {
+		return err
+	}
+
 	// Create this user's credentials so he can interact with it's own buckets/data
-	err = createUserCredentials(ctx, tenantShortName, newUser.ID)
+	err = createUserCredentials(ctx, ctx.Tenant.ShortName, newUser.ID)
 	if err != nil {
 		ctx.Rollback()
 		return err
 	}
 
-	// if no error happened to this point commit transaction
+	// if no error happened to this point commit transaction for the user
 	err = ctx.Commit()
 	if err != nil {
 		return err
@@ -210,4 +215,48 @@ func GetTotalNumberOfUsers(ctx *Context) (int, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+// InviteUserByEmail creates a temporary token to signup for service and send an email to the provided user
+func InviteUserByEmail(ctx *Context, user *User) error {
+
+	// generate a token for the email invite
+	// this token expires in 72 hours
+	expires := time.Now().Add(time.Hour * 72)
+
+	urlToken, err := NewURLToken(ctx, &user.ID, "signup-email", &expires)
+	if err != nil {
+		return err
+	}
+
+	// send email with the invite
+
+	tenant, err := GetTenantWithCtx(ctx, ctx.Tenant.Name)
+	if err != nil {
+		return err
+	}
+
+	// for now, let's hardcode the url, subsequent PRs will introduce system configs
+	signupURL := fmt.Sprintf("http://%s/signup?k=%s", GetInstance().AppURL(), urlToken.String())
+
+	templateData := struct {
+		Name string
+		URL  string
+	}{
+		Name: user.Name,
+		URL:  signupURL,
+	}
+	// Get the mailing template for inviting users
+	body, err := GetTemplate("invite", templateData)
+	if err != nil {
+		return err
+	}
+
+	// send the email
+	err = SendMail(user.Name, user.Email, fmt.Sprintf("Signup for %s Storage", tenant.Name), *body)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

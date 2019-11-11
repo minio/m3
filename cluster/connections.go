@@ -182,8 +182,8 @@ func (s *Singleton) RemoveCnx(tenantName string) {
 	delete(s.tenantsCnx, tenantName)
 }
 
-// AppUrl returns the main application url
-func (s *Singleton) AppUrl() string {
+// AppURL returns the main application url
+func (s *Singleton) AppURL() string {
 	appURL := "http://s3.localhost"
 	if os.Getenv("APP_URL") != "" {
 		appURL = os.Getenv("APP_URL")
