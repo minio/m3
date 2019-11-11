@@ -21,3 +21,6 @@ clean:
 	@find . -name '*.test' | xargs rm -fv
 	@find . -name '*~' | xargs rm -fv
 	@rm -rvf m3
+
+docker:
+	@docker build -t minio/m3 .

@@ -18,73 +18,122 @@ package cluster
 
 import (
 	"bytes"
+	"crypto/tls"
+	"errors"
 	"fmt"
 	"html/template"
+	"net"
+	"net/mail"
 	"net/smtp"
 	"os"
 )
 
-// smtpServer data to smtp server
-type smtpServer struct {
-	host string
-	port string
-}
-
-// serverName URI to smtp server
-func (s *smtpServer) Address() string {
-	return s.host + ":" + s.port
-}
-
-func SendMail(toName, toEmail, subject, textBody, htmlBody string) error {
+// SendMail sends an email to `toName <toEmail>` with the provided subject and body.
+// This function depends on `MAIL ACCOUNT`, `MAIL_SERVER` and `MAIL_PASSWORD` environment variables being set.
+func SendMail(toName, toEmail, subject, body string) error {
 	// Sender data.
 	account := os.Getenv("MAIL_ACCOUNT")
-	from := fmt.Sprintf("From: %s <%s>", "mkube team", account)
-	password := os.Getenv("MAIL_PASSWORD")
-	// Receiver email address.
-	to := []string{
-		toEmail,
+	if account == "" {
+		return errors.New("No mailing account configured")
 	}
-	// smtp server configuration.
-	smtpServer := smtpServer{host: "smtp.gmail.com", port: "587"}
+	// Connect to the SMTP Server
+	servername := os.Getenv("MAIL_SERVER")
+	if servername == "" {
+		return errors.New("mail server is not set")
+	}
+	password := os.Getenv("MAIL_PASSWORD")
+	from := mail.Address{Name: "mkube team", Address: account}
+	to := mail.Address{Name: toName, Address: toEmail}
+
+	// Setup headers
+	headers := make(map[string]string)
+	headers["From"] = from.String()
+	headers["To"] = to.String()
+	headers["Subject"] = subject
+
 	// Message.
 	//message := []byte("This is a really unimaginative message, I know.")
 	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
-	subject = fmt.Sprintf("Subject: %s\n", subject)
 
-	templateData := struct {
-		Name string
-		URL  string
-	}{
-		Name: "Daniel",
-		URL:  "http://min.io",
+	// Setup message
+	message := ""
+	for k, v := range headers {
+		message += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
+	message += mime
+	message += "\r\n" + body
 
-	body, err := getTemplate("invite", templateData)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
+	host, _, _ := net.SplitHostPort(servername)
 
-	message := []byte(subject + mime + *body)
 	// Authentication.
-	auth := smtp.PlainAuth("", account, password, smtpServer.host)
-	// Sending email.
-	err = smtp.SendMail(smtpServer.Address(), auth, from, to, message)
+	auth := smtp.PlainAuth("", account, password, host)
+
+	// TLS config
+	tlsconfig := &tls.Config{
+		InsecureSkipVerify: false,
+		ServerName:         host,
+	}
+
+	// Here is the key, you need to call tls.Dial instead of smtp.Dial
+	// for smtp servers running on 465 that require an ssl connection
+	// from the very beginning (no starttls)
+	conn, err := tls.Dial("tcp", servername, tlsconfig)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
-	fmt.Println("Email Sent!")
+
+	c, err := smtp.NewClient(conn, host)
+	if err != nil {
+		return err
+	}
+
+	// Auth
+	if err = c.Auth(auth); err != nil {
+		return err
+	}
+
+	// To && From
+	if err = c.Mail(from.Address); err != nil {
+		return err
+	}
+
+	if err = c.Rcpt(to.Address); err != nil {
+		return err
+	}
+
+	// Data
+	w, err := c.Data()
+	if err != nil {
+		return err
+	}
+
+	_, err = w.Write([]byte(message))
+	if err != nil {
+		return err
+	}
+
+	err = w.Close()
+	if err != nil {
+		return err
+	}
+
+	err = c.Quit()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Email Sent.")
 	return nil
 }
 
-func getTemplate(templateFileName string, data interface{}) (*string, error) {
+// GetTemplate gets a template from the templates folder and applies the template date
+func GetTemplate(templateFileName string, data interface{}) (*string, error) {
 	// Working Directory
 	wd, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
-	t, err := template.ParseFiles(wd + "/cluster/templates/invite.html")
+	t, err := template.ParseFiles(wd + fmt.Sprintf("/cluster/templates/%s.html", templateFileName))
 	if err != nil {
 		return nil, err
 	}

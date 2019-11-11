@@ -42,7 +42,13 @@ func (s *server) AddUser(ctx context.Context, in *pb.AddUserRequest) (*pb.User, 
 	reqEmail := in.GetEmail()
 	newUser := &cluster.User{Name: reqName, Email: reqEmail}
 
-	err = cluster.AddUser(tenantShortName, newUser)
+	appCtx, err := cluster.NewContext(tenantShortName)
+	if err != nil {
+		return nil, err
+	}
+	appCtx.ControlCtx = ctx
+
+	err = cluster.AddUser(appCtx, newUser)
 	if err != nil {
 		if err.(*pq.Error).Code.Name() == uniqueViolationError {
 			return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()

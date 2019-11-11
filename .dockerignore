@@ -1,3 +1,6 @@
 #ignore k8s stuff
 k8s/
 target/
+m3
+portal-ui/node_modules
+
