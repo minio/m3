@@ -47,19 +47,33 @@ func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (res 
 	return &pb.Bucket{Name: bucket, Size: 0}, nil
 }
 
-// bucketAccess converts BucketAccess type returned by cluster package to proto
-// buf Access type
-func bucketAccess(accessType cluster.BucketAccess) pb.Access {
-	var access pb.Access
-	switch accessType {
+// getAccessType converts BucketAccess type returned by cluster package to
+// protobuf Access type
+func getAccessType(bucketAccess cluster.BucketAccess) pb.Access {
+	var accessType pb.Access
+	switch bucketAccess {
 	case cluster.BucketPublic:
-		access = pb.Access_PUBLIC
+		accessType = pb.Access_PUBLIC
 	case cluster.BucketPrivate:
-		access = pb.Access_PRIVATE
+		accessType = pb.Access_PRIVATE
 	default:
-		access = pb.Access_CUSTOM
+		accessType = pb.Access_CUSTOM
 	}
-	return access
+	return accessType
+}
+
+// getBucketAccess converts protobuf type Access to cluster.BucketAccess type
+func getBucketAccess(accessType pb.Access) cluster.BucketAccess {
+	var bucketAccess cluster.BucketAccess
+	switch accessType {
+	case pb.Access_PUBLIC:
+		bucketAccess = cluster.BucketPublic
+	case pb.Access_PRIVATE:
+		bucketAccess = cluster.BucketPrivate
+	default:
+		bucketAccess = cluster.BucketCustom
+	}
+	return bucketAccess
 }
 
 // ListBuckets lists buckets in the tenant's MinIO after validating the sessionId in the grpc headers
@@ -85,13 +99,32 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 	for _, bucketInfo := range bucketInfos {
 		buckets = append(buckets, &pb.Bucket{
 			Name:   bucketInfo.Name,
-			Access: bucketAccess(bucketInfo.Access),
+			Access: getAccessType(bucketInfo.Access),
 		})
 	}
 	return &pb.ListBucketsResponse{
 		Buckets:      buckets,
 		TotalBuckets: int32(len(buckets)),
 	}, nil
+}
+
+func (s *server) ChangeBucketAccessControl(ctx context.Context, in *pb.AccessControlRequest) (*pb.Empty, error) {
+	var (
+		err             error
+		tenantShortname string
+	)
+	// Validate sessionID and get tenant short name using the valid sessionID
+	tenantShortname, err = getTenantShortNameFromSessionID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	bucket := in.GetName()
+	accessType := in.GetAccess()
+	if err = cluster.ChangeBucketAccess(tenantShortname, bucket, getBucketAccess(accessType)); err != nil {
+		return nil, status.New(codes.Internal, "Failed to set bucket access").Err()
+	}
+	return &pb.Empty{}, nil
 }
 
 // DeleteBucket deletes bucket in the tenant's MinIO
