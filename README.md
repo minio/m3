@@ -83,26 +83,34 @@ make m3
 - Run `m3 setup` on the local kubernetes
 
 ```
-./m3 setup "Admin Name" admin@email.com
+./m3 setup
 ```
 
-This will setup `m3` and create the first admin account **Note down the admin access/secret key**
+- Make postgres reachable from host OS
 
-You may see the following error message
+```
+kubectl port-forward -n m3 svc/postgres 5432
+```
+
+- To setup db
+
+```
+./m3 setup db
+```
+
+You may see the following error message since at times the postgres container is not running yet.
 ```
 Running Migrations
 2019/10/17 12:02:50 error connecting to database or reading migrations
 2019/10/17 12:02:50 dial tcp 127.0.0.1:5432: connect: connection refused
 ```
 
-This is benign can be fixed with the following steps
+If you do, try again in some time.
 
+- To create the first admin account for `m3`
+**Note down the admin access/secret key**
 ```
-kubectl port-forward -n m3 svc/postgres 5432
-```
-
-```
-./m3 setup db
+./m3 admin add "Admin" "admin@email.com"
 ```
 
 ## Creating a new Storage Group

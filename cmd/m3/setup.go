@@ -17,8 +17,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/minio/cli"
 	"github.com/minio/m3/cluster"
 )
@@ -26,7 +24,7 @@ import (
 // list files and folders.
 var setupCmd = cli.Command{
 	Name:   "setup",
-	Usage:  "Setups the m3 cluster",
+	Usage:  "Creates the m3 cluster",
 	Action: setupDefCmd,
 	Subcommands: []cli.Command{
 		setupDbCmd,
@@ -34,23 +32,5 @@ var setupCmd = cli.Command{
 }
 
 func setupDefCmd(ctx *cli.Context) error {
-	name := ctx.String("name")
-	email := ctx.String("email")
-	if name == "" && ctx.Args().Get(0) != "" {
-		name = ctx.Args().Get(0)
-	}
-	if email == "" && ctx.Args().Get(1) != "" {
-		email = ctx.Args().Get(1)
-	}
-
-	if name == "" {
-		fmt.Println("An admin name is needed")
-		return errMissingArguments
-	}
-
-	if email == "" {
-		fmt.Println("An admin email is needed")
-		return errMissingArguments
-	}
-	return cluster.SetupM3(name, email)
+	return cluster.SetupM3()
 }
