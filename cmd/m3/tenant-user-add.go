@@ -121,6 +121,11 @@ func tenantAddUser(ctx *cli.Context) error {
 			return err
 		}
 	}
+	// commit anything pending
+	err = appCtx.Commit()
+	if err != nil {
+		return err
+	}
 
 	fmt.Println("Done adding user!")
 	return nil

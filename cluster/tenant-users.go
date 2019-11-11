@@ -224,7 +224,7 @@ func InviteUserByEmail(ctx *Context, user *User) error {
 	// this token expires in 72 hours
 	expires := time.Now().Add(time.Hour * 72)
 
-	urlToken, err := NewURLToken(ctx, &user.ID, "signup-email", &expires)
+	urlToken, err := NewURLToken(ctx, &user.ID, TokenSignupEmail, &expires)
 	if err != nil {
 		return err
 	}
@@ -255,6 +255,43 @@ func InviteUserByEmail(ctx *Context, user *User) error {
 	// send the email
 	err = SendMail(user.Name, user.Email, fmt.Sprintf("Signup for %s Storage", tenant.Name), *body)
 	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// setUserPassword sets the password for the provided user by hashing it
+func setUserPassword(ctx *Context, userID *uuid.UUID, password string) error {
+	// validate user Password
+	if password != "" {
+		// TODO: improve regex or use Go validator
+		var re = regexp.MustCompile(`^[a-zA-Z0-9!@#\$%\^&\*]{8,16}$`)
+		if !re.MatchString(password) {
+			return errors.New("a valid password is needed, minimum 8 characters")
+		}
+	}
+	// Hash the password
+	hashedPassword, err := HashPassword(password)
+	if err != nil {
+		return err
+	}
+
+	query := `UPDATE users SET password=$1 WHERE id=$2`
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		ctx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+	// Execute query
+	_, err = tx.Exec(query, hashedPassword, userID)
+	if err != nil {
+		ctx.Rollback()
 		return err
 	}
 

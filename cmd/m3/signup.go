@@ -1,0 +1,122 @@
+// This file is part of MinIO Kubernetes Cloud
+// Copyright (c) 2019 MinIO, Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+package main
+
+import (
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/minio/m3/cluster"
+	uuid "github.com/satori/go.uuid"
+
+	"github.com/minio/cli"
+)
+
+// list files and folders.
+var signupCmd = cli.Command{
+	Name:   "signup",
+	Usage:  "this command allows you to complete a signup using the token sent over email",
+	Action: signup,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:  "token",
+			Value: "",
+			Usage: "token provided by email",
+		},
+		cli.StringFlag{
+			Name:  "password",
+			Value: "",
+			Usage: "desired password to be set for the user",
+		},
+	},
+}
+
+// signup Completes the signup process using the token provided
+func signup(ctx *cli.Context) error {
+	// read flags
+	token := ctx.String("token")
+	password := ctx.String("password")
+	// alternatively read from positional arguments
+	if token == "" && ctx.Args().Get(0) != "" {
+		token = ctx.Args().Get(0)
+	}
+	if password == "" && ctx.Args().Get(1) != "" {
+		password = ctx.Args().Get(1)
+	}
+	// validate presence of arguments
+	if token == "" {
+		return errors.New("a token must be provided")
+	}
+	if password == "" {
+		return errors.New("a password must be provided")
+	}
+
+	urlTokenID, err := uuid.FromString(token)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	urlToken, err := cluster.GetTokenDetails(&urlTokenID)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	// make sure this token is not already used
+	if urlToken.Consumed {
+		err = errors.New("this token has already been consumed")
+		fmt.Println(err)
+		return err
+	}
+	// make sure this token is intended for signup
+	if urlToken.UsedFor != cluster.TokenSignupEmail {
+		err = errors.New("invalid token")
+		fmt.Println(err)
+		return err
+	}
+	// make sure this token is not expired
+	if urlToken.Expiration.After(time.Now()) {
+		err = errors.New("expired token")
+		fmt.Println(err)
+		return err
+	}
+	fmt.Println("Completing user signup process")
+	appCtx, err := cluster.NewContextWithTenantID(&urlToken.TenantID)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	err = cluster.CompleteSignup(appCtx, urlToken, password)
+
+	if err != nil {
+		appCtx.Rollback()
+		fmt.Println(err)
+		return err
+	}
+
+	// no errors? lets commit
+
+	err = appCtx.Commit()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	fmt.Println("Success")
+
+	return nil
+}

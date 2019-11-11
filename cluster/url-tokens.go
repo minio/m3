@@ -16,11 +16,22 @@
 package cluster
 
 import (
+	"errors"
 	"time"
 
 	uuid "github.com/satori/go.uuid"
 )
 
+type URLToken struct {
+	ID         uuid.UUID
+	TenantID   uuid.UUID
+	UserID     uuid.UUID
+	Expiration time.Time
+	UsedFor    string
+	Consumed   bool
+}
+
+// NewURLToken generates and stores a new urlToken for the provided user, with the specified validity
 func NewURLToken(ctx *Context, userID *uuid.UUID, usedFor string, validity *time.Time) (*uuid.UUID, error) {
 	urlToken := uuid.NewV4()
 	query := `INSERT INTO
@@ -44,4 +55,67 @@ func NewURLToken(ctx *Context, userID *uuid.UUID, usedFor string, validity *time
 		return nil, err
 	}
 	return &urlToken, nil
+}
+
+// GetTokenDetails get the details for the provided urlToken
+func GetTokenDetails(urlToken *uuid.UUID) (*URLToken, error) {
+	var token URLToken
+	// Get an individual token
+	queryUser := `
+		SELECT 
+				id, tenant_id, user_id, expiration, used_for, consumed
+			FROM 
+				provisioning.url_tokens
+			WHERE id=$1 LIMIT 1`
+
+	row := GetInstance().Db.QueryRow(queryUser, urlToken)
+
+	// Save the resulted query on the URLToken struct
+	err := row.Scan(&token.ID, &token.TenantID, &token.UserID, &token.Expiration, &token.UsedFor, &token.Consumed)
+	if err != nil {
+		return nil, err
+	}
+	return &token, nil
+}
+
+// MarkTokenConsumed updates the record for the urlToken as is it has been used
+func MarkTokenConsumed(ctx *Context, urlTokenID *uuid.UUID) error {
+	query := `UPDATE provisioning.url_tokens SET consumed=true WHERE id=$1`
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		ctx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+	// Execute query
+	_, err = tx.Exec(query, urlTokenID)
+	if err != nil {
+		ctx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+// CompleteSignup takes a urlToken and a password and changes the user password and then marks the token as used
+func CompleteSignup(ctx *Context, urlToken *URLToken, password string) error {
+	if urlToken.Consumed {
+		return errors.New("url token has already been consumed")
+	}
+	// update the user password
+	err := setUserPassword(ctx, &urlToken.UserID, password)
+	if err != nil {
+		return err
+	}
+
+	// mark the url token as consumed
+	err = MarkTokenConsumed(ctx, &urlToken.ID)
+	if err != nil {
+		return err
+	}
+	return nil
 }

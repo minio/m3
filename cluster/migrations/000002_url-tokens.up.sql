@@ -26,7 +26,7 @@ create table provisioning.url_tokens
     user_id uuid not null,
     expiration  timestamptz,
     used_for    varchar(256),
-    used        bool default false,
+    consumed        bool default false,
     sys_created_by   varchar(256)                           not null,
     sys_created_date timestamp with time zone default now() not null
 );
@@ -38,4 +38,6 @@ comment on column provisioning.url_tokens.user_id is 'User this token is associa
 comment on column provisioning.url_tokens.expiration is 'When does this token expires';
 
 comment on column provisioning.url_tokens.used_for is 'describes the function this token is intenteded for (i.e. password-reset, signup-link)';
+
+comment on column provisioning.url_tokens.consumed is 'whether or not the token has been already used';
 

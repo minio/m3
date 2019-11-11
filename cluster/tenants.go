@@ -556,6 +556,37 @@ func GetTenantWithCtx(ctx *Context, tenantName string) (tenant Tenant, err error
 	return tenant, nil
 }
 
+// GetTenantWithCtxByID gets the Tenant if it exists on the m3.provisining.tenants table
+// search is done by tenant id
+func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (tenant Tenant, err error) {
+	query :=
+		`SELECT 
+				t1.id, t1.name, t1.short_name
+			FROM 
+				m3.provisioning.tenants t1
+			WHERE t1.id=$1`
+	// non-transactional query
+	var row *sql.Row
+	// did we got a context? query inside of it
+	if ctx != nil {
+		tx, err := ctx.MainTx()
+		if err != nil {
+			return tenant, err
+		}
+		row = tx.QueryRow(query, tenantID)
+	} else {
+		// no context? straight to db
+		row = GetInstance().Db.QueryRow(query, tenantID)
+	}
+
+	// Save the resulted query on the User struct
+	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName)
+	if err != nil {
+		return tenant, err
+	}
+	return tenant, nil
+}
+
 func GetTenant(tenantName string) (tenant Tenant, err error) {
 	return GetTenantWithCtx(nil, tenantName)
 }

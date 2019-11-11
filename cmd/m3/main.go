@@ -53,6 +53,7 @@ var appCmds = []cli.Command{
 	tenantCmd,
 	setupCmd,
 	adminCmd,
+	signupCmd,
 }
 
 func main() {

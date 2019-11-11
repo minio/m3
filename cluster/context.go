@@ -20,6 +20,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 // An application wide context that holds the a transaction, in case anything
@@ -129,9 +131,28 @@ func NewContext(tenantShortName string) (*Context, error) {
 			return nil, errors.New("Tenant short name is invalid")
 		}
 	}
+	return newCtxWithTenant(&tenant), nil
+}
+
+// Creates a new `Context` for a tenant that holds transaction and `context.Context`
+// to control timeouts and cancellations.
+func NewContextWithTenantID(tenantID *uuid.UUID) (*Context, error) {
+	// Try to get the tenant if a short name was provided, error if invalid tenant short name
+	var tenant Tenant
+	if tenantID != nil {
+		// get the tenant
+		var err error
+		tenant, err = GetTenantWithCtxByID(nil, tenantID)
+		if err != nil {
+			return nil, errors.New("Tenant short name is invalid")
+		}
+	}
+	return newCtxWithTenant(&tenant), nil
+}
+
+func newCtxWithTenant(tenant *Tenant) *Context {
 	// we are going to default the control context to background
 	ctlCtx := context.Background()
-	c := &Context{Tenant: &tenant, ControlCtx: ctlCtx}
-	return c, nil
-
+	c := &Context{Tenant: tenant, ControlCtx: ctlCtx}
+	return c
 }
