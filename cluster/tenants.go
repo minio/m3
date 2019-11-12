@@ -17,6 +17,7 @@
 package cluster
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -49,7 +50,9 @@ const (
 	BucketCustom
 )
 
-func AddTenant(name string, shortName string) error {
+// AddTenant adds a tenant to the cluster, if an admin name and email are provided, the user is created and invited
+// via email.
+func AddTenant(name, shortName, adminName, adminEmail string) error {
 	// Start app context
 	ctx, err := NewContext(shortName)
 	if err != nil {
@@ -115,6 +118,22 @@ func AddTenant(name string, shortName string) error {
 	if err != nil {
 		ctx.Rollback()
 		return err
+	}
+	// if the first admin name and email was provided send them an invitation
+	if adminName != "" && adminEmail != "" {
+		// insert user to DB with random password
+		newUser := User{Name: name, Email: adminEmail}
+		err := AddUser(ctx, &newUser)
+		if err != nil {
+			return err
+		}
+		// Invite it's first admin
+		err = InviteUserByEmail(ctx, &newUser)
+		if err != nil {
+			ctx.Rollback()
+			fmt.Println("Tenant added however the was an error adding first user:", err.Error())
+			return err
+		}
 	}
 
 	// if no error happened to this point
@@ -506,9 +525,9 @@ func createTenantNamespace(tenantShortName string) chan error {
 	return ch
 }
 
-// getTenant gets the Tenant if it exists on the m3.provisining.tenants table
+// GetTenantWithCtx gets the Tenant if it exists on the m3.provisining.tenants table
 // search is done by tenant name
-func GetTenant(tenantName string) (tenant Tenant, err error) {
+func GetTenantWithCtx(ctx *Context, tenantName string) (tenant Tenant, err error) {
 	query :=
 		`SELECT 
 				t1.id, t1.name, t1.short_name
@@ -516,7 +535,18 @@ func GetTenant(tenantName string) (tenant Tenant, err error) {
 				m3.provisioning.tenants t1
 			WHERE name=$1`
 	// non-transactional query
-	row := GetInstance().Db.QueryRow(query, tenantName)
+	var row *sql.Row
+	// did we got a context? query inside of it
+	if ctx != nil {
+		tx, err := ctx.MainTx()
+		if err != nil {
+			return tenant, err
+		}
+		row = tx.QueryRow(query, ctx.Tenant.Name)
+	} else {
+		// no context? straight to db
+		row = GetInstance().Db.QueryRow(query, tenantName)
+	}
 
 	// Save the resulted query on the User struct
 	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName)
@@ -524,6 +554,46 @@ func GetTenant(tenantName string) (tenant Tenant, err error) {
 		return tenant, err
 	}
 	return tenant, nil
+}
+
+// GetTenantByID returns a tenant by id
+func GetTenantByID(tenantID *uuid.UUID) (tenant Tenant, err error) {
+	return GetTenantWithCtxByID(nil, tenantID)
+}
+
+// GetTenantWithCtxByID gets the Tenant if it exists on the m3.provisining.tenants table
+// search is done by tenant id
+func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (tenant Tenant, err error) {
+	query :=
+		`SELECT 
+				t1.id, t1.name, t1.short_name
+			FROM 
+				m3.provisioning.tenants t1
+			WHERE t1.id=$1`
+	// non-transactional query
+	var row *sql.Row
+	// did we got a context? query inside of it
+	if ctx != nil {
+		tx, err := ctx.MainTx()
+		if err != nil {
+			return tenant, err
+		}
+		row = tx.QueryRow(query, tenantID)
+	} else {
+		// no context? straight to db
+		row = GetInstance().Db.QueryRow(query, tenantID)
+	}
+
+	// Save the resulted query on the User struct
+	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName)
+	if err != nil {
+		return tenant, err
+	}
+	return tenant, nil
+}
+
+func GetTenant(tenantName string) (tenant Tenant, err error) {
+	return GetTenantWithCtx(nil, tenantName)
 }
 
 // DeleteTenant runs all the logic to remove a tenant from the cluster.

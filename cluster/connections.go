@@ -93,7 +93,7 @@ func GetM3DbConfig() *DbConfig {
 		dbUser = os.Getenv("DB_USER")
 	}
 
-	dbPass := "m3meansmkube"
+	dbPass := "postgres"
 	if os.Getenv("DB_PASSWORD") != "" {
 		dbPass = os.Getenv("DB_PASSWORD")
 	}
@@ -180,4 +180,13 @@ func GetTenantDBConfig(tenantName string) *DbConfig {
 // RemoveCnx removes a tenant DB connection from the cache
 func (s *Singleton) RemoveCnx(tenantName string) {
 	delete(s.tenantsCnx, tenantName)
+}
+
+// AppURL returns the main application url
+func (s *Singleton) AppURL() string {
+	appURL := "http://s3.localhost"
+	if os.Getenv("APP_URL") != "" {
+		appURL = os.Getenv("APP_URL")
+	}
+	return appURL
 }

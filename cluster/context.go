@@ -19,6 +19,9 @@ package cluster
 import (
 	"context"
 	"database/sql"
+	"errors"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 // An application wide context that holds the a transaction, in case anything
@@ -26,11 +29,11 @@ import (
 // rolled back.
 type Context struct {
 	// tenant in question
-	TenantShortName string
-	tenantTx        *sql.Tx
-	tenantDB        *sql.DB
-	mainTx          *sql.Tx
-	ControlCtx      context.Context
+	Tenant     *Tenant
+	tenantTx   *sql.Tx
+	tenantDB   *sql.DB
+	mainTx     *sql.Tx
+	ControlCtx context.Context
 	// a user identifier of who is starting the context
 	WhoAmI string
 }
@@ -51,7 +54,7 @@ func (c *Context) MainTx() (*sql.Tx, error) {
 // TenantDB returns a configured DB connection for the Tenant DB
 func (c *Context) TenantDB() *sql.DB {
 	if c.tenantDB == nil {
-		db := GetInstance().GetTenantDB(c.TenantShortName)
+		db := GetInstance().GetTenantDB(c.Tenant.ShortName)
 		c.tenantDB = db
 	}
 	return c.tenantDB
@@ -118,9 +121,38 @@ func (c *Context) Rollback() error {
 // Creates a new `Context` for a tenant that holds transaction and `context.Context`
 // to control timeouts and cancellations.
 func NewContext(tenantShortName string) (*Context, error) {
+	// Try to get the tenant if a short name was provided, error if invalid tenant short name
+	var tenant Tenant
+	if tenantShortName != "" {
+		// get the tenant
+		var err error
+		tenant, err = GetTenant(tenantShortName)
+		if err != nil {
+			return nil, errors.New("Tenant short name is invalid")
+		}
+	}
+	return newCtxWithTenant(&tenant), nil
+}
+
+// Creates a new `Context` for a tenant that holds transaction and `context.Context`
+// to control timeouts and cancellations.
+func NewContextWithTenantID(tenantID *uuid.UUID) (*Context, error) {
+	// Try to get the tenant if a short name was provided, error if invalid tenant short name
+	var tenant Tenant
+	if tenantID != nil {
+		// get the tenant
+		var err error
+		tenant, err = GetTenantByID(tenantID)
+		if err != nil {
+			return nil, errors.New("Tenant short name is invalid")
+		}
+	}
+	return newCtxWithTenant(&tenant), nil
+}
+
+func newCtxWithTenant(tenant *Tenant) *Context {
 	// we are going to default the control context to background
 	ctlCtx := context.Background()
-	c := &Context{TenantShortName: tenantShortName, ControlCtx: ctlCtx}
-	return c, nil
-
+	c := &Context{Tenant: tenant, ControlCtx: ctlCtx}
+	return c
 }

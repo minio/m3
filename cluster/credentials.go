@@ -79,21 +79,15 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UU
 	// Now insert the credentials into the DB
 	query := `
 		INSERT INTO
-				credentials ("access_key","user_id","ui_credential")
+				credentials ("access_key", "user_id", "ui_credential", "sys_created_by")
 			  VALUES
-				($1,$2,$3)`
+				($1, $2, $3, $4)`
 	tx, err := ctx.TenantTx()
 	if err != nil {
 		return err
 	}
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		ctx.Rollback()
-		return err
-	}
-	defer stmt.Close()
 	// Execute query
-	_, err = tx.Exec(query, userUICredentials.AccessKey, userdID, true)
+	_, err = tx.Exec(query, userUICredentials.AccessKey, userdID, true, ctx.WhoAmI)
 	if err != nil {
 		ctx.Rollback()
 		return err

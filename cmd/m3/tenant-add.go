@@ -28,7 +28,7 @@ import (
 // list files and folders.
 var addTenantCmd = cli.Command{
 	Name:   "add",
-	Usage:  "add a tenant to a cluster",
+	Usage:  "Add a tenant to a cluster, optionally the first admin can be provided, if so, the admin will receive an email invite",
 	Action: addTenant,
 	Flags: []cli.Flag{
 		cli.StringFlag{
@@ -41,6 +41,16 @@ var addTenantCmd = cli.Command{
 			Value: "",
 			Usage: "Short tenant name. this is the official string identifier of the tenant.",
 		},
+		cli.StringFlag{
+			Name:  "admin_name",
+			Value: "",
+			Usage: "optional tenant's first admin name",
+		},
+		cli.StringFlag{
+			Name:  "admin_email",
+			Value: "",
+			Usage: "optional tenant's first admin email",
+		},
 	},
 }
 
@@ -52,34 +62,52 @@ var addTenantCmd = cli.Command{
 //     m3 tenant add tenant-1 --short_name tenant1
 //     m3 tenant add --name tenant-1 --short_name tenant1
 func addTenant(ctx *cli.Context) error {
-	name := ctx.String("name")
-	shortName := ctx.String("short_name")
-	if name == "" && ctx.Args().Get(0) != "" {
-		name = ctx.Args().Get(0)
+	tenantName := ctx.String("tenantName")
+	tenantShortName := ctx.String("short_name")
+	if tenantName == "" && ctx.Args().Get(0) != "" {
+		tenantName = ctx.Args().Get(0)
 	}
-	if name == "" {
-		fmt.Println("You must provide tenant name")
+	if tenantName == "" {
+		fmt.Println("You must provide tenant tenantName")
 		return nil
 	}
-	if shortName == "" {
-		tempShortName := strings.ToLower(name)
+	if tenantShortName == "" && ctx.Args().Get(1) != "" {
+		tenantShortName = ctx.Args().Get(1)
+	}
+	if tenantShortName == "" {
+		tempShortName := strings.ToLower(tenantName)
 		tempShortName = strings.Replace(tempShortName, " ", "-", -1)
 		var re = regexp.MustCompile(`(?m)^[a-z0-9-]{2,}$`)
 		if re.MatchString(tempShortName) {
-			shortName = tempShortName
+			tenantShortName = tempShortName
 		}
 	}
 
-	if shortName == "" {
-		fmt.Println("A valid short name could not be inferred from the tenant name")
+	if tenantShortName == "" {
+		fmt.Println("A valid short tenantName could not be inferred from the tenant tenantName")
 		return nil
 	}
 
-	err := cluster.AddTenant(name, shortName)
+	name := ctx.String("admin_name")
+	email := ctx.String("admin_email")
+	if name == "" && ctx.Args().Get(2) != "" {
+		name = ctx.Args().Get(2)
+	}
+	if email == "" && ctx.Args().Get(3) != "" {
+		email = ctx.Args().Get(3)
+	}
+
+	if name != "" && email == "" {
+		fmt.Println("User email is needed")
+		return errMissingArguments
+	}
+
+	err := cluster.AddTenant(tenantName, tenantShortName, name, email)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil
 	}
+
 	fmt.Println("Done adding tenant!")
 	return nil
 }

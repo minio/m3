@@ -18,7 +18,9 @@ package cluster
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
+	"time"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -26,14 +28,13 @@ import (
 type User struct {
 	Name     string
 	Email    string
-	IsAdmin  bool
 	Password string
 	ID       uuid.UUID
 	Enabled  bool
 }
 
 // AddUser adds a new user to the tenant's database
-func AddUser(tenantShortName string, newUser *User) error {
+func AddUser(ctx *Context, newUser *User) error {
 	// validate user Name
 	if newUser.Name != "" {
 		// TODO: improve regex
@@ -58,16 +59,16 @@ func AddUser(tenantShortName string, newUser *User) error {
 			return errors.New("a valid password is needed, minimum 8 characters")
 		}
 	}
+	// if the user has no password, randomize it
+	if newUser.Password == "" {
+		newUser.Password = RandomCharString(64)
+	}
 	// Hash the password
 	hashedPassword, err := HashPassword(newUser.Password)
 	if err != nil {
 		return err
 	}
 
-	ctx, err := NewContext(tenantShortName)
-	if err != nil {
-		return err
-	}
 	// Add parameters to query
 	newUser.ID = uuid.NewV4()
 	query := `INSERT INTO
@@ -78,26 +79,27 @@ func AddUser(tenantShortName string, newUser *User) error {
 	if err != nil {
 		return err
 	}
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		ctx.Rollback()
-		return err
-	}
-	defer stmt.Close()
 	// Execute query
 	_, err = tx.Exec(query, newUser.ID, newUser.Name, newUser.Email, hashedPassword)
 	if err != nil {
 		ctx.Rollback()
 		return err
 	}
+
+	// if no error happened to this point commit transaction
+	err = ctx.Commit()
+	if err != nil {
+		return err
+	}
+
 	// Create this user's credentials so he can interact with it's own buckets/data
-	err = createUserCredentials(ctx, tenantShortName, newUser.ID)
+	err = createUserCredentials(ctx, ctx.Tenant.ShortName, newUser.ID)
 	if err != nil {
 		ctx.Rollback()
 		return err
 	}
 
-	// if no error happened to this point commit transaction
+	// if no error happened to this point commit transaction for the user
 	err = ctx.Commit()
 	if err != nil {
 		return err
@@ -123,14 +125,8 @@ func SetUserEnabled(tenantShortName string, userID string, status bool) error {
 	if err != nil {
 		return err
 	}
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		ctx.Rollback()
-		return err
-	}
-	defer stmt.Close()
 	// Execute query
-	_, err = stmt.Exec(status, userID)
+	_, err = tx.Exec(query, status, userID)
 	if err != nil {
 		ctx.Rollback()
 		return err
@@ -148,7 +144,7 @@ func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err e
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
-				t1.id, t1.full_name, t1.email, t1.password, t1.is_admin
+				t1.id, t1.full_name, t1.email, t1.password
 			FROM 
 				users t1
 			WHERE email=$1 LIMIT 1`
@@ -156,7 +152,7 @@ func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err e
 	row := ctx.TenantDB().QueryRow(queryUser, email)
 
 	// Save the resulted query on the User struct
-	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.IsAdmin)
+	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password)
 	if err != nil {
 		return user, err
 	}
@@ -173,7 +169,7 @@ func GetUsersForTenant(ctx *Context, offset int32, limit int32) ([]*User, error)
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
-				t1.id, t1.full_name, t1.email, t1.is_admin, t1.enabled
+				t1.id, t1.full_name, t1.email, t1.enabled
 			FROM 
 				users t1
 			OFFSET $1 LIMIT $2`
@@ -185,7 +181,7 @@ func GetUsersForTenant(ctx *Context, offset int32, limit int32) ([]*User, error)
 	var users []*User
 	for rows.Next() {
 		usr := User{}
-		err := rows.Scan(&usr.ID, &usr.Name, &usr.Email, &usr.IsAdmin, &usr.Enabled)
+		err := rows.Scan(&usr.ID, &usr.Name, &usr.Email, &usr.Enabled)
 		if err != nil {
 			return nil, err
 		}
@@ -210,4 +206,102 @@ func GetTotalNumberOfUsers(ctx *Context) (int, error) {
 		return 0, err
 	}
 	return count, nil
+}
+
+// InviteUserByEmail creates a temporary token to signup for service and send an email to the provided user
+func InviteUserByEmail(ctx *Context, user *User) error {
+
+	// generate a token for the email invite
+	// this token expires in 72 hours
+	expires := time.Now().Add(time.Hour * 72)
+
+	urlToken, err := NewURLToken(ctx, &user.ID, TokenSignupEmail, &expires)
+	if err != nil {
+		return err
+	}
+
+	// generate JWT token
+	jwtToken, err := buildJwtTokenForURLToken(ctx, urlToken)
+	if err != nil {
+		return err
+	}
+
+	// send email with the invite
+
+	tenant, err := GetTenantWithCtx(ctx, ctx.Tenant.Name)
+	if err != nil {
+		return err
+	}
+
+	// for now, let's hardcode the url, subsequent PRs will introduce system configs
+	signupURL := fmt.Sprintf("http://%s/signup?t=%s", GetInstance().AppURL(), *jwtToken)
+
+	templateData := struct {
+		Name string
+		URL  string
+	}{
+		Name: user.Name,
+		URL:  signupURL,
+	}
+	// Get the mailing template for inviting users
+	body, err := GetTemplate("invite", templateData)
+	if err != nil {
+		return err
+	}
+
+	// send the email
+	err = SendMail(user.Name, user.Email, fmt.Sprintf("Signup for %s Storage", tenant.Name), *body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// setUserPassword sets the password for the provided user by hashing it
+func setUserPassword(ctx *Context, userID *uuid.UUID, password string) error {
+	// validate user Password
+	if password != "" {
+		// TODO: improve regex or use Go validator
+		var re = regexp.MustCompile(`^[a-zA-Z0-9!@#\$%\^&\*]{8,16}$`)
+		if !re.MatchString(password) {
+			return errors.New("a valid password is needed, minimum 8 characters")
+		}
+	}
+	// Hash the password
+	hashedPassword, err := HashPassword(password)
+	if err != nil {
+		return err
+	}
+
+	query := `UPDATE users SET password=$1 WHERE id=$2`
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	// Execute query
+	_, err = tx.Exec(query, hashedPassword, userID)
+	if err != nil {
+		ctx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+// MarkInvitationAccepted sets the invitation accepted for a users a true
+func MarkInvitationAccepted(ctx *Context, userID *uuid.UUID) error {
+	query := `UPDATE users SET accepted_invitation=true WHERE id=$1`
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	// Execute query
+	_, err = tx.Exec(query, userID)
+	if err != nil {
+		ctx.Rollback()
+		return err
+	}
+
+	return nil
 }

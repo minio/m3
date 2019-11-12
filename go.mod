@@ -3,9 +3,11 @@ module github.com/minio/m3
 go 1.13
 
 require (
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang-migrate/migrate/v4 v4.6.2
 	github.com/golang/protobuf v1.3.2
 	github.com/googleapis/gnostic v0.3.1 // indirect
+	github.com/grpc-ecosystem/grpc-gateway v1.9.0
 	github.com/lib/pq v1.0.0
 	github.com/minio/cli v1.21.0
 	github.com/minio/mc v0.0.0-20190908212443-54ee3a280031
@@ -23,3 +25,6 @@ require (
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/utils v0.0.0-20190923111123-69764acb6e8e // indirect
 )
+
+// Added for go1.13 migration https://github.com/golang/go/issues/32805
+replace github.com/gorilla/rpc v1.2.0+incompatible => github.com/gorilla/rpc v1.2.0
