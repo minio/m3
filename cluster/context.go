@@ -128,7 +128,7 @@ func NewContext(tenantShortName string) (*Context, error) {
 		var err error
 		tenant, err = GetTenant(tenantShortName)
 		if err != nil {
-			return nil, errors.New("Tenant short name is invalid")
+			return nil, errors.New("tenant short name is invalid")
 		}
 	}
 	return newCtxWithTenant(&tenant), nil
@@ -148,6 +148,12 @@ func NewContextWithTenantID(tenantID *uuid.UUID) (*Context, error) {
 		}
 	}
 	return newCtxWithTenant(&tenant), nil
+}
+
+// Creates a new `Context` for a tenant that holds transaction and `context.Context`
+// to control timeouts and cancellations.
+func NewEmpty() (*Context, error) {
+	return newCtxWithTenant(nil), nil
 }
 
 func newCtxWithTenant(tenant *Tenant) *Context {

@@ -102,7 +102,7 @@ func addTenant(ctx *cli.Context) error {
 		return errMissingArguments
 	}
 
-	err := cluster.AddTenant(tenantName, tenantShortName, name, email)
+	err := cluster.AddTenantAction(tenantName, tenantShortName, name, email)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil
