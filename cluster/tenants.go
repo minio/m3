@@ -50,11 +50,11 @@ const (
 	BucketCustom
 )
 
-// AddTenant adds a tenant to the cluster, if an admin name and email are provided, the user is created and invited
+// AddTenantAction adds a tenant to the cluster, if an admin name and email are provided, the user is created and invited
 // via email.
-func AddTenant(name, shortName, adminName, adminEmail string) error {
+func AddTenantAction(name, shortName, adminName, adminEmail string) error {
 	// Start app context
-	ctx, err := NewContext(shortName)
+	ctx, err := NewEmpty()
 	if err != nil {
 		return err
 	}
@@ -73,6 +73,7 @@ func AddTenant(name, shortName, adminName, adminEmail string) error {
 		ctx.Rollback()
 		return tenantResult.Error
 	}
+	ctx.Tenant = tenantResult.Tenant
 	fmt.Println(fmt.Sprintf("Registered as tenant %s\n", tenantResult.Tenant.ID.String()))
 
 	// Create tenant namespace
@@ -329,9 +330,11 @@ func MigrateTenantDB(tenantName string) chan error {
 			databaseURL)
 		if err != nil {
 			ch <- err
+			return
 		}
 		if err := m.Up(); err != nil {
 			ch <- err
+			return
 		}
 	}()
 	return ch
