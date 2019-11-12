@@ -108,29 +108,6 @@ func ReDeployNginxResolver(ctx *Context) chan error {
 func DeleteNginxLBDeployments(clientset *kubernetes.Clientset, deploymentName string) <-chan struct{} {
 	doneCh := make(chan struct{})
 	go func() {
-		// Setup shared deployments informer on the default namespace to detect the
-		// completion of the nginx-resolver deployment's deletion
-		factory := informers.NewSharedInformerFactory(clientset, 0)
-		deploymentInformer := factory.Extensions().V1beta1().Deployments().Informer()
-		deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-			DeleteFunc: func(obj interface{}) {
-				switch deployment := obj.(type) {
-				case cache.DeletedFinalStateUnknown:
-					fmt.Println("deployment delete status unknown yet")
-				// wait until the status of the deployment is known
-				case *v1beta1.Deployment:
-					fmt.Println(deployment.GetName(), deployment.GetLabels()["app"])
-					if v, ok := deployment.GetLabels()["app"]; ok && v != deploymentName {
-						fmt.Println("nginx deployment deleted")
-					}
-					// Signal the completion of deployment deletion
-					close(doneCh)
-				}
-			},
-		})
-
-		go deploymentInformer.Run(doneCh)
-
 		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"type": "nginx-resolver"}}
 		deployments, err := extV1beta1API(clientset).Deployments("default").List(metav1.ListOptions{
 			LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
@@ -140,17 +117,70 @@ func DeleteNginxLBDeployments(clientset *kubernetes.Clientset, deploymentName st
 		}
 		for _, deployment := range deployments.Items {
 			if deployment.Name != deploymentName {
-				// This delete option is to make sure that the pods belonging to
-				// the nginx-resolver deployment are 'collected' immediately.
 				fgPropagation := metav1.DeletePropagationForeground
 				fgDeleteOption := metav1.DeleteOptions{
 					PropagationPolicy: &fgPropagation,
 				}
-				err := extV1beta1API(clientset).Deployments("default").Delete(deployment.Name, &fgDeleteOption)
-				if err != nil {
-					close(doneCh) // the informer listening for delete deployment event needs to be stopped
-				}
+				extV1beta1API(clientset).Deployments("default").Delete(deployment.Name, &fgDeleteOption)
 			}
+		}
+		fmt.Println("Old nginx-resolver deployments deleted correctly")
+		close(doneCh)
+	}()
+	return doneCh
+}
+
+func CreateNginxResolverDeployment(clientset *kubernetes.Clientset, deploymentName string) <-chan struct{} {
+	doneCh := make(chan struct{})
+	go func() {
+		factory := informers.NewSharedInformerFactory(clientset, 0)
+		deploymentInformer := factory.Extensions().V1beta1().Deployments().Informer()
+		deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				deployment := obj.(*v1beta1.Deployment)
+				if deployment.GetLabels()["app"] == deploymentName {
+					fmt.Println("nginx-resolver deployment created correctly")
+					close(doneCh)
+				}
+			},
+		})
+
+		go deploymentInformer.Run(doneCh)
+
+		//Creating nginx-resolver deployment with new rules
+		nginxLBDeployment.Spec.Template.ObjectMeta.Labels["app"] = deploymentName
+		nginxLBDeployment.ObjectMeta.Name = deploymentName
+		_, err := extV1beta1API(clientset).Deployments("default").Create(&nginxLBDeployment)
+		if err != nil {
+			close(doneCh)
+		}
+	}()
+	return doneCh
+}
+
+func UpdateNginxResolverService(clientset *kubernetes.Clientset) <-chan struct{} {
+	doneCh := make(chan struct{})
+	go func() {
+		factory := informers.NewSharedInformerFactory(clientset, 0)
+		serviceInformer := factory.Core().V1().Services().Informer()
+		serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+			UpdateFunc: func(oldObj, obj interface{}) {
+				service := obj.(*v1.Service)
+				if service.GetLabels()["name"] == "nginx-resolver" {
+					fmt.Println("nginx-resolver service updated correctly")
+					close(doneCh)
+				}
+			},
+		})
+
+		go serviceInformer.Run(doneCh)
+
+		//Update nginx-resolver service to route traffic to the new nginx pods
+		nginxService, _ := clientset.CoreV1().Services("default").Get("nginx-resolver", metav1.GetOptions{})
+		nginxService.Spec.Selector["app"] = nginxResolverVersion
+		_, err := clientset.CoreV1().Services("default").Update(nginxService)
+		if err != nil {
+			close(doneCh)
 		}
 	}()
 	return doneCh
@@ -167,35 +197,18 @@ func DeployNginxResolver(shouldUpdate bool) error {
 	if err != nil {
 		return err
 	}
-	if shouldUpdate {
-		//Updating the version of the nginx-resolver
-		fmt.Println("creating nginx-resolver deployment with updated rules")
-		// nginxResolverOldVersion := nginxResolverVersion
-		nginxResolverVersion = fmt.Sprintf(`%s-%s`, nginxLBName, strings.ToLower(RandomCharString(6)))
-		nginxLBDeployment.Spec.Template.ObjectMeta.Labels["app"] = nginxResolverVersion
-		nginxLBDeployment.ObjectMeta.Name = nginxResolverVersion
-		if _, err = extV1beta1API(clientset).Deployments("default").Create(&nginxLBDeployment); err != nil {
-			return err
-		}
-		//Update nginx-resolver service to route traffic to the new nginx pods
-		nginxService, err := clientset.CoreV1().Services("default").Get("nginx-resolver", metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-		nginxService.Spec.Selector["app"] = nginxResolverVersion
-		clientset.CoreV1().Services("default").Update(nginxService)
-		// Delete nginx-resolver deployment and wait until all its pods
-		// are deleted too. This is to ensure that the creation of the
-		// deployment results in new set of pods that have read the
-		// updated rules
-		waitCh := DeleteNginxLBDeployments(clientset, nginxResolverVersion)
-		// waiting for the delete of the nginx-resolver deployment to complete
-		<-waitCh
-	} else {
-		if _, err = extV1beta1API(clientset).Deployments("default").Create(&nginxLBDeployment); err != nil {
-			return err
-		}
-	}
+	nginxResolverVersion = fmt.Sprintf(`%s-%s`, nginxLBName, strings.ToLower(RandomCharString(6)))
+	waitCreateCh := CreateNginxResolverDeployment(clientset, nginxResolverVersion)
+	<-waitCreateCh
+	waitUpdateCh := UpdateNginxResolverService(clientset)
+	<-waitUpdateCh
+	// Delete nginx-resolver deployment and wait until all its pods
+	// are deleted too. This is to ensure that the creation of the
+	// deployment results in new set of pods that have read the
+	// updated rules
+	waitDeleteCh := DeleteNginxLBDeployments(clientset, nginxResolverVersion)
+	// waiting for the delete of the nginx-resolver deployment to complete
+	<-waitDeleteCh
 	fmt.Println("done creating nginx-resolver deployment")
 	return nil
 }
