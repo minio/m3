@@ -79,12 +79,6 @@ func AddUser(ctx *Context, newUser *User) error {
 	if err != nil {
 		return err
 	}
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		ctx.Rollback()
-		return err
-	}
-	defer stmt.Close()
 	// Execute query
 	_, err = tx.Exec(query, newUser.ID, newUser.Name, newUser.Email, hashedPassword)
 	if err != nil {
@@ -131,14 +125,8 @@ func SetUserEnabled(tenantShortName string, userID string, status bool) error {
 	if err != nil {
 		return err
 	}
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		ctx.Rollback()
-		return err
-	}
-	defer stmt.Close()
 	// Execute query
-	_, err = stmt.Exec(status, userID)
+	_, err = tx.Exec(query, userID)
 	if err != nil {
 		ctx.Rollback()
 		return err
@@ -291,14 +279,25 @@ func setUserPassword(ctx *Context, userID *uuid.UUID, password string) error {
 	if err != nil {
 		return err
 	}
-	stmt, err := tx.Prepare(query)
+	// Execute query
+	_, err = tx.Exec(query, hashedPassword, userID)
 	if err != nil {
 		ctx.Rollback()
 		return err
 	}
-	defer stmt.Close()
+
+	return nil
+}
+
+// MarkInvitationAccepted sets the invitation accepted for a users a true
+func MarkInvitationAccepted(ctx *Context, userID *uuid.UUID) error {
+	query := `UPDATE users SET accepted_invitation=true WHERE id=$1`
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
 	// Execute query
-	_, err = tx.Exec(query, hashedPassword, userID)
+	_, err = tx.Exec(query, userID)
 	if err != nil {
 		ctx.Rollback()
 		return err

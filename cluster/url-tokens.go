@@ -116,6 +116,11 @@ func CompleteSignup(ctx *Context, urlToken *URLToken, password string) error {
 	if err != nil {
 		return err
 	}
+	// mark the user as accepted invitation
+	err = MarkInvitationAccepted(ctx, &urlToken.UserID)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
