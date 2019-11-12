@@ -117,11 +117,7 @@ func DeleteNginxLBDeployments(clientset *kubernetes.Clientset, deploymentName st
 		}
 		for _, deployment := range deployments.Items {
 			if deployment.Name != deploymentName {
-				fgPropagation := metav1.DeletePropagationForeground
-				fgDeleteOption := metav1.DeleteOptions{
-					PropagationPolicy: &fgPropagation,
-				}
-				extV1beta1API(clientset).Deployments("default").Delete(deployment.Name, &fgDeleteOption)
+				extV1beta1API(clientset).Deployments("default").Delete(deployment.Name, &metav1.DeleteOptions{})
 			}
 		}
 		fmt.Println("Old nginx-resolver deployments deleted correctly")
@@ -136,8 +132,10 @@ func CreateNginxResolverDeployment(clientset *kubernetes.Clientset, deploymentNa
 		factory := informers.NewSharedInformerFactory(clientset, 0)
 		deploymentInformer := factory.Extensions().V1beta1().Deployments().Informer()
 		deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+			//check this for updateFunc
 			AddFunc: func(obj interface{}) {
 				deployment := obj.(*v1beta1.Deployment)
+				//check if deploymenent status is running
 				if deployment.GetLabels()["app"] == deploymentName {
 					fmt.Println("nginx-resolver deployment created correctly")
 					close(doneCh)
@@ -166,6 +164,7 @@ func UpdateNginxResolverService(clientset *kubernetes.Clientset) <-chan struct{}
 		serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			UpdateFunc: func(oldObj, obj interface{}) {
 				service := obj.(*v1.Service)
+				//check that service selector is equal to nginxresolverversion
 				if service.GetLabels()["name"] == "nginx-resolver" {
 					fmt.Println("nginx-resolver service updated correctly")
 					close(doneCh)
