@@ -57,17 +57,7 @@ func AddStorageGroup(ctx *Context, sgName *string) chan StorageGroupResult {
 				($1, $2, $3)
 				RETURNING num`
 
-		stmt, err := tx.Prepare(query)
-		if err != nil {
-			ch <- StorageGroupResult{
-				Error: err,
-			}
-			ctx.Rollback()
-			return
-		}
-		defer stmt.Close()
-
-		err = stmt.QueryRow(sgID, sgName, ctx.WhoAmI).Scan(&sgNum)
+		err = tx.QueryRow(query, sgID, sgName, ctx.WhoAmI).Scan(&sgNum)
 		if err != nil {
 			ch <- StorageGroupResult{
 				Error: err,
