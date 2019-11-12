@@ -22,9 +22,10 @@ import (
 
 // list files and folders.
 var tenantCmd = cli.Command{
-	Name:   "tenant",
-	Usage:  "tenant commands",
-	Action: tenantDefCmd,
+	Name:    "tenant",
+	Aliases: []string{"t"},
+	Usage:   "tenant commands",
+	Action:  tenantDefCmd,
 	Subcommands: []cli.Command{
 		addTenantCmd,
 		tenantBucketCmd,
