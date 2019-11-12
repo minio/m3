@@ -28,7 +28,6 @@ import (
 type User struct {
 	Name     string
 	Email    string
-	IsAdmin  bool
 	Password string
 	ID       uuid.UUID
 	Enabled  bool
@@ -153,7 +152,7 @@ func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err e
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
-				t1.id, t1.full_name, t1.email, t1.password, t1.is_admin
+				t1.id, t1.full_name, t1.email, t1.password
 			FROM 
 				users t1
 			WHERE email=$1 LIMIT 1`
@@ -161,7 +160,7 @@ func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err e
 	row := ctx.TenantDB().QueryRow(queryUser, email)
 
 	// Save the resulted query on the User struct
-	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.IsAdmin)
+	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password)
 	if err != nil {
 		return user, err
 	}
@@ -178,7 +177,7 @@ func GetUsersForTenant(ctx *Context, offset int32, limit int32) ([]*User, error)
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
-				t1.id, t1.full_name, t1.email, t1.is_admin, t1.enabled
+				t1.id, t1.full_name, t1.email, t1.enabled
 			FROM 
 				users t1
 			OFFSET $1 LIMIT $2`
@@ -190,7 +189,7 @@ func GetUsersForTenant(ctx *Context, offset int32, limit int32) ([]*User, error)
 	var users []*User
 	for rows.Next() {
 		usr := User{}
-		err := rows.Scan(&usr.ID, &usr.Name, &usr.Email, &usr.IsAdmin, &usr.Enabled)
+		err := rows.Scan(&usr.ID, &usr.Name, &usr.Email, &usr.Enabled)
 		if err != nil {
 			return nil, err
 		}
@@ -229,6 +228,12 @@ func InviteUserByEmail(ctx *Context, user *User) error {
 		return err
 	}
 
+	// generate JWT token
+	jwtToken, err := buildJwtTokenForURLToken(ctx, urlToken)
+	if err != nil {
+		return err
+	}
+
 	// send email with the invite
 
 	tenant, err := GetTenantWithCtx(ctx, ctx.Tenant.Name)
@@ -237,7 +242,7 @@ func InviteUserByEmail(ctx *Context, user *User) error {
 	}
 
 	// for now, let's hardcode the url, subsequent PRs will introduce system configs
-	signupURL := fmt.Sprintf("http://%s/signup?k=%s", GetInstance().AppURL(), urlToken.String())
+	signupURL := fmt.Sprintf("http://%s/signup?t=%s", GetInstance().AppURL(), *jwtToken)
 
 	templateData := struct {
 		Name string

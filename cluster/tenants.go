@@ -556,6 +556,11 @@ func GetTenantWithCtx(ctx *Context, tenantName string) (tenant Tenant, err error
 	return tenant, nil
 }
 
+// GetTenantByID returns a tenant by id
+func GetTenantByID(tenantID *uuid.UUID) (tenant Tenant, err error) {
+	return GetTenantWithCtxByID(nil, tenantID)
+}
+
 // GetTenantWithCtxByID gets the Tenant if it exists on the m3.provisining.tenants table
 // search is done by tenant id
 func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (tenant Tenant, err error) {

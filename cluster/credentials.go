@@ -79,7 +79,7 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UU
 	// Now insert the credentials into the DB
 	query := `
 		INSERT INTO
-				credentials ("access_key","user_id","ui_credential","sys_created_by")
+				credentials ("access_key", "user_id", "ui_credential", "sys_created_by")
 			  VALUES
 				($1, $2, $3, $4)`
 	tx, err := ctx.TenantTx()

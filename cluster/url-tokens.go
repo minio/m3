@@ -17,9 +17,15 @@ package cluster
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
+
+	"k8s.io/client-go/kubernetes"
+
 	uuid "github.com/satori/go.uuid"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type URLToken struct {
@@ -35,21 +41,15 @@ type URLToken struct {
 func NewURLToken(ctx *Context, userID *uuid.UUID, usedFor string, validity *time.Time) (*uuid.UUID, error) {
 	urlToken := uuid.NewV4()
 	query := `INSERT INTO
-				provisioning.url_tokens ("id", "tenant_id", "user_id", "used_for", "expiration", "sys_created_by")
+				url_tokens ("id", "user_id", "used_for", "expiration", "sys_created_by")
 			  VALUES
-				($1, $2, $3, $4, $5, $6)`
-	tx, err := ctx.MainTx()
+				($1, $2, $3, $4, $5)`
+	tx, err := ctx.TenantTx()
 	if err != nil {
 		return nil, err
 	}
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		ctx.Rollback()
-		return nil, err
-	}
-	defer stmt.Close()
 	// Execute query
-	_, err = tx.Exec(query, urlToken, ctx.Tenant.ID, userID, usedFor, validity, ctx.WhoAmI)
+	_, err = tx.Exec(query, urlToken, userID, usedFor, validity, ctx.WhoAmI)
 	if err != nil {
 		ctx.Rollback()
 		return nil, err
@@ -58,20 +58,25 @@ func NewURLToken(ctx *Context, userID *uuid.UUID, usedFor string, validity *time
 }
 
 // GetTokenDetails get the details for the provided urlToken
-func GetTokenDetails(urlToken *uuid.UUID) (*URLToken, error) {
+func GetTokenDetails(ctx *Context, urlToken *uuid.UUID) (*URLToken, error) {
 	var token URLToken
 	// Get an individual token
 	queryUser := `
 		SELECT 
-				id, tenant_id, user_id, expiration, used_for, consumed
+				id, user_id, expiration, used_for, consumed
 			FROM 
-				provisioning.url_tokens
+				url_tokens
 			WHERE id=$1 LIMIT 1`
 
-	row := GetInstance().Db.QueryRow(queryUser, urlToken)
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return nil, err
+	}
+
+	row := tx.QueryRow(queryUser, urlToken)
 
 	// Save the resulted query on the URLToken struct
-	err := row.Scan(&token.ID, &token.TenantID, &token.UserID, &token.Expiration, &token.UsedFor, &token.Consumed)
+	err = row.Scan(&token.ID, &token.UserID, &token.Expiration, &token.UsedFor, &token.Consumed)
 	if err != nil {
 		return nil, err
 	}
@@ -80,17 +85,11 @@ func GetTokenDetails(urlToken *uuid.UUID) (*URLToken, error) {
 
 // MarkTokenConsumed updates the record for the urlToken as is it has been used
 func MarkTokenConsumed(ctx *Context, urlTokenID *uuid.UUID) error {
-	query := `UPDATE provisioning.url_tokens SET consumed=true WHERE id=$1`
-	tx, err := ctx.MainTx()
+	query := `UPDATE url_tokens SET consumed=true WHERE id=$1`
+	tx, err := ctx.TenantTx()
 	if err != nil {
 		return err
 	}
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		ctx.Rollback()
-		return err
-	}
-	defer stmt.Close()
 	// Execute query
 	_, err = tx.Exec(query, urlTokenID)
 	if err != nil {
@@ -118,4 +117,65 @@ func CompleteSignup(ctx *Context, urlToken *URLToken, password string) error {
 		return err
 	}
 	return nil
+}
+
+// getJWTSecretKey gets jwt secret key from kubernetes secrets
+func getJWTSecretKey() ([]byte, error) {
+	config := getConfig()
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		fmt.Println(err)
+		return []byte{}, err
+	}
+	res, err := clientset.CoreV1().Secrets("default").Get("jwtkey", metav1.GetOptions{})
+	return []byte(string(res.Data["M3_JWT_KEY"])), err
+}
+
+// buildJwtTokenForURLToken builds a jwt token for a url token and tenant
+func buildJwtTokenForURLToken(ctx *Context, urlTokenID *uuid.UUID) (*string, error) {
+	// Create a new jwtToken object, specifying signing method and the claims
+	// you would like it to contain.
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"t": urlTokenID.String(),
+		"e": ctx.Tenant.ID.String(),
+	})
+
+	jwtSecret, err := getJWTSecretKey()
+	if err != nil {
+		return nil, err
+	}
+
+	// Sign and get the complete encoded jwtToken as a string using the secret
+	tokenString, err := jwtToken.SignedString(jwtSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tokenString, nil
+}
+
+type URLJwtToken struct {
+	Token    uuid.UUID `json:"t"`
+	TenantID uuid.UUID `json:"e"`
+	jwt.StandardClaims
+}
+
+// ParseAndValidateJwtToken parses and validates the jwt token
+func ParseAndValidateJwtToken(tokenString string) (*URLJwtToken, error) {
+	jwtSecret, err := getJWTSecretKey()
+	if err != nil {
+		return nil, err
+	}
+	token, err := jwt.ParseWithClaims(tokenString, &URLJwtToken{}, func(token *jwt.Token) (interface{}, error) {
+		return jwtSecret, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*URLJwtToken); ok && token.Valid {
+		return claims, nil
+	}
+	return nil, nil
 }

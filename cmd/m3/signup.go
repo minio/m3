@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/minio/m3/cluster"
-	uuid "github.com/satori/go.uuid"
 
 	"github.com/minio/cli"
 )
@@ -48,58 +47,59 @@ var signupCmd = cli.Command{
 // signup Completes the signup process using the token provided
 func signup(ctx *cli.Context) error {
 	// read flags
-	token := ctx.String("token")
+	jwtToken := ctx.String("jwtToken")
 	password := ctx.String("password")
 	// alternatively read from positional arguments
-	if token == "" && ctx.Args().Get(0) != "" {
-		token = ctx.Args().Get(0)
+	if jwtToken == "" && ctx.Args().Get(0) != "" {
+		jwtToken = ctx.Args().Get(0)
 	}
 	if password == "" && ctx.Args().Get(1) != "" {
 		password = ctx.Args().Get(1)
 	}
 	// validate presence of arguments
-	if token == "" {
-		return errors.New("a token must be provided")
+	if jwtToken == "" {
+		return errors.New("a jwtToken must be provided")
 	}
 	if password == "" {
 		return errors.New("a password must be provided")
 	}
 
-	urlTokenID, err := uuid.FromString(token)
+	parsedJwtToken, err := cluster.ParseAndValidateJwtToken(jwtToken)
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 
-	urlToken, err := cluster.GetTokenDetails(&urlTokenID)
+	appCtx, err := cluster.NewContextWithTenantID(&parsedJwtToken.TenantID)
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
-	// make sure this token is not already used
+
+	urlToken, err := cluster.GetTokenDetails(appCtx, &parsedJwtToken.Token)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	// make sure this jwtToken is not already used
 	if urlToken.Consumed {
 		err = errors.New("this token has already been consumed")
 		fmt.Println(err)
 		return err
 	}
-	// make sure this token is intended for signup
+	// make sure this jwtToken is intended for signup
 	if urlToken.UsedFor != cluster.TokenSignupEmail {
 		err = errors.New("invalid token")
 		fmt.Println(err)
 		return err
 	}
-	// make sure this token is not expired
-	if urlToken.Expiration.After(time.Now()) {
+	// make sure this jwtToken is not expired
+	if !urlToken.Expiration.After(time.Now()) {
 		err = errors.New("expired token")
 		fmt.Println(err)
 		return err
 	}
 	fmt.Println("Completing user signup process")
-	appCtx, err := cluster.NewContextWithTenantID(&urlToken.TenantID)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
 
 	err = cluster.CompleteSignup(appCtx, urlToken, password)
 

@@ -142,7 +142,7 @@ func NewContextWithTenantID(tenantID *uuid.UUID) (*Context, error) {
 	if tenantID != nil {
 		// get the tenant
 		var err error
-		tenant, err = GetTenantWithCtxByID(nil, tenantID)
+		tenant, err = GetTenantByID(tenantID)
 		if err != nil {
 			return nil, errors.New("Tenant short name is invalid")
 		}
