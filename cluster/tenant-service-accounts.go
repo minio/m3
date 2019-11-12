@@ -44,12 +44,6 @@ func AddServiceAccount(ctx *Context, tenantShortName string, name string, descri
 	if err != nil {
 		return nil, err
 	}
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		ctx.Rollback()
-		return nil, err
-	}
-	defer stmt.Close()
 	// Execute query
 	_, err = tx.Exec(query, serviceAccountID, name, description, ctx.WhoAmI)
 	if err != nil {

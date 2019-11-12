@@ -67,12 +67,6 @@ func AddAdmin(name string, adminEmail string) (*Admin, error) {
 	if err != nil {
 		return nil, err
 	}
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		ctx.Rollback()
-		return nil, err
-	}
-	defer stmt.Close()
 	// Execute query
 	_, err = tx.Exec(query, admin.ID, admin.Name, admin.Email, admin.AccessKey, ctx.WhoAmI)
 	if err != nil {

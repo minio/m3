@@ -163,13 +163,7 @@ func InsertTenant(ctx *Context, tenantName string, tenantShortName string) chan 
 			ch <- AddTenantResult{Error: err}
 			return
 		}
-		stmt, err := tx.Prepare(query)
-		if err != nil {
-			ch <- AddTenantResult{Error: err}
-			return
-		}
-		defer stmt.Close()
-		_, err = stmt.Exec(tenantID, tenantName, tenantShortName, ctx.WhoAmI)
+		_, err = tx.Exec(query, tenantID, tenantName, tenantShortName, ctx.WhoAmI)
 		if err != nil {
 			ch <- AddTenantResult{Error: err}
 			return
@@ -707,13 +701,7 @@ func DeleteTenantRecord(ctx *Context, tenantShortName string) chan error {
 			ch <- err
 			return
 		}
-		stmt, err := tx.Prepare(query)
-		if err != nil {
-			ch <- err
-			return
-		}
-		defer stmt.Close()
-		_, err = stmt.Exec(tenantShortName)
+		_, err = tx.Exec(query, tenantShortName)
 		if err != nil {
 			ch <- err
 			return
@@ -731,13 +719,7 @@ func DeleteTenantRecord(ctx *Context, tenantShortName string) chan error {
 			ch <- err
 			return
 		}
-		stmt, err = tx.Prepare(query)
-		if err != nil {
-			ch <- err
-			return
-		}
-		defer stmt.Close()
-		_, err = stmt.Exec(tenantShortName)
+		_, err = tx.Exec(query, tenantShortName)
 		if err != nil {
 			ch <- err
 			return
