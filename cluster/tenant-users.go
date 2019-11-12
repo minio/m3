@@ -126,7 +126,7 @@ func SetUserEnabled(tenantShortName string, userID string, status bool) error {
 		return err
 	}
 	// Execute query
-	_, err = tx.Exec(query, userID)
+	_, err = tx.Exec(query, status, userID)
 	if err != nil {
 		ctx.Rollback()
 		return err
