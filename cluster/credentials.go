@@ -186,12 +186,6 @@ func createServiceAccountCredentials(ctx *Context, tenantShortName string, servi
 	if err != nil {
 		return nil, err
 	}
-	stmt, err := tx.Prepare(query)
-	if err != nil {
-		ctx.Rollback()
-		return nil, err
-	}
-	defer stmt.Close()
 	// Execute query
 	_, err = tx.Exec(query, saCredentials.AccessKey, serviceAccountID, false, ctx.WhoAmI)
 	if err != nil {
