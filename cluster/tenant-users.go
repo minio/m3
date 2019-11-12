@@ -59,6 +59,10 @@ func AddUser(ctx *Context, newUser *User) error {
 			return errors.New("a valid password is needed, minimum 8 characters")
 		}
 	}
+	// if the user has no password, randomize it
+	if newUser.Password == "" {
+		newUser.Password = RandomCharString(64)
+	}
 	// Hash the password
 	hashedPassword, err := HashPassword(newUser.Password)
 	if err != nil {
