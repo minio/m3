@@ -295,7 +295,7 @@ func CreateTenantsSharedDatabase() error {
 func AddM3Admin(name, email string) error {
 	// Add the first cluster admin
 	fmt.Println("Adding the first admin")
-	admin, err := AddAdmin(name, email)
+	admin, err := AddAdminAction(name, email)
 	if err != nil {
 		fmt.Println("Error adding user:", err.Error())
 		return err

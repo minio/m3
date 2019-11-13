@@ -67,7 +67,7 @@ func adminAdd(ctx *cli.Context) error {
 	}
 
 	// perform the action
-	admin, err := cluster.AddAdmin(name, email)
+	admin, err := cluster.AddAdminAction(name, email)
 	if err != nil {
 		fmt.Println("Error adding user:", err.Error())
 		return err
