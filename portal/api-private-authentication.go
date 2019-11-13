@@ -38,12 +38,12 @@ func (ps *privateServer) Login(ctx context.Context, in *pb.CLILoginRequest) (*pb
 	// Look for the user on the database by email
 	admin, err := cluster.GetAdminByEmail(appCtx, in.Email)
 	if err != nil {
-		return nil, status.New(codes.InvalidArgument, "Wrong email and/or password.").Err()
+		return nil, status.New(codes.Unauthenticated, "Wrong email and/or password.").Err()
 	}
 
 	// Comparing the password with the hash
 	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(in.Password)); err != nil {
-		return nil, status.New(codes.InvalidArgument, "Wrong  email and/or password").Err()
+		return nil, status.New(codes.Unauthenticated, "Wrong  email and/or password").Err()
 	}
 
 	// Add the session within a transaction in case anything goes wrong during the adding process
