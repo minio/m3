@@ -46,11 +46,6 @@ func AddAdminAction(ctx *Context, name string, adminEmail string) (*Admin, error
 		}
 	}
 
-	ctx, err := NewEmptyContext()
-	if err != nil {
-		return nil, err
-	}
-
 	admin := Admin{
 		ID:        uuid.NewV4(),
 		Name:      name,
