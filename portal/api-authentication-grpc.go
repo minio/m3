@@ -76,6 +76,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	return res, nil
 }
 
+// Logout sets session's status to invalid after validating the sessionId
 func (s *server) Logout(ctx context.Context, in *pb.Empty) (*pb.Empty, error) {
 	var (
 		err          error

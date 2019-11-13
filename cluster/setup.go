@@ -51,9 +51,6 @@ func SetupM3() error {
 	// Setup Jwt Secret
 	fmt.Println("Setting up jwt secret")
 	SetupJwtSecrets()
-	// run migrations
-	fmt.Println("Running Migrations")
-	RunMigrations()
 	return nil
 }
 
