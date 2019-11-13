@@ -30,7 +30,6 @@ import (
 
 // Login rpc to generate a session for an admin
 func (ps *privateServer) Login(ctx context.Context, in *pb.CLILoginRequest) (*pb.CLILoginResponse, error) {
-	fmt.Println("Login RPC")
 	// start app context
 	appCtx, err := cluster.NewEmptyContext()
 
