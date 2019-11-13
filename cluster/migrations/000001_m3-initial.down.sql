@@ -1,1 +1,13 @@
-drop schema provisioning;
+drop table admins;
+drop index admins_email_uindex;
+drop table tenants;
+drop table storage_groups;
+drop table tenants_storage_groups;
+drop table nodes;
+drop table storage_clusters;
+drop table storage_clusters_groups;
+drop table storage_cluster_nodes;
+drop table node_volumes;
+drop table disks;
+drop type status_type;
+drop table sessions;

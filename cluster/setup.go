@@ -255,12 +255,13 @@ func RunMigrations() {
 	if dbConfg.Ssl {
 		sslMode = "enable"
 	}
-	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?search_path=%s&sslmode=%s",
 		dbConfg.User,
 		dbConfg.Pwd,
 		dbConfg.Host,
 		dbConfg.Port,
 		dbConfg.Name,
+		dbConfg.SchemaName,
 		sslMode)
 	m, err := migrate.New(
 		"file://cluster/migrations",
@@ -283,6 +284,21 @@ func CreateTenantsSharedDatabase() error {
 
 	// format in the tenant name assuming it's safe
 	query := fmt.Sprintf(`CREATE DATABASE tenants`)
+
+	_, err := db.Exec(query)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// CreateProvisioningSchema creates a db schema for provisioning
+func CreateProvisioningSchema() error {
+	// get the DB connection for the tenant
+	db := GetInstance().Db
+
+	// format in the tenant name assuming it's safe
+	query := `CREATE SCHEMA provisioning`
 
 	_, err := db.Exec(query)
 	if err != nil {

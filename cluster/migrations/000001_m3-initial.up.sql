@@ -1,4 +1,3 @@
-create schema provisioning;
 
 create table admins
 (

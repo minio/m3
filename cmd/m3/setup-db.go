@@ -32,7 +32,12 @@ var setupDbCmd = cli.Command{
 
 func setupDB(ctx *cli.Context) error {
 	// setup the tenants shared db
-	err := cluster.CreateTenantsSharedDatabase()
+	err := cluster.CreateProvisioningSchema()
+	if err != nil {
+		// this error could be because the database already exists, so we are going to tolerate it.
+		fmt.Println(err)
+	}
+	err = cluster.CreateTenantsSharedDatabase()
 	if err != nil {
 		// this error could be because the database already exists, so we are going to tolerate it.
 		fmt.Println(err)
