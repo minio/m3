@@ -35,8 +35,8 @@ type Admin struct {
 	SecretKey string
 }
 
-// AddAdmin adds a new admin to the cluster database and creates a key pair for it.
-func AddAdmin(name string, adminEmail string) (*Admin, error) {
+// AddAdminAction adds a new admin to the cluster database and creates a key pair for it.
+func AddAdminAction(ctx *Context, name string, adminEmail string) (*Admin, error) {
 	// validate adminEmail
 	if adminEmail != "" {
 		// TODO: improve regex
@@ -44,11 +44,6 @@ func AddAdmin(name string, adminEmail string) (*Admin, error) {
 		if !re.MatchString(adminEmail) {
 			return nil, errors.New("a valid email is needed")
 		}
-	}
-
-	ctx, err := NewContext("")
-	if err != nil {
-		return nil, err
 	}
 
 	admin := Admin{
@@ -60,7 +55,7 @@ func AddAdmin(name string, adminEmail string) (*Admin, error) {
 	}
 
 	query := `INSERT INTO
-				provisioning.admins ("id", "name", "email", "access_key","sys_created_by")
+				admins ("id", "name", "email", "access_key","sys_created_by")
 			  VALUES
 				($1, $2, $3, $4, $5)`
 	tx, err := ctx.MainTx()

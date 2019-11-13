@@ -1,1 +1,1 @@
-drop schema m3.provisioning;
+drop schema provisioning;

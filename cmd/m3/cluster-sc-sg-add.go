@@ -45,7 +45,7 @@ func addStorageGroup(ctx *cli.Context) error {
 		name = &nameVal
 	}
 
-	appCtx, err := cluster.NewContext("")
+	appCtx, err := cluster.NewEmptyContext()
 	if err != nil {
 		return err
 	}

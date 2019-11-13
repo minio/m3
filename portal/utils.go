@@ -59,7 +59,7 @@ func getSessionRowIDAndTenantName(ctx context.Context) (string, string, error) {
 	db := cluster.GetInstance().Db
 	// Get tenant name from the DB
 	getTenantShortnameQ := `SELECT s.id, t.short_name
-                           FROM m3.provisioning.sessions as s JOIN m3.provisioning.tenants as t
+                           FROM sessions as s JOIN tenants as t
                            ON (s.tenant_id = t.id) WHERE s.id=$1 AND s.status=$2 AND NOW() < s.expires_at`
 	tenantRow := db.QueryRow(getTenantShortnameQ, sessionID, sessionValid)
 

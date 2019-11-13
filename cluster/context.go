@@ -118,7 +118,7 @@ func (c *Context) Rollback() error {
 	return nil
 }
 
-// Creates a new `Context` for a tenant that holds transaction and `context.Context`
+// DEPRECATED: Creates a new `Context` for a tenant that holds transaction and `context.Context`
 // to control timeouts and cancellations.
 func NewContext(tenantShortName string) (*Context, error) {
 	// Try to get the tenant if a short name was provided, error if invalid tenant short name
