@@ -312,14 +312,12 @@ func AddM3Admin(name, email string) error {
 	if err != nil {
 		return err
 	}
-	admin, err := AddAdminAction(apptCtx, name, email)
+	_, err = AddAdminAction(apptCtx, name, email)
 	if err != nil {
 		fmt.Println("Error adding user:", err.Error())
 		return err
 	}
-	fmt.Printf("Access Key: %s\n", admin.AccessKey)
-	fmt.Printf("Secret Key: %s\n", admin.SecretKey)
-	fmt.Println("Write these credentials down as this is the only time the secret will be shown.")
+	fmt.Println("Admin was added")
 	return nil
 }
 

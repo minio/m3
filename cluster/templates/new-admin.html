@@ -1,0 +1,14 @@
+<html>
+<head>
+</head>
+<body>
+<p>
+    Hello {{.Name}}<br>
+    You've been added as an admin to mkube, please setup your password using your CLI with the following
+    command.<br><br>
+<div style="background-color: black;color: white;padding: 10px;margin:10px;">
+    ./{{.CliCommand}} set-password {{.Token}}
+</div>
+</p>
+</body>
+</html>

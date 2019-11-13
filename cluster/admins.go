@@ -18,21 +18,17 @@ package cluster
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
-
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 
 	uuid "github.com/satori/go.uuid"
 )
 
 type Admin struct {
-	ID        uuid.UUID
-	Name      string
-	Email     string
-	AccessKey string
-	SecretKey string
+	ID       uuid.UUID
+	Name     string
+	Email    string
+	Password string
 }
 
 // AddAdminAction adds a new admin to the cluster database and creates a key pair for it.
@@ -45,33 +41,46 @@ func AddAdminAction(ctx *Context, name string, adminEmail string) (*Admin, error
 			return nil, errors.New("a valid email is needed")
 		}
 	}
+	// validate email
 
 	admin := Admin{
-		ID:        uuid.NewV4(),
-		Name:      name,
-		Email:     adminEmail,
-		AccessKey: RandomCharString(16),
-		SecretKey: RandomCharString(32),
+		ID:       uuid.NewV4(),
+		Name:     name,
+		Email:    adminEmail,
+		Password: RandomCharString(64),
+	}
+	// insert the admin record
+	err := InsertAdmin(ctx, &admin)
+	if err != nil {
+		return nil, err
 	}
 
-	query := `INSERT INTO
-				admins ("id", "name", "email", "access_key","sys_created_by")
-			  VALUES
-				($1, $2, $3, $4, $5)`
-	tx, err := ctx.MainTx()
+	// get a token for the user to create his password
+	expires := time.Now().Add(time.Hour * 24)
+	adminToken, err := NewAdminToken(ctx, &admin.ID, "admin-set-password", &expires)
 	if err != nil {
 		return nil, err
 	}
-	// Execute query
-	_, err = tx.Exec(query, admin.ID, admin.Name, admin.Email, admin.AccessKey, ctx.WhoAmI)
+
+	// send an email to the admin
+	templateData := struct {
+		Name       string
+		Token      string
+		CliCommand string
+	}{
+		Name:       admin.Name,
+		Token:      adminToken.String(),
+		CliCommand: GetInstance().CliCommand(),
+	}
+	// Get the mailing template for inviting users
+	body, err := GetTemplate("new-admin", templateData)
 	if err != nil {
-		ctx.Rollback()
 		return nil, err
 	}
-	// Create this user's credentials so he can interact with it's own buckets/data
-	err = storeAdminCredentials(&admin)
+
+	// send the email
+	err = SendMail(admin.Name, admin.Email, "Join mkube", *body)
 	if err != nil {
-		ctx.Rollback()
 		return nil, err
 	}
 
@@ -83,58 +92,82 @@ func AddAdminAction(ctx *Context, name string, adminEmail string) (*Admin, error
 	return &admin, nil
 }
 
-// storeAdminCredentials saves the credentials for an Admin to a k8s secret on the m3 namespace
-func storeAdminCredentials(admin *Admin) error {
-	// creates the clientset
-	clientset, err := k8sClient()
-
+// InsertAdmin inserts an admin record into the `admins` table
+func InsertAdmin(ctx *Context, admin *Admin) error {
+	// Hash the password
+	hashedPassword, err := HashPassword(admin.Password)
 	if err != nil {
 		return err
 	}
 
-	// store the crendential exclusively for this user, this way there can only be 1 credentials per use
-	secretsName := fmt.Sprintf("admin-%s", admin.ID.String())
-	secret := v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: secretsName,
-			Labels: map[string]string{
-				"app": admin.ID.String(),
-			},
-		},
-		Data: map[string][]byte{
-			accessKey: []byte(admin.AccessKey),
-			secretKey: []byte(admin.SecretKey),
-		},
-	}
-	_, err = clientset.CoreV1().Secrets(m3Namespace).Create(&secret)
-	return err
-}
-
-// GetAdminCredentials returns the access/secret key pair for a given admin
-func GetAdminCredentials(admin *Admin) error {
-	clientset, err := k8sClient()
+	query := `INSERT INTO
+				admins ("id", "name", "email", "password","sys_created_by")
+			  VALUES
+				($1, $2, $3, $4, $5)`
+	tx, err := ctx.MainTx()
 	if err != nil {
 		return err
 	}
-	// the admin secret is behind it's identifier
-	secretsName := fmt.Sprintf("admin-%s", admin.ID.String())
-	mainSecret, err := clientset.CoreV1().Secrets(m3Namespace).Get(secretsName, metav1.GetOptions{})
+	// Execute query
+	_, err = tx.Exec(query, admin.ID, admin.Name, admin.Email, hashedPassword, ctx.WhoAmI)
 	if err != nil {
 		return err
-	}
-
-	// Validate access key
-	if val, ok := mainSecret.Data[accessKey]; ok {
-		if string(val) != admin.AccessKey {
-			return errors.New("access key does not match")
-		}
-	} else {
-		return errors.New("secret has no access key")
-	}
-	if val, ok := mainSecret.Data[accessKey]; ok {
-		admin.SecretKey = string(val)
-	} else {
-		return errors.New("secret has no secret key")
 	}
 	return nil
+}
+
+// setUserPassword sets the password for the provided user by hashing it
+func setAdminPassword(ctx *Context, adminID *uuid.UUID, password string) error {
+	if password == "" {
+		return errors.New("a valid password is needed, minimum 8 characters")
+	}
+	// validate user Password
+	if password != "" {
+		// TODO: improve regex or use Go validator
+		var re = regexp.MustCompile(`^[a-zA-Z0-9!@#\$%\^&\*]{8,16}$`)
+		if !re.MatchString(password) {
+			return errors.New("a valid password is needed, minimum 8 characters")
+		}
+	}
+	// Hash the password
+	hashedPassword, err := HashPassword(password)
+	if err != nil {
+		return err
+	}
+
+	query := `UPDATE admins SET password=$1 WHERE id=$2`
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return err
+	}
+	// Execute query
+	_, err = tx.Exec(query, hashedPassword, adminID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetAdminByEmail retrieves an admin by it's email
+func GetAdminByEmail(ctx *Context, email string) (*Admin, error) {
+	// Get user from tenants database
+	queryUser := `
+		SELECT 
+				t1.id, t1.name, t1.email, t1.password
+			FROM 
+				admins t1
+			WHERE email=$1 LIMIT 1`
+
+	row := GetInstance().Db.QueryRow(queryUser, email)
+
+	admin := Admin{}
+
+	// Save the resulted query on the User struct
+	err := row.Scan(&admin.ID, &admin.Name, &admin.Email, &admin.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	return &admin, nil
 }

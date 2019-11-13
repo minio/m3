@@ -81,9 +81,6 @@ func adminAdd(ctx *cli.Context) error {
 	}
 
 	fmt.Printf("Done adding admin `%s <%s>`\n", admin.Name, admin.Email)
-	fmt.Printf("Access Key: %s\n", admin.AccessKey)
-	fmt.Printf("Secret Key: %s\n", admin.SecretKey)
-	fmt.Println("Write these credentials down as this is the only time the secret will be shown.")
 
 	return nil
 }
