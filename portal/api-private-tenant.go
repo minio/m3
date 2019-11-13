@@ -32,5 +32,5 @@ func (ps *privateServer) AddTenant(ctx context.Context, in *pb.AddTenantRequest)
 		fmt.Println(err.Error())
 		return nil, nil
 	}
-	return &pb.AddTenantResponse{Status: "Success"}, nil
+	return &pb.AddTenantResponse{}, nil
 }

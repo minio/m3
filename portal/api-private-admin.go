@@ -41,7 +41,7 @@ func (ps *privateServer) AdminAdd(ctx context.Context, in *pb.AdminAddRequest) (
 		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
-	return &pb.AdminAddResponse{Status: "Success"}, nil
+	return &pb.AdminAddResponse{}, nil
 }
 
 // SetPassword rpc that allows an admin to set his own password via CLI
@@ -60,5 +60,5 @@ func (ps *privateServer) SetPassword(ctx context.Context, in *pb.SetAdminPasswor
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
-	return &pb.SetAdminPasswordResponse{Status: "Success"}, nil
+	return &pb.SetAdminPasswordResponse{}, nil
 }
