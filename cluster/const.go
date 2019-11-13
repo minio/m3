@@ -19,15 +19,15 @@ package cluster
 type key int
 
 const (
-	Version                   = `0.1.0`
-	minioAccessKey            = "MINIO_ACCESS_KEY"
-	minioSecretKey            = "MINIO_SECRET_KEY"
-	accessKey                 = "ACCESS_KEY"
-	secretKey                 = "SECRET_KEY"
-	TokenSignupEmail          = "signup-email"
-    TokenResetPasswordEmail = "reset-password-email"
-	AdminTokenSetPassword     = "admin-set-password"
-	AdminIDKey            key = iota
-	SessionIDKey          key = iota
-	WhoAmIKey             key = iota
+	Version                     = `0.1.0`
+	minioAccessKey              = "MINIO_ACCESS_KEY"
+	minioSecretKey              = "MINIO_SECRET_KEY"
+	accessKey                   = "ACCESS_KEY"
+	secretKey                   = "SECRET_KEY"
+	TokenSignupEmail            = "signup-email"
+	TokenResetPasswordEmail     = "reset-password-email"
+	AdminTokenSetPassword       = "admin-set-password"
+	AdminIDKey              key = iota
+	SessionIDKey            key = iota
+	WhoAmIKey               key = iota
 )
