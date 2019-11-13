@@ -31,6 +31,98 @@ const (
 	defaultRequestLimit  = 25
 )
 
+// UserAddInvite invites a new user to the tenant's system by sending an email
+func (s *server) UserAddInvite(ctx context.Context, in *pb.InviteRequest) (*pb.Empty, error) {
+	// Validate sessionID and get tenant short name using the valid sessionID
+	tenantShortName, err := getTenantShortNameFromSessionID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	reqName := in.GetName()
+	reqEmail := in.GetEmail()
+
+	newUser := cluster.User{Name: reqName, Email: reqEmail}
+
+	appCtx, err := cluster.NewContext(tenantShortName)
+	if err != nil {
+		return nil, err
+	}
+	appCtx.ControlCtx = ctx
+
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+		// if no error happened to this point commit transaction
+		err = appCtx.Commit()
+	}()
+
+	// Create user on db
+	err = cluster.AddUser(appCtx, &newUser)
+	if err != nil {
+		if err.(*pq.Error).Code.Name() == uniqueViolationError {
+			return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()
+		}
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	// Send email invitation with token
+	err = cluster.InviteUserByEmail(appCtx, cluster.TokenSignupEmail, &newUser)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	return &pb.Empty{}, err
+}
+
+// UserResetPasswordInvite invites a new user to reset their password by sending them an email
+func (s *server) UserResetPasswordInvite(ctx context.Context, in *pb.InviteRequest) (*pb.Empty, error) {
+	// Validate sessionID and get tenant short name using the valid sessionID
+	tenantShortName, err := getTenantShortNameFromSessionID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	reqName := in.GetName()
+	reqEmail := in.GetEmail()
+
+	newUser := cluster.User{Name: reqName, Email: reqEmail}
+
+	appCtx, err := cluster.NewContext(tenantShortName)
+	if err != nil {
+		return nil, err
+	}
+	appCtx.ControlCtx = ctx
+
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+		// if no error happened to this point commit transaction
+		err = appCtx.Commit()
+	}()
+
+	// Create user on db
+	err = cluster.AddUser(appCtx, &newUser)
+	if err != nil {
+		if err.(*pq.Error).Code.Name() == uniqueViolationError {
+			return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()
+		}
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	// Send email invitation with token
+	err = cluster.InviteUserByEmail(appCtx, cluster.TokenResetPasswordEmail, &newUser)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	return &pb.Empty{}, err
+}
+
 func (s *server) AddUser(ctx context.Context, in *pb.AddUserRequest) (*pb.User, error) {
 	// Validate sessionID and get tenant short name using the valid sessionID
 	tenantShortName, err := getTenantShortNameFromSessionID(ctx)
@@ -40,7 +132,7 @@ func (s *server) AddUser(ctx context.Context, in *pb.AddUserRequest) (*pb.User, 
 
 	reqName := in.GetName()
 	reqEmail := in.GetEmail()
-	newUser := &cluster.User{Name: reqName, Email: reqEmail}
+	newUser := cluster.User{Name: reqName, Email: reqEmail}
 
 	appCtx, err := cluster.NewContext(tenantShortName)
 	if err != nil {
@@ -48,14 +140,19 @@ func (s *server) AddUser(ctx context.Context, in *pb.AddUserRequest) (*pb.User, 
 	}
 	appCtx.ControlCtx = ctx
 
-	err = cluster.AddUser(appCtx, newUser)
+	err = cluster.AddUser(appCtx, &newUser)
 	if err != nil {
+		appCtx.Rollback()
 		if err.(*pq.Error).Code.Name() == uniqueViolationError {
 			return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()
 		}
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
+	err = appCtx.Commit()
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
 	return &pb.User{Name: newUser.Name, Email: newUser.Email}, nil
 }
 
@@ -118,7 +215,7 @@ func (s *server) EnableUser(ctx context.Context, in *pb.UserActionRequest) (*pb.
 	reqUserID := in.GetId()
 	// start app context
 	if err != nil {
-		return nil, status.New(codes.Internal, "Error disabling user").Err()
+		return nil, status.New(codes.Internal, "Error enabling user").Err()
 	}
 	err = cluster.SetUserEnabled(tenantShortName, reqUserID, true)
 	if err != nil {

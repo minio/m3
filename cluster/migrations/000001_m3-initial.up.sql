@@ -22,6 +22,7 @@ create table admins
     name             varchar(256),
     email            varchar(256)              not null,
     password         varchar(256),
+    access_key       varchar(256),
     sys_created_by   varchar(256)              not null,
     sys_created_date timestamptz default now() not null
 );
