@@ -40,6 +40,11 @@ var tenantAddUserCmd = cli.Command{
 			Usage: "tenant short name",
 		},
 		cli.StringFlag{
+			Name:  "name",
+			Value: "",
+			Usage: "user name",
+		},
+		cli.StringFlag{
 			Name:  "email",
 			Value: "",
 			Usage: "user email",
