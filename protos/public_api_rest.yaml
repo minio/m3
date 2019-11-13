@@ -6,15 +6,6 @@ http:
     - selector: m3.PublicAPI.RegisterTenant
       post: /api/v1/accounts/signup
       body: "*"
-    - selector: m3.PublicAPI.Login
-      post: /api/v1/accounts/login
-      body: "*"
-    - selector: m3.PublicAPI.Logout
-      post: /api/v1/accounts/logout
-      body: "*"
-    - selector: m3.PublicAPI.ResetPassword
-      patch: /api/v1/accounts/reset_password
-      body: "*"
     - selector: m3.PublicAPI.Metrics
       get: /api/v1/metrics
     # Buckets
@@ -34,6 +25,27 @@ http:
     # sending them through the request URL like
     # /api/v1/users?limit=2&offset=3
       get: /api/v1/users
+    - selector: m3.PublicAPI.Login
+      post: /api/v1/users/login
+      body: "*"
+    - selector: m3.PublicAPI.Logout
+      post: /api/v1/users/logout
+      body: "*"
+    - selector: m3.PublicAPI.SetPassword
+      post: /api/v1/users/set_password
+      body: "*"
+    - selector: m3.PublicAPI.ChangePassword
+      patch: /api/v1/users/change_password
+      body: "*"
+    - selector: m3.PublicAPI.UserAddInvite
+      post: /api/v1/users/add_invite
+      body: "*"
+    - selector: m3.PublicAPI.UserResetPasswordInvite
+      post: /api/v1/users/reset_invite
+      body: "*"
+    - selector: m3.PublicAPI.ValidateInvite
+      post: /api/v1/validate_invite
+      body: "*"
     - selector: m3.PublicAPI.AddUser
       post: /api/v1/users
       body: "*"

@@ -129,7 +129,7 @@ func AddTenantAction(name, shortName, adminName, adminEmail string) error {
 			return err
 		}
 		// Invite it's first admin
-		err = InviteUserByEmail(ctx, &newUser)
+		err = InviteUserByEmail(ctx, TokenSignupEmail, &newUser)
 		if err != nil {
 			ctx.Rollback()
 			fmt.Println("Tenant added however the was an error adding first user:", err.Error())

@@ -122,7 +122,6 @@ func SendMail(toName, toEmail, subject, body string) error {
 		return err
 	}
 
-	fmt.Println("Email Sent.")
 	return nil
 }
 

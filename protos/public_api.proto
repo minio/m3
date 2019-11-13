@@ -32,8 +32,20 @@ service PublicAPI {
     // Logout
     rpc Logout (Empty) returns (Empty) {
     }
-    // Reset password
-    rpc ResetPassword (ResetPasswordRequest) returns (Empty){
+    // Set Password Used for Signing Up a new User and Resetting a Password
+    rpc SetPassword (SetPasswordRequest) returns (Empty){
+    }
+    // Change Password allows to change an existing password
+    rpc ChangePassword (ChangePasswordRequest) returns (Empty){
+    }
+    // UserAddInvite sends an email invitation for sign up 
+    rpc UserAddInvite (InviteRequest) returns (Empty){
+    }
+    // UserResetPasswordInvite sends an email invitation for resetting a user's password
+    rpc UserResetPasswordInvite (InviteRequest) returns (Empty){
+    }
+    // ValidateInvite validates url token sent for resetting password or sign Up
+    rpc ValidateInvite (Empty) returns (ValidateEmailInviteResponse){
     }
 
     // Returns metrics around the authenticated tenant account if the tenant is an admin or has access
@@ -160,9 +172,25 @@ message LoginResponse {
     string jwt_token = 2;
 }
 
-message ResetPasswordRequest {
+// Used for Signing Up a new User and Resetting a Password
+message SetPasswordRequest {
     string password = 1;
+}
+
+message ChangePasswordRequest {
+    string old_password = 1;
     string new_password = 2;
+}
+
+// Sends an invite to signup a new user or reset a user's password
+message InviteRequest {
+    string name = 1;
+    string email = 2;
+}
+// Once token invite is validates we return the email and company to proceed with the Signup
+message ValidateEmailInviteResponse{
+    string email = 1;
+    string company = 2;
 }
 
 // A request for metrics on the authenticated tenant

@@ -108,13 +108,14 @@ func tenantAddUser(ctx *cli.Context) error {
 	// perform the action
 	err = cluster.AddUser(appCtx, &user)
 	if err != nil {
+		appCtx.Rollback()
 		fmt.Println("Error adding user:", err.Error())
 		return err
 	}
 
 	// If no password, invite via email
 	if invite {
-		err = cluster.InviteUserByEmail(appCtx, &user)
+		err = cluster.InviteUserByEmail(appCtx, cluster.TokenSignupEmail, &user)
 		if err != nil {
 			appCtx.Rollback()
 			fmt.Println("Error inviting user:", err.Error())

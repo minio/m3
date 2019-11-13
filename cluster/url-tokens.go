@@ -51,7 +51,6 @@ func NewURLToken(ctx *Context, userID *uuid.UUID, usedFor string, validity *time
 	// Execute query
 	_, err = tx.Exec(query, urlToken, userID, usedFor, validity, ctx.WhoAmI)
 	if err != nil {
-		ctx.Rollback()
 		return nil, err
 	}
 	return &urlToken, nil
