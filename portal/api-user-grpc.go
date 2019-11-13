@@ -31,8 +31,8 @@ const (
 	defaultRequestLimit  = 25
 )
 
-// UserInvites invites a new user to the tenant system by sending an email
-func (s *server) UserInvite(ctx context.Context, in *pb.UserInviteRequest) (*pb.Empty, error) {
+// UserAddInvite invites a new user to the tenant's system by sending an email
+func (s *server) UserAddInvite(ctx context.Context, in *pb.InviteRequest) (*pb.Empty, error) {
 	// Validate sessionID and get tenant short name using the valid sessionID
 	tenantShortName, err := getTenantShortNameFromSessionID(ctx)
 	if err != nil {
@@ -41,17 +41,6 @@ func (s *server) UserInvite(ctx context.Context, in *pb.UserInviteRequest) (*pb.
 
 	reqName := in.GetName()
 	reqEmail := in.GetEmail()
-
-	var inviteUsedFor string
-	// Validate action
-	switch reqAction := in.GetAction(); reqAction {
-	case 0:
-		inviteUsedFor = cluster.TokenSignupEmail
-	case 1:
-		inviteUsedFor = cluster.TokenResetPasswordEmail
-	default:
-		return nil, status.New(codes.InvalidArgument, "InvalidAction").Err()
-	}
 
 	newUser := cluster.User{Name: reqName, Email: reqEmail}
 
@@ -80,7 +69,53 @@ func (s *server) UserInvite(ctx context.Context, in *pb.UserInviteRequest) (*pb.
 	}
 
 	// Send email invitation with token
-	err = cluster.InviteUserByEmail(appCtx, inviteUsedFor, &newUser)
+	err = cluster.InviteUserByEmail(appCtx, cluster.TokenSignupEmail, &newUser)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	return &pb.Empty{}, err
+}
+
+// UserResetPasswordInvite invites a new user to reset their password by sending them an email
+func (s *server) UserResetPasswordInvite(ctx context.Context, in *pb.InviteRequest) (*pb.Empty, error) {
+	// Validate sessionID and get tenant short name using the valid sessionID
+	tenantShortName, err := getTenantShortNameFromSessionID(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	reqName := in.GetName()
+	reqEmail := in.GetEmail()
+
+	newUser := cluster.User{Name: reqName, Email: reqEmail}
+
+	appCtx, err := cluster.NewContext(tenantShortName)
+	if err != nil {
+		return nil, err
+	}
+	appCtx.ControlCtx = ctx
+
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+		// if no error happened to this point commit transaction
+		err = appCtx.Commit()
+	}()
+
+	// Create user on db
+	err = cluster.AddUser(appCtx, &newUser)
+	if err != nil {
+		if err.(*pq.Error).Code.Name() == uniqueViolationError {
+			return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()
+		}
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	// Send email invitation with token
+	err = cluster.InviteUserByEmail(appCtx, cluster.TokenResetPasswordEmail, &newUser)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}

@@ -37,8 +37,11 @@ http:
     - selector: m3.PublicAPI.ChangePassword
       patch: /api/v1/users/change_password
       body: "*"
-    - selector: m3.PublicAPI.UserInvite
-      post: /api/v1/users/invite
+    - selector: m3.PublicAPI.UserAddInvite
+      post: /api/v1/users/add_invite
+      body: "*"
+    - selector: m3.PublicAPI.UserResetPasswordInvite
+      post: /api/v1/users/reset_invite
       body: "*"
     - selector: m3.PublicAPI.ValidateInvite
       post: /api/v1/validate_invite

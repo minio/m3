@@ -38,8 +38,11 @@ service PublicAPI {
     // Change Password allows to change an existing password
     rpc ChangePassword (ChangePasswordRequest) returns (Empty){
     }
-    // UserInvite sends an email invitation for sign up 
-    rpc UserInvite (UserInviteRequest) returns (Empty){
+    // UserAddInvite sends an email invitation for sign up 
+    rpc UserAddInvite (InviteRequest) returns (Empty){
+    }
+    // UserResetPasswordInvite sends an email invitation for resetting a user's password
+    rpc UserResetPasswordInvite (InviteRequest) returns (Empty){
     }
     // ValidateInvite validates url token sent for resetting password or sign Up
     rpc ValidateInvite (Empty) returns (ValidateEmailInviteResponse){
@@ -179,15 +182,10 @@ message ChangePasswordRequest {
     string new_password = 2;
 }
 
-enum InviteAction {
-    ADD = 0;
-    RESET = 1;
-}
 // Sends an invite to signup a new user or reset a user's password
-message UserInviteRequest {
+message InviteRequest {
     string name = 1;
     string email = 2;
-    InviteAction action = 3;
 }
 // Once token invite is validates we return the email and company to proceed with the Signup
 message ValidateEmailInviteResponse{
