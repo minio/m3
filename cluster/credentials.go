@@ -89,7 +89,6 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UU
 	// Execute query
 	_, err = tx.Exec(query, userUICredentials.AccessKey, userdID, true, ctx.WhoAmI)
 	if err != nil {
-		ctx.Rollback()
 		return err
 	}
 	return nil

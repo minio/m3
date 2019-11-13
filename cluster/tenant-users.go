@@ -69,38 +69,25 @@ func AddUser(ctx *Context, newUser *User) error {
 		return err
 	}
 
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
 	// Add parameters to query
 	newUser.ID = uuid.NewV4()
 	query := `INSERT INTO
 				users ("id","full_name","email","password")
 			  VALUES
 				($1,$2,$3,$4)`
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
+
 	// Execute query
 	_, err = tx.Exec(query, newUser.ID, newUser.Name, newUser.Email, hashedPassword)
-	if err != nil {
-		ctx.Rollback()
-		return err
-	}
-
-	// if no error happened to this point commit transaction
-	err = ctx.Commit()
 	if err != nil {
 		return err
 	}
 
 	// Create this user's credentials so he can interact with it's own buckets/data
 	err = createUserCredentials(ctx, ctx.Tenant.ShortName, newUser.ID)
-	if err != nil {
-		ctx.Rollback()
-		return err
-	}
-
-	// if no error happened to this point commit transaction for the user
-	err = ctx.Commit()
 	if err != nil {
 		return err
 	}
@@ -208,14 +195,14 @@ func GetTotalNumberOfUsers(ctx *Context) (int, error) {
 	return count, nil
 }
 
-// InviteUserByEmail creates a temporary token to signup for service and send an email to the provided user
-func InviteUserByEmail(ctx *Context, user *User) error {
+// InviteUserByEmail creates a temporary token to signup/reset password for service and send an email to the provided user
+func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 
 	// generate a token for the email invite
 	// this token expires in 72 hours
 	expires := time.Now().Add(time.Hour * 72)
 
-	urlToken, err := NewURLToken(ctx, &user.ID, TokenSignupEmail, &expires)
+	urlToken, err := NewURLToken(ctx, &user.ID, usedFor, &expires)
 	if err != nil {
 		return err
 	}
