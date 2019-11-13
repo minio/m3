@@ -150,9 +150,9 @@ func NewContextWithTenantID(tenantID *uuid.UUID) (*Context, error) {
 	return newCtxWithTenant(&tenant), nil
 }
 
-// Creates a new `Context` for a tenant that holds transaction and `context.Context`
+// Creates a new `Context` with no tenant tenant that holds transaction and `context.Context`
 // to control timeouts and cancellations.
-func NewEmpty() (*Context, error) {
+func NewEmptyContext() (*Context, error) {
 	return newCtxWithTenant(nil), nil
 }
 
