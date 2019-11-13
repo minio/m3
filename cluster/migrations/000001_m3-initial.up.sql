@@ -1,157 +1,154 @@
 create schema provisioning;
 
-create table provisioning.admins
+create table admins
 (
-    id uuid
+    id               uuid
         constraint admins_pk
             primary key,
-    name varchar(256),
-    email varchar(256) not null,
-    access_key         varchar(256)                           not null,
-    sys_created_by varchar(256) not null,
+    name             varchar(256),
+    email            varchar(256)              not null,
+    password         varchar(256),
+    sys_created_by   varchar(256)              not null,
     sys_created_date timestamptz default now() not null
 );
 
 create unique index admins_email_uindex
-    on provisioning.admins (email);
+    on admins (email);
 
-create index admins_access_key_uindex
-    on provisioning.admins (access_key);
-
-create table provisioning.tenants
+create table tenants
 (
-    id         uuid         not null
+    id               uuid                                   not null
         constraint tenants_pk
             primary key,
-    name       varchar(256) not null,
-    short_name varchar(256) not null,
+    name             varchar(256)                           not null,
+    short_name       varchar(256)                           not null,
     sys_created_by   varchar(256)                           not null,
     sys_created_date timestamp with time zone default now() not null
 );
 
 
-create table provisioning.storage_groups
+create table storage_groups
 (
-    id   uuid   not null
+    id               uuid                                   not null
         constraint storage_groups_pk
             primary key,
-    name varchar(256),
-    num  serial not null,
+    name             varchar(256),
+    num              serial                                 not null,
     sys_created_by   varchar(256)                           not null,
     sys_created_date timestamp with time zone default now() not null
 );
 
 
-create table provisioning.tenants_storage_groups
+create table tenants_storage_groups
 (
-    tenant_id        uuid        not null
+    tenant_id        uuid                                   not null
         constraint tenants_storage_groups_tenants_id_fk
-            references provisioning.tenants,
-    storage_group_id uuid        not null
+            references tenants,
+    storage_group_id uuid                                   not null
         constraint tenants_storage_groups_storage_groups_id_fk
-            references provisioning.storage_groups,
-    port             integer     not null,
-    service_name     varchar(64) not null,
+            references storage_groups,
+    port             integer                                not null,
+    service_name     varchar(64)                            not null,
     sys_created_by   varchar(256)                           not null,
     sys_created_date timestamp with time zone default now() not null
 );
 
 
-create table provisioning.nodes
+create table nodes
 (
-    id        uuid not null
+    id               uuid                                   not null
         constraint nodes_pk
             primary key,
-    name      varchar(256),
-    k8s_label varchar(256),
+    name             varchar(256),
+    k8s_label        varchar(256),
     sys_created_by   varchar(256)                           not null,
     sys_created_date timestamp with time zone default now() not null
 );
 
 
-create table provisioning.storage_clusters
+create table storage_clusters
 (
-    id   uuid not null
+    id               uuid                                   not null
         constraint storage_clusters_pk
             primary key,
-    name varchar(256),
+    name             varchar(256),
     sys_created_by   varchar(256)                           not null,
     sys_created_date timestamp with time zone default now() not null
 );
 
 
-create table provisioning.storage_clusters_groups
+create table storage_clusters_groups
 (
-    storage_cluster_id uuid not null
+    storage_cluster_id uuid                                   not null
         constraint storage_clusters_groups_storage_clusters_id_fk
-            references provisioning.storage_clusters,
-    storage_group_id   uuid not null
+            references storage_clusters,
+    storage_group_id   uuid                                   not null
         constraint storage_clusters_groups_storage_groups_id_fk
-            references provisioning.storage_groups,
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null
+            references storage_groups,
+    sys_created_by     varchar(256)                           not null,
+    sys_created_date   timestamp with time zone default now() not null
 );
 
 
-create table provisioning.storage_cluster_nodes
+create table storage_cluster_nodes
 (
-    storage_cluster_id uuid not null
+    storage_cluster_id uuid                                   not null
         constraint storage_cluster_nodes_storage_clusters_id_fk
-            references provisioning.storage_clusters,
-    node_id            uuid not null
+            references storage_clusters,
+    node_id            uuid                                   not null
         constraint storage_cluster_nodes_nodes_id_fk
-            references provisioning.nodes,
+            references nodes,
     k8s_label          varchar(256),
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null
+    sys_created_by     varchar(256)                           not null,
+    sys_created_date   timestamp with time zone default now() not null
 );
 
 
-create table provisioning.node_volumes
+create table node_volumes
 (
-    id         uuid not null
+    id               uuid                                   not null
         constraint node_volumes_pk
             primary key,
-    node_id    uuid not null
+    node_id          uuid                                   not null
         constraint node_volumes_nodes_id_fk
-            references provisioning.nodes,
-    mount_path varchar(256),
+            references nodes,
+    mount_path       varchar(256),
     sys_created_by   varchar(256)                           not null,
     sys_created_date timestamp with time zone default now() not null
 );
 
 --  Table to store Disks attached to a node and their mount points
 
-create table provisioning.disks
+create table disks
 (
-    id          uuid not null
+    id               uuid                                   not null
         constraint disks_pk
             primary key,
-    node_id     uuid
+    node_id          uuid
         constraint disks_nodes_id_fk
-            references provisioning.nodes,
-    mount_point varchar(512),
-    capacity    bigint,
+            references nodes,
+    mount_point      varchar(512),
+    capacity         bigint,
     sys_created_by   varchar(256)                           not null,
     sys_created_date timestamp with time zone default now() not null
 );
 
-comment on column provisioning.disks.capacity is 'Capacity in bytes';
+comment on column disks.capacity is 'Capacity in bytes';
 
 --  Table to store sessions of a <tenant>.user
 CREATE TYPE status_type AS ENUM ('valid', 'invalid');
 
-create table provisioning.sessions
+create table sessions
 (
-    id          varchar(256) not null
+    id          varchar(256)                           not null
         constraint sessions_pk
-            primary key,       -- session id as rand string 
-    tenant_id   uuid not null, -- user's tenant's id
-    user_id     uuid not null, -- user id of the user who initiated the session
+            primary key,                                         -- session id as rand string
+    tenant_id   uuid                                   not null, -- user's tenant's id
+    user_id     uuid                                   not null, -- user id of the user who initiated the session
     occurred_at timestamp with time zone default now() not null, -- first timestamp of the session
-    last_event  timestamp with time zone default now(),           -- stores last event's timestamp within this session
+    last_event  timestamp with time zone default now(),          -- stores last event's timestamp within this session
     expires_at  timestamp with time zone default now() not null, -- session's expiration time
-    status      status_type not null -- session's status 
+    status      status_type                            not null  -- session's status
 );
 
 
