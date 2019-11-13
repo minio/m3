@@ -30,37 +30,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-const (
-	nginxLBName = "nginx-resolver"
-)
-
-var (
-	nginxResolverVersion = "m1337"
-	nginxLBReplicas      = int32(1)
-	nginxLBDeployment    = v1beta1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf(`%s-%s`, nginxLBName, nginxResolverVersion),
-		},
-		Spec: v1beta1.DeploymentSpec{
-			Replicas: &nginxLBReplicas,
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app":  fmt.Sprintf(`%s-%s`, nginxLBName, nginxResolverVersion),
-						"type": "nginx-resolver",
-					},
-				},
-				Spec: nginxLBPodSpec,
-			},
-			Strategy: v1beta1.DeploymentStrategy{
-				Type: v1beta1.RecreateDeploymentStrategyType,
-			},
-		},
-	}
-	nginxLBPodSpec = v1.PodSpec{
+func getNewNginxDeployment(deploymentName string) v1beta1.Deployment {
+	nginxLBReplicas := int32(1)
+	nginxLBPodSpec := v1.PodSpec{
 		Containers: []v1.Container{
 			{
-				Name:            nginxLBName,
+				Name:            "nginx-resolver",
 				Image:           "nginx",
 				ImagePullPolicy: "IfNotPresent",
 				Ports: []v1.ContainerPort{
@@ -91,14 +66,34 @@ var (
 			},
 		},
 	}
-)
+	return v1beta1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: deploymentName,
+		},
+		Spec: v1beta1.DeploymentSpec{
+			Replicas: &nginxLBReplicas,
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app":  deploymentName,
+						"type": "nginx-resolver",
+					},
+				},
+				Spec: nginxLBPodSpec,
+			},
+			Strategy: v1beta1.DeploymentStrategy{
+				Type: v1beta1.RecreateDeploymentStrategyType,
+			},
+		},
+	}
+}
 
 // ReDeployNginxResolver destroy current nginx deployment and replace it with a new one that will take latest configMap configuration
 func ReDeployNginxResolver(ctx *Context) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
-		DeployNginxResolver(true)
+		DeployNginxResolver()
 	}()
 	return ch
 }
@@ -144,8 +139,7 @@ func CreateNginxResolverDeployment(clientset *kubernetes.Clientset, deploymentNa
 		go deploymentInformer.Run(doneCh)
 
 		//Creating nginx-resolver deployment with new rules
-		nginxLBDeployment.Spec.Template.ObjectMeta.Labels["app"] = deploymentName
-		nginxLBDeployment.ObjectMeta.Name = deploymentName
+		nginxLBDeployment := getNewNginxDeployment(deploymentName)
 		_, err := extV1beta1API(clientset).Deployments("default").Create(&nginxLBDeployment)
 		if err != nil {
 			close(doneCh)
@@ -154,7 +148,7 @@ func CreateNginxResolverDeployment(clientset *kubernetes.Clientset, deploymentNa
 	return doneCh
 }
 
-func UpdateNginxResolverService(clientset *kubernetes.Clientset) <-chan struct{} {
+func UpdateNginxResolverService(clientset *kubernetes.Clientset, deploymentVersionName string) <-chan struct{} {
 	doneCh := make(chan struct{})
 	go func() {
 		factory := informers.NewSharedInformerFactory(clientset, 0)
@@ -162,7 +156,7 @@ func UpdateNginxResolverService(clientset *kubernetes.Clientset) <-chan struct{}
 		serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			UpdateFunc: func(oldObj, obj interface{}) {
 				service := obj.(*v1.Service)
-				if service.GetLabels()["name"] == "nginx-resolver" && service.Spec.Selector["app"] == nginxResolverVersion {
+				if service.GetLabels()["name"] == "nginx-resolver" && service.Spec.Selector["app"] == deploymentVersionName {
 					fmt.Println("nginx-resolver service updated correctly")
 					close(doneCh)
 				}
@@ -173,7 +167,7 @@ func UpdateNginxResolverService(clientset *kubernetes.Clientset) <-chan struct{}
 
 		//Update nginx-resolver service to route traffic to the new nginx pods
 		nginxService, _ := clientset.CoreV1().Services("default").Get("nginx-resolver", metav1.GetOptions{})
-		nginxService.Spec.Selector["app"] = nginxResolverVersion
+		nginxService.Spec.Selector["app"] = deploymentVersionName
 		_, err := clientset.CoreV1().Services("default").Update(nginxService)
 		if err != nil {
 			close(doneCh)
@@ -187,16 +181,16 @@ func UpdateNginxResolverService(clientset *kubernetes.Clientset) <-chan struct{}
 //
 // N B If an nginx-resolver is already running we delete the deployment and create a
 // new one that reads the updated rules.
-func DeployNginxResolver(shouldUpdate bool) error {
+func DeployNginxResolver() error {
 	// creates the clientset
 	clientset, err := k8sClient()
 	if err != nil {
 		return err
 	}
-	nginxResolverVersion = fmt.Sprintf(`%s-%s`, nginxLBName, strings.ToLower(RandomCharString(6)))
+	nginxResolverVersion := fmt.Sprintf(`nginx-resolver-%s`, strings.ToLower(RandomCharString(6)))
 	waitCreateCh := CreateNginxResolverDeployment(clientset, nginxResolverVersion)
 	<-waitCreateCh
-	waitUpdateCh := UpdateNginxResolverService(clientset)
+	waitUpdateCh := UpdateNginxResolverService(clientset, nginxResolverVersion)
 	<-waitUpdateCh
 	// Delete nginx-resolver deployment and wait until all its pods
 	// are deleted too. This is to ensure that the creation of the

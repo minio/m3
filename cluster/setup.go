@@ -242,7 +242,7 @@ events {
 	}
 	fmt.Println("done with nginx-resolver configMaps")
 	fmt.Println(resConfigMap.String())
-	DeployNginxResolver(false)
+	DeployNginxResolver()
 }
 
 // This runs all the migrations on the cluster/migrations folder, if some migrations were already applied it then will
