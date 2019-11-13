@@ -121,7 +121,7 @@ If you do, try again in some time.
 
 ## Adding a new tenant
 ```
-/m3 tenant add company-name
+./m3 tenant add company-name
 ```
 
 If the company name is not url-friendly a short name will be generated, but it can also be specified as shown below.
@@ -155,13 +155,13 @@ or
 ## Adding a user to a tenant's database
 
 ```
-./m3 tenant user add --tenant company-inc --email user@acme.com --password user1234
+./m3 tenant user add --tenant company-inc --name somename --email user@acme.com --password user1234
 ```
 
 or
 
 ```
-./m3 tenant user add company-inc user@acme.com user1234
+./m3 tenant user add somename company-inc user@acme.com user1234
 ```
 
 ## Adding a service account
