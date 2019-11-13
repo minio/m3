@@ -52,7 +52,7 @@ func AddStorageGroup(ctx *Context, sgName *string) chan StorageGroupResult {
 		// insert a new Storage Group with the optional name
 		query :=
 			`INSERT INTO
-				m3.provisioning.storage_groups ("id", "name", "sys_created_by")
+				storage_groups ("id", "name", "sys_created_by")
 			  VALUES
 				($1, $2, $3)
 				RETURNING num`
@@ -113,9 +113,9 @@ func SelectSGWithSpace(ctx *Context) chan *StorageGroupResult {
 			SELECT 
 			       id, name, num
 			FROM 
-			     m3.provisioning.storage_groups 
+			     storage_groups 
 			OFFSET 
-				floor(random() * (SELECT COUNT(*) FROM m3.provisioning.storage_groups)) LIMIT 1;`
+				floor(random() * (SELECT COUNT(*) FROM storage_groups)) LIMIT 1;`
 		// non-transactional query as there cannot be a storage group insert along with a read
 		err := GetInstance().Db.QueryRow(query).Scan(&id, &name, &num)
 		if err != nil {
@@ -146,8 +146,8 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*Sto
 			SELECT 
 			       t1.tenant_id, t1.port, t1.service_name, t2.name, t2.short_name
 			FROM 
-			     m3.provisioning.tenants_storage_groups t1
-			LEFT JOIN m3.provisioning.tenants t2
+			     tenants_storage_groups t1
+			LEFT JOIN tenants t2
 			ON t1.tenant_id = t2.id
 			WHERE storage_group_id=$1`
 		// Create a transactional query as a list of tenants may be query as a new tenant is being inserted
@@ -199,8 +199,8 @@ func GetAllTenantRoutes(ctx *Context) chan []*TenantRoute {
 			SELECT 
 			       t1.port, t1.service_name, t2.short_name
 			FROM 
-			m3.provisioning.tenants_storage_groups t1
-			LEFT JOIN m3.provisioning.tenants t2
+			tenants_storage_groups t1
+			LEFT JOIN tenants t2
 			ON t1.tenant_id = t2.id
 		`
 		// Transactional query tenants may be query as a new one is being inserted
@@ -279,7 +279,7 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) 
 		SELECT 
 		       COUNT(*) 
 		FROM 
-		     m3.provisioning.tenants_storage_groups
+		     tenants_storage_groups
 		WHERE 
 		      storage_group_id=$1`
 
@@ -302,7 +302,7 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) 
 		// insert a new Storage Group with the optional name
 		query :=
 			`INSERT INTO
-				m3.provisioning.tenants_storage_groups (
+				tenants_storage_groups (
 				                                          "tenant_id",
 				                                          "storage_group_id",
 				                                          "port",
@@ -344,10 +344,10 @@ func GetTenantStorageGroupByShortName(tenantShortName string) chan *StorageGroup
 			SELECT 
 			       t1.tenant_id, t1.port, t1.service_name, t2.name, t2.short_name, t1.storage_group_id, t3.name, t3.num
 			FROM 
-			     m3.provisioning.tenants_storage_groups t1
-			LEFT JOIN m3.provisioning.tenants t2
+			     tenants_storage_groups t1
+			LEFT JOIN tenants t2
 			ON t1.tenant_id = t2.id
-			LEFT JOIN m3.provisioning.storage_groups t3
+			LEFT JOIN storage_groups t3
 			ON t1.storage_group_id = t3.id
 			WHERE t2.short_name=$1 LIMIT 1`
 		rows, err := GetInstance().Db.Query(query, tenantShortName)

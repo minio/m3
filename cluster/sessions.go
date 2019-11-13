@@ -46,7 +46,7 @@ func CreateSession(ctx *Context, userID uuid.UUID, tenantID uuid.UUID) (*Session
 
 	query :=
 		`INSERT INTO
-				m3.provisioning.sessions ("id","user_id", "tenant_id", "status", "occurred_at", "expires_at")
+				sessions ("id","user_id", "tenant_id", "status", "occurred_at", "expires_at")
 			  VALUES
 				($1,$2,$3,$4,NOW(),(NOW() + interval '1 day'))`
 	tx, err := ctx.MainTx()
@@ -70,7 +70,7 @@ func CreateSession(ctx *Context, userID uuid.UUID, tenantID uuid.UUID) (*Session
 func UpdateSessionStatus(ctx *Context, sessionID string, status string) error {
 	// Set query parameters
 	query :=
-		`UPDATE m3.provisioning.sessions 
+		`UPDATE sessions 
 			SET status = $1
 		WHERE id=$2`
 	tx, err := ctx.MainTx()

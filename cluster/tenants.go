@@ -156,7 +156,7 @@ func InsertTenant(ctx *Context, tenantName string, tenantShortName string) chan 
 
 		query :=
 			`INSERT INTO
-				m3.provisioning.tenants ("id", "name", "short_name", "sys_created_by")
+				tenants ("id", "name", "short_name", "sys_created_by")
 			  VALUES
 				($1, $2, $3, $4)`
 		tx, err := ctx.MainTx()
@@ -200,7 +200,7 @@ func validTenantShortName(ctx *Context, tenantShortName string) error {
 		SELECT 
 		       COUNT(*) 
 		FROM 
-		     m3.provisioning.tenants 
+		     tenants 
 		WHERE 
 		      short_name=$1`
 	var totalCollisions int
@@ -529,7 +529,7 @@ func GetTenantWithCtx(ctx *Context, tenantName string) (tenant Tenant, err error
 		`SELECT 
 				t1.id, t1.name, t1.short_name
 			FROM 
-				m3.provisioning.tenants t1
+				tenants t1
 			WHERE name=$1`
 	// non-transactional query
 	var row *sql.Row
@@ -565,7 +565,7 @@ func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (tenant Tenant, err
 		`SELECT 
 				t1.id, t1.name, t1.short_name
 			FROM 
-				m3.provisioning.tenants t1
+				tenants t1
 			WHERE t1.id=$1`
 	// non-transactional query
 	var row *sql.Row
@@ -696,9 +696,9 @@ func DeleteTenantRecord(ctx *Context, tenantShortName string) chan error {
 		// delete storage group references
 		query :=
 			`DELETE FROM 
-				m3.provisioning.tenants_storage_groups t1
+				tenants_storage_groups t1
 			  WHERE
-			  t1.tenant_id IN (SELECT id FROM m3.provisioning.tenants WHERE short_name=$1 )`
+			  t1.tenant_id IN (SELECT id FROM tenants WHERE short_name=$1 )`
 		tx, err := ctx.MainTx()
 		if err != nil {
 			ch <- err
@@ -714,7 +714,7 @@ func DeleteTenantRecord(ctx *Context, tenantShortName string) chan error {
 
 		query =
 			`DELETE FROM 
-				m3.provisioning.tenants
+				tenants
 			  WHERE
 			  short_name=$1`
 		tx, err = ctx.MainTx()

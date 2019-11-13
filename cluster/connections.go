@@ -108,13 +108,19 @@ func GetM3DbConfig() *DbConfig {
 	if os.Getenv("DB_NAME") != "" {
 		dbName = os.Getenv("DB_NAME")
 	}
+
+	dbSchema := "provisioning"
+	if os.Getenv("DB_SCHEMA") != "" {
+		dbSchema = os.Getenv("DB_SCHEMA")
+	}
 	return &DbConfig{
-		Host: dbHost,
-		Port: dbPort,
-		User: dbUser,
-		Pwd:  dbPass,
-		Name: dbName,
-		Ssl:  dbSsl,
+		Host:       dbHost,
+		Port:       dbPort,
+		User:       dbUser,
+		Pwd:        dbPass,
+		Name:       dbName,
+		Ssl:        dbSsl,
+		SchemaName: dbSchema,
 	}
 }
 
