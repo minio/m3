@@ -42,8 +42,6 @@ message AddTenantRequest {
 }
 
 message AddTenantResponse {
-    string error = 1;
-    string status = 2;
 }
 
 
@@ -53,8 +51,6 @@ message AdminAddRequest {
 }
 
 message AdminAddResponse {
-    string error = 1;
-    string status = 2;
 }
 
 message SetAdminPasswordRequest {
@@ -63,8 +59,6 @@ message SetAdminPasswordRequest {
 }
 
 message SetAdminPasswordResponse {
-    string error = 1;
-    string status = 2;
 }
 message CLILoginRequest {
     string email = 1;
@@ -72,9 +66,8 @@ message CLILoginRequest {
 }
 
 message CLILoginResponse {
-    string error = 1;
-    string token = 2;
-    int64 expires = 3;
-    string refresh_token = 4;
-    int64 refresh_token_expires = 5;
+    string token = 1;
+    int64 expires = 2;
+    string refresh_token = 3;
+    int64 refresh_token_expires = 4;
 }
