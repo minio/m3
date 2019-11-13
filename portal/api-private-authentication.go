@@ -18,7 +18,6 @@ package portal
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/minio/m3/cluster"
 	"golang.org/x/crypto/bcrypt"
