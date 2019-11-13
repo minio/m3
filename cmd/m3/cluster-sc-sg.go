@@ -24,9 +24,10 @@ import (
 
 // list files and folders.
 var storageGroupCmd = cli.Command{
-	Name:   "sg",
-	Usage:  "storage group sub commands",
-	Action: defStorageGroupCmd,
+	Name:    "storage-group",
+	Aliases: []string{"sg"},
+	Usage:   "storage group sub commands",
+	Action:  defStorageGroupCmd,
 	Subcommands: []cli.Command{
 		addStorageClusterCmd,
 	},

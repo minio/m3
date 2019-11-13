@@ -23,9 +23,10 @@ import (
 
 // list files and folders.
 var clusterCmd = cli.Command{
-	Name:   "cluster",
-	Usage:  "runs cluster commands",
-	Action: listPodsCmd,
+	Name:    "cluster",
+	Aliases: []string{"c"},
+	Usage:   "runs cluster commands",
+	Action:  listPodsCmd,
 	Subcommands: []cli.Command{
 		storageClusterCmd,
 		clusterRouterCmd,

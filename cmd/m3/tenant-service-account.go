@@ -20,9 +20,10 @@ import "github.com/minio/cli"
 
 // list service accounts for a given tenant
 var tenantServiceAccountCmd = cli.Command{
-	Name:   "service-account",
-	Usage:  "service accounts sub-commands",
-	Action: showTenantServiceAccountHelp,
+	Name:    "service-account",
+	Aliases: []string{"sa"},
+	Usage:   "service accounts sub-commands",
+	Action:  showTenantServiceAccountHelp,
 	Subcommands: []cli.Command{
 		tenantServiceAccountAddCmd,
 		tenantServiceAccountListCmd,
