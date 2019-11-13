@@ -13,11 +13,12 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package portal
 
 import (
 	"context"
-	"fmt"
+	"log"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,19 +29,22 @@ import (
 	pb "github.com/minio/m3/portal/stubs"
 )
 
+// AdminAdd rpc that adds a new admin to the cluster
 func (ps *privateServer) AdminAdd(ctx context.Context, in *pb.AdminAddRequest) (*pb.AdminAddResponse, error) {
 	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
-		return nil, err
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	_, err = cluster.AddAdminAction(appCtx, in.Name, in.Email)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil, nil
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	return &pb.AdminAddResponse{Status: "Success"}, nil
 }
 
+// SetPassword rpc that allows an admin to set his own password via CLI
 func (ps *privateServer) SetPassword(ctx context.Context, in *pb.SetAdminPasswordRequest) (*pb.SetAdminPasswordResponse, error) {
 	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
@@ -53,7 +57,7 @@ func (ps *privateServer) SetPassword(ctx context.Context, in *pb.SetAdminPasswor
 
 	err = cluster.SetAdminPasswordAction(appCtx, &tokenID, in.Password)
 	if err != nil {
-		return &pb.SetAdminPasswordResponse{Error: err.Error()}, nil
+		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
 	return &pb.SetAdminPasswordResponse{Status: "Success"}, nil

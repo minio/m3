@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package portal
 
 import (
@@ -27,6 +28,7 @@ import (
 	pb "github.com/minio/m3/portal/stubs"
 )
 
+// Login rpc to generate a session for an admin
 func (ps *privateServer) Login(ctx context.Context, in *pb.CLILoginRequest) (*pb.CLILoginResponse, error) {
 	fmt.Println("Login RPC")
 	// start app context
@@ -36,12 +38,12 @@ func (ps *privateServer) Login(ctx context.Context, in *pb.CLILoginRequest) (*pb
 	// Look for the user on the database by email
 	admin, err := cluster.GetAdminByEmail(appCtx, in.Email)
 	if err != nil {
-		return nil, status.New(codes.Unauthenticated, "Wrong email and/or password.").Err()
+		return nil, status.New(codes.InvalidArgument, "Wrong email and/or password.").Err()
 	}
 
 	// Comparing the password with the hash
 	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(in.Password)); err != nil {
-		return nil, status.New(codes.Unauthenticated, "Wrong  email and/or password").Err()
+		return nil, status.New(codes.InvalidArgument, "Wrong  email and/or password").Err()
 	}
 
 	// Add the session within a transaction in case anything goes wrong during the adding process

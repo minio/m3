@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 package portal
 
 import (
@@ -24,6 +25,7 @@ import (
 	pb "github.com/minio/m3/portal/stubs"
 )
 
+// AddTenant rpc to add a new tenant and it's first user
 func (ps *privateServer) AddTenant(ctx context.Context, in *pb.AddTenantRequest) (*pb.AddTenantResponse, error) {
 	err := cluster.AddTenantAction(in.Name, in.ShortName, in.UserName, in.UserEmail)
 	if err != nil {
