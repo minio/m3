@@ -108,6 +108,7 @@ func tenantAddUser(ctx *cli.Context) error {
 	// perform the action
 	err = cluster.AddUser(appCtx, &user)
 	if err != nil {
+		appCtx.Rollback()
 		fmt.Println("Error adding user:", err.Error())
 		return err
 	}
