@@ -54,7 +54,7 @@ const (
 // via email.
 func AddTenantAction(name, shortName, adminName, adminEmail string) error {
 	// Start app context
-	ctx, err := NewEmpty()
+	ctx, err := NewEmptyContext()
 	if err != nil {
 		return err
 	}
