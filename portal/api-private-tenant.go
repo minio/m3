@@ -20,6 +20,9 @@ import (
 	"context"
 	"fmt"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/minio/m3/cluster"
 
 	pb "github.com/minio/m3/portal/stubs"
@@ -30,7 +33,7 @@ func (ps *privateServer) AddTenant(ctx context.Context, in *pb.AddTenantRequest)
 	err := cluster.AddTenantAction(in.Name, in.ShortName, in.UserName, in.UserEmail)
 	if err != nil {
 		fmt.Println(err.Error())
-		return nil, nil
+		return nil, status.New(codes.Internal, fmt.Sprintf("Internal error %s", err.Error())).Err()
 	}
 	return &pb.AddTenantResponse{}, nil
 }
