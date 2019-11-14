@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/minio/cli"
-	"github.com/minio/m3/cluster"
+	pb "github.com/minio/m3/portal/stubs"
 )
 
 // Adds a user to the tenant's database
@@ -67,20 +67,24 @@ func adminAdd(ctx *cli.Context) error {
 	}
 
 	// perform the action
-
-	apptCtx, err := cluster.NewEmptyContext()
+	cnxs, err := GetGRPCChannel()
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
+	defer cnxs.Conn.Close()
+	// perform RPC
+	_, err = cnxs.Client.AdminAdd(cnxs.Context, &pb.AdminAddRequest{
+		Name:  name,
+		Email: email,
+	})
 
-	admin, err := cluster.AddAdminAction(apptCtx, name, email)
 	if err != nil {
-		fmt.Println("Error adding user:", err.Error())
-		return err
+		fmt.Println(err)
+		return nil
 	}
 
-	fmt.Printf("Done adding admin `%s <%s>`\n", admin.Name, admin.Email)
+	fmt.Printf("Done adding admin")
 
 	return nil
 }
