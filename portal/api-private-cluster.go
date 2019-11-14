@@ -26,7 +26,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// AddTenant rpc to add a new tenant and it's first user
+// ClusterScSgAdd rpc to add a new storage group
 func (ps *privateServer) ClusterScSgAdd(ctx context.Context, in *pb.StorageGroupAddRequest) (*pb.StorageGroupAddResponse, error) {
 	appCtx, err := cluster.NewEmptyContext()
 	if err != nil {
