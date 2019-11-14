@@ -156,6 +156,19 @@ func NewEmptyContext() (*Context, error) {
 	return newCtxWithTenant(nil), nil
 }
 
+// Creates a new `Context` with no tenant tenant that holds transaction and `context.Context`
+// to control timeouts and cancellations starting from a grpc context which should contain wether the user
+// is authenticated or not
+func NewEmptyContextWithGrpcContext(ctx context.Context) (*Context, error) {
+	appCtx := newCtxWithTenant(nil)
+	whoAmI := ctx.Value(WhoAmIKey).(string)
+	if whoAmI != "" {
+		appCtx.WhoAmI = whoAmI
+	}
+	appCtx.ControlCtx = ctx
+	return appCtx, nil
+}
+
 func newCtxWithTenant(tenant *Tenant) *Context {
 	// we are going to default the control context to background
 	ctlCtx := context.Background()

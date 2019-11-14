@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 syntax = "proto3";
 
 
@@ -23,6 +24,51 @@ option java_outer_classname = "PrivateApiProto";
 package m3;
 
 service PrivateAPI {
+    rpc AddTenant (AddTenantRequest) returns (AddTenantResponse) {
+    }
+    rpc AdminAdd (AdminAddRequest) returns (AdminAddResponse) {
+    }
+    rpc SetPassword (SetAdminPasswordRequest) returns (SetAdminPasswordResponse) {
+    }
+    rpc Login (CLILoginRequest) returns (CLILoginResponse) {
 
+    }
 }
 
+message AddTenantRequest {
+    string name = 1;
+    string short_name = 2;
+    string user_name = 3;
+    string user_email = 4;
+}
+
+message AddTenantResponse {
+}
+
+
+message AdminAddRequest {
+    string name = 1;
+    string email = 2;
+}
+
+message AdminAddResponse {
+}
+
+message SetAdminPasswordRequest {
+    string token = 1;
+    string password = 2;
+}
+
+message SetAdminPasswordResponse {
+}
+message CLILoginRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message CLILoginResponse {
+    string token = 1;
+    int64 expires = 2;
+    string refresh_token = 3;
+    int64 refresh_token_expires = 4;
+}

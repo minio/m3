@@ -14,20 +14,26 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cluster
+package portal
 
-type key int
+import (
+	"context"
+	"fmt"
 
-const (
-	Version                     = `0.1.0`
-	minioAccessKey              = "MINIO_ACCESS_KEY"
-	minioSecretKey              = "MINIO_SECRET_KEY"
-	accessKey                   = "ACCESS_KEY"
-	secretKey                   = "SECRET_KEY"
-	TokenSignupEmail            = "signup-email"
-	TokenResetPasswordEmail     = "reset-password-email"
-	AdminTokenSetPassword       = "admin-set-password"
-	AdminIDKey              key = iota
-	SessionIDKey            key = iota
-	WhoAmIKey               key = iota
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/minio/m3/cluster"
+
+	pb "github.com/minio/m3/portal/stubs"
 )
+
+// AddTenant rpc to add a new tenant and it's first user
+func (ps *privateServer) AddTenant(ctx context.Context, in *pb.AddTenantRequest) (*pb.AddTenantResponse, error) {
+	err := cluster.AddTenantAction(in.Name, in.ShortName, in.UserName, in.UserEmail)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, status.New(codes.Internal, fmt.Sprintf("Internal error %s", err.Error())).Err()
+	}
+	return &pb.AddTenantResponse{}, nil
+}

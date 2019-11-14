@@ -20,12 +20,14 @@ import (
 	"log"
 	"net"
 
+	"github.com/minio/m3/portal/authentication"
 	pb "github.com/minio/m3/portal/stubs"
 	"google.golang.org/grpc"
 )
 
 const (
-	port = ":50051"
+	port        = ":50051"
+	privatePort = ":50052"
 )
 
 // server is used to implement PublicAPIServer
@@ -33,14 +35,46 @@ type server struct {
 	pb.PublicAPIServer
 }
 
-func InitPortalGRPCServer() {
-	lis, err := net.Listen("tcp", port)
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer()
-	pb.RegisterPublicAPIServer(s, &server{})
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
+// privateServer is used to implement PrivateAPIServer
+type privateServer struct {
+	pb.PrivateAPIServer
+}
+
+// InitPublicAPIServiceGRPCServer starts the Portal server within a goroutine, the returned channel will close
+// when the server fails or shuts down
+func InitPublicAPIServiceGRPCServer() chan interface{} {
+	doneCh := make(chan interface{})
+	go func() {
+		defer close(doneCh)
+		lis, err := net.Listen("tcp", port)
+		if err != nil {
+			log.Fatalf("failed to listen: %v", err)
+		}
+		s := grpc.NewServer()
+		pb.RegisterPublicAPIServer(s, &server{})
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+	return doneCh
+}
+
+// InitPrivateAPIServiceGRPCServer starts the Private Portal server within a goroutine, the returned channel will close
+// when the server fails or shuts down
+func InitPrivateAPIServiceGRPCServer() chan interface{} {
+	doneCh := make(chan interface{})
+	go func() {
+		defer close(doneCh)
+		lis, err := net.Listen("tcp", privatePort)
+		if err != nil {
+			log.Fatalf("failed to listen: %v", err)
+		}
+		// We will intercept all grpc incoming calls and validate their token unless exempted
+		s := grpc.NewServer(grpc.UnaryInterceptor(authentication.AdminAuthInterceptor))
+		pb.RegisterPrivateAPIServer(s, &privateServer{})
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+	return doneCh
 }

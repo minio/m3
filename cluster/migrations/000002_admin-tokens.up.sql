@@ -16,24 +16,23 @@
 
 create table url_tokens
 (
-    id          uuid
+    id               uuid
         constraint url_tokens_pk
             primary key,
-    tenant_id uuid not null
-        constraint url_tokens_tenant_id_fk
-            references tenants
+    admin_id         uuid                                   not null
+        constraint url_tokens_admin_id_fk
+            references admins
             on delete cascade,
-    user_id uuid not null,
-    expiration  timestamptz,
-    used_for    varchar(256),
-    consumed        bool default false,
+    expiration       timestamptz,
+    used_for         varchar(256),
+    consumed         bool                     default false,
     sys_created_by   varchar(256)                           not null,
     sys_created_date timestamp with time zone default now() not null
 );
 
 comment on table url_tokens is 'Holds tokens and their validity for multifple functions such as password reset or tenant invite';
 
-comment on column url_tokens.user_id is 'User this token is associated with';
+comment on column url_tokens.admin_id is 'Admin this token is associated with';
 
 comment on column url_tokens.expiration is 'When does this token expires';
 

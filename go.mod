@@ -7,6 +7,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.6.2
 	github.com/golang/protobuf v1.3.2
 	github.com/googleapis/gnostic v0.3.1 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/grpc-gateway v1.9.0
 	github.com/lib/pq v1.0.0
 	github.com/minio/cli v1.21.0
@@ -16,7 +17,7 @@ require (
 	github.com/minio/minio-go/v6 v6.0.35
 	github.com/satori/go.uuid v1.2.0
 	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
-	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9 // indirect
+	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
 	golang.org/x/sys v0.0.0-20191029155521-f43be2a4598c // indirect
 	google.golang.org/genproto v0.0.0-20191028173616-919d9bdd9fe6 // indirect
 	google.golang.org/grpc v1.24.0

@@ -196,3 +196,12 @@ func (s *Singleton) AppURL() string {
 	}
 	return appURL
 }
+
+// CliCommand returns the command used for the cli
+func (s *Singleton) CliCommand() string {
+	cliCommand := "m3"
+	if os.Getenv("CLI_COMMAND") != "" {
+		cliCommand = os.Getenv("CLI_COMMAND")
+	}
+	return cliCommand
+}

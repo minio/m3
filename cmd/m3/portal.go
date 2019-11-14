@@ -17,18 +17,31 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/minio/cli"
 	"github.com/minio/m3/portal"
 )
 
 // list files and folders.
 var portalCmd = cli.Command{
-	Name:   "portal",
-	Usage:  "starts portal",
-	Action: startAPIPortalCmd,
+	Name:    "service",
+	Aliases: []string{"s"},
+	Usage:   "starts m3 services, public and private APIs.",
+	Action:  startAPIServiceCmd,
 }
 
-func startAPIPortalCmd(ctx *cli.Context) error {
-	portal.InitPortalGRPCServer()
+func startAPIServiceCmd(ctx *cli.Context) error {
+	fmt.Println("Starting m3 services...")
+	publicCh := portal.InitPublicAPIServiceGRPCServer()
+	privateCh := portal.InitPrivateAPIServiceGRPCServer()
+
+	select {
+	case <-publicCh:
+		fmt.Println("Public server exited")
+	case <-privateCh:
+		fmt.Println("Private server exited")
+	}
+
 	return nil
 }
