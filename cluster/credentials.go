@@ -55,7 +55,7 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UU
 	// Tell the tenant MinIO's that this is a new user, and give it `readwrite` access
 
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(tenantShortName)
+	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortName)
 
 	if sgt.Error != nil {
 		return sgt.Error
@@ -159,7 +159,7 @@ func createServiceAccountCredentials(ctx *Context, tenantShortName string, servi
 	// Tell the tenant MinIO's that this is a new user
 
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(tenantShortName)
+	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortName)
 
 	if sgt.Error != nil {
 		return nil, sgt.Error

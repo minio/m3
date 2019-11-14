@@ -17,6 +17,7 @@
 package cluster
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -332,7 +333,7 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) 
 }
 
 // Returns a list of tenants that are allocated to the provided `StorageGroup`
-func GetTenantStorageGroupByShortName(tenantShortName string) chan *StorageGroupTenantResult {
+func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan *StorageGroupTenantResult {
 	ch := make(chan *StorageGroupTenantResult)
 	go func() {
 		defer close(ch)
@@ -350,16 +351,21 @@ func GetTenantStorageGroupByShortName(tenantShortName string) chan *StorageGroup
 			LEFT JOIN storage_groups t3
 			ON t1.storage_group_id = t3.id
 			WHERE t2.short_name=$1 LIMIT 1`
-		rows, err := GetInstance().Db.Query(query, tenantShortName)
-		if err != nil {
-			ch <- &StorageGroupTenantResult{Error: err}
-			return
+		var row *sql.Row
+		// if we received a context, query inside the context
+		if ctx != nil {
+			var err error
+			tx, err := ctx.MainTx()
+			if err != nil {
+				ch <- &StorageGroupTenantResult{Error: err}
+				return
+			}
+			row = tx.QueryRow(query, tenantShortName)
+		} else {
+			row = GetInstance().Db.QueryRow(query, tenantShortName)
 		}
-		foundSomething := rows.Next()
-		if !foundSomething {
-			ch <- &StorageGroupTenantResult{Error: errors.New("tenant not found")}
-			return
-		}
+
+		// if we found nothing
 		var tenant *StorageGroupTenant
 
 		var tenantID uuid.UUID
@@ -370,7 +376,7 @@ func GetTenantStorageGroupByShortName(tenantShortName string) chan *StorageGroup
 		var sgNum int32
 		var sgName *string
 		var serviceName string
-		err = rows.Scan(
+		err := row.Scan(
 			&tenantID,
 			&port,
 			&serviceName,
