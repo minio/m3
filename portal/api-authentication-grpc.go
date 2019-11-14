@@ -136,15 +136,17 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 // Logout sets session's status to invalid after validating the sessionId
 func (s *server) Logout(ctx context.Context, in *pb.Empty) (*pb.Empty, error) {
 	var (
-		err          error
-		appCtx       *cluster.Context
-		sessionRowID string
+		err             error
+		appCtx          *cluster.Context
+		sessionRowID    string
+		tenantShortname string
 	)
-	if sessionRowID, err = validateSessionID(ctx); err != nil {
+	sessionRowID, tenantShortname, err = validateSessionID(ctx)
+	if err != nil || tenantShortname == "" || sessionRowID == "" {
 		return nil, err
 	}
 
-	appCtx, err = cluster.NewContext("none")
+	appCtx, err = cluster.NewContext(tenantShortname)
 	err = cluster.UpdateSessionStatus(appCtx, sessionRowID, "invalid")
 	if err != nil {
 		appCtx.Rollback()
