@@ -14,13 +14,13 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-create table url_tokens
+create table admin_tokens
 (
     id               uuid
-        constraint url_tokens_pk
+        constraint admin_tokens_pk
             primary key,
     admin_id         uuid                                   not null
-        constraint url_tokens_admin_id_fk
+        constraint admin_tokens_admin_id_fk
             references admins
             on delete cascade,
     expiration       timestamptz,
@@ -30,13 +30,13 @@ create table url_tokens
     sys_created_date timestamp with time zone default now() not null
 );
 
-comment on table url_tokens is 'Holds tokens and their validity for multifple functions such as password reset or tenant invite';
+comment on table admin_tokens is 'Holds tokens and their validity for multifple functions such as password reset or tenant invite';
 
-comment on column url_tokens.admin_id is 'Admin this token is associated with';
+comment on column admin_tokens.admin_id is 'Admin this token is associated with';
 
-comment on column url_tokens.expiration is 'When does this token expires';
+comment on column admin_tokens.expiration is 'When does this token expires';
 
-comment on column url_tokens.used_for is 'describes the function this token is intenteded for (i.e. password-reset, signup-link)';
+comment on column admin_tokens.used_for is 'describes the function this token is intenteded for (i.e. password-reset, signup-link)';
 
-comment on column url_tokens.consumed is 'whether or not the token has been already used';
+comment on column admin_tokens.consumed is 'whether or not the token has been already used';
 
