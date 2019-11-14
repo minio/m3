@@ -8,7 +8,6 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
-	github.com/grpc-ecosystem/grpc-gateway v1.9.0
 	github.com/lib/pq v1.0.0
 	github.com/minio/cli v1.21.0
 	github.com/minio/mc v0.0.0-20190908212443-54ee3a280031
