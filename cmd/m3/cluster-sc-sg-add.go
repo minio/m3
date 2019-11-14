@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/minio/cli"
-	"github.com/minio/m3/cluster"
+	pb "github.com/minio/m3/portal/stubs"
 )
 
 // list files and folders.
@@ -39,31 +39,26 @@ var addStorageClusterCmd = cli.Command{
 
 // Adds a Storage Group to house multiple tenants
 func addStorageGroup(ctx *cli.Context) error {
-	var name *string
-	if ctx.String("name") != "" {
-		nameVal := ctx.String("name")
-		name = &nameVal
+	name := ctx.String("name")
+	if name == "" && ctx.Args().Get(0) != "" {
+		name = ctx.Args().Get(0)
 	}
 
-	appCtx, err := cluster.NewEmptyContext()
-	if err != nil {
-		return err
-	}
-
-	// create a new storage group in the DB
-	storageGroupResult := <-cluster.AddStorageGroup(appCtx, name)
-	if storageGroupResult.Error != nil {
-		fmt.Println(storageGroupResult.Error)
-		appCtx.Rollback()
-		return nil
-	}
-	err = <-cluster.ProvisionServicesForStorageGroup(storageGroupResult.StorageGroup)
+	cnxs, err := GetGRPCChannel()
 	if err != nil {
 		fmt.Println(err)
-		appCtx.Rollback()
+		return err
+	}
+	defer cnxs.Conn.Close()
+	// perform RPC
+	_, err = cnxs.Client.ClusterScSgAdd(cnxs.Context, &pb.StorageGroupAddRequest{
+		Name: name,
+	})
+
+	if err != nil {
+		fmt.Println(err)
 		return nil
 	}
-	// everything seems fine, commit the transaction.
-	appCtx.Commit()
+	fmt.Println("Done adding storage group")
 	return nil
 }
