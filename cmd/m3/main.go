@@ -55,6 +55,7 @@ var appCmds = []cli.Command{
 	adminCmd,
 	signupCmd,
 	loginCmd,
+	setPasswordCmd,
 }
 
 func main() {
