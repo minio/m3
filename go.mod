@@ -15,6 +15,7 @@ require (
 	github.com/minio/minio v0.0.0-20190920231956-112729386357
 	github.com/minio/minio-go v0.0.0-20190327203652-5325257a208f
 	github.com/minio/minio-go/v6 v6.0.35
+	github.com/pelletier/go-toml v1.6.0
 	github.com/satori/go.uuid v1.2.0
 	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
