@@ -350,9 +350,9 @@ func MigrateTenantDB(tenantName string) chan error {
 }
 
 // newTenantMinioClient creates a MinIO client for the given tenant
-func newTenantMinioClient(ctx *Context, tenantShortname string) (*minio.Client, error) {
+func newTenantMinioClient(tenantShortname string) (*minio.Client, error) {
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortname)
+	sgt := <-GetTenantStorageGroupByShortName(nil, tenantShortname)
 	if sgt.Error != nil {
 		return nil, sgt.Error
 	}
@@ -398,7 +398,7 @@ func SetBucketAccess(minioClient *minio.Client, bucketName string, accessType Bu
 // ChangeBucketAccess changes access type assigned to the given bucket
 func ChangeBucketAccess(tenantShortname, bucketName string, accessType BucketAccess) error {
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
+	minioClient, err := newTenantMinioClient(tenantShortname)
 	if err != nil {
 		return err
 	}
@@ -418,7 +418,7 @@ func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) err
 	}
 
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
+	minioClient, err := newTenantMinioClient(tenantShortname)
 	if err != nil {
 		return err
 	}
@@ -470,7 +470,7 @@ func GetBucketAccess(minioClient *minio.Client, bucketName string) (BucketAccess
 // ListBuckets for the given tenant's short name
 func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
+	minioClient, err := newTenantMinioClient(tenantShortname)
 	if err != nil {
 		return []TenantBucketInfo{}, err
 	}
@@ -499,7 +499,7 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 // Deletes a bucket in the given tenant's MinIO
 func DeleteBucket(tenantShortname, bucket string) error {
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
+	minioClient, err := newTenantMinioClient(tenantShortname)
 	if err != nil {
 		return err
 	}
