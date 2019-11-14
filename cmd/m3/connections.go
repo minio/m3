@@ -36,8 +36,8 @@ type GrpcClientConn struct {
 // returns a properly configured grpc channel
 func GetGRPCChannel() (*GrpcClientConn, error) {
 	url := "localhost"
-	if os.Getenv(OperatorUrlEnv) != "" {
-		url = os.Getenv(OperatorUrlEnv)
+	if os.Getenv(OperatorURLEnv) != "" {
+		url = os.Getenv(OperatorURLEnv)
 	}
 	port := "50052"
 	if os.Getenv(OperatorPrivatePortEnv) != "" {
@@ -48,7 +48,7 @@ func GetGRPCChannel() (*GrpcClientConn, error) {
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
-		log.Println("did not connect: %v", err)
+		log.Printf("did not connect: %s", err.Error())
 		return nil, err
 	}
 

@@ -18,7 +18,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/user"
 	"time"
@@ -36,11 +35,14 @@ type OperatorTokens struct {
 func SaveOpToken(opToken *OperatorTokens) error {
 	// serialize to toml then save
 	outToml, err := toml.Marshal(opToken)
+	if err != nil {
+		return err
+	}
 	// save to file
 	// get home folder
 	usr, err := user.Current()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	homeFolder := fmt.Sprintf("%s/.op8r", usr.HomeDir)
 	tokenFile := fmt.Sprintf("%s/token", homeFolder)
@@ -64,6 +66,9 @@ func GetOpTokens() (*OperatorTokens, error) {
 	tokenFile := fmt.Sprintf("%s/token", homeFolder)
 	// read file
 	dat, err := ioutil.ReadFile(tokenFile)
+	if err != nil {
+		return nil, err
+	}
 	var opToken OperatorTokens
 	err = toml.Unmarshal(dat, &opToken)
 
