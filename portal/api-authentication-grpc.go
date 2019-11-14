@@ -28,6 +28,7 @@ import (
 	pb "github.com/minio/m3/portal/stubs"
 )
 
+// ValidateInvite gets the jwt token from email invite and returns email and tenant to continue the signup/reset process
 func (s *server) ValidateInvite(ctx context.Context, in *pb.Empty) (res *pb.ValidateEmailInviteResponse, err error) {
 	jwtToken, err := GetJwtTokenFromRequest(ctx)
 	if err != nil {
@@ -66,6 +67,7 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.Empty) (res *pb.Vali
 	return resp, nil
 }
 
+// GetJwtTokenFromRequest returns the jwtToken from grpc Headers
 func GetJwtTokenFromRequest(ctx context.Context) (token string, err error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
