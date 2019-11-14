@@ -34,6 +34,9 @@ service PrivateAPI {
     }
     rpc Login (CLILoginRequest) returns (CLILoginResponse) {
     }
+    // Cluster Operations
+    rpc ClusterScSgAdd (StorageGroupAddRequest) returns (StorageGroupAddResponse) {
+    }
 }
 
 message TenantAddRequest {
@@ -72,4 +75,11 @@ message CLILoginResponse {
     int64 expires = 2;
     string refresh_token = 3;
     int64 refresh_token_expires = 4;
+}
+
+message StorageGroupAddRequest {
+    string name = 1;
+}
+
+message StorageGroupAddResponse {
 }
