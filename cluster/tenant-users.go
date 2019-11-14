@@ -125,7 +125,7 @@ func SetUserEnabled(tenantShortName string, userID string, status bool) error {
 	return nil
 }
 
-// GetUserByEmail searches for the user in the defined tenant's database
+// GetUserByEmail searches for the user by Email in the defined tenant's database
 // and returns the User if it was found
 func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err error) {
 	// Get user from tenants database
@@ -137,6 +137,28 @@ func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err e
 			WHERE email=$1 LIMIT 1`
 
 	row := ctx.TenantDB().QueryRow(queryUser, email)
+
+	// Save the resulted query on the User struct
+	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password)
+	if err != nil {
+		return user, err
+	}
+
+	return user, nil
+}
+
+// GetUserByID searches for the user by ID in the defined tenant's database
+// and returns the User if it was found
+func GetUserByID(ctx *Context, id uuid.UUID) (user User, err error) {
+	// Get user from tenants database
+	queryUser := `
+		SELECT 
+				t1.id, t1.full_name, t1.email, t1.password
+			FROM 
+				users t1
+			WHERE id=$1 LIMIT 1`
+
+	row := ctx.TenantDB().QueryRow(queryUser, id)
 
 	// Save the resulted query on the User struct
 	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password)
