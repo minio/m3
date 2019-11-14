@@ -24,3 +24,8 @@ clean:
 
 docker:
 	@docker build -t minio/m3 .
+
+k8sdev:
+	@docker build -t minio/m3:dev .	
+	@kind load docker-image minio/m3:dev --name m3cluster
+	@echo "Done, now restart your m3 deployment"
