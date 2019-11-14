@@ -14,4 +14,4 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-DROP TABLE url_tokens;
+DROP TABLE admin_tokens;
