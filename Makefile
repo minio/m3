@@ -28,4 +28,4 @@ docker:
 k8sdev:
 	@docker build -t minio/m3:dev .	
 	@kind load docker-image minio/m3:dev --name m3cluster
-	@kubectl delete pod $(kubectl get pods | grep m3 | awk '{print $1}')
+	@echo "Done, now restart your m3 deployment"

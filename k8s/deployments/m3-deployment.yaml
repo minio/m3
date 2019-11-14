@@ -8,9 +8,11 @@ metadata:
 spec:
   ports:
     - port: 50051
-      name: grpc
+      name: public-grpc
+    - port: 50052
+      name: private-grpc
   selector:
-    tenant: m3
+    app: m3
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -41,4 +43,6 @@ spec:
               value: <PASSWORD>
           ports:
             - containerPort: 50051
-              name: grpc
+              name: public-grpc
+            - containerPort: 50052
+              name: private-grpc
