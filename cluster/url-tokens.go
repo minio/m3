@@ -56,8 +56,8 @@ func NewURLToken(ctx *Context, userID *uuid.UUID, usedFor string, validity *time
 	return &urlToken, nil
 }
 
-// GetTokenDetails get the details for the provided urlToken
-func GetTokenDetails(ctx *Context, urlToken *uuid.UUID) (*URLToken, error) {
+// GetTenantTokenDetails get the details for the provided urlToken
+func GetTenantTokenDetails(ctx *Context, urlToken *uuid.UUID) (*URLToken, error) {
 	var token URLToken
 	// Get an individual token
 	queryUser := `
@@ -182,4 +182,27 @@ func ParseAndValidateJwtToken(tokenString string) (*URLJwtToken, error) {
 		return claims, nil
 	}
 	return nil, nil
+}
+
+// ValidateURLToken ensures Token expiration time and that it hasn't been consumed.
+func ValidateURLToken(urlToken *URLToken) (err error) {
+	// make sure this jwtToken is not already used
+	if urlToken.Consumed {
+		err = errors.New("this token has already been consumed")
+		fmt.Println(err)
+		return err
+	}
+	// make sure this jwtToken is intended for signup
+	if urlToken.UsedFor != TokenSignupEmail {
+		err = errors.New("invalid token")
+		fmt.Println(err)
+		return err
+	}
+	// make sure this jwtToken is not expired
+	if !urlToken.Expiration.After(time.Now()) {
+		err = errors.New("expired token")
+		fmt.Println(err)
+		return err
+	}
+	return nil
 }
