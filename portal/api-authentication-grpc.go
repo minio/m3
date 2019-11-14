@@ -21,12 +21,56 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	cluster "github.com/minio/m3/cluster"
 	pb "github.com/minio/m3/portal/stubs"
 )
+
+// SetPassword requires the ulr token from an invitation to continue setting a user's password
+func (s *server) SetPassword(ctx context.Context, in *pb.SetPasswordRequest) (*pb.Empty, error) {
+	reqURLToken := in.GetUrlToken()
+	reqPassword := in.GetPassword()
+	if reqURLToken == "" {
+		return nil, status.New(codes.InvalidArgument, "Empty UrlToken").Err()
+	}
+	if reqPassword == "" {
+		return nil, status.New(codes.InvalidArgument, "Empty Password").Err()
+	}
+
+	parsedJwtToken, err := cluster.ParseAndValidateJwtToken(reqURLToken)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	appCtx, err := cluster.NewContextWithTenantID(&parsedJwtToken.TenantID)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	urlToken, err := cluster.GetTenantTokenDetails(appCtx, &parsedJwtToken.Token)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	err = cluster.ValidateURLToken(urlToken)
+	if err != nil {
+		return nil, status.New(codes.Unauthenticated, "Invalid URL Token").Err()
+	}
+
+	err = cluster.CompleteSignup(appCtx, urlToken, reqPassword)
+	if err != nil {
+		appCtx.Rollback()
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	// no errors? lets commit
+	err = appCtx.Commit()
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	return &pb.Empty{}, nil
+}
 
 // ValidateInvite gets the jwt token from email invite and returns email and tenant to continue the signup/reset process
 func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteRequest) (res *pb.ValidateEmailInviteResponse, err error) {
@@ -65,23 +109,6 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteReques
 
 	resp := &pb.ValidateEmailInviteResponse{Email: user.Email, Company: tenant.Name}
 	return resp, nil
-}
-
-// GetJwtTokenFromRequest returns the jwtToken from grpc Headers
-func GetJwtTokenFromRequest(ctx context.Context) (token string, err error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return "", status.New(codes.InvalidArgument, "JwtToken not found").Err()
-	}
-
-	var sessionID string
-	switch sIds := md.Get("jwtToken"); len(sIds) {
-	case 0:
-		return "", status.New(codes.InvalidArgument, "JwtToken not found").Err()
-	default:
-		sessionID = sIds[0]
-	}
-	return sessionID, nil
 }
 
 // Login handles the Login request by receiving the user credentials
