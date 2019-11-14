@@ -30,11 +30,11 @@ import (
 
 // ValidateInvite gets the jwt token from email invite and returns email and tenant to continue the signup/reset process
 func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteRequest) (res *pb.ValidateEmailInviteResponse, err error) {
-	reqUrlToken := in.GetUrlToken()
-	if reqUrlToken == "" {
+	reqURLToken := in.GetUrlToken()
+	if reqURLToken == "" {
 		return nil, status.New(codes.InvalidArgument, "Empty UrlToken").Err()
 	}
-	parsedJwtToken, err := cluster.ParseAndValidateJwtToken(reqUrlToken)
+	parsedJwtToken, err := cluster.ParseAndValidateJwtToken(reqURLToken)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
