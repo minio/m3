@@ -21,11 +21,68 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	cluster "github.com/minio/m3/cluster"
 	pb "github.com/minio/m3/portal/stubs"
 )
+
+// ValidateInvite gets the jwt token from email invite and returns email and tenant to continue the signup/reset process
+func (s *server) ValidateInvite(ctx context.Context, in *pb.Empty) (res *pb.ValidateEmailInviteResponse, err error) {
+	jwtToken, err := GetJwtTokenFromRequest(ctx)
+	if err != nil {
+		return nil, err
+	}
+	parsedJwtToken, err := cluster.ParseAndValidateJwtToken(jwtToken)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	appCtx, err := cluster.NewContextWithTenantID(&parsedJwtToken.TenantID)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	urlToken, err := cluster.GetTenantTokenDetails(appCtx, &parsedJwtToken.Token)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	err = cluster.ValidateURLToken(urlToken)
+	if err != nil {
+		return nil, status.New(codes.Unauthenticated, "Invalid URL Token").Err()
+	}
+	user, err := cluster.GetUserByID(appCtx, urlToken.UserID)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	tenant, err := cluster.GetTenantByID(&parsedJwtToken.TenantID)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	resp := &pb.ValidateEmailInviteResponse{Email: user.Email, Company: tenant.Name}
+	return resp, nil
+}
+
+// GetJwtTokenFromRequest returns the jwtToken from grpc Headers
+func GetJwtTokenFromRequest(ctx context.Context) (token string, err error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", status.New(codes.InvalidArgument, "JwtToken not found").Err()
+	}
+
+	var sessionID string
+	switch sIds := md.Get("jwtToken"); len(sIds) {
+	case 0:
+		return "", status.New(codes.InvalidArgument, "JwtToken not found").Err()
+	default:
+		sessionID = sIds[0]
+	}
+	return sessionID, nil
+}
 
 // Login handles the Login request by receiving the user credentials
 // and returning a hashed token.

@@ -18,7 +18,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/minio/m3/cluster"
 
@@ -76,33 +75,20 @@ func signup(ctx *cli.Context) error {
 		return err
 	}
 
-	urlToken, err := cluster.GetTokenDetails(appCtx, &parsedJwtToken.Token)
+	urlToken, err := cluster.GetTenantTokenDetails(appCtx, &parsedJwtToken.Token)
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
-	// make sure this jwtToken is not already used
-	if urlToken.Consumed {
-		err = errors.New("this token has already been consumed")
+
+	err = cluster.ValidateURLToken(urlToken)
+	if err != nil {
 		fmt.Println(err)
 		return err
 	}
-	// make sure this jwtToken is intended for signup
-	if urlToken.UsedFor != cluster.TokenSignupEmail {
-		err = errors.New("invalid token")
-		fmt.Println(err)
-		return err
-	}
-	// make sure this jwtToken is not expired
-	if !urlToken.Expiration.After(time.Now()) {
-		err = errors.New("expired token")
-		fmt.Println(err)
-		return err
-	}
+
 	fmt.Println("Completing user signup process")
-
 	err = cluster.CompleteSignup(appCtx, urlToken, password)
-
 	if err != nil {
 		appCtx.Rollback()
 		fmt.Println(err)
@@ -110,13 +96,11 @@ func signup(ctx *cli.Context) error {
 	}
 
 	// no errors? lets commit
-
 	err = appCtx.Commit()
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 	fmt.Println("Success")
-
 	return nil
 }
