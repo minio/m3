@@ -24,6 +24,11 @@ option java_outer_classname = "PrivateApiProto";
 package m3;
 
 service PrivateAPI {
+    // Setup Operations
+    rpc Setup(AdminEmpty) returns (AdminEmpty) {
+    }
+    rpc SetupDB(AdminEmpty) returns (AdminEmpty) {
+    }
     // Tenant Operations
     rpc TenantAdd (TenantAddRequest) returns (TenantAddResponse) {
     }
@@ -40,6 +45,8 @@ service PrivateAPI {
     rpc ClusterScSgAdd (StorageGroupAddRequest) returns (StorageGroupAddResponse) {
     }
 }
+
+message AdminEmpty {}
 
 message TenantAddRequest {
     string name = 1;
