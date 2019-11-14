@@ -50,13 +50,22 @@ const (
 	BucketCustom
 )
 
-// AddTenantAction adds a tenant to the cluster, if an admin name and email are provided, the user is created and invited
+// TenantAddAction adds a tenant to the cluster, if an admin name and email are provided, the user is created and invited
 // via email.
-func AddTenantAction(name, shortName, adminName, adminEmail string) error {
+func TenantAddAction(name, shortName, userName, userEmail string) error {
 	// Start app context
 	ctx, err := NewEmptyContext()
 	if err != nil {
 		return err
+	}
+
+	// check if tenant name is available
+	available, err := TenantShortNameAvailable(ctx, shortName)
+	if err != nil {
+		return err
+	}
+	if !available {
+		return errors.New("Shortname is already in use")
 	}
 
 	// first find a cluster where to allocate the tenant
@@ -121,9 +130,9 @@ func AddTenantAction(name, shortName, adminName, adminEmail string) error {
 		return err
 	}
 	// if the first admin name and email was provided send them an invitation
-	if adminName != "" && adminEmail != "" {
+	if userName != "" && userEmail != "" {
 		// insert user to DB with random password
-		newUser := User{Name: name, Email: adminEmail}
+		newUser := User{Name: userName, Email: userEmail}
 		err := AddUser(ctx, &newUser)
 		if err != nil {
 			return err
@@ -343,7 +352,7 @@ func MigrateTenantDB(tenantName string) chan error {
 // newTenantMinioClient creates a MinIO client for the given tenant
 func newTenantMinioClient(tenantShortname string) (*minio.Client, error) {
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(tenantShortname)
+	sgt := <-GetTenantStorageGroupByShortName(nil, tenantShortname)
 	if sgt.Error != nil {
 		return nil, sgt.Error
 	}
@@ -604,8 +613,7 @@ func DeleteTenant(tenantShortName string) error {
 		return err
 	}
 
-	sgt := <-GetTenantStorageGroupByShortName(tenantShortName)
-
+	sgt := <-GetTenantStorageGroupByShortName(nil, tenantShortName)
 	if sgt.Error != nil {
 		return sgt.Error
 	}
@@ -750,4 +758,30 @@ func deleteTenantNamespace(tenantShortName string) chan error {
 		}
 	}()
 	return ch
+}
+
+func TenantShortNameAvailable(ctx *Context, tenantShortName string) (bool, error) {
+
+	// Checks if a tenant short name is in use
+	queryUser := `SELECT EXISTS(SELECT 1 FROM tenants WHERE short_name=$1 LIMIT 1)`
+
+	var row *sql.Row
+	// if no context is provided, don't use a transaction
+	if ctx == nil {
+		row = GetInstance().Db.QueryRow(queryUser, tenantShortName)
+	} else {
+		tx, err := ctx.MainTx()
+		if err != nil {
+			return false, err
+		}
+		row = tx.QueryRow(queryUser, tenantShortName)
+	}
+	exists := false
+	// Save the result on the exist
+	err := row.Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return !exists, nil
 }

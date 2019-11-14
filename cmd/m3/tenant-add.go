@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/minio/cli"
-	"github.com/minio/m3/cluster"
+	pb "github.com/minio/m3/portal/stubs"
 )
 
 // list files and folders.
@@ -88,23 +88,36 @@ func addTenant(ctx *cli.Context) error {
 		return nil
 	}
 
-	name := ctx.String("admin_name")
-	email := ctx.String("admin_email")
-	if name == "" && ctx.Args().Get(2) != "" {
-		name = ctx.Args().Get(2)
+	userName := ctx.String("admin_name")
+	userEmail := ctx.String("admin_email")
+	if userName == "" && ctx.Args().Get(2) != "" {
+		userName = ctx.Args().Get(2)
 	}
-	if email == "" && ctx.Args().Get(3) != "" {
-		email = ctx.Args().Get(3)
+	if userEmail == "" && ctx.Args().Get(3) != "" {
+		userEmail = ctx.Args().Get(3)
 	}
 
-	if name != "" && email == "" {
-		fmt.Println("User email is needed")
+	if userName == "" || userEmail == "" {
+		fmt.Println("User name and email is needed")
 		return errMissingArguments
 	}
 
-	err := cluster.AddTenantAction(tenantName, tenantShortName, name, email)
+	cnxs, err := GetGRPCChannel()
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(err)
+		return err
+	}
+	defer cnxs.Conn.Close()
+	// perform RPC
+	_, err = cnxs.Client.TenantAdd(cnxs.Context, &pb.TenantAddRequest{
+		Name:      tenantName,
+		ShortName: tenantShortName,
+		UserName:  userName,
+		UserEmail: userEmail,
+	})
+
+	if err != nil {
+		fmt.Println(err)
 		return nil
 	}
 

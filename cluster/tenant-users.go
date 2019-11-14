@@ -36,12 +36,8 @@ type User struct {
 // AddUser adds a new user to the tenant's database
 func AddUser(ctx *Context, newUser *User) error {
 	// validate user Name
-	if newUser.Name != "" {
-		// TODO: improve regex
-		var re = regexp.MustCompile(`^[a-zA-Z ]{4,}$`)
-		if !re.MatchString(newUser.Name) {
-			return errors.New("a valid name is needed")
-		}
+	if newUser.Name == "" {
+		return errors.New("a valid user name is needed")
 	}
 
 	// validate user Email

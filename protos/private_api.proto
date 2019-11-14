@@ -24,25 +24,26 @@ option java_outer_classname = "PrivateApiProto";
 package m3;
 
 service PrivateAPI {
-    rpc AddTenant (AddTenantRequest) returns (AddTenantResponse) {
+    // Tenant Operations
+    rpc TenantAdd (TenantAddRequest) returns (TenantAddResponse) {
     }
+    // Admin Operations
     rpc AdminAdd (AdminAddRequest) returns (AdminAddResponse) {
     }
     rpc SetPassword (SetAdminPasswordRequest) returns (SetAdminPasswordResponse) {
     }
     rpc Login (CLILoginRequest) returns (CLILoginResponse) {
-
     }
 }
 
-message AddTenantRequest {
+message TenantAddRequest {
     string name = 1;
     string short_name = 2;
     string user_name = 3;
     string user_email = 4;
 }
 
-message AddTenantResponse {
+message TenantAddResponse {
 }
 
 

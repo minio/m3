@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 	"syscall"
 	"time"
 
@@ -42,14 +43,14 @@ func login(_ *cli.Context) error {
 
 	// if no credentials prompt
 	if email == "" || password == "" {
-		fmt.Print("Enter Email:")
+		fmt.Print("Enter Email: ")
 		reader := bufio.NewReader(os.Stdin)
 		var err error
 		email, err = reader.ReadString('\n')
 		if err != nil {
 			return err
 		}
-		fmt.Print("\n")
+		email = strings.TrimSpace(email)
 		fmt.Print("Password: ")
 		passwordBytes, err := terminal.ReadPassword(int(syscall.Stdin))
 		if err != nil {
@@ -58,7 +59,6 @@ func login(_ *cli.Context) error {
 		fmt.Print("\n")
 		password = string(passwordBytes)
 	}
-
 	// login
 	// perform the action
 	// get grpc Channel/Client

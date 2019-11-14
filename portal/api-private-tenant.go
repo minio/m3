@@ -29,11 +29,11 @@ import (
 )
 
 // AddTenant rpc to add a new tenant and it's first user
-func (ps *privateServer) AddTenant(ctx context.Context, in *pb.AddTenantRequest) (*pb.AddTenantResponse, error) {
-	err := cluster.AddTenantAction(in.Name, in.ShortName, in.UserName, in.UserEmail)
+func (ps *privateServer) TenantAdd(ctx context.Context, in *pb.TenantAddRequest) (*pb.TenantAddResponse, error) {
+	err := cluster.TenantAddAction(in.Name, in.ShortName, in.UserName, in.UserEmail)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, status.New(codes.Internal, fmt.Sprintf("Internal error %s", err.Error())).Err()
 	}
-	return &pb.AddTenantResponse{}, nil
+	return &pb.TenantAddResponse{}, nil
 }
