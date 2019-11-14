@@ -17,7 +17,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/minio/cli"
 	"github.com/minio/m3/portal"
@@ -32,15 +32,15 @@ var portalCmd = cli.Command{
 }
 
 func startAPIServiceCmd(ctx *cli.Context) error {
-	fmt.Println("Starting m3 services...")
+	log.Println("Starting m3 services...")
 	publicCh := portal.InitPublicAPIServiceGRPCServer()
 	privateCh := portal.InitPrivateAPIServiceGRPCServer()
 
 	select {
 	case <-publicCh:
-		fmt.Println("Public server exited")
+		log.Println("Public server exited")
 	case <-privateCh:
-		fmt.Println("Private server exited")
+		log.Println("Private server exited")
 	}
 
 	return nil
