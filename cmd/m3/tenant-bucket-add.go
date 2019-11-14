@@ -19,7 +19,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/minio/m3/cluster"
+	pb "github.com/minio/m3/portal/stubs"
 
 	"github.com/minio/cli"
 )
@@ -66,12 +66,23 @@ func tenantBucketAdd(ctx *cli.Context) error {
 		return nil
 	}
 	// perform the action
-	err := cluster.MakeBucket(tenantShortName, bucketName, cluster.BucketPrivate)
+	cnxs, err := GetGRPCChannel()
 	if err != nil {
-		fmt.Println("Error creating bucket:", err.Error())
+		fmt.Println(err)
+		return err
+	}
+	defer cnxs.Conn.Close()
+	// perform RPC
+	_, err = cnxs.Client.TenantBucketAdd(cnxs.Context, &pb.TenantBucketAddRequest{
+		Tenant:     tenantShortName,
+		BucketName: bucketName,
+	})
+
+	if err != nil {
+		fmt.Println(err)
 		return nil
 	}
 
-	fmt.Println("Done adding tenant!")
+	fmt.Println("Done adding bucket!")
 	return nil
 }

@@ -108,9 +108,8 @@ Running Migrations
 If you do, try again in some time.
 
 - To create the first admin account for `m3`
-**Note down the admin access/secret key**
 ```
-./m3 admin add "Admin" "admin@email.com"
+./m3 admin add "Admin" "your_real@email.com"
 ```
 
 ## Creating a new Storage Group
