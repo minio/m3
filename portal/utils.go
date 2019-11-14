@@ -80,15 +80,15 @@ func getSessionRowIDAndTenantName(ctx context.Context) (string, string, error) {
 }
 
 // validateSessionId validates the sessionID available in the grpc metadata
-// headers and returns the session row id
-func validateSessionID(ctx context.Context) (string, error) {
-	sessionRowID, _, err := getSessionRowIDAndTenantName(ctx)
-	return sessionRowID, err
+// headers and returns the session row id and the tenant short name
+func validateSessionID(ctx context.Context) (string, string, error) {
+	sessionRowID, tenantShortname, err := getSessionRowIDAndTenantName(ctx)
+	return sessionRowID, tenantShortname, err
 }
 
 // getTenantShortNameFromSessionID validates the sessionID available in the grpc
 // metadata headers and returns the tenant's shortname
 func getTenantShortNameFromSessionID(ctx context.Context) (string, error) {
-	_, tenantShortname, err := getSessionRowIDAndTenantName(ctx)
+	_, tenantShortname, err := validateSessionID(ctx)
 	return tenantShortname, err
 }
