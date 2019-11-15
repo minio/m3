@@ -80,6 +80,12 @@ kubectl get secret $(kubectl get serviceaccount dashboard -o jsonpath="{.secrets
 make m3
 ```
 
+- Build `m3` local docker image and push it to your k8s
+
+```
+make k8sdev
+```
+
 - Modify `./k8s/deployments/m3-deployment.yaml`
 
 Replace all the <TOKENS> with their corresponding values, for example <DEV_EMAIL> with your personal email.
@@ -91,10 +97,10 @@ A valid `smtp` account is needed, if you don't have one we recommend you create 
 ./m3 setup
 ```
 
-- Make postgres reachable from host OS
+- Make m3 reachable
 
 ```
-kubectl port-forward -n m3 svc/postgres 5432
+kubectl port-forward service/m3 50052
 ```
 
 - To setup db

@@ -83,12 +83,6 @@ func AddAdminAction(ctx *Context, name string, adminEmail string) (*Admin, error
 	if err != nil {
 		return nil, err
 	}
-
-	// if no error happened to this point commit transaction
-	err = ctx.Commit()
-	if err != nil {
-		return nil, err
-	}
 	return &admin, nil
 }
 
