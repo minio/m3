@@ -263,8 +263,8 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 	return nil
 }
 
-// setUserPassword sets the password for the provided user by hashing it
-func setUserPassword(ctx *Context, userID *uuid.UUID, password string) error {
+// SetUserPassword sets the password for the provided user by hashing it
+func SetUserPassword(ctx *Context, userID *uuid.UUID, password string) error {
 	// validate user Password
 	if password != "" {
 		// TODO: improve regex or use Go validator
@@ -284,6 +284,7 @@ func setUserPassword(ctx *Context, userID *uuid.UUID, password string) error {
 	if err != nil {
 		return err
 	}
+	// TODO: invalid session after resetting password
 	// Execute query
 	_, err = tx.Exec(query, hashedPassword, userID)
 	if err != nil {

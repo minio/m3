@@ -105,7 +105,7 @@ func CompleteSignup(ctx *Context, urlToken *URLToken, password string) error {
 		return errors.New("url token has already been consumed")
 	}
 	// update the user password
-	err := setUserPassword(ctx, &urlToken.UserID, password)
+	err := SetUserPassword(ctx, &urlToken.UserID, password)
 	if err != nil {
 		return err
 	}

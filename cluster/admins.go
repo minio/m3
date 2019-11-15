@@ -110,7 +110,7 @@ func InsertAdmin(ctx *Context, admin *Admin) error {
 	return nil
 }
 
-// setUserPassword sets the password for the provided user by hashing it
+// setAdminPassword sets the password for the provided user by hashing it
 func setAdminPassword(ctx *Context, adminID *uuid.UUID, password string) error {
 	if password == "" {
 		return errors.New("a valid password is needed, minimum 8 characters")
