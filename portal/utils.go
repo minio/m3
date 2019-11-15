@@ -47,7 +47,7 @@ func getHeaderFromRequest(ctx context.Context, key string) (keyValue string, err
 
 	switch sIds := md.Get(key); len(sIds) {
 	case 0:
-		return "", errors.New(fmt.Sprintf("%s not found", key))
+		return "", fmt.Errorf("%s not found", key)
 	default:
 		keyValue = sIds[0]
 	}
