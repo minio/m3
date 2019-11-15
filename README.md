@@ -96,16 +96,16 @@ A valid `smtp` account is needed, if you don't have one we recommend you create 
 kubectl apply -f k8s/deployments/m3-deployment.yaml
 ``` 
 
-- Run `m3 setup` on the local kubernetes
-
-```
-./m3 setup
-```
-
 - Make m3 reachable
 
 ```
 kubectl port-forward service/m3 50052
+```
+
+- Run `m3 setup` on the local kubernetes
+
+```
+./m3 setup
 ```
 
 - To setup db
@@ -120,20 +120,6 @@ kubectl port-forward service/m3 50052
 - Finally, perform login to the cluster so you can run all the commands
 ```
 ./m3 login
-```
-
-You may see the following error message since at times the postgres container is not running yet.
-```
-Running Migrations
-2019/10/17 12:02:50 error connecting to database or reading migrations
-2019/10/17 12:02:50 dial tcp 127.0.0.1:5432: connect: connection refused
-```
-
-If you do, try again in some time.
-
-- To create the first admin account for `m3`
-```
-./m3 admin add "Admin" "your_real@email.com"
 ```
 
 ## Creating a new Storage Group
