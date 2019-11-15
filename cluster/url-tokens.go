@@ -193,7 +193,7 @@ func ValidateURLToken(urlToken *URLToken) (err error) {
 		return err
 	}
 	// make sure this jwtToken is intended for signup
-	if urlToken.UsedFor != TokenSignupEmail {
+	if urlToken.UsedFor != TokenSignupEmail && urlToken.UsedFor != TokenResetPasswordEmail {
 		err = errors.New("invalid token")
 		fmt.Println(err)
 		return err

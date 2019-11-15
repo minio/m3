@@ -38,6 +38,8 @@ service PrivateAPI {
     // Tenant User Operations
     rpc TenantUserAdd (TenantUserAddRequest) returns (TenantUserAddResponse) {
     }
+    rpc TenantUserForgotPassword (TenantUserForgotPasswordRequest) returns (TenantUserForgotPasswordResponse) {
+    }
     // Admin Operations
     rpc AdminAdd (AdminAddRequest) returns (AdminAddResponse) {
     }
@@ -114,4 +116,12 @@ message StorageGroupAddRequest {
 }
 
 message StorageGroupAddResponse {
+}
+
+message TenantUserForgotPasswordRequest {
+    string tenant = 1;
+    string email = 2;
+}
+
+message TenantUserForgotPasswordResponse {
 }

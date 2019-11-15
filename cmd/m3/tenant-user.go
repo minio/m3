@@ -26,6 +26,7 @@ var tenantUserCmd = cli.Command{
 	Subcommands: []cli.Command{
 		tenantAddUserCmd,
 		tenantUserListCmd,
+		tenantUserForgotPasswordCmd,
 	},
 }
 

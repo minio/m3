@@ -214,7 +214,7 @@ func GetTotalNumberOfUsers(ctx *Context) (int, error) {
 }
 
 // InviteUserByEmail creates a temporary token to signup/reset password for service and send an email to the provided user
-func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
+func InviteUserByEmail(ctx *Context, usedFor string, user *User, emailTemplate string) error {
 
 	// generate a token for the email invite
 	// this token expires in 72 hours
@@ -249,7 +249,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 		URL:  signupURL,
 	}
 	// Get the mailing template for inviting users
-	body, err := GetTemplate("invite", templateData)
+	body, err := GetTemplate(emailTemplate, templateData)
 	if err != nil {
 		return err
 	}
