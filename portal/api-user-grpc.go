@@ -22,6 +22,7 @@ import (
 	"github.com/lib/pq"
 	cluster "github.com/minio/m3/cluster"
 	pb "github.com/minio/m3/portal/stubs"
+	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -183,7 +184,11 @@ func (s *server) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*pb.Li
 		return nil, status.New(codes.Internal, "Error getting Users").Err()
 	}
 
-	sessionObj, err := getSessionByID(ctx)
+	sessionID, err := getHeaderFromRequest(ctx, "sessionId")
+	if err != nil {
+		return nil, err
+	}
+	sessionObj, err := getSessionByID(sessionID)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -198,6 +203,52 @@ func (s *server) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*pb.Li
 		}
 	}
 	return &pb.ListUsersResponse{Users: respUsers, TotalUsers: int32(total)}, nil
+}
+
+// ChangePassword Gets the old password, validates it and sets new password to the user.
+func (s *server) ChangePassword(ctx context.Context, in *pb.ChangePasswordRequest) (res *pb.Empty, err error) {
+	newPassword := in.GetNewPassword()
+	if newPassword == "" {
+		return nil, status.New(codes.InvalidArgument, "Empty New Password").Err()
+	}
+	oldPassword := in.GetOldPassword()
+	if oldPassword == "" {
+		return nil, status.New(codes.InvalidArgument, "Empty Old Password").Err()
+	}
+	sessionRowID, tenantShortName, err := validateSessionID(ctx)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	// Get session row from db
+	sessionObj, err := getSessionByID(sessionRowID)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	appCtx, err := cluster.NewContext(tenantShortName)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	// Get user row from db
+	userObj, err := cluster.GetUserByID(appCtx, sessionObj.UserID)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	// Comparing the old password with the hash stored password
+	if err = bcrypt.CompareHashAndPassword([]byte(userObj.Password), []byte(in.OldPassword)); err != nil {
+		return nil, status.New(codes.Unauthenticated, "Wrong credentials").Err()
+	}
+	// Hash the new password and update the it
+	err = cluster.SetUserPassword(appCtx, &userObj.ID, newPassword)
+	if err != nil {
+		appCtx.Rollback()
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	// Commit transcation
+	err = appCtx.Commit()
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	return &pb.Empty{}, nil
 }
 
 func (s *server) DisableUser(ctx context.Context, in *pb.UserActionRequest) (*pb.UserActionResponse, error) {

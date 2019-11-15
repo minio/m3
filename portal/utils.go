@@ -55,11 +55,7 @@ func getHeaderFromRequest(ctx context.Context, key string) (keyValue string, err
 }
 
 // getSessionByID returns the session row if the session is valid
-func getSessionByID(ctx context.Context) (session *cluster.Session, err error) {
-	sessionID, err := getHeaderFromRequest(ctx, "sessionId")
-	if err != nil {
-		return nil, err
-	}
+func getSessionByID(sessionID string) (session *cluster.Session, err error) {
 	// Prepare DB instance
 	db := cluster.GetInstance().Db
 	// Get tenant name from the DB
