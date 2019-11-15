@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/minio/cli"
-	"github.com/minio/m3/cluster"
+	pb "github.com/minio/m3/portal/stubs"
 )
 
 var (
@@ -68,13 +68,13 @@ var tenantAddUserCmd = cli.Command{
 //     m3 tenant add-user tenant-1 "user lastname" user@acme.com --invite
 //     m3 tenant add-user --tenant tenant-1 --name user  --email user@acme.com --invite
 func tenantAddUser(ctx *cli.Context) error {
-	tenantShortName := ctx.String("tenant")
+	tenant := ctx.String("tenant")
 	name := ctx.String("name")
 	email := ctx.String("email")
 	password := ctx.String("password")
 	invite := ctx.Bool("invite")
-	if tenantShortName == "" && ctx.Args().Get(0) != "" {
-		tenantShortName = ctx.Args().Get(0)
+	if tenant == "" && ctx.Args().Get(0) != "" {
+		tenant = ctx.Args().Get(0)
 	}
 	if name == "" && ctx.Args().Get(1) != "" {
 		name = ctx.Args().Get(1)
@@ -85,7 +85,7 @@ func tenantAddUser(ctx *cli.Context) error {
 	if password == "" && ctx.Args().Get(3) != "" {
 		password = ctx.Args().Get(3)
 	}
-	if tenantShortName == "" {
+	if tenant == "" {
 		fmt.Println("You must provide tenant name")
 		return errMissingArguments
 	}
@@ -97,40 +97,24 @@ func tenantAddUser(ctx *cli.Context) error {
 		fmt.Println("User email is needed")
 		return errMissingArguments
 	}
-
-	user := cluster.User{Email: email}
-	if name != "" {
-		user.Name = name
-	}
-	if password != "" {
-		user.Password = password
-	}
-
-	appCtx, err := cluster.NewContext(tenantShortName)
+	cnxs, err := GetGRPCChannel()
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
-	// perform the action
-	err = cluster.AddUser(appCtx, &user)
-	if err != nil {
-		appCtx.Rollback()
-		fmt.Println("Error adding user:", err.Error())
-		return err
-	}
+	defer cnxs.Conn.Close()
+	// perform RPC
+	_, err = cnxs.Client.TenantUserAdd(cnxs.Context, &pb.TenantUserAddRequest{
+		Tenant:   tenant,
+		Name:     name,
+		Email:    email,
+		Invite:   invite,
+		Password: password,
+	})
 
-	// If no password, invite via email
-	if invite {
-		err = cluster.InviteUserByEmail(appCtx, cluster.TokenSignupEmail, &user)
-		if err != nil {
-			appCtx.Rollback()
-			fmt.Println("Error inviting user:", err.Error())
-			return err
-		}
-	}
-	// commit anything pending
-	err = appCtx.Commit()
 	if err != nil {
-		return err
+		fmt.Println(err)
+		return nil
 	}
 
 	fmt.Println("Done adding user!")
