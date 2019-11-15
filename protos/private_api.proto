@@ -25,15 +25,19 @@ package m3;
 
 service PrivateAPI {
     // Setup Operations
-    rpc Setup(AdminEmpty) returns (AdminEmpty) {
+    rpc Setup (AdminEmpty) returns (AdminEmpty) {
     }
-    rpc SetupDB(AdminEmpty) returns (AdminEmpty) {
+    rpc SetupDB (AdminEmpty) returns (AdminEmpty) {
     }
     // Tenant Operations
     rpc TenantAdd (TenantAddRequest) returns (TenantAddResponse) {
     }
     // Tenant Bucket Operations
-    rpc TenantBucketAdd(TenantBucketAddRequest) returns (TenantBucketAddResponse){}
+    rpc TenantBucketAdd (TenantBucketAddRequest) returns (TenantBucketAddResponse) {
+    }
+    // Tenant User Operations
+    rpc TenantUserAdd (TenantUserAddRequest) returns (TenantUserAddResponse) {
+    }
     // Admin Operations
     rpc AdminAdd (AdminAddRequest) returns (AdminAddResponse) {
     }
@@ -46,7 +50,8 @@ service PrivateAPI {
     }
 }
 
-message AdminEmpty {}
+message AdminEmpty {
+}
 
 message TenantAddRequest {
     string name = 1;
@@ -64,6 +69,17 @@ message TenantBucketAddRequest {
 }
 
 message TenantBucketAddResponse {
+}
+
+message TenantUserAddRequest {
+    string tenant = 1;
+    string name = 2;
+    string email = 3;
+    string password = 4;
+    bool invite = 5;
+}
+
+message TenantUserAddResponse {
 }
 
 message AdminAddRequest {

@@ -65,6 +65,8 @@ spec:
               value: <SERVER>
             - name: MAIL_PASSWORD
               value: <PASSWORD>
+            - name: APP_URL
+              value: localhost:3000
           ports:
             - containerPort: 50051
               name: public-grpc
