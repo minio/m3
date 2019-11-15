@@ -62,13 +62,13 @@ var addTenantCmd = cli.Command{
 //     m3 tenant add tenant-1 --short_name tenant1
 //     m3 tenant add --name tenant-1 --short_name tenant1
 func addTenant(ctx *cli.Context) error {
-	tenantName := ctx.String("tenantName")
+	tenantName := ctx.String("name")
 	tenantShortName := ctx.String("short_name")
 	if tenantName == "" && ctx.Args().Get(0) != "" {
 		tenantName = ctx.Args().Get(0)
 	}
 	if tenantName == "" {
-		fmt.Println("You must provide tenant tenantName")
+		fmt.Println("You must provide tenant name")
 		return nil
 	}
 	if tenantShortName == "" && ctx.Args().Get(1) != "" {
