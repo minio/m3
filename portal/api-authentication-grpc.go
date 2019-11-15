@@ -179,6 +179,9 @@ func (s *server) Logout(ctx context.Context, in *pb.Empty) (*pb.Empty, error) {
 		appCtx.Rollback()
 		return nil, status.New(codes.InvalidArgument, err.Error()).Err()
 	}
-	appCtx.Commit()
+	err = appCtx.Commit()
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
 	return &pb.Empty{}, nil
 }
