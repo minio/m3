@@ -61,7 +61,6 @@ http:
       body: "*"
     - selector: m3.PublicAPI.UserWhoAmI
       get: /api/v1/users/whoami
-      body: "*"
     # Service Accounts
     - selector: m3.PublicAPI.ListServiceAccounts
       get: /api/v1/service_accounts
