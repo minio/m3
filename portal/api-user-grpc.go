@@ -188,7 +188,7 @@ func (s *server) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*pb.Li
 	if err != nil {
 		return nil, err
 	}
-	sessionObj, err := getSessionByID(ctx, sessionID)
+	sessionObj, err := getSessionByID(sessionID)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -220,7 +220,7 @@ func (s *server) ChangePassword(ctx context.Context, in *pb.ChangePasswordReques
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 	// Get session row from db
-	sessionObj, err := getSessionByID(ctx, sessionRowID)
+	sessionObj, err := getSessionByID(sessionRowID)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
