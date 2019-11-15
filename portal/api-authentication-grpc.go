@@ -129,7 +129,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 
 	// Password validation
 	// Look for the user on the database by email
-	user, err := cluster.GetUserByEmail(appCtx, tenant.Name, email)
+	user, err := cluster.GetUserByEmail(appCtx, email)
 	if err != nil {
 		return nil, status.New(codes.Unauthenticated, "Wrong tenant, email and/or password").Err()
 	}

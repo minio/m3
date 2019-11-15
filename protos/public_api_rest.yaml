@@ -59,6 +59,8 @@ http:
     - selector: m3.PublicAPI.EnableUser
       post: /api/v1/users/{id}/enable
       body: "*"
+    - selector: m3.PublicAPI.UserWhoAmI
+      get: /api/v1/users/whoami
     # Service Accounts
     - selector: m3.PublicAPI.ListServiceAccounts
       get: /api/v1/service_accounts

@@ -70,6 +70,8 @@ service PublicAPI {
 
     // User
     // List Users
+    rpc UserWhoAmI (Empty) returns (User){
+    }
     rpc ListUsers (ListUsersRequest) returns (ListUsersResponse) {
     }
 

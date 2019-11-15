@@ -123,7 +123,7 @@ func SetUserEnabled(tenantShortName string, userID string, status bool) error {
 
 // GetUserByEmail searches for the user by Email in the defined tenant's database
 // and returns the User if it was found
-func GetUserByEmail(ctx *Context, tenant string, email string) (user User, err error) {
+func GetUserByEmail(ctx *Context, email string) (user User, err error) {
 	// Get user from tenants database
 	queryUser := `
 		SELECT 

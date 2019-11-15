@@ -32,6 +32,30 @@ const (
 	defaultRequestLimit  = 25
 )
 
+func (s *server) UserWhoAmI(ctx context.Context, in *pb.Empty) (*pb.User, error) {
+	sessionRowID, tenantShortName, err := getSessionRowIDAndTenantName(ctx)
+	appCtx, err := cluster.NewContext(tenantShortName)
+	if err != nil {
+		return nil, err
+	}
+	// Get session row from db
+	sessionObj, err := getSessionByID(sessionRowID)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	// Get user row from db
+	userObj, err := cluster.GetUserByID(appCtx, sessionObj.UserID)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	return &pb.User{
+		Name:  userObj.Name,
+		Email: userObj.Email,
+		Id:    userObj.ID.String(),
+		IsMe:  true}, nil
+}
+
 // UserAddInvite invites a new user to the tenant's system by sending an email
 func (s *server) UserAddInvite(ctx context.Context, in *pb.InviteRequest) (*pb.Empty, error) {
 	// Validate sessionID and get tenant short name using the valid sessionID
@@ -88,11 +112,7 @@ func (s *server) UserResetPasswordInvite(ctx context.Context, in *pb.InviteReque
 	if err != nil {
 		return nil, err
 	}
-
-	reqName := in.GetName()
 	reqEmail := in.GetEmail()
-
-	newUser := cluster.User{Name: reqName, Email: reqEmail}
 
 	appCtx, err := cluster.NewContext(tenantShortName)
 	if err != nil {
@@ -109,21 +129,13 @@ func (s *server) UserResetPasswordInvite(ctx context.Context, in *pb.InviteReque
 		err = appCtx.Commit()
 	}()
 
-	// Create user on db
-	err = cluster.AddUser(appCtx, &newUser)
+	user, err := cluster.GetUserByEmail(appCtx, reqEmail)
 	if err != nil {
-		_, ok := err.(*pq.Error)
-		if ok {
-			if err.(*pq.Error).Code.Name() == uniqueViolationError {
-				return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()
-			}
-		}
-
-		return nil, status.New(codes.Internal, err.Error()).Err()
+		return nil, status.New(codes.Internal, "User Not Found").Err()
 	}
 
 	// Send email invitation with token
-	err = cluster.InviteUserByEmail(appCtx, cluster.TokenResetPasswordEmail, &newUser)
+	err = cluster.InviteUserByEmail(appCtx, cluster.TokenResetPasswordEmail, &user)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
