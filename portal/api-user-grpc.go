@@ -182,9 +182,20 @@ func (s *server) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*pb.Li
 	if err != nil {
 		return nil, status.New(codes.Internal, "Error getting Users").Err()
 	}
+
+	sessionObj, err := getSessionByID(ctx)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
 	var respUsers []*pb.User
 	for _, user := range users {
-		respUsers = append(respUsers, &pb.User{Id: user.ID.String(), Name: user.Name, Email: user.Email})
+		// TODO create a WhoAmI endpoint instead of using IsMe on ListUsers
+		if user.ID == sessionObj.UserID {
+			respUsers = append(respUsers, &pb.User{Id: user.ID.String(), Name: user.Name, IsMe: true, Email: user.Email})
+		} else {
+			respUsers = append(respUsers, &pb.User{Id: user.ID.String(), Name: user.Name, IsMe: false, Email: user.Email})
+		}
 	}
 	return &pb.ListUsersResponse{Users: respUsers, TotalUsers: int32(total)}, nil
 }

@@ -32,6 +32,7 @@ type Session struct {
 	UserID    uuid.UUID
 	TenantID  uuid.UUID
 	OcurredAt time.Time
+	LastEvent time.Time
 	ExpiresAt time.Time
 	Status    string
 }
