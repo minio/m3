@@ -33,7 +33,11 @@ func AdminAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 	// exempted calls from the validation
 	if info.FullMethod == "/m3.PrivateAPI/Login" ||
 		info.FullMethod == "/m3.PrivateAPI/SetPassword" ||
-		info.FullMethod == "/m3.PrivateAPI/ValidateToken" {
+		info.FullMethod == "/m3.PrivateAPI/ValidateToken" ||
+		// temporarely allow these methods
+		// TODO: Remove this before release
+		info.FullMethod == "/m3.PrivateAPI/Setup" ||
+		info.FullMethod == "/m3.PrivateAPI/SetupDB" {
 		// log this call
 		log.Printf("%s", info.FullMethod)
 		return handler(ctx, req)

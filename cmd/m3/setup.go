@@ -17,11 +17,13 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/minio/cli"
-	"github.com/minio/m3/cluster"
+	pb "github.com/minio/m3/portal/stubs"
 )
 
-// list files and folders.
+// Setups the m3 cluster
 var setupCmd = cli.Command{
 	Name:   "setup",
 	Usage:  "Creates the m3 cluster",
@@ -32,5 +34,16 @@ var setupCmd = cli.Command{
 }
 
 func setupDefCmd(ctx *cli.Context) error {
-	return cluster.SetupM3()
+	cnxs, err := GetGRPCChannel()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer cnxs.Conn.Close()
+	_, err = cnxs.Client.Setup(cnxs.Context, &pb.AdminEmpty{})
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	return nil
 }

@@ -39,7 +39,13 @@ func (ps *privateServer) AdminAdd(ctx context.Context, in *pb.AdminAddRequest) (
 	_, err = cluster.AddAdminAction(appCtx, in.Name, in.Email)
 	if err != nil {
 		log.Println(err)
+		appCtx.Rollback()
 		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// if no error happened to this point commit transaction
+	err = appCtx.Commit()
+	if err != nil {
+		return nil, err
 	}
 	return &pb.AdminAddResponse{}, nil
 }
@@ -57,7 +63,13 @@ func (ps *privateServer) SetPassword(ctx context.Context, in *pb.SetAdminPasswor
 
 	err = cluster.SetAdminPasswordAction(appCtx, &tokenID, in.Password)
 	if err != nil {
+		appCtx.Rollback()
 		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// if no error happened to this point commit transaction
+	err = appCtx.Commit()
+	if err != nil {
+		return nil, err
 	}
 
 	return &pb.SetAdminPasswordResponse{}, nil

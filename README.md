@@ -80,22 +80,46 @@ kubectl get secret $(kubectl get serviceaccount dashboard -o jsonpath="{.secrets
 make m3
 ```
 
+- Build `m3` local docker image and push it to your k8s
+
+```
+make k8sdev
+```
+
+- Modify `./k8s/deployments/m3-deployment.yaml`
+
+Replace all the <TOKENS> with their corresponding values, for example <DEV_EMAIL> with your personal email.
+A valid `smtp` account is needed, if you don't have one we recommend you create a gmail account and enable [Less Secure Apps access](https://support.google.com/accounts/answer/6010255?hl=en)
+
+- Install the m3 deployment on kubernetes
+```
+kubectl apply -f k8s/deployments/m3-deployment.yaml
+``` 
+
 - Run `m3 setup` on the local kubernetes
 
 ```
 ./m3 setup
 ```
 
-- Make postgres reachable from host OS
+- Make m3 reachable
 
 ```
-kubectl port-forward -n m3 svc/postgres 5432
+kubectl port-forward service/m3 50052
 ```
 
 - To setup db
 
 ```
 ./m3 setup db
+```
+- You should get an email with your activation command, execute it
+```
+./m3 set-password <YOUR_TOKEN>
+```
+- Finally, perform login to the cluster so you can run all the commands
+```
+./m3 login
 ```
 
 You may see the following error message since at times the postgres container is not running yet.

@@ -161,7 +161,10 @@ func NewEmptyContext() (*Context, error) {
 // is authenticated or not
 func NewEmptyContextWithGrpcContext(ctx context.Context) (*Context, error) {
 	appCtx := newCtxWithTenant(nil)
-	whoAmI := ctx.Value(WhoAmIKey).(string)
+	var whoAmI string
+	if ctx.Value(WhoAmIKey) != nil {
+		whoAmI = ctx.Value(WhoAmIKey).(string)
+	}
 	if whoAmI != "" {
 		appCtx.WhoAmI = whoAmI
 	}

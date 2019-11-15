@@ -14,33 +14,33 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package portal
 
 import (
-	"fmt"
+	"context"
 
-	"github.com/minio/cli"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/minio/m3/cluster"
+
 	pb "github.com/minio/m3/portal/stubs"
 )
 
-// Setups the cluster database
-var setupDbCmd = cli.Command{
-	Name:   "db",
-	Usage:  "runs DB migrations",
-	Action: setupDB,
+// Setup performs the cluster setup operation
+func (ps *privateServer) Setup(ctx context.Context, in *pb.AdminEmpty) (*pb.AdminEmpty, error) {
+	err := cluster.SetupM3()
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	return &pb.AdminEmpty{}, nil
 }
 
-func setupDB(ctx *cli.Context) error {
-	cnxs, err := GetGRPCChannel()
+// Setup performs the cluster setup operation
+func (ps *privateServer) SetupDB(ctx context.Context, in *pb.AdminEmpty) (*pb.AdminEmpty, error) {
+	err := cluster.SetupDBAction()
 	if err != nil {
-		fmt.Println(err)
-		return err
+		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
-	defer cnxs.Conn.Close()
-	_, err = cnxs.Client.SetupDB(cnxs.Context, &pb.AdminEmpty{})
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	return nil
+	return &pb.AdminEmpty{}, nil
 }

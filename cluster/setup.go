@@ -19,6 +19,7 @@ package cluster
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"k8s.io/client-go/kubernetes"
 
@@ -52,6 +53,38 @@ func SetupM3() error {
 	fmt.Println("Setting up jwt secret")
 	SetupJwtSecrets()
 	return nil
+}
+
+// SetupDBAction runs all the operations to setup the DB or migrate it
+func SetupDBAction() error {
+	// setup the tenants shared db
+	err := CreateProvisioningSchema()
+	if err != nil {
+		// this error could be because the database already exists, so we are going to tolerate it.
+		fmt.Println(err)
+	}
+	err = CreateTenantsSharedDatabase()
+	if err != nil {
+		// this error could be because the database already exists, so we are going to tolerate it.
+		fmt.Println(err)
+	}
+	// run the migrations
+	err = RunMigrations()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	//we'll try to re-add the first admin, if it fails we can tolerate it
+	adminName := os.Getenv("ADMIN_NAME")
+	adminEmail := os.Getenv("ADMIN_EMAIL")
+	err = AddM3Admin(adminName, adminEmail)
+	if err != nil {
+		fmt.Println("admin m3 error")
+		//we can tolerate this failure
+		fmt.Println(err)
+	}
+
+	return err
 }
 
 // setupM3Namespace Setups the namespace used by the provisioning service
@@ -244,7 +277,7 @@ events {
 
 // This runs all the migrations on the cluster/migrations folder, if some migrations were already applied it then will
 // apply the missing migrations.
-func RunMigrations() {
+func RunMigrations() error {
 	// Get the Database configuration
 	dbConfg := GetM3DbConfig()
 	// Build the database URL connection
@@ -265,12 +298,13 @@ func RunMigrations() {
 		databaseURL)
 	if err != nil {
 		log.Println("error connecting to database or reading migrations")
-		log.Fatal(err)
+		return err
 	}
 	if err := m.Up(); err != nil {
 		log.Println("Error migrating up")
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }
 
 // CreateTenantSchema creates a db schema for the tenant
@@ -317,6 +351,7 @@ func AddM3Admin(name, email string) error {
 		fmt.Println("Error adding user:", err.Error())
 		return err
 	}
+	apptCtx.Commit()
 	fmt.Println("Admin was added")
 	return nil
 }

@@ -134,10 +134,5 @@ func SetAdminPasswordAction(ctx *Context, tokenID *uuid.UUID, password string) e
 	if err != nil {
 		return err
 	}
-	// if all is good, commit
-	err = ctx.Commit()
-	if err != nil {
-		return err
-	}
 	return nil
 }
