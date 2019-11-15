@@ -88,7 +88,7 @@ func (ps *privateServer) TenantUserForgotPassword(ctx context.Context, in *pb.Te
 	}
 	appCtx.ControlCtx = ctx
 
-	user, err := cluster.GetUserByEmail(appCtx, in.Tenant, in.Email)
+	user, err := cluster.GetUserByEmail(appCtx, in.Email)
 	if err != nil {
 		return nil, err
 	}
