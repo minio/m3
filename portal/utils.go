@@ -19,6 +19,8 @@ package portal
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 	"time"
 
 	cluster "github.com/minio/m3/cluster"
@@ -36,20 +38,51 @@ func UTCNow() time.Time {
 	return time.Now().UTC()
 }
 
+// getHeaderFromRequest returns the HeaderValye from grpc metadata
+func getHeaderFromRequest(ctx context.Context, key string) (keyValue string, err error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", errors.New("request metadata not found")
+	}
+
+	switch sIds := md.Get(key); len(sIds) {
+	case 0:
+		return "", fmt.Errorf("%s not found", key)
+	default:
+		keyValue = sIds[0]
+	}
+	return keyValue, nil
+}
+
+// getSessionByID returns the session row if the session is valid
+func getSessionByID(ctx context.Context) (session *cluster.Session, err error) {
+	sessionID, err := getHeaderFromRequest(ctx, "sessionId")
+	if err != nil {
+		return nil, err
+	}
+	// Prepare DB instance
+	db := cluster.GetInstance().Db
+	// Get tenant name from the DB
+	query := `SELECT s.id, s.tenant_id, s.user_id, s.occurred_at, s.last_event, s.expires_at, s.status
+							FROM sessions as s
+							WHERE s.id = $1`
+
+	tenantRow := db.QueryRow(query, sessionID)
+	qSession := &cluster.Session{}
+	err = tenantRow.Scan(&qSession.ID, &qSession.TenantID, &qSession.UserID, &qSession.OcurredAt, &qSession.LastEvent, &qSession.ExpiresAt, &qSession.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	return qSession, err
+}
+
 // getSessionRowIdAndTenantName validates the sessionID available in the grpc
 // metadata headers and returns the session row id and tenant's shortname
 func getSessionRowIDAndTenantName(ctx context.Context) (string, string, error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return "", "", status.New(codes.Unauthenticated, "SessionId not found").Err()
-	}
-
-	var sessionID string
-	switch sIds := md.Get("sessionId"); len(sIds) {
-	case 0:
-		return "", "", status.New(codes.Unauthenticated, "SessionId not found").Err()
-	default:
-		sessionID = sIds[0]
+	sessionID, err := getHeaderFromRequest(ctx, "sessionId")
+	if err != nil {
+		return "", "", status.New(codes.InvalidArgument, err.Error()).Err()
 	}
 
 	// With validating sessionID behind us, we query the tenant MinIO
@@ -67,8 +100,7 @@ func getSessionRowIDAndTenantName(ctx context.Context) (string, string, error) {
 		tenantShortname string
 		sessionRowID    string
 	)
-	err := tenantRow.Scan(&sessionRowID, &tenantShortname)
-
+	err = tenantRow.Scan(&sessionRowID, &tenantShortname)
 	if err == sql.ErrNoRows {
 		return "", "", status.New(codes.Unauthenticated, "Session invalid or expired").Err()
 	}

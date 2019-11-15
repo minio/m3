@@ -299,6 +299,7 @@ message User {
     string name = 1;
     string email = 2;
     string id = 3;
+    bool is_me = 4;
 }
 
 message UserActionRequest {
