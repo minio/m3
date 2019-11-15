@@ -63,8 +63,11 @@ func (s *server) UserAddInvite(ctx context.Context, in *pb.InviteRequest) (*pb.E
 	// Create user on db
 	err = cluster.AddUser(appCtx, &newUser)
 	if err != nil {
-		if err.(*pq.Error).Code.Name() == uniqueViolationError {
-			return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()
+		_, ok := err.(*pq.Error)
+		if ok {
+			if err.(*pq.Error).Code.Name() == uniqueViolationError {
+				return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()
+			}
 		}
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -109,9 +112,13 @@ func (s *server) UserResetPasswordInvite(ctx context.Context, in *pb.InviteReque
 	// Create user on db
 	err = cluster.AddUser(appCtx, &newUser)
 	if err != nil {
-		if err.(*pq.Error).Code.Name() == uniqueViolationError {
-			return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()
+		_, ok := err.(*pq.Error)
+		if ok {
+			if err.(*pq.Error).Code.Name() == uniqueViolationError {
+				return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()
+			}
 		}
+
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
@@ -144,8 +151,11 @@ func (s *server) AddUser(ctx context.Context, in *pb.AddUserRequest) (*pb.User, 
 	err = cluster.AddUser(appCtx, &newUser)
 	if err != nil {
 		appCtx.Rollback()
-		if err.(*pq.Error).Code.Name() == uniqueViolationError {
-			return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()
+		_, ok := err.(*pq.Error)
+		if ok {
+			if err.(*pq.Error).Code.Name() == uniqueViolationError {
+				return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()
+			}
 		}
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
