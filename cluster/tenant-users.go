@@ -214,7 +214,7 @@ func GetTotalNumberOfUsers(ctx *Context) (int, error) {
 }
 
 // InviteUserByEmail creates a temporary token to signup/reset password for service and send an email to the provided user
-func InviteUserByEmail(ctx *Context, usedFor string, user *User, emailTemplate string) error {
+func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 
 	// generate a token for the email invite
 	// this token expires in 72 hours
@@ -248,6 +248,13 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User, emailTemplate s
 		Name: user.Name,
 		URL:  signupURL,
 	}
+	emailTemplate := "invite"
+	subject := fmt.Sprintf("Signup for %s Storage", tenant.Name)
+	if usedFor == TokenResetPasswordEmail {
+		emailTemplate = "forgot-password"
+		subject = fmt.Sprintf("Forgot Password -  %s Storage", tenant.Name)
+	}
+
 	// Get the mailing template for inviting users
 	body, err := GetTemplate(emailTemplate, templateData)
 	if err != nil {
@@ -255,7 +262,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User, emailTemplate s
 	}
 
 	// send the email
-	err = SendMail(user.Name, user.Email, fmt.Sprintf("Signup for %s Storage", tenant.Name), *body)
+	err = SendMail(user.Name, user.Email, subject, *body)
 	if err != nil {
 		return err
 	}
