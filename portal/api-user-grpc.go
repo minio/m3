@@ -276,7 +276,7 @@ func (s *server) ChangePassword(ctx context.Context, in *pb.ChangePasswordReques
 	// Invalidate Session
 	err = cluster.UpdateSessionStatus(appCtx, sessionRowID, "invalid")
 	if err != nil {
-		return nil, status.New(codes.InvalidArgument, err.Error()).Err()
+		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 	return &pb.Empty{}, err
 }
