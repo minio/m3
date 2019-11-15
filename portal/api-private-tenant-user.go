@@ -18,7 +18,6 @@ package portal
 
 import (
 	"context"
-	"log"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,7 +27,7 @@ import (
 	pb "github.com/minio/m3/portal/stubs"
 )
 
-// TenantBucketAdd rpc to add a new bucket inside a tenant
+// TenantUserAdd rpc to add a new user inside a tenant
 func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAddRequest) (*pb.TenantUserAddResponse, error) {
 	if in.Tenant == "" {
 		return nil, status.New(codes.InvalidArgument, "You must provide tenant name").Err()
@@ -50,14 +49,12 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 
 	appCtx, err := cluster.NewContext(in.Tenant)
 	if err != nil {
-		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	// perform the action
 	err = cluster.AddUser(appCtx, &user)
 	if err != nil {
 		appCtx.Rollback()
-		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
@@ -75,4 +72,36 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 		return nil, status.New(codes.Internal, "Error creating user:"+err.Error()).Err()
 	}
 	return &pb.TenantUserAddResponse{}, nil
+}
+
+// TenantUserForgotPassword starts the forgot password flow for the given user
+func (ps *privateServer) TenantUserForgotPassword(ctx context.Context, in *pb.TenantUserForgotPasswordRequest) (*pb.TenantUserForgotPasswordResponse, error) {
+	if in.Tenant == "" {
+		return nil, status.New(codes.InvalidArgument, "You must provide tenant name").Err()
+	}
+	if in.Email == "" {
+		return nil, status.New(codes.InvalidArgument, "User email is needed").Err()
+	}
+	appCtx, err := cluster.NewContext(in.Tenant)
+	if err != nil {
+		return nil, status.New(codes.InvalidArgument, "Invalid tenant").Err()
+	}
+	appCtx.ControlCtx = ctx
+
+	user, err := cluster.GetUserByEmail(appCtx, in.Tenant, in.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	// Send email invitation with token
+	err = cluster.InviteUserByEmail(appCtx, cluster.TokenResetPasswordEmail, &user)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	// if no errors, commit
+	err = appCtx.Commit()
+	if err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	return &pb.TenantUserForgotPasswordResponse{}, nil
 }

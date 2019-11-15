@@ -248,14 +248,21 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 		Name: user.Name,
 		URL:  signupURL,
 	}
+	emailTemplate := "invite"
+	subject := fmt.Sprintf("Signup for %s Storage", tenant.Name)
+	if usedFor == TokenResetPasswordEmail {
+		emailTemplate = "forgot-password"
+		subject = fmt.Sprintf("Forgot Password -  %s Storage", tenant.Name)
+	}
+
 	// Get the mailing template for inviting users
-	body, err := GetTemplate("invite", templateData)
+	body, err := GetTemplate(emailTemplate, templateData)
 	if err != nil {
 		return err
 	}
 
 	// send the email
-	err = SendMail(user.Name, user.Email, fmt.Sprintf("Signup for %s Storage", tenant.Name), *body)
+	err = SendMail(user.Name, user.Email, subject, *body)
 	if err != nil {
 		return err
 	}
