@@ -250,6 +250,15 @@ func (s *server) ChangePassword(ctx context.Context, in *pb.ChangePasswordReques
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
+
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+		// if no error happened to this point commit transaction
+		err = appCtx.Commit()
+	}()
 	// Get user row from db
 	userObj, err := cluster.GetUserByID(appCtx, sessionObj.UserID)
 	if err != nil {
@@ -262,15 +271,14 @@ func (s *server) ChangePassword(ctx context.Context, in *pb.ChangePasswordReques
 	// Hash the new password and update the it
 	err = cluster.SetUserPassword(appCtx, &userObj.ID, newPassword)
 	if err != nil {
-		appCtx.Rollback()
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
-	// Commit transcation
-	err = appCtx.Commit()
+	// Invalidate Session
+	err = cluster.UpdateSessionStatus(appCtx, sessionRowID, "invalid")
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
-	return &pb.Empty{}, nil
+	return &pb.Empty{}, err
 }
 
 func (s *server) DisableUser(ctx context.Context, in *pb.UserActionRequest) (*pb.UserActionResponse, error) {
