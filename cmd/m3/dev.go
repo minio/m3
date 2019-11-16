@@ -99,7 +99,7 @@ func dev(ctx *cli.Context) error {
 	initialized := false
 	nginxInitialized := false
 
-	// informer factorys
+	// informer factory
 	factory := informers.NewSharedInformerFactory(clientset, 0)
 
 	// monitor m3 with pod informer
@@ -109,7 +109,7 @@ func dev(ctx *cli.Context) error {
 			pod := obj.(*v1.Pod)
 			if strings.HasPrefix(pod.ObjectMeta.Name, "m3") {
 				fmt.Println("An m3 pod was added:", pod.ObjectMeta.Name)
-				// we are going to ignore the first registed pod
+				// we are going to ignore the first registered pod
 				if !initialized {
 					initialized = true
 					fmt.Println("Initialized Pod Informer")
@@ -123,7 +123,7 @@ func dev(ctx *cli.Context) error {
 			// monitor nginx
 			if strings.HasPrefix(pod.ObjectMeta.Name, "nginx") {
 				fmt.Println("An nginx pod was added:", pod.ObjectMeta.Name)
-				// we are going to ignore the first registed pod
+				// we are going to ignore the first registered pod
 				if !nginxInitialized {
 					nginxInitialized = true
 					fmt.Println("Initialized Pod Informer")
@@ -146,25 +146,27 @@ func dev(ctx *cli.Context) error {
 	go podInformer.Run(doneCh)
 
 	// monitor if a channel gets closed
+OuterLoop:
 	for {
 		select {
 		case <-publicCh:
 			fmt.Println("Public port forward closed, restarting it after 2 seconds")
 			time.Sleep(time.Second * 2)
-			publicCh = servicePortForwardPort(m3PFCtx, kindk8sConf, "m3", "50051", color.BgBlue)
+			publicCh = servicePortForwardPort(m3PFCtx, kindk8sConf, "m3", "50051", color.FgBlue)
 		case <-privateCh:
 			fmt.Println("Private port forward closed, restarting it after 2 seconds")
 			time.Sleep(time.Second * 2)
-			privateCh = servicePortForwardPort(m3PFCtx, kindk8sConf, "m3", "50052", color.BgGreen)
+			privateCh = servicePortForwardPort(m3PFCtx, kindk8sConf, "m3", "50052", color.FgGreen)
 		case <-nginxCh:
 			fmt.Println("Nginx port forward closed, restarting it after 2 seconds")
 			time.Sleep(time.Second * 2)
-			nginxCh = servicePortForwardPort(m3PFCtx, kindk8sConf, "nginx-resolver", "9000:80", color.BgCyan)
+			nginxCh = servicePortForwardPort(m3PFCtx, kindk8sConf, "nginx-resolver", "9000:80", color.FgCyan)
+		case <-doneCh:
+			break OuterLoop
 		}
+
 	}
 	// about to exit
-	m3Cancel()
-	nCancel()
 	return nil
 }
 
@@ -193,7 +195,6 @@ func servicePortForwardPort(ctx context.Context, kindk8sConf, service, port stri
 		cmd.Env = os.Environ()
 		cmd.Env = append(cmd.Env, fmt.Sprintf("KUBECONFIG=%s", kindk8sConf))
 		// prepare to capture the output
-		var stdout, _ []byte
 		var errStdout, errStderr error
 		stdoutIn, _ := cmd.StdoutPipe()
 		stderrIn, _ := cmd.StderrPipe()
@@ -208,21 +209,21 @@ func servicePortForwardPort(ctx context.Context, kindk8sConf, service, port stri
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {
-			stdout, errStdout = copyAndCapture(os.Stdout, stdoutIn, dcolor)
+			errStdout = copyAndCapture(stdoutIn, dcolor)
 			wg.Done()
 		}()
 
-		_, errStderr = copyAndCapture(os.Stderr, stderrIn, dcolor)
+		errStderr = copyAndCapture(stderrIn, dcolor)
 
 		wg.Wait()
 
 		err = cmd.Wait()
 		if err != nil {
-			log.Println("cmd.Run() failed with %s\n", err)
+			log.Printf("cmd.Run() failed with %s\n", err.Error())
 			return
 		}
 		if errStdout != nil || errStderr != nil {
-			log.Println("failed to capture stdout or stderr\n")
+			log.Printf("failed to capture stdout or stderr\n")
 			return
 		}
 		//outStr, errStr := string(stdout), string(stderr)
@@ -232,9 +233,9 @@ func servicePortForwardPort(ctx context.Context, kindk8sConf, service, port stri
 }
 
 // capture and print the output of the command
-func copyAndCapture(w io.Writer, r io.Reader, dcolor color.Attribute) ([]byte, error) {
+func copyAndCapture(r io.Reader, dcolor color.Attribute) error {
 	var out []byte
-	buf := make([]byte, 1024, 1024)
+	buf := make([]byte, 1024)
 	for {
 		n, err := r.Read(buf[:])
 		if n > 0 {
@@ -245,7 +246,7 @@ func copyAndCapture(w io.Writer, r io.Reader, dcolor color.Attribute) ([]byte, e
 			_, err := theColor.Print(string(d))
 
 			if err != nil {
-				return out, err
+				return err
 			}
 		}
 		if err != nil {
@@ -253,7 +254,7 @@ func copyAndCapture(w io.Writer, r io.Reader, dcolor color.Attribute) ([]byte, e
 			if err == io.EOF {
 				err = nil
 			}
-			return out, err
+			return err
 		}
 	}
 }
