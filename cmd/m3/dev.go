@@ -37,7 +37,6 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/minio/cli"
-	"k8s.io/api/extensions/v1beta1"
 )
 
 // Development command, will port-forward the public and private interfaces of m3 and the
@@ -102,19 +101,6 @@ func dev(ctx *cli.Context) error {
 
 	// informer factorys
 	factory := informers.NewSharedInformerFactory(clientset, 0)
-	// monitor nginx with informer
-	deploymentInformer := factory.Extensions().V1beta1().Deployments().Informer()
-	deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		UpdateFunc: func(oldObj, obj interface{}) {
-			deployment := obj.(*v1beta1.Deployment)
-			if deployment.GetLabels()["app"] == "nginx-resolver" && len(deployment.Status.Conditions) > 0 && deployment.Status.Conditions[0].Status == "True" {
-				fmt.Println("nginx-resolver deployment created correctly")
-				close(nginxCh)
-			}
-		},
-	})
-
-	go deploymentInformer.Run(doneCh)
 
 	// monitor m3 with pod informer
 	podInformer := factory.Core().V1().Pods().Informer()
