@@ -5,13 +5,15 @@ MinIO Kubernetes Cloud
 
 - [Docker](https://docs.docker.com/install/)
 
-- [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+
+A binary release can be downloaded via 
 
 ```
 curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
 ```
 
-- [Kubefwd](https://github.com/txn2/kubefwd)
+- [Kubefwd](https://github.com/txn2/kubefwd) (Optional)
 
 ```
 go get github.com/txn2/kubefwd/cmd/kubefwd
@@ -27,7 +29,7 @@ go get github.com/golang/protobuf/protoc-gen-go
 
 ## Installation
 
-- Install [`kind`](https://kind.sigs.k8s.io/docs/user/quick-start/)
+- Install [kind](https://kind.sigs.k8s.io/docs/user/quick-start/)
 
 ```
 go get sigs.k8s.io/kind@v0.5.1
@@ -56,19 +58,12 @@ export KUBECONFIG=$(kind get kubeconfig-path --name="m3cluster")
 kubectl proxy
 ```
 
-- Log in to the dashboard at  http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login
+- Log in to the dashboard at `http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login`
 
 - To get the access token
 
-On *nix:
 ```
 kubectl get secret $(kubectl get serviceaccount dashboard -o jsonpath="{.secrets[0].name}") -o jsonpath="{.data.token}" | base64 --decode
-```
-
-On macOS:
-
-```
-kubectl get secret $(kubectl get serviceaccount dashboard -o jsonpath="{.secrets[0].name}") -o jsonpath="{.data.token}" | base64 --decode | pbcopy
 ```
 
 ## Setup `m3`
@@ -80,7 +75,7 @@ kubectl get secret $(kubectl get serviceaccount dashboard -o jsonpath="{.secrets
 make m3
 ```
 
-- Build `m3` local docker image and push it to your k8s
+- Build `m3` local docker image and push it to your local kubernetes
 
 ```
 make k8sdev
@@ -96,10 +91,10 @@ A valid `smtp` account is needed, if you don't have one we recommend you create 
 kubectl apply -f k8s/deployments/m3-deployment.yaml
 ``` 
 
-- Make m3 reachable
+- Start m3 development environment
 
 ```
-kubectl port-forward service/m3 50052
+./m3 dev
 ```
 
 - Run `m3 setup` on the local kubernetes
@@ -187,8 +182,12 @@ or
 
 ## Accessing the tenant MinIO service via browser UI
 
+The nginx router should be exposed on your local on port `9000` after doing `./m3 dev`
+
+Modify your `/etc/hosts` and add the following record
+
 ```
-kubectl port-forward svc/nginx-resolver 1337:80
+127.0.0.1   s3.localhost
 ```
 
-Then in your browser go to: http://company-short-name.s3.localhost:1337/, you can add more tenants and access them via a subdomain in localhost for now.
+Then in your browser go to: http://company-short-name.s3.localhost:9000/, you can add more tenants and access them via a subdomain in localhost for now.
