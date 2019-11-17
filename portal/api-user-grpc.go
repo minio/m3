@@ -52,8 +52,7 @@ func (s *server) UserWhoAmI(ctx context.Context, in *pb.Empty) (*pb.User, error)
 	return &pb.User{
 		Name:  userObj.Name,
 		Email: userObj.Email,
-		Id:    userObj.ID.String(),
-		IsMe:  true}, nil
+		Id:    userObj.ID.String()}, nil
 }
 
 // UserAddInvite invites a new user to the tenant's system by sending an email
@@ -206,23 +205,16 @@ func (s *server) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*pb.Li
 		return nil, status.New(codes.Internal, "Error getting Users").Err()
 	}
 
-	sessionID, err := getHeaderFromRequest(ctx, "sessionId")
-	if err != nil {
-		return nil, err
-	}
-	sessionObj, err := getSessionByID(sessionID)
-	if err != nil {
-		return nil, status.New(codes.Internal, err.Error()).Err()
-	}
-
 	var respUsers []*pb.User
 	for _, user := range users {
 		// TODO create a WhoAmI endpoint instead of using IsMe on ListUsers
-		if user.ID == sessionObj.UserID {
-			respUsers = append(respUsers, &pb.User{Id: user.ID.String(), Name: user.Name, IsMe: true, Email: user.Email})
-		} else {
-			respUsers = append(respUsers, &pb.User{Id: user.ID.String(), Name: user.Name, IsMe: false, Email: user.Email})
-		}
+		usr := &pb.User{
+			Id:      user.ID.String(),
+			Name:    user.Name,
+			Email:   user.Email,
+			Enabled: user.Enabled}
+		respUsers = append(respUsers, usr)
+
 	}
 	return &pb.ListUsersResponse{Users: respUsers, TotalUsers: int32(total)}, nil
 }

@@ -269,6 +269,13 @@ message AccessControlRequest {
     Access access = 2;
 }
 
+message User {
+    string name = 1;
+    string email = 2;
+    string id = 3;
+    bool enabled = 4;
+}
+
 // Request a list of users on the tenant account
 message ListUsersRequest {
     string sort_by = 1;
@@ -294,14 +301,6 @@ message AddUserRequest {
     string email = 2;
     // optional
     string password = 3;
-}
-
-message User {
-    // Identifier for the user
-    string name = 1;
-    string email = 2;
-    string id = 3;
-    bool is_me = 4;
 }
 
 message UserActionRequest {
