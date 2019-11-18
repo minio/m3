@@ -20,7 +20,7 @@ import (
 	"log"
 
 	"github.com/minio/cli"
-	"github.com/minio/m3/portal"
+	"github.com/minio/m3/api"
 )
 
 // list files and folders.
@@ -33,8 +33,8 @@ var portalCmd = cli.Command{
 
 func startAPIServiceCmd(ctx *cli.Context) error {
 	log.Println("Starting m3 services...")
-	publicCh := portal.InitPublicAPIServiceGRPCServer()
-	privateCh := portal.InitPrivateAPIServiceGRPCServer()
+	publicCh := api.InitPublicAPIServiceGRPCServer()
+	privateCh := api.InitPrivateAPIServiceGRPCServer()
 
 	select {
 	case <-publicCh:

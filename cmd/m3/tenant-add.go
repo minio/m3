@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/minio/cli"
-	pb "github.com/minio/m3/portal/stubs"
+	pb "github.com/minio/m3/api/stubs"
 )
 
 // list files and folders.

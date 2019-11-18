@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package portal
+package api
 
 import (
 	"context"
@@ -23,8 +23,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	pb "github.com/minio/m3/api/stubs"
 	cluster "github.com/minio/m3/cluster"
-	pb "github.com/minio/m3/portal/stubs"
 )
 
 // SetPassword requires the ulr token from an invitation to continue setting a user's password

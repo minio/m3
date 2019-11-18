@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package portal
+package api
 
 import (
 	"context"
 
 	"github.com/lib/pq"
+	pb "github.com/minio/m3/api/stubs"
 	cluster "github.com/minio/m3/cluster"
-	pb "github.com/minio/m3/portal/stubs"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

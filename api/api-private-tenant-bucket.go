@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package portal
+package api
 
 import (
 	"context"
@@ -25,15 +25,22 @@ import (
 
 	"github.com/minio/m3/cluster"
 
-	pb "github.com/minio/m3/portal/stubs"
+	pb "github.com/minio/m3/api/stubs"
 )
 
-// AddTenant rpc to add a new tenant and it's first user
-func (ps *privateServer) TenantAdd(ctx context.Context, in *pb.TenantAddRequest) (*pb.TenantAddResponse, error) {
-	err := cluster.TenantAddAction(in.Name, in.ShortName, in.UserName, in.UserEmail)
-	if err != nil {
-		fmt.Println(err.Error())
-		return nil, status.New(codes.Internal, fmt.Sprintf("Internal error %s", err.Error())).Err()
+// TenantBucketAdd rpc to add a new bucket inside a tenant
+func (ps *privateServer) TenantBucketAdd(ctx context.Context, in *pb.TenantBucketAddRequest) (*pb.TenantBucketAddResponse, error) {
+	if in.Tenant == "" {
+		return nil, status.New(codes.InvalidArgument, "You must provide tenant name").Err()
 	}
-	return &pb.TenantAddResponse{}, nil
+
+	if in.BucketName == "" {
+		return nil, status.New(codes.InvalidArgument, "A bucket name is needed").Err()
+	}
+	err := cluster.MakeBucket(in.Tenant, in.BucketName, cluster.BucketPrivate)
+	if err != nil {
+		fmt.Println("Error creating bucket:", err.Error())
+		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
+	}
+	return &pb.TenantBucketAddResponse{}, nil
 }

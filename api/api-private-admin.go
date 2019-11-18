@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package portal
+package api
 
 import (
 	"context"
@@ -25,8 +25,8 @@ import (
 
 	uuid "github.com/satori/go.uuid"
 
+	pb "github.com/minio/m3/api/stubs"
 	"github.com/minio/m3/cluster"
-	pb "github.com/minio/m3/portal/stubs"
 )
 
 // AdminAdd rpc that adds a new admin to the cluster

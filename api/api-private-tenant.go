@@ -14,33 +14,26 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package portal
+package api
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/minio/m3/cluster"
 
-	pb "github.com/minio/m3/portal/stubs"
+	pb "github.com/minio/m3/api/stubs"
 )
 
-// Setup performs the cluster setup operation
-func (ps *privateServer) Setup(ctx context.Context, in *pb.AdminEmpty) (*pb.AdminEmpty, error) {
-	err := cluster.SetupM3()
+// AddTenant rpc to add a new tenant and it's first user
+func (ps *privateServer) TenantAdd(ctx context.Context, in *pb.TenantAddRequest) (*pb.TenantAddResponse, error) {
+	err := cluster.TenantAddAction(in.Name, in.ShortName, in.UserName, in.UserEmail)
 	if err != nil {
-		return nil, status.New(codes.Internal, err.Error()).Err()
+		fmt.Println(err.Error())
+		return nil, status.New(codes.Internal, fmt.Sprintf("Internal error %s", err.Error())).Err()
 	}
-	return &pb.AdminEmpty{}, nil
-}
-
-// Setup performs the cluster setup operation
-func (ps *privateServer) SetupDB(ctx context.Context, in *pb.AdminEmpty) (*pb.AdminEmpty, error) {
-	err := cluster.SetupDBAction()
-	if err != nil {
-		return nil, status.New(codes.Internal, err.Error()).Err()
-	}
-	return &pb.AdminEmpty{}, nil
+	return &pb.TenantAddResponse{}, nil
 }

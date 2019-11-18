@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package portal
+package api
 
 import (
 	"log"
 	"net"
 
-	"github.com/minio/m3/portal/authentication"
-	pb "github.com/minio/m3/portal/stubs"
+	"github.com/minio/m3/api/authentication"
+	pb "github.com/minio/m3/api/stubs"
 	"google.golang.org/grpc"
 )
 

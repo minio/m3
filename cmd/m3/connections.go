@@ -24,7 +24,7 @@ import (
 
 	"google.golang.org/grpc/metadata"
 
-	pb "github.com/minio/m3/portal/stubs"
+	pb "github.com/minio/m3/api/stubs"
 	"google.golang.org/grpc"
 )
 

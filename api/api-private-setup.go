@@ -14,33 +14,33 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package portal
+package api
 
 import (
 	"context"
-	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/minio/m3/cluster"
 
-	pb "github.com/minio/m3/portal/stubs"
+	pb "github.com/minio/m3/api/stubs"
 )
 
-// TenantBucketAdd rpc to add a new bucket inside a tenant
-func (ps *privateServer) TenantBucketAdd(ctx context.Context, in *pb.TenantBucketAddRequest) (*pb.TenantBucketAddResponse, error) {
-	if in.Tenant == "" {
-		return nil, status.New(codes.InvalidArgument, "You must provide tenant name").Err()
-	}
-
-	if in.BucketName == "" {
-		return nil, status.New(codes.InvalidArgument, "A bucket name is needed").Err()
-	}
-	err := cluster.MakeBucket(in.Tenant, in.BucketName, cluster.BucketPrivate)
+// Setup performs the cluster setup operation
+func (ps *privateServer) Setup(ctx context.Context, in *pb.AdminEmpty) (*pb.AdminEmpty, error) {
+	err := cluster.SetupM3()
 	if err != nil {
-		fmt.Println("Error creating bucket:", err.Error())
-		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
+		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
-	return &pb.TenantBucketAddResponse{}, nil
+	return &pb.AdminEmpty{}, nil
+}
+
+// Setup performs the cluster setup operation
+func (ps *privateServer) SetupDB(ctx context.Context, in *pb.AdminEmpty) (*pb.AdminEmpty, error) {
+	err := cluster.SetupDBAction()
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	return &pb.AdminEmpty{}, nil
 }

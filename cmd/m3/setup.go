@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/minio/cli"
-	pb "github.com/minio/m3/portal/stubs"
+	pb "github.com/minio/m3/api/stubs"
 )
 
 // Setups the m3 cluster
