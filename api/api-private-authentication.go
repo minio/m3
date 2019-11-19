@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package portal
+package api
 
 import (
 	"context"
@@ -24,7 +24,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	pb "github.com/minio/m3/portal/stubs"
+	pb "github.com/minio/m3/api/stubs"
 )
 
 // Login rpc to generate a session for an admin
@@ -66,4 +66,8 @@ func (ps *privateServer) Login(ctx context.Context, in *pb.CLILoginRequest) (*pb
 		RefreshTokenExpires: session.RefreshExpiresAt.Unix(),
 	}
 	return res, nil
+}
+
+func (ps *privateServer) ValidateSession(ctx context.Context, in *pb.AdminEmpty) (*pb.AdminEmpty, error) {
+	return &pb.AdminEmpty{}, nil
 }

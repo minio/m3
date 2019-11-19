@@ -2,7 +2,7 @@ default: grpc
 
 grpc:
 	@echo "Generating grpc stubs"
-	@protoc -I=protos protos/*.proto --go_out=plugins=grpc:portal/stubs
+	@protoc -I=protos protos/*.proto --go_out=plugins=grpc:api/stubs
 
 grpc-gateway:
 	@echo "Generating grpc-gateway stubs"

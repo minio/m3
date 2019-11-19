@@ -19,7 +19,7 @@ package main
 import (
 	"fmt"
 
-	pb "github.com/minio/m3/portal/stubs"
+	pb "github.com/minio/m3/api/stubs"
 
 	"github.com/minio/cli"
 )

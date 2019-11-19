@@ -14,31 +14,26 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package portal
+package api
 
 import (
-	"encoding/json"
-	"log"
-	"net/http"
+	"context"
+	"fmt"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/minio/m3/cluster"
+
+	pb "github.com/minio/m3/api/stubs"
 )
 
-// Version is the API version of the portal API.
-// The portal API follows semantic versioning.
-//
-//   1.0.0 => 2.0.0   // major change: when you make incompatible API changes
-//   1.0.y => 1.1.y   // minor change: when you add functionality in a backwards compatible manner
-//   1.0.0 => 1.0.1   // patch change  version when you make backwards compatible bug fixes
-const Version = `0.1.0`
-
-// Compiler checks
-var (
-	_ http.HandlerFunc = APIVersion
-)
-
-func APIVersion(w http.ResponseWriter, r *http.Request) {
-	output, err := json.Marshal(Version)
+// AddTenant rpc to add a new tenant and it's first user
+func (ps *privateServer) TenantAdd(ctx context.Context, in *pb.TenantAddRequest) (*pb.TenantAddResponse, error) {
+	err := cluster.TenantAddAction(in.Name, in.ShortName, in.UserName, in.UserEmail)
 	if err != nil {
-		log.Fatal("Cannot Marshal error")
+		fmt.Println(err.Error())
+		return nil, status.New(codes.Internal, fmt.Sprintf("Internal error %s", err.Error())).Err()
 	}
-	w.Write(output)
+	return &pb.TenantAddResponse{}, nil
 }

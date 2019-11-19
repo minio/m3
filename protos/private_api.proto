@@ -47,6 +47,9 @@ service PrivateAPI {
     }
     rpc Login (CLILoginRequest) returns (CLILoginResponse) {
     }
+    // Session related
+    rpc ValidateSession (AdminEmpty) returns (AdminEmpty) {
+    }
     // Cluster Operations
     rpc ClusterScSgAdd (StorageGroupAddRequest) returns (StorageGroupAddResponse) {
     }

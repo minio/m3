@@ -21,7 +21,7 @@ import (
 	"syscall"
 
 	"github.com/minio/cli"
-	pb "github.com/minio/m3/portal/stubs"
+	pb "github.com/minio/m3/api/stubs"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
