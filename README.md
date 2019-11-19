@@ -32,7 +32,7 @@ go get github.com/golang/protobuf/protoc-gen-go
 - Install [kind](https://kind.sigs.k8s.io/docs/user/quick-start/)
 
 ```
-go get sigs.k8s.io/kind@v0.5.1
+go get sigs.k8s.io/kind@v0.6.0
 ```
 
 ## Setup a local kubernetes (`m3cluster`) using kind
