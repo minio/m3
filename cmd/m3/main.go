@@ -48,7 +48,7 @@ VERSION:
 `
 
 var appCmds = []cli.Command{
-	portalCmd,
+	serviceCmd,
 	clusterCmd,
 	tenantCmd,
 	setupCmd,
@@ -57,6 +57,7 @@ var appCmds = []cli.Command{
 	loginCmd,
 	setPasswordCmd,
 	devCmd,
+	portalCmd,
 }
 
 func main() {

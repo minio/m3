@@ -1,6 +1,6 @@
 {
-  "short_name": "ACME Storage",
-  "name": "Create ACME Storage Sample",
+  "short_name": "React App",
+  "name": "Create React App Sample",
   "icons": [
     {
       "src": "favicon.ico",
