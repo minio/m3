@@ -72,6 +72,12 @@ func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &nginxLBReplicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app":  deploymentName,
+					"type": "nginx-resolver",
+				},
+			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
