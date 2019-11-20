@@ -12,6 +12,7 @@ swagger-def:
 	@echo "Generating swagger-def stubs"
 	@protoc -I=protos --swagger_out=logtostderr=true:. protos/public_api.proto
 
+.PHONY: m3
 m3:
 	@echo "Building m3 binary to './m3'"
 	@(cd cmd/m3; CGO_ENABLED=0 go build --ldflags "-s -w" -o ../../m3)
