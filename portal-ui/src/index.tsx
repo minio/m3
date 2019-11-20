@@ -14,26 +14,25 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
+import * as serviceWorker from './serviceWorker';
 
-import (
-	"github.com/minio/m3/portal"
+ReactDOM.render(<App />, document.getElementById('root'));
 
-	"github.com/minio/cli"
-)
-
-// list files and folders.
-var portalCmd = cli.Command{
-	Name:    "portal",
-	Aliases: []string{"s"},
-	Usage:   "starts the portal backend",
-	Action:  startPortalServer,
+if (module.hot) {
+    module.hot.accept('./App', () => {
+        const NextApp = require('./App').default
+        ReactDOM.render(
+            <NextApp />,
+            document.getElementById('root')
+        )
+    })
 }
 
-func startPortalServer(ctx *cli.Context) error {
-	err := portal.StartPortal()
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// If you want your app to work offline and load faster, you can change
+// unregister() to register() below. Note this comes with some pitfalls.
+// Learn more about service workers: https://bit.ly/CRA-PWA
+serviceWorker.unregister();
