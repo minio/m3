@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"os/user"
 	"strings"
 	"sync"
 	"time"
@@ -172,12 +173,11 @@ OuterLoop:
 
 // get the current kind config location
 func getKindKubeConf() string {
-	cmd := exec.Command("kind", "get", "kubeconfig-path", "--name=m3cluster")
-	out, err := cmd.CombinedOutput()
+	user, err := user.Current()
 	if err != nil {
-		log.Fatalf("cmd.Run() failed with %s\n", err)
+		panic(err)
 	}
-	kindk8sConf := string(out)
+	kindk8sConf := user.HomeDir + "/.kube/kind-config-m3cluster"
 	kindk8sConf = strings.TrimSpace(kindk8sConf)
 	return kindk8sConf
 }
