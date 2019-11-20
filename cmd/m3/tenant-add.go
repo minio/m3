@@ -44,12 +44,12 @@ var addTenantCmd = cli.Command{
 		cli.StringFlag{
 			Name:  "admin_name",
 			Value: "",
-			Usage: "optional tenant's first admin name",
+			Usage: "Tenant's first admin name",
 		},
 		cli.StringFlag{
 			Name:  "admin_email",
 			Value: "",
-			Usage: "optional tenant's first admin email",
+			Usage: "Tenant's first admin email",
 		},
 	},
 }
