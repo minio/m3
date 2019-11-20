@@ -58,7 +58,7 @@ export KUBECONFIG=$(kind get kubeconfig-path --name="m3cluster")
 kubectl proxy
 ```
 
-- Log in to the dashboard at `http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/login`
+- Log in to the dashboard at `http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#!/login`
 
 - To get the access token
 
