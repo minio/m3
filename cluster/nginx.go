@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"strings"
 
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
@@ -30,7 +30,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func getNewNginxDeployment(deploymentName string) v1beta1.Deployment {
+func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 	nginxLBReplicas := int32(1)
 	nginxLBPodSpec := v1.PodSpec{
 		Containers: []v1.Container{
@@ -66,12 +66,18 @@ func getNewNginxDeployment(deploymentName string) v1beta1.Deployment {
 			},
 		},
 	}
-	return v1beta1.Deployment{
+	return appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: deploymentName,
 		},
-		Spec: v1beta1.DeploymentSpec{
+		Spec: appsv1.DeploymentSpec{
 			Replicas: &nginxLBReplicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app":  deploymentName,
+					"type": "nginx-resolver",
+				},
+			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -81,8 +87,8 @@ func getNewNginxDeployment(deploymentName string) v1beta1.Deployment {
 				},
 				Spec: nginxLBPodSpec,
 			},
-			Strategy: v1beta1.DeploymentStrategy{
-				Type: v1beta1.RecreateDeploymentStrategyType,
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RecreateDeploymentStrategyType,
 			},
 		},
 	}
@@ -104,7 +110,7 @@ func DeleteNginxLBDeployments(clientset *kubernetes.Clientset, deploymentName st
 	doneCh := make(chan struct{})
 	go func() {
 		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"type": "nginx-resolver"}}
-		deployments, err := extV1beta1API(clientset).Deployments("default").List(metav1.ListOptions{
+		deployments, err := appsV1API(clientset).Deployments("default").List(metav1.ListOptions{
 			LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 		})
 		if err != nil {
@@ -112,7 +118,7 @@ func DeleteNginxLBDeployments(clientset *kubernetes.Clientset, deploymentName st
 		}
 		for _, deployment := range deployments.Items {
 			if deployment.Name != deploymentName {
-				extV1beta1API(clientset).Deployments("default").Delete(deployment.Name, &metav1.DeleteOptions{})
+				appsV1API(clientset).Deployments("default").Delete(deployment.Name, &metav1.DeleteOptions{})
 			}
 		}
 		fmt.Println("Old nginx-resolver deployments deleted correctly")
@@ -125,10 +131,10 @@ func CreateNginxResolverDeployment(clientset *kubernetes.Clientset, deploymentNa
 	doneCh := make(chan struct{})
 	go func() {
 		factory := informers.NewSharedInformerFactory(clientset, 0)
-		deploymentInformer := factory.Extensions().V1beta1().Deployments().Informer()
+		deploymentInformer := factory.Apps().V1().Deployments().Informer()
 		deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			UpdateFunc: func(oldObj, obj interface{}) {
-				deployment := obj.(*v1beta1.Deployment)
+				deployment := obj.(*appsv1.Deployment)
 				if deployment.GetLabels()["app"] == deploymentName && len(deployment.Status.Conditions) > 0 && deployment.Status.Conditions[0].Status == "True" {
 					fmt.Println("nginx-resolver deployment created correctly")
 					close(doneCh)
@@ -140,7 +146,7 @@ func CreateNginxResolverDeployment(clientset *kubernetes.Clientset, deploymentNa
 
 		//Creating nginx-resolver deployment with new rules
 		nginxLBDeployment := getNewNginxDeployment(deploymentName)
-		_, err := extV1beta1API(clientset).Deployments("default").Create(&nginxLBDeployment)
+		_, err := appsV1API(clientset).Deployments("default").Create(&nginxLBDeployment)
 		if err != nil {
 			close(doneCh)
 		}

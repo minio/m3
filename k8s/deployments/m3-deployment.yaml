@@ -33,12 +33,15 @@ spec:
   selector:
     app: m3
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: m3
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: m3
   template:
     metadata:
       labels:

@@ -29,8 +29,8 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	// the file driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -187,12 +187,15 @@ func setupPostgres() {
 		},
 	}
 
-	deployment := v1beta1.Deployment{
+	deployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "postgres",
 		},
-		Spec: v1beta1.DeploymentSpec{
+		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": "postgres"},
+			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -204,7 +207,7 @@ func setupPostgres() {
 		},
 	}
 
-	resDeployment, err := extV1beta1API(clientset).Deployments(m3SystemNamespace).Create(&deployment)
+	resDeployment, err := appsV1API(clientset).Deployments(m3SystemNamespace).Create(&deployment)
 	if err != nil {
 		panic(err.Error())
 	}

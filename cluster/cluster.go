@@ -23,13 +23,15 @@ import (
 	"strings"
 	"time"
 
+	v12 "k8s.io/client-go/kubernetes/typed/apps/v1"
+
+	appsv1 "k8s.io/api/apps/v1"
+
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/api/extensions/v1beta1"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	extensionsv1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	"k8s.io/client-go/rest"
 	//
 	// Uncomment to load all auth plugins
@@ -71,10 +73,10 @@ func k8sClient() (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(getConfig())
 }
 
-// extv1beta1API encapsulates the v1beta1 kubernetes interface to ensure all
+// appsV1API encapsulates the appsv1 kubernetes interface to ensure all
 // deployment related APIs are of the same version
-func extV1beta1API(client *kubernetes.Clientset) extensionsv1beta1.ExtensionsV1beta1Interface {
-	return client.ExtensionsV1beta1()
+func appsV1API(client *kubernetes.Clientset) v12.AppsV1Interface {
+	return client.AppsV1()
 }
 
 func ListPods() {
@@ -324,12 +326,18 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 		mainPodSpec.Volumes = append(mainPodSpec.Volumes, tenantVolume...)
 	}
 
-	deployment := v1beta1.Deployment{
+	deployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: sgHostName,
 		},
-		Spec: v1beta1.DeploymentSpec{
+		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": sgHostName,
+					"sg":  fmt.Sprintf("storage-group-%d", sg.Num),
+				},
+			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -342,7 +350,7 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 		},
 	}
 
-	_, err = extV1beta1API(clientset).Deployments("default").Create(&deployment)
+	_, err = appsV1API(clientset).Deployments("default").Create(&deployment)
 	return err
 }
 
@@ -518,7 +526,7 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 		for i := 1; i <= MaxNumberHost; i++ {
 			hostNum := fmt.Sprintf("%d", i)
 			sgHostName := fmt.Sprintf("sg-%d-host-%d", sg.Num, i)
-			deployment, err := clientset.ExtensionsV1beta1().Deployments("default").Get(sgHostName, metav1.GetOptions{})
+			deployment, err := clientset.AppsV1().Deployments("default").Get(sgHostName, metav1.GetOptions{})
 			switch {
 			case k8errors.IsNotFound(err): // No deployment for sgHostname is present in the storage cluster, CREATE it
 				if err = CreateDeploymentWithTenants(
@@ -599,13 +607,13 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 				// if the deployment ends up being empty (0 containers) delete it
 				if len(currPodSpec.Containers) == 0 {
 					//TODO: Set an informer and don't continue until this is complete
-					if err = clientset.ExtensionsV1beta1().Deployments("default").Delete(deployment.ObjectMeta.Name, nil); err != nil {
+					if err = clientset.AppsV1().Deployments("default").Delete(deployment.ObjectMeta.Name, nil); err != nil {
 						ch <- err
 						return
 					}
 				} else {
 					//TODO: Set an informer and don't continue until this is complete
-					if _, err = clientset.ExtensionsV1beta1().Deployments("default").Update(deployment); err != nil {
+					if _, err = clientset.AppsV1().Deployments("default").Update(deployment); err != nil {
 						ch <- err
 						return
 					}

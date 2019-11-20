@@ -32,7 +32,7 @@ go get github.com/golang/protobuf/protoc-gen-go
 - Install [kind](https://kind.sigs.k8s.io/docs/user/quick-start/)
 
 ```
-go get sigs.k8s.io/kind@v0.5.1
+go get sigs.k8s.io/kind@v0.6.0
 ```
 
 ## Setup a local kubernetes (`m3cluster`) using kind
@@ -125,13 +125,13 @@ kubectl apply -f k8s/deployments/m3-deployment.yaml
 
 ## Adding a new tenant
 ```
-./m3 tenant add company-name
+./m3 tenant add company-name --admin_name="John Doe" --admin_email="email@domain.com"
 ```
 
 If the company name is not url-friendly a short name will be generated, but it can also be specified as shown below.
 
 ```
-./m3 tenant add "Commpany® Inc." --short_name company-inc
+./m3 tenant add "Commpany® Inc." --short_name company-inc --admin_name="John Doe" --admin_email="email@domain.com"
 ```
 
 > For development we need to port-forward the kubernetes pods after we add a new tenant by running:
