@@ -56,19 +56,10 @@ var devCmd = cli.Command{
 
 func dev(ctx *cli.Context) error {
 	fmt.Println("Starting development environment")
-	kindk8sConf := getKindKubeConf()
-	fmt.Printf("Kind conf `%s`\n", kindk8sConf)
 
 	m3PFCtx, m3Cancel := context.WithCancel(context.Background())
 	nginxCtx, nCancel := context.WithCancel(context.Background())
 	doneCh := make(chan struct{})
-
-	//go func() {
-	//	time.Sleep(time.Second * 10)
-	//	fmt.Println("Simulate cancellation")
-	//	close(doneCh)
-	//	m3Cancel()
-	//}()
 
 	// listen for kill sign to stop all the processes
 	c := make(chan os.Signal, 1)
@@ -94,9 +85,9 @@ func dev(ctx *cli.Context) error {
 		fmt.Println("ERROR WITH INFORMER")
 	}
 
-	publicCh := servicePortForwardPort(m3PFCtx, kindk8sConf, "m3", "50051", color.FgYellow)
-	privateCh := servicePortForwardPort(m3PFCtx, kindk8sConf, "m3", "50052", color.FgGreen)
-	nginxCh := servicePortForwardPort(nginxCtx, kindk8sConf, "nginx-resolver", "9000:80", color.FgCyan)
+	publicCh := servicePortForwardPort(m3PFCtx, "m3", "50051", color.FgYellow)
+	privateCh := servicePortForwardPort(m3PFCtx, "m3", "50052", color.FgGreen)
+	nginxCh := servicePortForwardPort(nginxCtx, "nginx-resolver", "9000:80", color.FgCyan)
 	initialized := false
 	nginxInitialized := false
 
@@ -153,15 +144,15 @@ OuterLoop:
 		case <-publicCh:
 			fmt.Println("Public port forward closed, restarting it after 2 seconds")
 			time.Sleep(time.Second * 2)
-			publicCh = servicePortForwardPort(m3PFCtx, kindk8sConf, "m3", "50051", color.FgBlue)
+			publicCh = servicePortForwardPort(m3PFCtx, "m3", "50051", color.FgBlue)
 		case <-privateCh:
 			fmt.Println("Private port forward closed, restarting it after 2 seconds")
 			time.Sleep(time.Second * 2)
-			privateCh = servicePortForwardPort(m3PFCtx, kindk8sConf, "m3", "50052", color.FgGreen)
+			privateCh = servicePortForwardPort(m3PFCtx, "m3", "50052", color.FgGreen)
 		case <-nginxCh:
 			fmt.Println("Nginx port forward closed, restarting it after 2 seconds")
 			time.Sleep(time.Second * 2)
-			nginxCh = servicePortForwardPort(m3PFCtx, kindk8sConf, "nginx-resolver", "9000:80", color.FgCyan)
+			nginxCh = servicePortForwardPort(m3PFCtx, "nginx-resolver", "9000:80", color.FgCyan)
 		case <-doneCh:
 			break OuterLoop
 		}
@@ -183,7 +174,7 @@ func getKindKubeConf() string {
 }
 
 // run the command inside a goroutine, return a channel that closes then the command dies
-func servicePortForwardPort(ctx context.Context, kindk8sConf, service, port string, dcolor color.Attribute) chan interface{} {
+func servicePortForwardPort(ctx context.Context, service, port string, dcolor color.Attribute) chan interface{} {
 	ch := make(chan interface{})
 	go func() {
 		defer close(ch)
