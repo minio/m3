@@ -18,10 +18,11 @@ package cluster
 
 import (
 	"fmt"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/tools/cache"
 	"log"
 	"os"
+
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
 
 	"k8s.io/client-go/kubernetes"
 
@@ -154,7 +155,7 @@ func setupM3Namespace(clientset *kubernetes.Clientset) <-chan struct{} {
 	return doneCh
 }
 
-func setupPostgresConfigMap(clientset *kubernetes.Clientset) <- chan struct{} {
+func setupPostgresConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
 	doneCh := make(chan struct{})
 	configMapName := "postgres-env"
 	go func() {
@@ -199,7 +200,7 @@ func setupPostgresConfigMap(clientset *kubernetes.Clientset) <- chan struct{} {
 	return doneCh
 }
 
-func setupPostgresDeployment(clientset *kubernetes.Clientset) <- chan struct{} {
+func setupPostgresDeployment(clientset *kubernetes.Clientset) <-chan struct{} {
 	doneCh := make(chan struct{})
 	deploymentName := "postgres"
 	go func() {
@@ -280,7 +281,7 @@ func setupPostgresDeployment(clientset *kubernetes.Clientset) <- chan struct{} {
 }
 
 // setupPostgres sets up a postgres used by the provisioning service
-func setupPostgresService(clientset *kubernetes.Clientset) <- chan struct{} {
+func setupPostgresService(clientset *kubernetes.Clientset) <-chan struct{} {
 	doneCh := make(chan struct{})
 	serviceName := "postgres"
 	go func() {
@@ -519,7 +520,7 @@ func AddM3Admin(name, email string) error {
 }
 
 // SetupM3Secrets creates a kubernetes secrets
-func SetupJwtSecrets(clientset *kubernetes.Clientset) <- chan struct{} {
+func SetupJwtSecrets(clientset *kubernetes.Clientset) <-chan struct{} {
 	doneCh := make(chan struct{})
 	secretName := "jwtkey"
 
