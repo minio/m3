@@ -21,5 +21,5 @@ import "errors"
 var (
 	errMissingArguments = errors.New("Arguments missing")
 	errInvalidAction    = errors.New("Incorrect action provided")
-	errInvalidEffect    = errors.New("Incorrect effect provided")
+	errInvalidResources = errors.New("Incorrect resources provided")
 )

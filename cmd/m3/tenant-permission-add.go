@@ -21,15 +21,14 @@ import (
 	"strings"
 
 	"github.com/minio/cli"
-	"github.com/minio/m3/cluster"
-	iampolicy "github.com/minio/minio/pkg/iam/policy"
-	policy "github.com/minio/minio/pkg/policy"
+	pb "github.com/minio/m3/api/stubs"
 )
 
 var createPermissionCmd = cli.Command{
-	Name:   "add",
-	Usage:  "Adds a permission",
-	Action: permissionAdd,
+	Name:    "add",
+	Aliases: []string{"a"},
+	Usage:   "Adds a permission",
+	Action:  permissionAdd,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "tenant",
@@ -37,9 +36,19 @@ var createPermissionCmd = cli.Command{
 			Usage: "tenant short name",
 		},
 		cli.StringFlag{
+			Name:  "name",
+			Value: "",
+			Usage: "Name for the permission",
+		},
+		cli.StringFlag{
 			Name:  "effect",
 			Value: "",
 			Usage: "",
+		},
+		cli.StringFlag{
+			Name:  "resources",
+			Value: "",
+			Usage: "comma separated list of resources",
 		},
 		cli.StringFlag{
 			Name:  "actions",
@@ -47,9 +56,9 @@ var createPermissionCmd = cli.Command{
 			Usage: "comma separated list of actions to be allowed",
 		},
 		cli.StringFlag{
-			Name:  "resources",
+			Name:  "description",
 			Value: "",
-			Usage: "comma separated list of resources",
+			Usage: "An explanation of the purpose of this permission",
 		},
 	},
 }
@@ -60,56 +69,77 @@ var createPermissionCmd = cli.Command{
 //     m3 permission add --tenant tenant-1 --effect allow --actions s3:GetObject,s3:PutObject --resources /prefix/subprefix
 func permissionAdd(ctx *cli.Context) error {
 	tenantShortName := ctx.String("tenant")
+	name := ctx.String("name")
 	inputEffect := ctx.String("effect")
 	inputActions := ctx.String("actions")
 	inputResources := ctx.String("resources")
+	description := ctx.String("description")
 
 	if tenantShortName == "" && ctx.Args().Get(0) != "" {
 		tenantShortName = ctx.Args().Get(0)
 	}
-	if inputEffect == "" && ctx.Args().Get(1) != "" {
-		inputEffect = ctx.Args().Get(1)
+	if name == "" && ctx.Args().Get(1) != "" {
+		name = ctx.Args().Get(1)
 	}
-	if inputActions == "" && ctx.Args().Get(2) != "" {
-		inputActions = ctx.Args().Get(2)
+	if inputEffect == "" && ctx.Args().Get(2) != "" {
+		inputEffect = ctx.Args().Get(2)
 	}
-	if inputResources == "" && ctx.Args().Get(3) != "" {
-		inputResources = ctx.Args().Get(3)
+	if inputActions == "" && ctx.Args().Get(3) != "" {
+		inputActions = ctx.Args().Get(3)
+	}
+	if inputResources == "" && ctx.Args().Get(4) != "" {
+		inputResources = ctx.Args().Get(4)
+	}
+	fmt.Println(ctx.Args())
+	fmt.Println("a", inputActions, "r", inputResources, "e", inputEffect)
+	if name == "" {
+		fmt.Println("You must provide a name for the permission")
+		return errMissingArguments
 	}
 	// Validate effect
 	if inputEffect == "" {
 		fmt.Println("You must provide effect")
 		return errMissingArguments
 	}
-	if !policy.Effect(inputEffect).IsValid() {
-		fmt.Println("Invalid effect")
-		return errInvalidEffect
-	}
 	// Validate actions
 	if inputActions == "" {
 		fmt.Println("You must provide actions")
 		return errMissingArguments
-	}
-	actions := strings.Split(inputActions, ",")
-	for _, a := range actions {
-		if !iampolicy.Action(a).IsValid() {
-			fmt.Println("You must provide valid action")
-			return errInvalidAction
-		}
 	}
 	// validate resources
 	if inputResources == "" {
 		fmt.Println("You must provide resources")
 		return errMissingArguments
 	}
+	resources := strings.Split(inputResources, ",")
+	if len(resources) == 0 {
+		fmt.Println("You must provide resources separated by comma")
+		return errInvalidResources
+	}
+	actions := strings.Split(inputActions, ",")
+	if len(resources) == 0 {
+		fmt.Println("You must provide actions separated by comma")
+		return errInvalidAction
+	}
 
 	// create context
-	appCtx, err := cluster.NewContext(tenantShortName)
+
+	cnxs, err := GetGRPCChannel()
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
-	// perform the action
-	err = cluster.AddPermission(appCtx, inputEffect, inputActions, inputResources)
+	defer cnxs.Conn.Close()
+	// perform RPC
+	_, err = cnxs.Client.TenantPermissionAdd(cnxs.Context, &pb.TenantPermissionAddRequest{
+		Tenant:      tenantShortName,
+		Name:        name,
+		Description: description,
+		Effect:      inputEffect,
+		Resources:   resources,
+		Actions:     actions,
+	})
+
 	if err != nil {
 		fmt.Println("Error adding permission:", err.Error())
 		return err

@@ -35,6 +35,9 @@ service PrivateAPI {
     // Tenant Bucket Operations
     rpc TenantBucketAdd (TenantBucketAddRequest) returns (TenantBucketAddResponse) {
     }
+    // Tenant Permissions Operations
+    rpc TenantPermissionAdd (TenantPermissionAddRequest) returns (TenantPermissionAddResponse) {
+    }
     // Tenant User Operations
     rpc TenantUserAdd (TenantUserAddRequest) returns (TenantUserAddResponse) {
     }
@@ -74,6 +77,17 @@ message TenantBucketAddRequest {
 }
 
 message TenantBucketAddResponse {
+}
+
+message TenantPermissionAddRequest {
+    string tenant = 1;
+    string name = 2;
+    string description = 3;
+    string effect = 4;
+    repeated string resources = 5;
+    repeated string actions = 6;
+}
+message TenantPermissionAddResponse {
 }
 
 message TenantUserAddRequest {

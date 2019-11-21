@@ -47,7 +47,7 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 		user.Password = in.Password
 	}
 
-	appCtx, err := cluster.NewContext(in.Tenant)
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}

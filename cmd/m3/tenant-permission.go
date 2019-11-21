@@ -21,10 +21,11 @@ import (
 )
 
 // list files and folders.
-var permissionCmd = cli.Command{
-	Name:   "permission",
-	Usage:  "permission commands",
-	Action: permissionDefCommand,
+var tenantPermissionCmd = cli.Command{
+	Name:    "permission",
+	Aliases: []string{"permissions", "p"},
+	Usage:   "permission commands",
+	Action:  permissionDefCommand,
 	Subcommands: []cli.Command{
 		createPermissionCmd,
 		// deletePersmissionCmd,

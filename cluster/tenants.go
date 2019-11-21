@@ -539,7 +539,7 @@ func GetTenantWithCtx(ctx *Context, tenantName string) (tenant Tenant, err error
 				t1.id, t1.name, t1.short_name
 			FROM 
 				tenants t1
-			WHERE name=$1`
+			WHERE short_name=$1`
 	// non-transactional query
 	var row *sql.Row
 	// did we got a context? query inside of it
