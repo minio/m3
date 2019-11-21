@@ -358,7 +358,7 @@ func newTenantMinioClient(tenantShortname string) (*minio.Client, error) {
 	}
 
 	// Get the credentials for a tenant
-	tenantConf, err := GetTenantConfig(sgt.Tenant.ShortName)
+	tenantConf, err := GetTenantConfig(sgt.Tenant)
 	if err != nil {
 		return nil, err
 	}

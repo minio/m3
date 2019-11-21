@@ -191,9 +191,6 @@ func servicePortForwardPort(ctx context.Context, kindk8sConf, service, port stri
 		serviceName := fmt.Sprintf("service/%s", service)
 		// command to run
 		cmd := exec.CommandContext(ctx, "kubectl", "port-forward", serviceName, port)
-		// set the environment variables so kubectl can find the kind configuration
-		cmd.Env = os.Environ()
-		cmd.Env = append(cmd.Env, fmt.Sprintf("KUBECONFIG=%s", kindk8sConf))
 		// prepare to capture the output
 		var errStdout, errStderr error
 		stdoutIn, _ := cmd.StdoutPipe()
