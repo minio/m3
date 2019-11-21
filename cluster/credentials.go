@@ -62,7 +62,7 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UU
 	}
 
 	// Get the credentials for a tenant
-	tenantConf, err := GetTenantConfig(sgt.Tenant.Name)
+	tenantConf, err := GetTenantConfig(sgt.Tenant)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func createServiceAccountCredentials(ctx *Context, tenantShortName string, servi
 	}
 
 	// Get the credentials for a tenant
-	tenantConf, err := GetTenantConfig(sgt.Tenant.Name)
+	tenantConf, err := GetTenantConfig(sgt.Tenant)
 	if err != nil {
 		return nil, err
 	}

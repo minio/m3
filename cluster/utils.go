@@ -61,13 +61,13 @@ func RandomCharString(n int) string {
 }
 
 // GetTenantConfig returns the access/secret keys for a given tenant
-func GetTenantConfig(shortName string) (*TenantConfiguration, error) {
+func GetTenantConfig(tenant *Tenant) (*TenantConfiguration, error) {
 	clientset, err := k8sClient()
 	if err != nil {
 		return nil, err
 	}
 	// Get the tenant main secret
-	tenantSecretName := fmt.Sprintf("%s-env", shortName)
+	tenantSecretName := fmt.Sprintf("%s-env", tenant.ShortName)
 	mainSecret, err := clientset.CoreV1().Secrets("default").Get(tenantSecretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
