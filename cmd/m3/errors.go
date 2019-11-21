@@ -16,26 +16,10 @@
 
 package main
 
-import (
-	"github.com/minio/cli"
+import "errors"
+
+var (
+	errMissingArguments = errors.New("Arguments missing")
+	errInvalidAction    = errors.New("Incorrect action provided")
+	errInvalidResources = errors.New("Incorrect resources provided")
 )
-
-// list files and folders.
-var tenantCmd = cli.Command{
-	Name:    "tenant",
-	Aliases: []string{"t"},
-	Usage:   "tenant commands",
-	Action:  tenantDefCmd,
-	Subcommands: []cli.Command{
-		addTenantCmd,
-		tenantBucketCmd,
-		tenantUserCmd,
-		tenantDeleteCmd,
-		tenantServiceAccountCmd,
-		tenantPermissionCmd,
-	},
-}
-
-func tenantDefCmd(ctx *cli.Context) error {
-	return cli.ShowAppHelp(ctx)
-}

@@ -180,6 +180,11 @@ or
 ./m3 tenant service-account add --tenant_name tenant-short-name --name service-account-name --description "optional"
 ```
 
+## Adding a new permission
+To grant `write` permission to `bucketA` and `bucketB` 
+
+`./m3 tenant permission add acme SAMPLE allow write "bucketA,bucketB"`
+
 ## Accessing the tenant MinIO service via browser UI
 
 The nginx router should be exposed on your local on port `9000` after doing `./m3 dev`

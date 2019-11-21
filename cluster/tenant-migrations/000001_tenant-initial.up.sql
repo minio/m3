@@ -65,7 +65,7 @@ create table credentials
 
     sys_created_by     varchar(256)                           not null,
     sys_created_date   timestamp with time zone default now() not null,
-    sys_deleted      timestamp with time zone
+    sys_deleted        timestamp with time zone
 );
 
 create index credentials_sys_deleted_index
@@ -77,6 +77,8 @@ create table permissions
     id               uuid                                   not null
         constraint permissions_pk
             primary key,
+    name             varchar(512),
+    description      text,
     effect           varchar(64)                            not null,
     sys_created_by   varchar(256)                           not null,
     sys_created_date timestamp with time zone default now() not null
@@ -112,25 +114,17 @@ create table service_accounts_permissions
 );
 
 
-create table actions
-(
-    id          uuid not null
-        constraint actions_pk
-            primary key,
-    name        varchar(256),
-    description text
-);
-
 
 create table permissions_actions
 (
+    id               uuid                                   not null
+        constraint permissions_actions_pk
+            primary key,
     permission_id    uuid
         constraint permissions_actions_permissions_id_fk
             references permissions
             on delete cascade,
-    action_id        uuid                                   not null
-        constraint permissions_actions_actions_id_fk
-            references actions,
+    action           varchar(256)                           not null,
     sys_created_by   varchar(256)                           not null,
     sys_created_date timestamp with time zone default now() not null
 );
