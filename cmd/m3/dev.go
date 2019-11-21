@@ -24,7 +24,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"os/user"
 	"strings"
 	"sync"
 	"time"
@@ -160,17 +159,6 @@ OuterLoop:
 	}
 	// about to exit
 	return nil
-}
-
-// get the current kind config location
-func getKindKubeConf() string {
-	user, err := user.Current()
-	if err != nil {
-		panic(err)
-	}
-	kindk8sConf := user.HomeDir + "/.kube/kind-config-m3cluster"
-	kindk8sConf = strings.TrimSpace(kindk8sConf)
-	return kindk8sConf
 }
 
 // run the command inside a goroutine, return a channel that closes then the command dies
