@@ -21,21 +21,19 @@ import (
 )
 
 // list files and folders.
-var tenantCmd = cli.Command{
-	Name:    "tenant",
-	Aliases: []string{"t"},
-	Usage:   "tenant commands",
-	Action:  tenantDefCmd,
+var tenantPermissionCmd = cli.Command{
+	Name:    "permission",
+	Aliases: []string{"permissions", "p"},
+	Usage:   "permission commands",
+	Action:  permissionDefCommand,
 	Subcommands: []cli.Command{
-		addTenantCmd,
-		tenantBucketCmd,
-		tenantUserCmd,
-		tenantDeleteCmd,
-		tenantServiceAccountCmd,
-		tenantPermissionCmd,
+		createPermissionCmd,
+		// deletePersmissionCmd,
+		// listPermissionCmd,
+		// assignPermissionCmd,
 	},
 }
 
-func tenantDefCmd(ctx *cli.Context) error {
+func permissionDefCommand(ctx *cli.Context) error {
 	return cli.ShowAppHelp(ctx)
 }
