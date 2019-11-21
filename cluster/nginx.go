@@ -69,6 +69,10 @@ func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 	return appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: deploymentName,
+			Labels: map[string]string{
+				"app":  deploymentName,
+				"type": "nginx-resolver",
+			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &nginxLBReplicas,
@@ -133,9 +137,9 @@ func CreateNginxResolverDeployment(clientset *kubernetes.Clientset, deploymentNa
 		factory := informers.NewSharedInformerFactory(clientset, 0)
 		deploymentInformer := factory.Apps().V1().Deployments().Informer()
 		deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-			UpdateFunc: func(oldObj, obj interface{}) {
-				deployment := obj.(*appsv1.Deployment)
-				if deployment.GetLabels()["app"] == deploymentName && len(deployment.Status.Conditions) > 0 && deployment.Status.Conditions[0].Status == "True" {
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				deployment := newObj.(*appsv1.Deployment)
+				if deployment.Name == deploymentName && len(deployment.Status.Conditions) > 0 && deployment.Status.Conditions[0].Status == "True" {
 					fmt.Println("nginx-resolver deployment created correctly")
 					close(doneCh)
 				}
