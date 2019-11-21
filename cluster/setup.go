@@ -21,6 +21,9 @@ import (
 	"log"
 	"os"
 
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
+
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -40,18 +43,46 @@ const (
 
 // Setups m3 on the kubernetes deployment that we are installed to
 func SetupM3() error {
+	// creates the clientset
+	clientset, err := k8sClient()
+	if err != nil {
+		return err
+	}
+
 	// setup m3 namespace on k8s
 	fmt.Println("Setting up m3 namespace")
-	setupM3Namespace()
+	waitCh := setupM3Namespace(clientset)
+	<-waitCh
 	// setup nginx router
-	fmt.Println("setting up nginx")
-	SetupNginxLoadBalancer()
-	// setup database
-	fmt.Println("Setting up postgres")
-	setupPostgres()
-	// Setup Jwt Secret
+	fmt.Println("setting up nginx configmap")
+	waitCh = SetupNginxConfigMap(clientset)
+	<-waitCh
+	fmt.Println("setting up nginx service")
+	waitCh = SetupNginxLoadBalancer(clientset)
+	<-waitCh
+	fmt.Println("setting up nginx deployment")
+	err = DeployNginxResolver()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	// setup postgres configmap
+	fmt.Println("Setting up postgres configmap")
+	waitCh = setupPostgresConfigMap(clientset)
+	<-waitCh
+	// setup postgres deployment
+	fmt.Println("Setting up postgres deployment")
+	waitCh = setupPostgresDeployment(clientset)
+	<-waitCh
+	// setup postgres service
+	fmt.Println("Setting up postgres service")
+	waitCh = setupPostgresService(clientset)
+	<-waitCh
+	//// Setup Jwt Secret
 	fmt.Println("Setting up jwt secret")
-	SetupJwtSecrets()
+	waitCh = SetupJwtSecrets(clientset)
+	<-waitCh
+	fmt.Println("Setup process done")
 	return nil
 }
 
@@ -88,175 +119,250 @@ func SetupDBAction() error {
 }
 
 // setupM3Namespace Setups the namespace used by the provisioning service
-func setupM3Namespace() {
-	// creates the clientset
-	clientset, err := k8sClient()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	namespace := v1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "m3",
-		},
-	}
-
-	_, err = clientset.CoreV1().Namespaces().Create(&namespace)
-	if err != nil {
-		fmt.Println(err)
-	}
+func setupM3Namespace(clientset *kubernetes.Clientset) <-chan struct{} {
+	doneCh := make(chan struct{})
+	namespaceName := "m3"
+	go func() {
+		_, m3NamespaceExists := clientset.CoreV1().Namespaces().Get(namespaceName, metav1.GetOptions{})
+		if m3NamespaceExists == nil {
+			fmt.Println("m3 namespace already exists... skip create")
+			close(doneCh)
+		} else {
+			factory := informers.NewSharedInformerFactory(clientset, 0)
+			namespacesInformer := factory.Core().V1().Namespaces().Informer()
+			namespacesInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
+					namespace := obj.(*v1.Namespace)
+					if namespace.Name == namespaceName {
+						fmt.Println("m3 namespace created correctly")
+						close(doneCh)
+					}
+				},
+			})
+			go namespacesInformer.Run(doneCh)
+			namespace := v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: namespaceName,
+				},
+			}
+			_, err := clientset.CoreV1().Namespaces().Create(&namespace)
+			if err != nil {
+				fmt.Println(err)
+				close(doneCh)
+			}
+		}
+	}()
+	return doneCh
 }
 
-// setupPostgres sets up a postgres used by the provisioning service
-func setupPostgres() {
-	// creates the clientset
-	clientset, err := k8sClient()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	pgSvc := v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "postgres",
-			Labels: map[string]string{
-				"name": "postgres",
-			},
-		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{
-				{
-					Name: "http",
-					Port: 5432,
+func setupPostgresConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
+	doneCh := make(chan struct{})
+	configMapName := "postgres-env"
+	go func() {
+		_, configMapExists := clientset.CoreV1().ConfigMaps(m3SystemNamespace).Get(configMapName, metav1.GetOptions{})
+		if configMapExists == nil {
+			fmt.Println("postgres configmap already exists... skip create")
+			close(doneCh)
+		} else {
+			factory := informers.NewSharedInformerFactory(clientset, 0)
+			configMapInformer := factory.Core().V1().ConfigMaps().Informer()
+			configMapInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
+					configMap := obj.(*v1.ConfigMap)
+					if configMap.Name == configMapName {
+						fmt.Println("postgres configmap created correctly")
+						close(doneCh)
+					}
 				},
-			},
-			Selector: map[string]string{
-				"app": "postgres",
-			},
-		},
-	}
+			})
 
-	res, err := clientset.CoreV1().Services(m3SystemNamespace).Create(&pgSvc)
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println("done setting up postgres service ")
-	fmt.Println(res.String())
+			go configMapInformer.Run(doneCh)
 
-	configMap := v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "postgres-env",
-			Labels: map[string]string{
-				"app": "postgres",
-			},
-		},
-		Data: map[string]string{
-			"POSTGRES_PASSWORD": "postgres",
-			"POSTGRES_DB":       "m3",
-		},
-	}
-
-	resSecret, err := clientset.CoreV1().ConfigMaps(m3SystemNamespace).Create(&configMap)
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println("done with postgres config maps")
-	fmt.Println(resSecret.String())
-
-	var replicas int32 = 1
-
-	mainPodSpec := v1.PodSpec{
-		Containers: []v1.Container{
-			{
-				Name:            "postgres",
-				Image:           "postgres:12.0",
-				ImagePullPolicy: "Always",
-				Ports: []v1.ContainerPort{
-					{
-						Name:          "http",
-						ContainerPort: 5432,
-					},
-				},
-				EnvFrom: []v1.EnvFromSource{
-					{
-						ConfigMapRef: &v1.ConfigMapEnvSource{
-							LocalObjectReference: v1.LocalObjectReference{Name: "postgres-env"},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	deployment := appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "postgres",
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": "postgres"},
-			},
-			Template: v1.PodTemplateSpec{
+			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
+					Name: configMapName,
 					Labels: map[string]string{
 						"app": "postgres",
 					},
 				},
-				Spec: mainPodSpec,
-			},
-		},
-	}
-
-	resDeployment, err := appsV1API(clientset).Deployments(m3SystemNamespace).Create(&deployment)
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println("done creating postgres deployment ")
-	fmt.Println(resDeployment.String())
-
+				Data: map[string]string{
+					"POSTGRES_PASSWORD": "postgres",
+					"POSTGRES_DB":       "m3",
+				},
+			}
+			_, err := clientset.CoreV1().ConfigMaps(m3SystemNamespace).Create(&configMap)
+			if err != nil {
+				fmt.Println(err)
+				close(doneCh)
+			}
+		}
+	}()
+	return doneCh
 }
 
-// SetupNginxLoadBalancer setups the loadbalancer/reverse proxy used to resolve the tenants subdomains
-func SetupNginxLoadBalancer() {
-	// creates the clientset
-	clientset, err := k8sClient()
-	if err != nil {
-		panic(err.Error())
-	}
-
-	nginxService := v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "nginx-resolver",
-			Labels: map[string]string{
-				"name": "nginx-resolver",
-			},
-		},
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{
-				{
-					Name: "http",
-					Port: 80,
+func setupPostgresDeployment(clientset *kubernetes.Clientset) <-chan struct{} {
+	doneCh := make(chan struct{})
+	deploymentName := "postgres"
+	go func() {
+		_, deploymentExists := clientset.AppsV1().Deployments(m3SystemNamespace).Get(deploymentName, metav1.GetOptions{})
+		if deploymentExists == nil {
+			fmt.Println("postgres deployment already exists... skip create")
+			close(doneCh)
+		} else {
+			factory := informers.NewSharedInformerFactory(clientset, 0)
+			deploymentInformer := factory.Apps().V1().Deployments().Informer()
+			deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+				UpdateFunc: func(oldObj, newObj interface{}) {
+					deployment := newObj.(*appsv1.Deployment)
+					if deployment.Name == deploymentName && len(deployment.Status.Conditions) > 0 && deployment.Status.Conditions[0].Status == "True" {
+						fmt.Println("postgres deployment created correctly")
+						close(doneCh)
+					}
 				},
-			},
-			Selector: map[string]string{
-				"app": "nginx-resolver",
-			},
-		},
-	}
+			})
 
-	res, err := clientset.CoreV1().Services("default").Create(&nginxService)
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println("done setting up nginx-resolver service ")
-	fmt.Println(res.String())
+			go deploymentInformer.Run(doneCh)
 
-	configMap := v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "nginx-configuration",
-		},
-		Data: map[string]string{
-			"nginx.conf": `
+			var replicas int32 = 1
+			mainPodSpec := v1.PodSpec{
+				Containers: []v1.Container{
+					{
+						Name:            "postgres",
+						Image:           "postgres:12.0",
+						ImagePullPolicy: "Always",
+						Ports: []v1.ContainerPort{
+							{
+								Name:          "http",
+								ContainerPort: 5432,
+							},
+						},
+						EnvFrom: []v1.EnvFromSource{
+							{
+								ConfigMapRef: &v1.ConfigMapEnvSource{
+									LocalObjectReference: v1.LocalObjectReference{Name: "postgres-env"},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			deployment := appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: deploymentName,
+					Labels: map[string]string{
+						"app": deploymentName,
+					},
+				},
+				Spec: appsv1.DeploymentSpec{
+					Replicas: &replicas,
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{"app": "postgres"},
+					},
+					Template: v1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								"app": deploymentName,
+							},
+						},
+						Spec: mainPodSpec,
+					},
+				},
+			}
+
+			_, err := appsV1API(clientset).Deployments(m3SystemNamespace).Create(&deployment)
+			if err != nil {
+				fmt.Println(err)
+				close(doneCh)
+			}
+		}
+	}()
+	return doneCh
+}
+
+// setupPostgres sets up a postgres used by the provisioning service
+func setupPostgresService(clientset *kubernetes.Clientset) <-chan struct{} {
+	doneCh := make(chan struct{})
+	serviceName := "postgres"
+	go func() {
+		_, postgresServiceExists := clientset.CoreV1().Services(m3SystemNamespace).Get(serviceName, metav1.GetOptions{})
+		if postgresServiceExists == nil {
+			fmt.Println("postgres service already exists... skip create")
+			close(doneCh)
+		} else {
+			factory := informers.NewSharedInformerFactory(clientset, 0)
+			serviceInformer := factory.Core().V1().Services().Informer()
+			serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
+					service := obj.(*v1.Service)
+					if service.Name == serviceName {
+						fmt.Println("postgres service created correctly")
+						close(doneCh)
+					}
+				},
+			})
+
+			go serviceInformer.Run(doneCh)
+
+			pgSvc := v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: serviceName,
+					Labels: map[string]string{
+						"name": serviceName,
+					},
+				},
+				Spec: v1.ServiceSpec{
+					Ports: []v1.ServicePort{
+						{
+							Name: "http",
+							Port: 5432,
+						},
+					},
+					Selector: map[string]string{
+						"app": serviceName,
+					},
+				},
+			}
+			_, err := clientset.CoreV1().Services(m3SystemNamespace).Create(&pgSvc)
+			if err != nil {
+				fmt.Println(err)
+				close(doneCh)
+			}
+		}
+	}()
+	return doneCh
+}
+
+func SetupNginxConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
+	doneCh := make(chan struct{})
+	nginxConfigMapName := "nginx-configuration"
+
+	go func() {
+		_, nginxConfigMapExists := clientset.CoreV1().ConfigMaps("default").Get(nginxConfigMapName, metav1.GetOptions{})
+		if nginxConfigMapExists == nil {
+			fmt.Println("nginx configmap already exists... skip create")
+			close(doneCh)
+		} else {
+			factory := informers.NewSharedInformerFactory(clientset, 0)
+			configMapInformer := factory.Core().V1().ConfigMaps().Informer()
+			configMapInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
+					configMap := obj.(*v1.ConfigMap)
+					if configMap.Name == nginxConfigMapName {
+						fmt.Println("nginx configmap created correctly")
+						close(doneCh)
+					}
+				},
+			})
+
+			go configMapInformer.Run(doneCh)
+
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: nginxConfigMapName,
+				},
+				Data: map[string]string{
+					"nginx.conf": `
 user nginx;
 worker_processes auto;
 error_log /dev/stdout debug;
@@ -266,16 +372,70 @@ events {
 	worker_connections  1024;
 }
 			`,
-		},
-	}
+				},
+			}
+			_, err := clientset.CoreV1().ConfigMaps("default").Create(&configMap)
+			if err != nil {
+				fmt.Println(err)
+				close(doneCh)
+			}
+		}
+	}()
+	return doneCh
+}
 
-	resConfigMap, err := clientset.CoreV1().ConfigMaps("default").Create(&configMap)
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Println("done with nginx-resolver configMaps")
-	fmt.Println(resConfigMap.String())
-	DeployNginxResolver()
+// SetupNginxLoadBalancer setups the loadbalancer/reverse proxy used to resolve the tenants subdomains
+func SetupNginxLoadBalancer(clientset *kubernetes.Clientset) <-chan struct{} {
+	doneCh := make(chan struct{})
+	nginxServiceName := "nginx-resolver"
+
+	go func() {
+		_, nginxServiceExists := clientset.CoreV1().Services("default").Get(nginxServiceName, metav1.GetOptions{})
+		if nginxServiceExists == nil {
+			fmt.Println("nginx service already exists... skip create")
+			close(doneCh)
+		} else {
+			factory := informers.NewSharedInformerFactory(clientset, 0)
+			serviceInformer := factory.Core().V1().Services().Informer()
+			serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
+					service := obj.(*v1.Service)
+					if service.Name == nginxServiceName {
+						fmt.Println("nginx service created correctly")
+						close(doneCh)
+					}
+				},
+			})
+
+			go serviceInformer.Run(doneCh)
+
+			nginxService := v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: nginxServiceName,
+					Labels: map[string]string{
+						"name": nginxServiceName,
+					},
+				},
+				Spec: v1.ServiceSpec{
+					Ports: []v1.ServicePort{
+						{
+							Name: "http",
+							Port: 80,
+						},
+					},
+					Selector: map[string]string{
+						"app": nginxServiceName,
+					},
+				},
+			}
+			_, err := clientset.CoreV1().Services("default").Create(&nginxService)
+			if err != nil {
+				fmt.Println(err)
+				close(doneCh)
+			}
+		}
+	}()
+	return doneCh
 }
 
 // This runs all the migrations on the cluster/migrations folder, if some migrations were already applied it then will
@@ -360,33 +520,52 @@ func AddM3Admin(name, email string) error {
 }
 
 // SetupM3Secrets creates a kubernetes secrets
-func SetupJwtSecrets() error {
-	config := getConfig()
-	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
+func SetupJwtSecrets(clientset *kubernetes.Clientset) <-chan struct{} {
+	doneCh := make(chan struct{})
+	secretName := "jwtkey"
 
-	// Create secret for JWT key for rest api
-	jwtKey, err := GetRandString(64, "default")
-	if err != nil {
-		panic(err.Error())
-	}
-	secret := v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "jwtkey",
-		},
-		Data: map[string][]byte{
-			"M3_JWT_KEY": []byte(jwtKey),
-		},
-	}
-	res, err := clientset.CoreV1().Secrets("default").Create(&secret)
-	if err != nil {
-		return err
-	}
-	if res.Name == "" {
-		return err
-	}
-	return nil
+	go func() {
+		_, secretExists := clientset.CoreV1().Secrets("default").Get(secretName, metav1.GetOptions{})
+		if secretExists == nil {
+			fmt.Println("jwt secret already exists... skip create")
+			close(doneCh)
+		} else {
+			factory := informers.NewSharedInformerFactory(clientset, 0)
+			secretInformer := factory.Core().V1().Secrets().Informer()
+			secretInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
+					secret := obj.(*v1.Secret)
+					if secret.Name == secretName {
+						fmt.Println("jwt secret created correctly")
+						close(doneCh)
+					}
+				},
+			})
+
+			go secretInformer.Run(doneCh)
+
+			// Create secret for JWT key for rest api
+			jwtKey, err := GetRandString(64, "default")
+			if err != nil {
+				fmt.Println(err)
+				close(doneCh)
+				return
+			}
+			secret := v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: secretName,
+				},
+				Data: map[string][]byte{
+					"M3_JWT_KEY": []byte(jwtKey),
+				},
+			}
+			_, err = clientset.CoreV1().Secrets("default").Create(&secret)
+			if err != nil {
+				fmt.Println(err)
+				close(doneCh)
+				return
+			}
+		}
+	}()
+	return doneCh
 }
