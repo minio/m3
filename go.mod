@@ -9,7 +9,7 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
-	github.com/grpc-ecosystem/grpc-gateway v1.9.0
+	github.com/grpc-ecosystem/grpc-gateway v1.12.1
 	github.com/lib/pq v1.0.0
 	github.com/minio/cli v1.21.0
 	github.com/minio/mc v0.0.0-20190908212443-54ee3a280031
@@ -22,8 +22,9 @@ require (
 	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
 	golang.org/x/sys v0.0.0-20191029155521-f43be2a4598c // indirect
-	google.golang.org/genproto v0.0.0-20191028173616-919d9bdd9fe6 // indirect
+	google.golang.org/genproto v0.0.0-20191115221424-83cc0476cb11 // indirect
 	google.golang.org/grpc v1.24.0
+	gopkg.in/yaml.v2 v2.2.7 // indirect
 	k8s.io/api v0.0.0-20190313115550-3c12c96769cc
 	k8s.io/apimachinery v0.0.0-20190313115320-c9defaaddf6f
 	k8s.io/client-go v11.0.0+incompatible
