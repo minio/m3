@@ -13,12 +13,6 @@ A binary release can be downloaded via
 curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
 ```
 
-- [Kubefwd](https://github.com/txn2/kubefwd) (Optional)
-
-```
-go get github.com/txn2/kubefwd/cmd/kubefwd
-```
-
 - [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway)
 
 ```
@@ -46,12 +40,6 @@ cd k8s/; ./create-kind.sh
 
 ## Access Kubernetes dashboard
 
-- Configure `kubectl` to work with local kubernetes
-
-```
-export KUBECONFIG=$(kind get kubeconfig-path --name="m3cluster")
-```
-
 - Launch kubectl proxy to access kubernetes dashboard
 
 ```
@@ -59,6 +47,7 @@ kubectl proxy
 ```
 
 - Log in to the dashboard at `http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#!/login`
+
 
 - To get the access token
 
@@ -133,11 +122,6 @@ If the company name is not url-friendly a short name will be generated, but it c
 ```
 ./m3 tenant add "Commpany® Inc." --short_name company-inc --admin_name="John Doe" --admin_email="email@domain.com"
 ```
-
-> For development we need to port-forward the kubernetes pods after we add a new tenant by running:
-> ```
-> sudo -E kubefwd svc -n default
-> ```
 
 ## Adding an Admin User
 
