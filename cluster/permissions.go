@@ -280,6 +280,7 @@ func ListPermissions(ctx *Context, offset int64, limit int32) ([]*Permission, er
 			OFFSET $1 LIMIT $2`
 
 	rows, err := ctx.TenantDB().Query(queryUser, offset, limit)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -295,6 +296,10 @@ func ListPermissions(ctx *Context, offset int64, limit int32) ([]*Permission, er
 		}
 		permissions = append(permissions, &prm)
 		permissionsHash[&prm.ID] = &prm
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
 	}
 	// get the actions
 	actionsCh := getActionsForPermissions(ctx, permissionsHash)
@@ -331,6 +336,7 @@ func getResourcesForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permissio
 		      id = any($1)`
 
 		rows, err := ctx.TenantDB().Query(queryUser, pq.Array(ids))
+		defer rows.Close()
 		if err != nil {
 			ch <- err
 			return
@@ -345,6 +351,11 @@ func getResourcesForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permissio
 				return
 			}
 			permsMap[&pID].Resources = append(permsMap[&pID].Resources, prm)
+		}
+		err = rows.Err()
+		if err != nil {
+			ch <- err
+			return
 		}
 
 	}()
@@ -388,6 +399,11 @@ func getActionsForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permission)
 				return
 			}
 			permsMap[&pID].Actions = append(permsMap[&pID].Actions, action)
+		}
+		err = rows.Err()
+		if err != nil {
+			ch <- err
+			return
 		}
 
 	}()
