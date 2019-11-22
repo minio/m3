@@ -46,6 +46,12 @@ func (s *privateServer) TenantPermissionAdd(ctx context.Context, in *pb.TenantPe
 	if err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
+	// validate Tenant
+	tenant, err := cluster.GetTenant(in.Tenant)
+	if err != nil {
+		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
+	}
+	appCtx.Tenant = &tenant
 
 	if _, err := cluster.AddPermission(appCtx, in.Name, in.Description, effect, in.Resources, in.Actions); err != nil {
 		appCtx.Rollback()
@@ -56,4 +62,38 @@ func (s *privateServer) TenantPermissionAdd(ctx context.Context, in *pb.TenantPe
 		return nil, err
 	}
 	return &pb.TenantPermissionAddResponse{}, nil
+}
+
+func (s *privateServer) TenantPermissionList(ctx context.Context, in *pb.TenantPermissionListRequest) (*pb.TenantPermissionListResponse, error) {
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// validate Tenant
+	tenant, err := cluster.GetTenant(in.Tenant)
+	if err != nil {
+		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
+	}
+	appCtx.Tenant = &tenant
+	// perform actions
+	perms, err := cluster.ListPermissions(appCtx, in.Offset, in.Limit)
+	if err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	//transform the permissions to pb format
+	var pbPerms []*pb.Permission
+	for _, perm := range perms {
+		pbPerm := pb.Permission{}
+		pbPerm.Id = perm.ID.String()
+		if perm.Name != nil {
+			pbPerm.Name = *perm.Name
+		}
+		if perm.Description != nil {
+			pbPerm.Description = *perm.Description
+		}
+
+		pbPerm.Effect = perm.Effect.String()
+		pbPerms = append(pbPerms, &pbPerm)
+	}
+	return &pb.TenantPermissionListResponse{Permissions: pbPerms}, nil
 }

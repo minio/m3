@@ -21,6 +21,8 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/lib/pq"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -261,4 +263,149 @@ func InsertAction(ctx *Context, permission *Permission, action *Action) error {
 		return err
 	}
 	return nil
+}
+
+// GetUsersForTenant returns a page of users for the provided tenant
+func ListPermissions(ctx *Context, offset int64, limit int32) ([]*Permission, error) {
+	if offset < 0 || limit < 0 {
+		return nil, errors.New("invalid offset/limit")
+	}
+
+	// Get user from tenants database
+	queryUser := `
+		SELECT 
+				p.id, p.name, p.description, p.effect
+			FROM 
+				permissions p
+			OFFSET $1 LIMIT $2`
+
+	rows, err := ctx.TenantDB().Query(queryUser, offset, limit)
+	defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	var permissions []*Permission
+	permissionsHash := make(map[*uuid.UUID]*Permission)
+	for rows.Next() {
+		prm := Permission{}
+		var effectStr string
+		err := rows.Scan(&prm.ID, &prm.Name, &prm.Description, &effectStr)
+		prm.Effect = EffectFromString(effectStr)
+		if err != nil {
+			return nil, err
+		}
+		permissions = append(permissions, &prm)
+		permissionsHash[&prm.ID] = &prm
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	// get the actions
+	actionsCh := getActionsForPermissions(ctx, permissionsHash)
+	// get the resources
+	resourcesCh := getResourcesForPermissions(ctx, permissionsHash)
+	// wait for both
+	err = <-actionsCh
+	if err != nil {
+		return nil, err
+	}
+	err = <-resourcesCh
+	if err != nil {
+		return nil, err
+	}
+	return permissions, nil
+}
+
+func getResourcesForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permission) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		// build a list of ids
+		var ids []*uuid.UUID
+		for id := range permsMap {
+			ids = append(ids, id)
+		}
+		// Get all the permissions for the provided list of ids
+		queryUser := `
+		SELECT 
+			p.id, p.permission_id, p.resource
+		FROM 
+			permissions_resources p 
+		WHERE 
+		      id = any($1)`
+
+		rows, err := ctx.TenantDB().Query(queryUser, pq.Array(ids))
+		defer rows.Close()
+		if err != nil {
+			ch <- err
+			return
+		}
+
+		for rows.Next() {
+			prm := Resource{}
+			var pID uuid.UUID
+			err := rows.Scan(&prm.ID, &pID, &prm.Resource)
+			if err != nil {
+				ch <- err
+				return
+			}
+			permsMap[&pID].Resources = append(permsMap[&pID].Resources, prm)
+		}
+		err = rows.Err()
+		if err != nil {
+			ch <- err
+			return
+		}
+
+	}()
+	return ch
+}
+
+func getActionsForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permission) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		// build a list of ids
+		var ids []*uuid.UUID
+		for id := range permsMap {
+			ids = append(ids, id)
+		}
+		// Get all the permissions for the provided list of ids
+		queryUser := `
+		SELECT 
+			p.id, p.permission_id, p.action
+		FROM 
+			permissions_actions p 
+		WHERE 
+		      id = any ($1)`
+
+		rows, err := ctx.TenantDB().Query(queryUser, pq.Array(ids))
+		defer rows.Close()
+		if err != nil {
+			ch <- err
+			return
+		}
+
+		for rows.Next() {
+			action := Action{}
+			var pID uuid.UUID
+			var actionStr string
+			err := rows.Scan(&action.ID, &pID, &actionStr)
+			at := ActionTypeFromString(actionStr)
+			action.ActionType = at
+			if err != nil {
+				ch <- err
+				return
+			}
+			permsMap[&pID].Actions = append(permsMap[&pID].Actions, action)
+		}
+		err = rows.Err()
+		if err != nil {
+			ch <- err
+			return
+		}
+
+	}()
+	return ch
 }
