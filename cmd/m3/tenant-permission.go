@@ -29,7 +29,7 @@ var tenantPermissionCmd = cli.Command{
 	Subcommands: []cli.Command{
 		createPermissionCmd,
 		// deletePersmissionCmd,
-		// listPermissionCmd,
+		listPermissionCmd,
 		// assignPermissionCmd,
 	},
 }

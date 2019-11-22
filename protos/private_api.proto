@@ -21,6 +21,8 @@ option java_multiple_files = true;
 option java_package = "io.min.m3.private-api";
 option java_outer_classname = "PrivateApiProto";
 
+import "public_api.proto";
+
 package m3;
 
 service PrivateAPI {
@@ -37,6 +39,8 @@ service PrivateAPI {
     }
     // Tenant Permissions Operations
     rpc TenantPermissionAdd (TenantPermissionAddRequest) returns (TenantPermissionAddResponse) {
+    }
+    rpc TenantPermissionList (TenantPermissionListRequest) returns (TenantPermissionListResponse) {
     }
     // Tenant User Operations
     rpc TenantUserAdd (TenantUserAddRequest) returns (TenantUserAddResponse) {
@@ -88,6 +92,17 @@ message TenantPermissionAddRequest {
     repeated string actions = 6;
 }
 message TenantPermissionAddResponse {
+}
+
+message TenantPermissionListRequest {
+    string tenant = 1;
+    int64 offset = 2;
+    int32 limit = 3;
+}
+
+message TenantPermissionListResponse {
+    repeated Permission permissions = 1;
+    int32 total = 2;
 }
 
 message TenantUserAddRequest {
