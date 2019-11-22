@@ -1,4 +1,4 @@
-default: grpc
+default: m3
 
 grpc:
 	@echo "Generating grpc stubs"
