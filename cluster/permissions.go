@@ -370,6 +370,7 @@ func getActionsForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permission)
 		      id = any ($1)`
 
 		rows, err := ctx.TenantDB().Query(queryUser, pq.Array(ids))
+		defer rows.Close()
 		if err != nil {
 			ch <- err
 			return
