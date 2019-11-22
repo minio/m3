@@ -49,10 +49,10 @@ var listPermissionCmd = cli.Command{
 	},
 }
 
-// permissionAdd command to add a permission.
+// permissionList command to list a permission.
 // sample usage:
-//     m3 permission add tenant-1 allow s3:GetObject,s3:PutObject /prefix/subprefix
-//     m3 permission add --tenant tenant-1 --effect allow --actions s3:GetObject,s3:PutObject --resources /prefix/subprefix
+//     m3 tenant permission list tenant-1 allow write,read bucketA,bucketB
+//     m3 tenant permission list --tenant tenant-1 --effect allow --actions write,read --resources bucketA,bucketB
 func permissionList(ctx *cli.Context) error {
 	tenantShortName := ctx.String("tenant")
 	offset := ctx.Int64("offset")
