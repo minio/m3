@@ -200,6 +200,8 @@ func MapServiceAccountsToIDs(ctx *Context, serviceAccountIDs []string) (map[stri
 
 }
 
+// UpdatePolicyForServiceAccount will retrieve all the permissions associated with the provided service account, build
+// an IAM policy and submit it to the tenant's MinIO instance
 func UpdatePolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenantConf *TenantConfiguration, serviceAccount *string) chan error {
 	ch := make(chan error)
 	go func() {
@@ -287,6 +289,8 @@ func UpdatePolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenant
 	return ch
 }
 
+// filterServiceAccountsWithPermission takes a list of service accounts and returns only those who have the provided
+// permissions associated with them
 func filterServiceAccountsWithPermission(ctx *Context, serviceAccounts []string, permission *string) ([]string, error) {
 	// Get user from tenants database
 	queryUser := `

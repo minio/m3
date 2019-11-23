@@ -193,6 +193,8 @@ func createServiceAccountCredentials(ctx *Context, tenantShortName string, servi
 	return &saCredentials, nil
 }
 
+// GetCredentialsForServiceAccount gets the access_key assigned to the provided service account. As stated in other
+// places the secret is not stored and cannot be retrieved.
 func GetCredentialsForServiceAccount(ctx *Context, serviceAccount *string) (*ServiceAccountCredentials, error) {
 	// Get service-account from tenants database
 	queryUser := `

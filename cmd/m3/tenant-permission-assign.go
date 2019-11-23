@@ -48,6 +48,8 @@ var assignPermissionCmd = cli.Command{
 	},
 }
 
+// assignPermission takes a permission id-name and a list of comma separated service accounts and assigned the
+// permission to all of them
 func assignPermission(ctx *cli.Context) error {
 	tenantShortName := ctx.String("tenant")
 	permission := ctx.String("permission")

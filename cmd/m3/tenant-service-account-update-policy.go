@@ -23,7 +23,7 @@ import (
 	pb "github.com/minio/m3/api/stubs"
 )
 
-// List the service accounts for a tenant
+// Updates the policy for a service account
 var tenantServiceAccountUpdatePolicyCmd = cli.Command{
 	Name:   "update-policy",
 	Usage:  "Causes a service account policy to be refreshed",

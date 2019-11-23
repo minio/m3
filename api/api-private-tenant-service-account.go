@@ -27,6 +27,8 @@ import (
 	pb "github.com/minio/m3/api/stubs"
 )
 
+// TenantServiceAccountUpdatePolicy causes a service account to have it's policy re-applied by pulling all the
+// permissions associated with it.
 func (s *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, in *pb.TenantServiceAccountActionRequest) (*pb.TenantServiceAccountActionResponse, error) {
 	// get context
 	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)

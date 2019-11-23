@@ -327,6 +327,8 @@ func buildPermissionsForRows(ctx *Context, rows *sql.Rows) ([]*Permission, error
 	return permissions, nil
 }
 
+// getResourcesForPermissions retrieves the resources for all the permissions in the provided map and stores them on the
+// references provided in the map.
 func getResourcesForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) chan error {
 	ch := make(chan error)
 	go func() {
@@ -420,6 +422,7 @@ func getActionsForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) 
 	return ch
 }
 
+// Validates a permission by it's id-name (slug)
 func ValidPermission(ctx *Context, permission *string) (bool, error) {
 	// Get user from tenants database
 	queryUser := `SELECT EXISTS(
@@ -518,6 +521,7 @@ func AssignPermission(ctx *Context, permission *string, serviceAccounts []string
 	return nil
 }
 
+// GetAllThePermissionForServiceAccount returns a list of permissions that are assigned to a service account
 func GetAllThePermissionForServiceAccount(ctx *Context, serviceAccount *string) ([]*Permission, error) {
 	// Get permissions associated with the provided service account
 	queryUser := `
@@ -568,6 +572,7 @@ func getValidPermSlug(ctx *Context, permName string) (*string, error) {
 	return &permSlug, nil
 }
 
+// GetPermissionBySlug retrieves a permission by it's id-name
 func GetPermissionBySlug(ctx *Context, slug string) (*Permission, error) {
 	// Get user from tenants database
 	queryUser := `

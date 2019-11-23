@@ -106,6 +106,8 @@ func (s *privateServer) TenantPermissionList(ctx context.Context, in *pb.TenantP
 	return &pb.TenantPermissionListResponse{Permissions: pbPerms}, nil
 }
 
+// TenantPermissionAssign provides the endpoint to assign a permission by id-name to multiple service accounts by
+// id-name as well.
 func (s *privateServer) TenantPermissionAssign(ctx context.Context, in *pb.TenantPermissionAssignRequest) (*pb.TenantPermissionAssignResponse, error) {
 	// get context
 	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
