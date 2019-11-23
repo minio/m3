@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "mirror.fullname" . }}
+data:
+  initialize: |-
+{{ include (print $.Template.BasePath "/_mirror_script.txt") . | indent 4 }}

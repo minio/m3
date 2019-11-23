@@ -1,0 +1,37 @@
+# Default values for mirror.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  repository: minio/mc
+  pullPolicy: IfNotPresent
+
+## Use this field to set aliases for MC. These fields will be passed on to MC container(s)
+## when Chart is deployed.
+env:
+  ## Format to set the alias is MC_HOST_<alias>=https://<Access Key>:<Secret Key>@<YOUR-S3-ENDPOINT>
+  ## After this, mc should be able to access this cluster using "alias"
+  MC_HOST_play: "https://Q3AM3UQ867SPQQA43P2F:zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG@play.min.io"
+  MC_HOST_play1: "https://Q3AM3UQ867SPQQA43P2F:zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG@play.min.io"
+
+## Use this field to set the source and destination for mirror.
+## source and destination can be site wide / bucket wide / prefix wide.
+## Please ensure to add alias before bucket names. Alias should be set using env variables above.
+location:
+  source: "play"
+  target: "play1"
+  buckets:
+    - "bucket1"
+    - "bucket2"
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi

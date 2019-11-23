@@ -1,0 +1,43 @@
+{{ $pullPolicy := .Values.image.pullPolicy }}
+{{ $imageRepo := .Values.image.repository }}
+{{ $appVersion := .Chart.AppVersion }}
+{{ $name := include "mirror.fullname" . }}
+{{ $envs := .Values.env }}
+{{ $resources := .Values.resources }}
+{{ $buckets := .Values.location.buckets }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+    spec:
+      volumes:
+        - name: minio-configuration
+          projected:
+            sources:
+            - configMap:
+                name: {{ $name }}
+      containers:
+      {{- range $bucket := $buckets }}
+        - name: {{ list $name $bucket | join "-" }}
+          env:
+            {{- range $key, $val := $envs}}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+            {{- end }}
+          image: "{{ $imageRepo }}:{{ $appVersion }}"
+          imagePullPolicy: {{ $pullPolicy }}
+          command: ["/bin/sh", "/config/initialize", {{ $bucket }}]
+          volumeMounts:
+          - name: minio-configuration
+            mountPath: /config
+          resources:
+            {{- toYaml $resources | nindent 12 }}
+       {{- end }}
