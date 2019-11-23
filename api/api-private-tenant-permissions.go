@@ -19,6 +19,7 @@ package api
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/minio/m3/cluster"
 	"google.golang.org/grpc/codes"
@@ -85,15 +86,51 @@ func (s *privateServer) TenantPermissionList(ctx context.Context, in *pb.TenantP
 	for _, perm := range perms {
 		pbPerm := pb.Permission{}
 		pbPerm.Id = perm.ID.String()
-		if perm.Name != nil {
-			pbPerm.Name = *perm.Name
-		}
+		pbPerm.Slug = perm.Slug
+		pbPerm.Name = perm.Name
 		if perm.Description != nil {
 			pbPerm.Description = *perm.Description
 		}
-
 		pbPerm.Effect = perm.Effect.String()
+		// copy resources
+		for _, res := range perm.Resources {
+			pbPerm.Resources = append(pbPerm.Resources, res.String())
+		}
+		// copy actions
+		for _, act := range perm.Actions {
+			pbPerm.Actions = append(pbPerm.Actions, string(act.ActionType))
+		}
+
 		pbPerms = append(pbPerms, &pbPerm)
 	}
 	return &pb.TenantPermissionListResponse{Permissions: pbPerms}, nil
+}
+
+// TenantPermissionAssign provides the endpoint to assign a permission by id-name to multiple service accounts by
+// id-name as well.
+func (s *privateServer) TenantPermissionAssign(ctx context.Context, in *pb.TenantPermissionAssignRequest) (*pb.TenantPermissionAssignResponse, error) {
+	// get context
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// validate Tenant
+	tenant, err := cluster.GetTenant(in.Tenant)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
+	}
+	appCtx.Tenant = &tenant
+	// perform actions
+	err = cluster.AssignPermission(appCtx, &in.Permission, in.ServiceAccounts)
+	if err != nil {
+		log.Println(err)
+		appCtx.Rollback()
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// if no errors, commit
+	appCtx.Commit()
+
+	return &pb.TenantPermissionAssignResponse{}, nil
 }

@@ -43,3 +43,25 @@ func addMinioCannedPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfi
 	}
 	return nil
 }
+
+// addMinioIAMPolicyToUser takes a policy name, a policy and a user access_key and creates a policy on MinIO side and
+// then applies it to the provided user
+func addMinioIAMPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, policyName, policy, userAccessKey string) error {
+	// get an admin with operator keys
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	if pErr != nil {
+		return pErr.Cause
+	}
+	// Add the canned policy
+	//err := adminClient.SetPolicy(policy, accessKey, false)
+	err := adminClient.AddCannedPolicy(policyName, policy)
+	if err != nil {
+		return err
+	}
+	// Add the canned policy
+	err = adminClient.SetPolicy(policyName, userAccessKey, false)
+	if err != nil {
+		return err
+	}
+	return nil
+}

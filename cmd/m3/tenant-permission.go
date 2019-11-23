@@ -30,7 +30,7 @@ var tenantPermissionCmd = cli.Command{
 		createPermissionCmd,
 		// deletePersmissionCmd,
 		listPermissionCmd,
-		// assignPermissionCmd,
+		assignPermissionCmd,
 	},
 }
 

@@ -107,7 +107,12 @@ func tenantServiceAccountList(ctx *cli.Context) error {
 		if serviceAccount.Description != nil {
 			desc = *serviceAccount.Description
 		}
-		fmt.Println(fmt.Sprintf("%s\t%s\t%s\t%s", serviceAccount.ID.String(), serviceAccount.Name, serviceAccount.AccessKey, desc))
+		fmt.Printf("%s\t%s\t%s\t%s\n",
+			serviceAccount.Slug,
+			serviceAccount.Name,
+			serviceAccount.AccessKey,
+			desc,
+		)
 	}
 	fmt.Println(fmt.Sprintf("A total of %d service accounts", total))
 

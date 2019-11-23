@@ -14,155 +14,155 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-create table admins
+CREATE TABLE admins
 (
-    id               uuid
-        constraint admins_pk
-            primary key,
-    name             varchar(256),
-    email            varchar(256)              not null,
-    password         varchar(256),
-    sys_created_by   varchar(256)              not null,
-    sys_created_date timestamptz default now() not null
+    id               UUID
+        CONSTRAINT admins_pk
+            PRIMARY KEY,
+    name             VARCHAR(256),
+    email            VARCHAR(256)              NOT NULL,
+    password         VARCHAR(256),
+    sys_created_by   VARCHAR(256)              NOT NULL,
+    sys_created_date TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
-create unique index admins_email_uindex
-    on admins (email);
+CREATE UNIQUE INDEX admins_email_uindex
+    ON admins (email);
 
-create table tenants
+CREATE TABLE tenants
 (
-    id               uuid                                   not null
-        constraint tenants_pk
-            primary key,
-    name             varchar(256)                           not null,
-    short_name       varchar(256)                           not null,
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null
-);
-
-
-create table storage_groups
-(
-    id               uuid                                   not null
-        constraint storage_groups_pk
-            primary key,
-    name             varchar(256),
-    num              serial                                 not null,
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null
+    id               UUID                                   NOT NULL
+        CONSTRAINT tenants_pk
+            PRIMARY KEY,
+    name             VARCHAR(256)                           NOT NULL,
+    short_name       VARCHAR(256)                           NOT NULL,
+    sys_created_by   VARCHAR(256)                           NOT NULL,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
 
-create table tenants_storage_groups
+CREATE TABLE storage_groups
 (
-    tenant_id        uuid                                   not null
-        constraint tenants_storage_groups_tenants_id_fk
-            references tenants,
-    storage_group_id uuid                                   not null
-        constraint tenants_storage_groups_storage_groups_id_fk
-            references storage_groups,
-    port             integer                                not null,
-    service_name     varchar(64)                            not null,
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null
+    id               UUID                                   NOT NULL
+        CONSTRAINT storage_groups_pk
+            PRIMARY KEY,
+    name             VARCHAR(256),
+    num              SERIAL                                 NOT NULL,
+    sys_created_by   VARCHAR(256)                           NOT NULL,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
 
-create table nodes
+CREATE TABLE tenants_storage_groups
 (
-    id               uuid                                   not null
-        constraint nodes_pk
-            primary key,
-    name             varchar(256),
-    k8s_label        varchar(256),
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null
+    tenant_id        UUID                                   NOT NULL
+        CONSTRAINT tenants_storage_groups_tenants_id_fk
+            REFERENCES tenants,
+    storage_group_id UUID                                   NOT NULL
+        CONSTRAINT tenants_storage_groups_storage_groups_id_fk
+            REFERENCES storage_groups,
+    port             INTEGER                                NOT NULL,
+    service_name     VARCHAR(64)                            NOT NULL,
+    sys_created_by   VARCHAR(256)                           NOT NULL,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
 
-create table storage_clusters
+CREATE TABLE nodes
 (
-    id               uuid                                   not null
-        constraint storage_clusters_pk
-            primary key,
-    name             varchar(256),
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null
+    id               UUID                                   NOT NULL
+        CONSTRAINT nodes_pk
+            PRIMARY KEY,
+    name             VARCHAR(256),
+    k8s_label        VARCHAR(256),
+    sys_created_by   VARCHAR(256)                           NOT NULL,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
 
-create table storage_clusters_groups
+CREATE TABLE storage_clusters
 (
-    storage_cluster_id uuid                                   not null
-        constraint storage_clusters_groups_storage_clusters_id_fk
-            references storage_clusters,
-    storage_group_id   uuid                                   not null
-        constraint storage_clusters_groups_storage_groups_id_fk
-            references storage_groups,
-    sys_created_by     varchar(256)                           not null,
-    sys_created_date   timestamp with time zone default now() not null
+    id               UUID                                   NOT NULL
+        CONSTRAINT storage_clusters_pk
+            PRIMARY KEY,
+    name             VARCHAR(256),
+    sys_created_by   VARCHAR(256)                           NOT NULL,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
 
-create table storage_cluster_nodes
+CREATE TABLE storage_clusters_groups
 (
-    storage_cluster_id uuid                                   not null
-        constraint storage_cluster_nodes_storage_clusters_id_fk
-            references storage_clusters,
-    node_id            uuid                                   not null
-        constraint storage_cluster_nodes_nodes_id_fk
-            references nodes,
-    k8s_label          varchar(256),
-    sys_created_by     varchar(256)                           not null,
-    sys_created_date   timestamp with time zone default now() not null
+    storage_cluster_id UUID                                   NOT NULL
+        CONSTRAINT storage_clusters_groups_storage_clusters_id_fk
+            REFERENCES storage_clusters,
+    storage_group_id   UUID                                   NOT NULL
+        CONSTRAINT storage_clusters_groups_storage_groups_id_fk
+            REFERENCES storage_groups,
+    sys_created_by     VARCHAR(256)                           NOT NULL,
+    sys_created_date   TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
 
-create table node_volumes
+CREATE TABLE storage_cluster_nodes
 (
-    id               uuid                                   not null
-        constraint node_volumes_pk
-            primary key,
-    node_id          uuid                                   not null
-        constraint node_volumes_nodes_id_fk
-            references nodes,
-    mount_path       varchar(256),
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null
+    storage_cluster_id UUID                                   NOT NULL
+        CONSTRAINT storage_cluster_nodes_storage_clusters_id_fk
+            REFERENCES storage_clusters,
+    node_id            UUID                                   NOT NULL
+        CONSTRAINT storage_cluster_nodes_nodes_id_fk
+            REFERENCES nodes,
+    k8s_label          VARCHAR(256),
+    sys_created_by     VARCHAR(256)                           NOT NULL,
+    sys_created_date   TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+);
+
+
+CREATE TABLE node_volumes
+(
+    id               UUID                                   NOT NULL
+        CONSTRAINT node_volumes_pk
+            PRIMARY KEY,
+    node_id          UUID                                   NOT NULL
+        CONSTRAINT node_volumes_nodes_id_fk
+            REFERENCES nodes,
+    mount_path       VARCHAR(256),
+    sys_created_by   VARCHAR(256)                           NOT NULL,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
 --  Table to store Disks attached to a node and their mount points
 
-create table disks
+CREATE TABLE disks
 (
-    id               uuid                                   not null
-        constraint disks_pk
-            primary key,
-    node_id          uuid
-        constraint disks_nodes_id_fk
-            references nodes,
-    mount_point      varchar(512),
-    capacity         bigint,
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null
+    id               UUID                                   NOT NULL
+        CONSTRAINT disks_pk
+            PRIMARY KEY,
+    node_id          UUID
+        CONSTRAINT disks_nodes_id_fk
+            REFERENCES nodes,
+    mount_point      VARCHAR(512),
+    capacity         BIGINT,
+    sys_created_by   VARCHAR(256)                           NOT NULL,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
-comment on column disks.capacity is 'Capacity in bytes';
+COMMENT ON COLUMN disks.capacity IS 'Capacity in bytes';
 
 --  Table to store sessions of a <tenant>.user
-CREATE TYPE status_type AS ENUM ('valid', 'invalid');
+CREATE TYPE STATUS_TYPE AS ENUM ('valid', 'invalid');
 
-create table sessions
+CREATE TABLE sessions
 (
-    id          varchar(256)                           not null
-        constraint sessions_pk
-            primary key,                                         -- session id as rand string
-    tenant_id   uuid                                   not null, -- user's tenant's id
-    user_id     uuid                                   not null, -- user id of the user who initiated the session
-    occurred_at timestamp with time zone default now() not null, -- first timestamp of the session
-    last_event  timestamp with time zone default now(),          -- stores last event's timestamp within this session
-    expires_at  timestamp with time zone default now() not null, -- session's expiration time
-    status      status_type                            not null  -- session's status
+    id          VARCHAR(256)                           NOT NULL
+        CONSTRAINT sessions_pk
+            PRIMARY KEY,                                         -- session id as rand string
+    tenant_id   UUID                                   NOT NULL, -- user's tenant's id
+    user_id     UUID                                   NOT NULL, -- user id of the user who initiated the session
+    occurred_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, -- first timestamp of the session
+    last_event  TIMESTAMP WITH TIME ZONE DEFAULT now(),          -- stores last event's timestamp within this session
+    expires_at  TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL, -- session's expiration time
+    status      STATUS_TYPE                            NOT NULL  -- session's status
 );
 
 

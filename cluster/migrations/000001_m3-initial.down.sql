@@ -14,16 +14,16 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-drop table admins;
-drop index admins_email_uindex;
-drop table tenants;
-drop table storage_groups;
-drop table tenants_storage_groups;
-drop table nodes;
-drop table storage_clusters;
-drop table storage_clusters_groups;
-drop table storage_cluster_nodes;
-drop table node_volumes;
-drop table disks;
-drop type status_type;
-drop table sessions;
+DROP TABLE admins;
+DROP INDEX admins_email_uindex;
+DROP TABLE tenants;
+DROP TABLE storage_groups;
+DROP TABLE tenants_storage_groups;
+DROP TABLE nodes;
+DROP TABLE storage_clusters;
+DROP TABLE storage_clusters_groups;
+DROP TABLE storage_cluster_nodes;
+DROP TABLE node_volumes;
+DROP TABLE disks;
+DROP TYPE STATUS_TYPE;
+DROP TABLE sessions;

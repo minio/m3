@@ -42,6 +42,11 @@ service PrivateAPI {
     }
     rpc TenantPermissionList (TenantPermissionListRequest) returns (TenantPermissionListResponse) {
     }
+    rpc TenantPermissionAssign (TenantPermissionAssignRequest) returns (TenantPermissionAssignResponse) {
+    }
+    // Tenant Service Accounts
+    rpc TenantServiceAccountUpdatePolicy (TenantServiceAccountActionRequest) returns (TenantServiceAccountActionResponse) {
+    }
     // Tenant User Operations
     rpc TenantUserAdd (TenantUserAddRequest) returns (TenantUserAddResponse) {
     }
@@ -105,6 +110,14 @@ message TenantPermissionListResponse {
     int32 total = 2;
 }
 
+message TenantPermissionAssignRequest {
+    string tenant = 1;
+    string permission = 2;
+    repeated string service_accounts = 3;
+}
+message TenantPermissionAssignResponse {
+}
+
 message TenantUserAddRequest {
     string tenant = 1;
     string name = 2;
@@ -156,4 +169,11 @@ message TenantUserForgotPasswordRequest {
 }
 
 message TenantUserForgotPasswordResponse {
+}
+
+message TenantServiceAccountActionRequest {
+    string tenant = 1;
+    string service_account = 2;
+}
+message TenantServiceAccountActionResponse {
 }

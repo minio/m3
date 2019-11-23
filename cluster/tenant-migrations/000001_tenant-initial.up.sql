@@ -14,142 +14,154 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-create table users
+CREATE TABLE users
 (
-    id                  uuid                                   not null
-        constraint users_pk
-            primary key,
-    full_name           varchar(256),
-    email               varchar(256)                           not null,
-    password            varchar(256),
-    accepted_invitation boolean                  default false,
-    sys_created_date    timestamp with time zone default now() not null
+    id                  UUID                                   NOT NULL
+        CONSTRAINT users_pk
+            PRIMARY KEY,
+    full_name           VARCHAR(256),
+    email               VARCHAR(256)                           NOT NULL,
+    password            VARCHAR(256),
+    accepted_invitation BOOLEAN                  DEFAULT FALSE,
+    sys_created_date    TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
 
-create unique index users_email_uindex
-    on users (email);
+CREATE UNIQUE INDEX users_email_uindex
+    ON users (email);
 
-create index users_password_index
-    on users (password);
+CREATE INDEX users_password_index
+    ON users (password);
 
-create table service_accounts
+CREATE TABLE service_accounts
 (
-    id               uuid                                   not null
-        constraint service_accounts_pk
-            primary key,
-    name             varchar(256)                           not null,
-    description      text,
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null,
-    sys_deleted      timestamp with time zone
+    id               UUID                                   NOT NULL
+        CONSTRAINT service_accounts_pk
+            PRIMARY KEY,
+    name             VARCHAR(256)                           NOT NULL,
+    slug             VARCHAR(256)                           NOT NULL,
+    description      TEXT,
+    sys_created_by   VARCHAR(256)                           NOT NULL,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    sys_deleted      TIMESTAMP WITH TIME ZONE
 );
 
-create index service_accounts_sys_deleted_index
-    on service_accounts (sys_deleted);
+CREATE INDEX service_accounts_sys_deleted_index
+    ON service_accounts (sys_deleted);
 
-create table credentials
+CREATE UNIQUE INDEX service_accounts_slug_index
+    ON service_accounts (slug);
+
+
+CREATE TABLE credentials
 (
-    access_key         varchar(256)                           not null
-        constraint credentials_pk
-            primary key,
-    user_id            uuid
-        constraint credentials_users_id_fk
-            references users
-            on delete cascade,
-    service_account_id uuid
-        constraint credentials_service_accounts_id_fk
-            references service_accounts
-            on delete cascade,
-    ui_credential      boolean                  default false,
+    access_key         VARCHAR(256)                           NOT NULL
+        CONSTRAINT credentials_pk
+            PRIMARY KEY,
+    user_id            UUID
+        CONSTRAINT credentials_users_id_fk
+            REFERENCES users
+            ON DELETE CASCADE,
+    service_account_id UUID
+        CONSTRAINT credentials_service_accounts_id_fk
+            REFERENCES service_accounts
+            ON DELETE CASCADE,
+    ui_credential      BOOLEAN                  DEFAULT FALSE,
 
-    sys_created_by     varchar(256)                           not null,
-    sys_created_date   timestamp with time zone default now() not null,
-    sys_deleted        timestamp with time zone
+    sys_created_by     VARCHAR(256)                           NOT NULL,
+    sys_created_date   TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    sys_deleted        TIMESTAMP WITH TIME ZONE
 );
 
-create index credentials_sys_deleted_index
-    on credentials (sys_deleted);
+CREATE INDEX credentials_sys_deleted_index
+    ON credentials (sys_deleted);
 
 
-create table permissions
+CREATE TABLE permissions
 (
-    id               uuid                                   not null
-        constraint permissions_pk
-            primary key,
-    name             varchar(512),
-    description      text,
-    effect           varchar(64)                            not null,
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null
+    id               UUID                                   NOT NULL
+        CONSTRAINT permissions_pk
+            PRIMARY KEY,
+    name             VARCHAR(512),
+    slug             VARCHAR(512)                           NOT NULL,
+    description      TEXT,
+    effect           VARCHAR(64)                            NOT NULL,
+    sys_created_by   VARCHAR(256)                           NOT NULL,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
+CREATE UNIQUE INDEX permissions_slug_index
+    ON permissions (slug);
 
-create table permissions_resources
+
+CREATE TABLE permissions_resources
 (
-    id               uuid                                   not null
-        constraint permissions_resources_pk
-            primary key,
-    permission_id    uuid
-        constraint permissions_resources_permissions_id_fk
-            references permissions,
-    resource         varchar(512)                           not null,
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null
-);
-
-
-create table service_accounts_permissions
-(
-    service_account_id uuid                                   not null
-        constraint service_accounts_permissions_service_accounts_id_fk
-            references service_accounts
-            on delete cascade,
-    permission_id      uuid                                   not null
-        constraint service_accounts_permissions_permissions_id_fk
-            references permissions
-            on delete cascade,
-    sys_created_by     varchar(256)                           not null,
-    sys_created_date   timestamp with time zone default now() not null
+    id               UUID                                   NOT NULL
+        CONSTRAINT permissions_resources_pk
+            PRIMARY KEY,
+    permission_id    UUID
+        CONSTRAINT permissions_resources_permissions_id_fk
+            REFERENCES permissions,
+    bucket_name      VARCHAR(64)                            NOT NULL,
+    path             VARCHAR(512)                           NOT NULL,
+    sys_created_by   VARCHAR(256)                           NOT NULL,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
 
-
-create table permissions_actions
+CREATE TABLE service_accounts_permissions
 (
-    id               uuid                                   not null
-        constraint permissions_actions_pk
-            primary key,
-    permission_id    uuid
-        constraint permissions_actions_permissions_id_fk
-            references permissions
-            on delete cascade,
-    action           varchar(256)                           not null,
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null
+    service_account_id UUID                                   NOT NULL
+        CONSTRAINT service_accounts_permissions_service_accounts_id_fk
+            REFERENCES service_accounts
+            ON DELETE CASCADE,
+    permission_id      UUID                                   NOT NULL
+        CONSTRAINT service_accounts_permissions_permissions_id_fk
+            REFERENCES permissions
+            ON DELETE CASCADE,
+    sys_created_by     VARCHAR(256)                           NOT NULL,
+    sys_created_date   TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+);
+
+CREATE UNIQUE INDEX service_accounts_permissions_service_account_id_permission_id_u
+    ON service_accounts_permissions (service_account_id, permission_id);
+
+
+CREATE TABLE permissions_actions
+(
+    id               UUID                                   NOT NULL
+        CONSTRAINT permissions_actions_pk
+            PRIMARY KEY,
+    permission_id    UUID
+        CONSTRAINT permissions_actions_permissions_id_fk
+            REFERENCES permissions
+            ON DELETE CASCADE,
+    action           VARCHAR(256)                           NOT NULL,
+    sys_created_by   VARCHAR(256)                           NOT NULL,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
 
-create table api_logs
+CREATE TABLE api_logs
 (
-    id               serial                                 not null
-        constraint api_logs_pk
-            primary key,
-    api              varchar(256)                           not null,
-    payload          text,
-    sys_created_date timestamp with time zone default now() not null,
-    session_id       varchar(256),
-    user_email       varchar(256)
+    id               SERIAL                                 NOT NULL
+        CONSTRAINT api_logs_pk
+            PRIMARY KEY,
+    api              VARCHAR(256)                           NOT NULL,
+    payload          TEXT,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    session_id       VARCHAR(256),
+    user_email       VARCHAR(256)
 );
 
 
-create index api_logs_api_index
-    on api_logs (api);
+CREATE INDEX api_logs_api_index
+    ON api_logs (api);
 
-create index api_logs_session_id_index
-    on api_logs (session_id);
+CREATE INDEX api_logs_session_id_index
+    ON api_logs (session_id);
 
-create index api_logs_user_email_index
-    on api_logs (user_email);
+CREATE INDEX api_logs_user_email_index
+    ON api_logs (user_email);
 
 

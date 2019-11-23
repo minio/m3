@@ -105,7 +105,7 @@ func permissionList(ctx *cli.Context) error {
 
 	for _, perm := range resp.Permissions {
 		fmt.Printf("%s\t%s\t%s\t%s\t%s\n",
-			perm.Id,
+			perm.Slug,
 			perm.Name,
 			perm.Effect,
 			strings.Join(perm.Resources, ","),

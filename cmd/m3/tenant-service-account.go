@@ -27,6 +27,7 @@ var tenantServiceAccountCmd = cli.Command{
 	Subcommands: []cli.Command{
 		tenantServiceAccountAddCmd,
 		tenantServiceAccountListCmd,
+		tenantServiceAccountUpdatePolicyCmd,
 	},
 }
 
