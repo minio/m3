@@ -14,29 +14,29 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-create table url_tokens
+CREATE TABLE url_tokens
 (
-    id               uuid
-        constraint url_tokens_pk
-            primary key,
-    user_id          uuid                                   not null
-        constraint url_tokens_users_id_fk
-            references users
-            on delete cascade,
-    expiration       timestamptz,
-    used_for         varchar(256),
-    consumed         bool                     default false,
-    sys_created_by   varchar(256)                           not null,
-    sys_created_date timestamp with time zone default now() not null
+    id               UUID
+        CONSTRAINT url_tokens_pk
+            PRIMARY KEY,
+    user_id          UUID                                   NOT NULL
+        CONSTRAINT url_tokens_users_id_fk
+            REFERENCES users
+            ON DELETE CASCADE,
+    expiration       TIMESTAMPTZ,
+    used_for         VARCHAR(256),
+    consumed         BOOL                     DEFAULT FALSE,
+    sys_created_by   VARCHAR(256)                           NOT NULL,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
 
-comment on table url_tokens is 'Holds tokens and their validity for multifple functions such as password reset or tenant invite';
+COMMENT ON TABLE url_tokens IS 'Holds tokens and their validity for multifple functions such as password reset or tenant invite';
 
-comment on column url_tokens.user_id is 'User this token is associated with';
+COMMENT ON COLUMN url_tokens.user_id IS 'User this token is associated with';
 
-comment on column url_tokens.expiration is 'When does this token expires';
+COMMENT ON COLUMN url_tokens.expiration IS 'When does this token expires';
 
-comment on column url_tokens.used_for is 'describes the function this token is intenteded for (i.e. password-reset, signup-link)';
+COMMENT ON COLUMN url_tokens.used_for IS 'describes the function this token is intenteded for (i.e. password-reset, signup-link)';
 
-comment on column url_tokens.consumed is 'whether or not the token has been already used';
+COMMENT ON COLUMN url_tokens.consumed IS 'whether or not the token has been already used';
 

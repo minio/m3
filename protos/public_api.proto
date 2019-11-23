@@ -378,10 +378,11 @@ message ListPermissionsResponse {
 message Permission {
     string id = 1;
     string name = 2;
-    string description = 3;
-    string effect = 4;
-    repeated string resources = 5;
-    repeated string actions = 6;
+    string slug = 3;
+    string description = 4;
+    string effect = 5;
+    repeated string resources = 6;
+    repeated string actions = 7;
 }
 
 message PermissionActionRequest {

@@ -90,8 +90,6 @@ func permissionAdd(ctx *cli.Context) error {
 	if inputResources == "" && ctx.Args().Get(4) != "" {
 		inputResources = ctx.Args().Get(4)
 	}
-	fmt.Println(ctx.Args())
-	fmt.Println("a", inputActions, "r", inputResources, "e", inputEffect)
 	if name == "" {
 		fmt.Println("You must provide a name for the permission")
 		return errMissingArguments
@@ -144,9 +142,6 @@ func permissionAdd(ctx *cli.Context) error {
 		fmt.Println("Error adding permission:", err.Error())
 		return err
 	}
-
-	fmt.Printf("Permission created with Actions %s for resources %s \n", inputActions, inputResources)
-	fmt.Println("Write these credentials down as this is the only time the secret will be shown.")
 
 	return nil
 }

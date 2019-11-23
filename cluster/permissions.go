@@ -17,9 +17,13 @@
 package cluster
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"strings"
+
+	"github.com/gosimple/slug"
 
 	"github.com/lib/pq"
 
@@ -28,22 +32,19 @@ import (
 
 // Allowed actions
 const (
-	Write ActionType = iota
-	Invalid
-	Read
-	Readwrite
+	Write     ActionType = "write"
+	Read                 = "read"
+	Readwrite            = "readwrite"
+	Invalid              = "invalid"
 )
 
-func (at ActionType) String() string {
-	actions := [...]string{
-		"write",
-		"read",
-		"readwrite"}
-	if at < Write || at > Readwrite {
-		return "Unknown"
-	}
-	return actions[at]
-}
+//func (at ActionType) String() string {
+//	actions := map[string]ActionType{
+//		"write":     Write,
+//		"read":      Read,
+//		"readwrite": Readwrite}
+//	return actions[at]
+//}
 
 func (at ActionType) IsValid() error {
 	switch at {
@@ -66,7 +67,7 @@ func ActionTypeFromString(actionTypeStr string) ActionType {
 	}
 }
 
-type ActionType int
+type ActionType string
 
 // Allowed effefcts
 const (
@@ -122,7 +123,7 @@ func (at *ActionType) Scan(value interface{}) error {
 
 func (at ActionType) Value() (driver.Value, error) {
 	// validation would go here
-	return at.String(), nil
+	return string(at), nil
 }
 
 type Action struct {
@@ -137,7 +138,8 @@ type Resource struct {
 
 type Permission struct {
 	ID          uuid.UUID
-	Name        *string
+	Name        string
+	Slug        string
 	Description *string
 	Effect      Effect
 	Resources   []Resource
@@ -147,14 +149,11 @@ type Permission struct {
 func NewPermission(name string, description string, effect Effect, resources []string, actions []string) (*Permission, error) {
 	// generate permission
 	perm := Permission{
-		Name:        &name,
+		Name:        name,
 		Description: &description,
 		Effect:      effect,
 	}
 	// Nullified values if they are empty
-	if name == "" {
-		perm.Name = nil
-	}
 	if description == "" {
 		perm.Description = nil
 	}
@@ -176,6 +175,11 @@ func AddPermission(ctx *Context, name, description string, effect Effect, resour
 	if err != nil {
 		return nil, err
 	}
+	permSlug, err := getValidPermSlug(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	perm.Slug = *permSlug
 	// insert to db
 	err = InsertPermission(ctx, perm)
 	if err != nil {
@@ -188,8 +192,8 @@ func AddPermission(ctx *Context, name, description string, effect Effect, resour
 func InsertPermission(ctx *Context, permission *Permission) error {
 	permission.ID = uuid.NewV4()
 	queryUpdatePermissions := `INSERT INTO
-				permissions ("id","name","description","effect","sys_created_by")
-					VALUES ($1, $2, $3, $4, $5)`
+				permissions ("id","name","slug","description","effect","sys_created_by")
+					VALUES ($1, $2, $3, $4, $5, $6)`
 
 	tx, err := ctx.TenantTx()
 	if err != nil {
@@ -201,8 +205,9 @@ func InsertPermission(ctx *Context, permission *Permission) error {
 		queryUpdatePermissions,
 		permission.ID,
 		permission.Name,
+		permission.Slug,
 		permission.Description,
-		permission.Effect,
+		permission.Effect.String(),
 		ctx.WhoAmI)
 	if err != nil {
 		return err
@@ -258,7 +263,7 @@ func InsertAction(ctx *Context, permission *Permission, action *Action) error {
 		return err
 	}
 	// Execute query
-	_, err = tx.Exec(queryUpdatePermissionsActions, action.ID, permission.ID, action.ActionType.String(), ctx.WhoAmI)
+	_, err = tx.Exec(queryUpdatePermissionsActions, action.ID, permission.ID, action.ActionType, ctx.WhoAmI)
 	if err != nil {
 		return err
 	}
@@ -271,10 +276,10 @@ func ListPermissions(ctx *Context, offset int64, limit int32) ([]*Permission, er
 		return nil, errors.New("invalid offset/limit")
 	}
 
-	// Get user from tenants database
+	// Get permissions from tenants database
 	queryUser := `
 		SELECT 
-				p.id, p.name, p.description, p.effect
+				p.id, p.name, p.slug, p.description, p.effect
 			FROM 
 				permissions p
 			OFFSET $1 LIMIT $2`
@@ -284,20 +289,25 @@ func ListPermissions(ctx *Context, offset int64, limit int32) ([]*Permission, er
 	if err != nil {
 		return nil, err
 	}
+	return buildPermissionsForRows(ctx, rows)
+}
+
+// buildPermissionsForRows returns a list of permissions with their actions and resources for a given set of rows
+func buildPermissionsForRows(ctx *Context, rows *sql.Rows) ([]*Permission, error) {
 	var permissions []*Permission
-	permissionsHash := make(map[*uuid.UUID]*Permission)
+	permissionsHash := make(map[uuid.UUID]*Permission)
 	for rows.Next() {
 		prm := Permission{}
 		var effectStr string
-		err := rows.Scan(&prm.ID, &prm.Name, &prm.Description, &effectStr)
+		err := rows.Scan(&prm.ID, &prm.Name, &prm.Slug, &prm.Description, &effectStr)
 		prm.Effect = EffectFromString(effectStr)
 		if err != nil {
 			return nil, err
 		}
 		permissions = append(permissions, &prm)
-		permissionsHash[&prm.ID] = &prm
+		permissionsHash[prm.ID] = &prm
 	}
-	err = rows.Err()
+	err := rows.Err()
 	if err != nil {
 		return nil, err
 	}
@@ -317,12 +327,12 @@ func ListPermissions(ctx *Context, offset int64, limit int32) ([]*Permission, er
 	return permissions, nil
 }
 
-func getResourcesForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permission) chan error {
+func getResourcesForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
 		// build a list of ids
-		var ids []*uuid.UUID
+		var ids []uuid.UUID
 		for id := range permsMap {
 			ids = append(ids, id)
 		}
@@ -333,7 +343,7 @@ func getResourcesForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permissio
 		FROM 
 			permissions_resources p 
 		WHERE 
-		      id = any($1)`
+		      permission_id = ANY($1)`
 
 		rows, err := ctx.TenantDB().Query(queryUser, pq.Array(ids))
 		defer rows.Close()
@@ -350,7 +360,7 @@ func getResourcesForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permissio
 				ch <- err
 				return
 			}
-			permsMap[&pID].Resources = append(permsMap[&pID].Resources, prm)
+			permsMap[pID].Resources = append(permsMap[pID].Resources, prm)
 		}
 		err = rows.Err()
 		if err != nil {
@@ -362,12 +372,12 @@ func getResourcesForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permissio
 	return ch
 }
 
-func getActionsForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permission) chan error {
+func getActionsForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
 		// build a list of ids
-		var ids []*uuid.UUID
+		var ids []uuid.UUID
 		for id := range permsMap {
 			ids = append(ids, id)
 		}
@@ -378,7 +388,7 @@ func getActionsForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permission)
 		FROM 
 			permissions_actions p 
 		WHERE 
-		      id = any ($1)`
+		      permission_id = ANY($1)`
 
 		rows, err := ctx.TenantDB().Query(queryUser, pq.Array(ids))
 		defer rows.Close()
@@ -398,7 +408,7 @@ func getActionsForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permission)
 				ch <- err
 				return
 			}
-			permsMap[&pID].Actions = append(permsMap[&pID].Actions, action)
+			permsMap[pID].Actions = append(permsMap[pID].Actions, action)
 		}
 		err = rows.Err()
 		if err != nil {
@@ -408,4 +418,177 @@ func getActionsForPermissions(ctx *Context, permsMap map[*uuid.UUID]*Permission)
 
 	}()
 	return ch
+}
+
+func ValidPermission(ctx *Context, permission *string) (bool, error) {
+	// Get user from tenants database
+	queryUser := `SELECT EXISTS(
+					SELECT 
+						1
+					FROM 
+						permissions t1
+					WHERE slug=$1 LIMIT 1)`
+
+	row := ctx.TenantDB().QueryRow(queryUser, permission)
+	// Wether the permission id is valid
+	var exists bool
+	err := row.Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+// AssignPermission assigns a single permission to multiple service accounts
+func AssignPermission(ctx *Context, permission *string, serviceAccounts []string) error {
+	// get the permission to see if it's valid
+	if valid, err := ValidPermission(ctx, permission); !valid || err != nil {
+		if err != nil {
+			return err
+		}
+		return errors.New("provided permission id is invalid")
+	}
+	// validate all the service account ids
+	saIDs, err := MapServiceAccountsToIDs(ctx, serviceAccounts)
+	if err != nil {
+		return err
+	}
+	perm, err := GetPermissionBySlug(ctx, *permission)
+	if err != nil {
+		return err
+	}
+	alreadyHaveIt, err := filterServiceAccountsWithPermission(ctx, serviceAccounts, permission)
+	if err != nil {
+		return err
+	}
+	if len(alreadyHaveIt) > 0 {
+		message := fmt.Sprintf("Service accounts `%s` already have this permission", strings.Join(alreadyHaveIt, ", "))
+		return errors.New(message)
+	}
+	fmt.Println(alreadyHaveIt)
+
+	// create records
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	// prepare re-usable statement
+	stmt, err := tx.Prepare(`INSERT INTO 
+    								service_accounts_permissions (
+    	                              service_account_id, 
+    	                              permission_id, 
+    	                              sys_created_by) 
+    	                              VALUES ($1, $2, $3)`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	for _, saID := range saIDs {
+		_, err := stmt.Exec(saID, perm.ID, ctx.WhoAmI)
+		if err != nil {
+			return err
+		}
+	}
+	// Get in which SG is the tenant located
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
+
+	if sgt.Error != nil {
+		return sgt.Error
+	}
+
+	// Get the credentials for a tenant
+	tenantConf, err := GetTenantConfig(ctx.Tenant)
+	if err != nil {
+		return err
+	}
+	// update the policy for each SA
+	var saChs []chan error
+	for _, sa := range serviceAccounts {
+		ch := UpdatePolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, &sa)
+		saChs = append(saChs, ch)
+	}
+	// wait for all to finish
+	for _, ch := range saChs {
+		err := <-ch
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func GetAllThePermissionForServiceAccount(ctx *Context, serviceAccount *string) ([]*Permission, error) {
+	// Get permissions associated with the provided service account
+	queryUser := `
+		SELECT 
+				p.id, p.name, p.slug, p.description, p.effect
+			FROM 
+				permissions p
+				LEFT JOIN service_accounts_permissions sap ON p.id = sap.permission_id
+			WHERE 
+			      sap.service_account_id IN (SELECT sa.id FROM service_accounts sa WHERE sa.slug = $1)
+				`
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := tx.Query(queryUser, serviceAccount)
+	defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	return buildPermissionsForRows(ctx, rows)
+}
+
+// getValidSASlug generates a valid slug for a name for the service accounts table, if there's a collision it appends
+// some random string
+func getValidPermSlug(ctx *Context, permName string) (*string, error) {
+	permSlug := slug.Make(permName)
+	// Count the users
+	queryUser := `
+		SELECT 
+			COUNT(*)
+		FROM 
+			permissions
+		WHERE 
+		    slug = $1`
+
+	row := ctx.TenantDB().QueryRow(queryUser, permSlug)
+	var count int
+	err := row.Scan(&count)
+	if err != nil {
+		return nil, err
+	}
+	// if we have collisions
+	if count > 0 {
+		// add modifier
+		permSlug = fmt.Sprintf("%s-%s", permSlug, RandomCharString(4))
+	}
+	return &permSlug, nil
+}
+
+func GetPermissionBySlug(ctx *Context, slug string) (*Permission, error) {
+	// Get user from tenants database
+	queryUser := `
+		SELECT 
+				p.id, p.name, p.slug, p.description, p.effect
+			FROM 
+				permissions p
+			WHERE p.slug=$1 LIMIT 1`
+
+	rows, err := ctx.TenantDB().Query(queryUser, slug)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	perms, err := buildPermissionsForRows(ctx, rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(perms) > 0 {
+		return perms[0], nil
+	}
+
+	return nil, errors.New("permission not found")
 }
