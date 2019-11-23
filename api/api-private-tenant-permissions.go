@@ -94,7 +94,7 @@ func (s *privateServer) TenantPermissionList(ctx context.Context, in *pb.TenantP
 		pbPerm.Effect = perm.Effect.String()
 		// copy resources
 		for _, res := range perm.Resources {
-			pbPerm.Resources = append(pbPerm.Resources, res.Resource)
+			pbPerm.Resources = append(pbPerm.Resources, res.String())
 		}
 		// copy actions
 		for _, act := range perm.Actions {

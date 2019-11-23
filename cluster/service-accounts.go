@@ -237,8 +237,7 @@ func UpdatePolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenant
 			}
 			rSet := minioIAMPolicy.ResourceSet{}
 			for _, res := range perm.Resources {
-				// TODO: parse the resource to break into bucket and path
-				rSet.Add(minioIAMPolicy.NewResource(res.Resource, "*"))
+				rSet.Add(minioIAMPolicy.NewResource(res.BucketName, res.Pattern))
 			}
 			statement.Resources = rSet
 			aSet := minioIAMPolicy.ActionSet{}

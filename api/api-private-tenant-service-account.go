@@ -35,6 +35,13 @@ func (s *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, in
 	if err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
+	// rollback everything if something happens
+	defer func() {
+		if err != nil {
+			log.Println(err)
+			appCtx.Rollback()
+		}
+	}()
 	// validate Tenant
 	tenant, err := cluster.GetTenant(in.Tenant)
 	if err != nil {
@@ -53,18 +60,19 @@ func (s *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, in
 	// Get the credentials for a tenant
 	tenantConf, err := cluster.GetTenantConfig(appCtx.Tenant)
 	if err != nil {
-		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
 	// perform actions
 	err = <-cluster.UpdatePolicyForServiceAccount(appCtx, sgt.StorageGroupTenant, tenantConf, &in.ServiceAccount)
 	if err != nil {
-		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
-	appCtx.Commit()
+	err = appCtx.Commit()
+	if err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 
 	return &pb.TenantServiceAccountActionResponse{}, nil
 }

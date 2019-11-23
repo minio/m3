@@ -70,7 +70,7 @@ func assignPermission(ctx *cli.Context) error {
 	}
 	// Validate effect
 	if serviceAccounts == "" {
-		fmt.Println("You must provide effect")
+		fmt.Println("You must a service account")
 		return errMissingArguments
 	}
 	// Validate actions

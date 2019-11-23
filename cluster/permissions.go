@@ -132,8 +132,13 @@ type Action struct {
 }
 
 type Resource struct {
-	ID       uuid.UUID
-	Resource string
+	ID         uuid.UUID
+	BucketName string
+	Pattern    string
+}
+
+func (r Resource) String() string {
+	return fmt.Sprintf("%s/%s", r.BucketName, r.Pattern)
 }
 
 type Permission struct {
@@ -146,6 +151,7 @@ type Permission struct {
 	Actions     []Action
 }
 
+// NewPermission creates a new Permission from a list of raw resources (bucket/pattern/*) and actions
 func NewPermission(name string, description string, effect Effect, resources []string, actions []string) (*Permission, error) {
 	// generate permission
 	perm := Permission{
@@ -159,7 +165,17 @@ func NewPermission(name string, description string, effect Effect, resources []s
 	}
 	// generate resources
 	for _, res := range resources {
-		perm.Resources = append(perm.Resources, Resource{Resource: res})
+		parts := strings.Split(res, "/")
+		resource := Resource{}
+		if len(parts) > 0 {
+			resource.BucketName = parts[0]
+		}
+		if len(parts) > 1 {
+			resource.Pattern = parts[1]
+		} else {
+			resource.Pattern = "*"
+		}
+		perm.Resources = append(perm.Resources, resource)
 	}
 	// generate actions
 	for _, act := range actions {
@@ -235,8 +251,8 @@ func InsertPermission(ctx *Context, permission *Permission) error {
 func InsertResource(ctx *Context, permission *Permission, resource *Resource) error {
 	resource.ID = uuid.NewV4()
 	queryUpdatePermissionsResources := `INSERT INTO
-				permissions_resources ("id","permission_id","resource","sys_created_by")
-					VALUES ($1,$2,$3,$4)`
+				permissions_resources ("id", "permission_id", "bucket_name", "pattern", "sys_created_by")
+					VALUES ($1, $2, $3, $4, $5)`
 
 	tx, err := ctx.TenantTx()
 	if err != nil {
@@ -244,7 +260,7 @@ func InsertResource(ctx *Context, permission *Permission, resource *Resource) er
 	}
 
 	// Execute query
-	_, err = tx.Exec(queryUpdatePermissionsResources, resource.ID, permission.ID, resource.Resource, ctx.WhoAmI)
+	_, err = tx.Exec(queryUpdatePermissionsResources, resource.ID, permission.ID, resource.BucketName, resource.Pattern, ctx.WhoAmI)
 	if err != nil {
 		return err
 	}
@@ -341,7 +357,7 @@ func getResourcesForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission
 		// Get all the permissions for the provided list of ids
 		queryUser := `
 		SELECT 
-			p.id, p.permission_id, p.resource
+			p.id, p.permission_id, p.bucket_name, p.pattern
 		FROM 
 			permissions_resources p 
 		WHERE 
@@ -357,7 +373,7 @@ func getResourcesForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission
 		for rows.Next() {
 			prm := Resource{}
 			var pID uuid.UUID
-			err := rows.Scan(&prm.ID, &pID, &prm.Resource)
+			err := rows.Scan(&prm.ID, &pID, &prm.BucketName, &prm.Pattern)
 			if err != nil {
 				ch <- err
 				return

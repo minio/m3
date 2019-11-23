@@ -102,7 +102,8 @@ CREATE TABLE permissions_resources
     permission_id    UUID
         CONSTRAINT permissions_resources_permissions_id_fk
             REFERENCES permissions,
-    resource         VARCHAR(512)                           NOT NULL,
+    bucket_name      VARCHAR(64)                            NOT NULL,
+    path             VARCHAR(512)                           NOT NULL,
     sys_created_by   VARCHAR(256)                           NOT NULL,
     sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
