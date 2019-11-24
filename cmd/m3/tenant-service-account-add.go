@@ -78,11 +78,15 @@ func tenantServiceAccountAdd(ctx *cli.Context) error {
 	if description != "" {
 		desc = &description
 	}
-	// create context
-	appCtx, err := cluster.NewContext(tenantShortName)
+	//validate tenant
+	tenant, err := cluster.GetTenant(tenantShortName)
 	if err != nil {
 		return err
 	}
+
+	// create context
+	appCtx := cluster.NewCtxWithTenant(&tenant)
+
 	// perform the action
 	sa, err := cluster.AddServiceAccount(appCtx, tenantShortName, name, desc)
 	if err != nil {

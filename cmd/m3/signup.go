@@ -19,6 +19,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/minio/m3/cluster"
 
@@ -70,11 +71,14 @@ func signup(ctx *cli.Context) error {
 		return err
 	}
 
-	appCtx, err := cluster.NewContextWithTenantID(&parsedJwtToken.TenantID)
+	// validate tenant
+	tenant, err := cluster.GetTenantByID(&parsedJwtToken.TenantID)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
+
+	appCtx := cluster.NewCtxWithTenant(&tenant)
 
 	urlToken, err := cluster.GetTenantTokenDetails(appCtx, &parsedJwtToken.Token)
 	if err != nil {

@@ -19,9 +19,11 @@ package cluster
 import (
 	"context"
 	"database/sql"
-	"errors"
+	"log"
 
 	uuid "github.com/satori/go.uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // An application wide context that holds the a transaction, in case anything
@@ -118,49 +120,17 @@ func (c *Context) Rollback() error {
 	return nil
 }
 
-// DEPRECATED: Creates a new `Context` for a tenant that holds transaction and `context.Context`
-// to control timeouts and cancellations.
-func NewContext(tenantShortName string) (*Context, error) {
-	// Try to get the tenant if a short name was provided, error if invalid tenant short name
-	var tenant Tenant
-	if tenantShortName != "" {
-		// get the tenant
-		var err error
-		tenant, err = GetTenant(tenantShortName)
-		if err != nil {
-			return nil, errors.New("tenant short name is invalid")
-		}
-	}
-	return newCtxWithTenant(&tenant), nil
-}
-
-// Creates a new `Context` for a tenant that holds transaction and `context.Context`
-// to control timeouts and cancellations.
-func NewContextWithTenantID(tenantID *uuid.UUID) (*Context, error) {
-	// Try to get the tenant if a short name was provided, error if invalid tenant short name
-	var tenant Tenant
-	if tenantID != nil {
-		// get the tenant
-		var err error
-		tenant, err = GetTenantByID(tenantID)
-		if err != nil {
-			return nil, errors.New("Tenant short name is invalid")
-		}
-	}
-	return newCtxWithTenant(&tenant), nil
-}
-
 // Creates a new `Context` with no tenant tenant that holds transaction and `context.Context`
 // to control timeouts and cancellations.
 func NewEmptyContext() (*Context, error) {
-	return newCtxWithTenant(nil), nil
+	return NewCtxWithTenant(nil), nil
 }
 
 // Creates a new `Context` with no tenant tenant that holds transaction and `context.Context`
 // to control timeouts and cancellations starting from a grpc context which should contain wether the user
 // is authenticated or not
 func NewEmptyContextWithGrpcContext(ctx context.Context) (*Context, error) {
-	appCtx := newCtxWithTenant(nil)
+	appCtx := NewCtxWithTenant(nil)
 	var whoAmI string
 	if ctx.Value(WhoAmIKey) != nil {
 		whoAmI = ctx.Value(WhoAmIKey).(string)
@@ -172,9 +142,36 @@ func NewEmptyContextWithGrpcContext(ctx context.Context) (*Context, error) {
 	return appCtx, nil
 }
 
-func newCtxWithTenant(tenant *Tenant) *Context {
+func NewCtxWithTenant(tenant *Tenant) *Context {
 	// we are going to default the control context to background
 	ctlCtx := context.Background()
 	c := &Context{Tenant: tenant, ControlCtx: ctlCtx}
 	return c
+}
+
+// Creates a new `Context` with no tenant tenant that holds transaction and `context.Context`
+// to control timeouts and cancellations starting from a grpc context which should contain wether the user
+// is authenticated or not
+func NewTenantContextWithGrpcContext(ctx context.Context) (*Context, error) {
+
+	// get tenant ID from context
+	tenantIDStr := ctx.Value(TenantIDKey).(string)
+	tenantID, _ := uuid.FromString(tenantIDStr)
+	// get the tenant record
+	tenant, err := GetTenantByID(&tenantID)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "internal error").Err()
+	}
+	// create a context with the tenant
+	appCtx := NewCtxWithTenant(&tenant)
+	var whoAmI string
+	if ctx.Value(WhoAmIKey) != nil {
+		whoAmI = ctx.Value(WhoAmIKey).(string)
+	}
+	if whoAmI != "" {
+		appCtx.WhoAmI = whoAmI
+	}
+	appCtx.ControlCtx = ctx
+	return appCtx, nil
 }

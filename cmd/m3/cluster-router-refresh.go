@@ -33,7 +33,7 @@ var routerRefreshCmd = cli.Command{
 // Adds a Storage Group to house multiple tenants
 func routerRefresh(ctx *cli.Context) error {
 	fmt.Println("Refreshing Router")
-	appCtx, err := cluster.NewContext("none")
+	appCtx, err := cluster.NewEmptyContext()
 	if err != nil {
 		fmt.Println(err)
 		return nil

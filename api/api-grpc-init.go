@@ -50,7 +50,8 @@ func InitPublicAPIServiceGRPCServer() chan interface{} {
 		if err != nil {
 			log.Fatalf("failed to listen: %v", err)
 		}
-		s := grpc.NewServer()
+		// We will intercept all grpc incoming calls and validate their token unless exempted
+		s := grpc.NewServer(grpc.UnaryInterceptor(authentication.PublicAuthInterceptor))
 		pb.RegisterPublicAPIServer(s, &server{})
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)

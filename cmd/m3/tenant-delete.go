@@ -63,7 +63,12 @@ func tenantDelete(ctx *cli.Context) error {
 		return nil
 	}
 	fmt.Println("Deleting tenant:", name)
-	err := cluster.DeleteTenant(name)
+	appCtx, err := cluster.NewEmptyContext()
+	if err != nil {
+		return err
+	}
+	// TODO: Move to grpc
+	err = cluster.DeleteTenant(appCtx, name)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil
