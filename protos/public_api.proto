@@ -129,7 +129,7 @@ service PublicAPI {
     }
 
     // Add a Permission
-    rpc AddPermission (Permission) returns (Permission) {
+    rpc AddPermission (AddPermissionRequest) returns (Permission) {
     }
 
     // Remove a Permission
@@ -361,9 +361,8 @@ message CreateServiceAccountResponse {
 // Request a list of Permissions on the tenant account
 message ListPermissionsRequest {
     string sort_by = 1;
-    int32 offset = 2;
-    // a query to filter Permissions with
-    string query = 3;
+    int64 offset = 2;
+    int32 limit = 4;
 }
 
 // Request a list of Permissions on the tenant account
@@ -371,7 +370,16 @@ message ListPermissionsResponse {
     // list of resulting Permissions
     repeated Permission permissions = 1;
     // number of Permissions on the tenant account
-    int32 total_records = 2;
+    int32 total = 2;
+}
+
+
+message AddPermissionRequest{
+    string name = 1;
+    string description = 2;
+    string effect = 3;
+    repeated string resources = 4;
+    repeated string actions = 5;
 }
 
 // Permission resource
@@ -381,9 +389,21 @@ message Permission {
     string slug = 3;
     string description = 4;
     string effect = 5;
-    repeated string resources = 6;
-    repeated string actions = 7;
+    repeated PermissionResource resources = 6;
+    repeated PermissionAction actions = 7;
 }
+
+message PermissionResource {
+    string id = 1;
+    string bucket_name = 2;
+    string pattern = 3;
+}
+
+message PermissionAction{
+    string id = 1;
+    string type = 2;
+}
+
 
 message PermissionActionRequest {
     // Identifier for the Permission

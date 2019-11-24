@@ -38,14 +38,6 @@ const (
 	Invalid              = "invalid"
 )
 
-//func (at ActionType) String() string {
-//	actions := map[string]ActionType{
-//		"write":     Write,
-//		"read":      Read,
-//		"readwrite": Readwrite}
-//	return actions[at]
-//}
-
 func (at ActionType) IsValid() error {
 	switch at {
 	case Write, Read, Readwrite:
@@ -158,6 +150,7 @@ func NewPermission(name string, description string, effect Effect, resources []s
 		Name:        name,
 		Description: &description,
 		Effect:      effect,
+		ID:          uuid.NewV4(),
 	}
 	// Nullified values if they are empty
 	if description == "" {
@@ -175,12 +168,13 @@ func NewPermission(name string, description string, effect Effect, resources []s
 		} else {
 			resource.Pattern = "*"
 		}
+		resource.ID = uuid.NewV4()
 		perm.Resources = append(perm.Resources, resource)
 	}
 	// generate actions
 	for _, act := range actions {
 		actType := ActionTypeFromString(act)
-		perm.Actions = append(perm.Actions, Action{ActionType: actType})
+		perm.Actions = append(perm.Actions, Action{ActionType: actType, ID: uuid.NewV4()})
 	}
 	return &perm, nil
 }
@@ -206,7 +200,6 @@ func AddPermission(ctx *Context, name, description string, effect Effect, resour
 
 // InsertPermission inserts to the permissions table a new record, generates an ID for the passes permission
 func InsertPermission(ctx *Context, permission *Permission) error {
-	permission.ID = uuid.NewV4()
 	queryUpdatePermissions := `INSERT INTO
 				permissions ("id","name","slug","description","effect","sys_created_by")
 					VALUES ($1, $2, $3, $4, $5, $6)`
@@ -249,9 +242,8 @@ func InsertPermission(ctx *Context, permission *Permission) error {
 
 // InsertResource inserts to the permissions_resources table a new record, generates an ID for the resources
 func InsertResource(ctx *Context, permission *Permission, resource *Resource) error {
-	resource.ID = uuid.NewV4()
 	queryUpdatePermissionsResources := `INSERT INTO
-				permissions_resources ("id", "permission_id", "bucket_name", "pattern", "sys_created_by")
+				permissions_resources ("id", "permission_id", "bucket_name", "path", "sys_created_by")
 					VALUES ($1, $2, $3, $4, $5)`
 
 	tx, err := ctx.TenantTx()
@@ -269,7 +261,6 @@ func InsertResource(ctx *Context, permission *Permission, resource *Resource) er
 
 // InsertAction inserts to the permissions_actions table a new record, generates an ID for the action
 func InsertAction(ctx *Context, permission *Permission, action *Action) error {
-	action.ID = uuid.NewV4()
 	queryUpdatePermissionsActions := `INSERT INTO
 				permissions_actions ("id","permission_id","action","sys_created_by")
 					VALUES ($1, $2, $3, $4)`
@@ -286,7 +277,7 @@ func InsertAction(ctx *Context, permission *Permission, action *Action) error {
 	return nil
 }
 
-// GetUsersForTenant returns a page of users for the provided tenant
+// ListPermissions returns a page of Permissions for the provided tenant
 func ListPermissions(ctx *Context, offset int64, limit int32) ([]*Permission, error) {
 	if offset < 0 || limit < 0 {
 		return nil, errors.New("invalid offset/limit")
@@ -355,30 +346,29 @@ func getResourcesForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission
 			ids = append(ids, id)
 		}
 		// Get all the permissions for the provided list of ids
-		queryUser := `
+		query := `
 		SELECT 
-			p.id, p.permission_id, p.bucket_name, p.pattern
+			p.id, p.permission_id, p.bucket_name, p.path
 		FROM 
 			permissions_resources p 
 		WHERE 
 		      permission_id = ANY($1)`
 
-		rows, err := ctx.TenantDB().Query(queryUser, pq.Array(ids))
-		defer rows.Close()
+		rows, err := ctx.TenantDB().Query(query, pq.Array(ids))
 		if err != nil {
 			ch <- err
 			return
 		}
-
+		defer rows.Close()
 		for rows.Next() {
-			prm := Resource{}
+			resource := Resource{}
 			var pID uuid.UUID
-			err := rows.Scan(&prm.ID, &pID, &prm.BucketName, &prm.Pattern)
+			err := rows.Scan(&resource.ID, &pID, &resource.BucketName, &resource.Pattern)
 			if err != nil {
 				ch <- err
 				return
 			}
-			permsMap[pID].Resources = append(permsMap[pID].Resources, prm)
+			permsMap[pID].Resources = append(permsMap[pID].Resources, resource)
 		}
 		err = rows.Err()
 		if err != nil {
@@ -400,7 +390,7 @@ func getActionsForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) 
 			ids = append(ids, id)
 		}
 		// Get all the permissions for the provided list of ids
-		queryUser := `
+		query := `
 		SELECT 
 			p.id, p.permission_id, p.action
 		FROM 
@@ -408,13 +398,12 @@ func getActionsForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) 
 		WHERE 
 		      permission_id = ANY($1)`
 
-		rows, err := ctx.TenantDB().Query(queryUser, pq.Array(ids))
-		defer rows.Close()
+		rows, err := ctx.TenantDB().Query(query, pq.Array(ids))
 		if err != nil {
 			ch <- err
 			return
 		}
-
+		defer rows.Close()
 		for rows.Next() {
 			action := Action{}
 			var pID uuid.UUID

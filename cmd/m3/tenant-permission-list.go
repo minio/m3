@@ -104,12 +104,20 @@ func permissionList(ctx *cli.Context) error {
 	fmt.Println("ID\tName\tEffect\tResources\tActions")
 
 	for _, perm := range resp.Permissions {
+		var resources []string
+		for _, permResource := range perm.Resources {
+			resources = append(resources, permResource.BucketName)
+		}
+		var actions []string
+		for _, permAction := range perm.Actions {
+			actions = append(actions, permAction.Type)
+		}
 		fmt.Printf("%s\t%s\t%s\t%s\t%s\n",
 			perm.Slug,
 			perm.Name,
 			perm.Effect,
-			strings.Join(perm.Resources, ","),
-			strings.Join(perm.Actions, ","),
+			strings.Join(resources, ","),
+			strings.Join(actions, ","),
 		)
 	}
 
