@@ -133,7 +133,7 @@ service PublicAPI {
     }
 
     // Remove a Permission
-    rpc RemovePermission (PermissionActionRequest) returns (PermissionActionResponse) {
+    rpc RemovePermission (PermissionActionRequest) returns (Empty) {
     }
     // Remove a Permission
     rpc InfoPermission (PermissionActionRequest) returns (Permission) {
@@ -408,10 +408,6 @@ message PermissionAction{
 message PermissionActionRequest {
     // Identifier for the Permission
     string id = 1;
-}
-message PermissionActionResponse {
-    string error = 1;
-    string status = 2;
 }
 
 message AddPermissionsSARequest {

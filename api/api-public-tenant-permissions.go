@@ -155,3 +155,36 @@ func (s *server) AddPermission(ctx context.Context, in *pb.AddPermissionRequest)
 
 	return permissionResponse, nil
 }
+
+// RemovePermission deletes a permission and it get's applied to the Service Accounts
+func (s *server) RemovePermission(ctx context.Context, in *pb.PermissionActionRequest) (res *pb.Empty, err error) {
+	id := in.GetId()
+
+	// start app context
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+		// if no error happened to this point commit transaction
+		err = appCtx.Commit()
+	}()
+
+	// get permission
+	permission, err := cluster.GetPermissionByID(appCtx, id)
+	if err != nil {
+		return nil, status.New(codes.InvalidArgument, "permission not found").Err()
+	}
+
+	// delete permission
+	err = cluster.DeletePermission(appCtx, permission)
+	if err != nil {
+		return nil, status.New(codes.Internal, "failed deleting permission").Err()
+	}
+	return &pb.Empty{}, nil
+}

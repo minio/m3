@@ -101,9 +101,24 @@ CREATE TABLE permissions_resources
             PRIMARY KEY,
     permission_id    UUID
         CONSTRAINT permissions_resources_permissions_id_fk
-            REFERENCES permissions,
+            REFERENCES permissions
+            ON DELETE CASCADE,
     bucket_name      VARCHAR(64)                            NOT NULL,
     path             VARCHAR(512)                           NOT NULL,
+    sys_created_by   VARCHAR(256)                           NOT NULL,
+    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+);
+
+CREATE TABLE permissions_actions
+(
+    id               UUID                                   NOT NULL
+        CONSTRAINT permissions_actions_pk
+            PRIMARY KEY,
+    permission_id    UUID
+        CONSTRAINT permissions_actions_permissions_id_fk
+            REFERENCES permissions
+            ON DELETE CASCADE,
+    action           VARCHAR(256)                           NOT NULL,
     sys_created_by   VARCHAR(256)                           NOT NULL,
     sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
@@ -125,22 +140,6 @@ CREATE TABLE service_accounts_permissions
 
 CREATE UNIQUE INDEX service_accounts_permissions_service_account_id_permission_id_u
     ON service_accounts_permissions (service_account_id, permission_id);
-
-
-CREATE TABLE permissions_actions
-(
-    id               UUID                                   NOT NULL
-        CONSTRAINT permissions_actions_pk
-            PRIMARY KEY,
-    permission_id    UUID
-        CONSTRAINT permissions_actions_permissions_id_fk
-            REFERENCES permissions
-            ON DELETE CASCADE,
-    action           VARCHAR(256)                           NOT NULL,
-    sys_created_by   VARCHAR(256)                           NOT NULL,
-    sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
-);
-
 
 CREATE TABLE api_logs
 (
