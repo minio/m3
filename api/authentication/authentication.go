@@ -78,7 +78,6 @@ func PublicAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unar
 		log.Printf("%s", info.FullMethod)
 		return handler(ctx, req)
 	}
-	fmt.Println(info.FullMethod)
 
 	// attempt to validate the session
 	validSession, err := validateSessionID(ctx)
