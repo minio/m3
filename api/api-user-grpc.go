@@ -19,9 +19,11 @@ package api
 import (
 	"context"
 
+	uuid "github.com/satori/go.uuid"
+
 	"github.com/lib/pq"
 	pb "github.com/minio/m3/api/stubs"
-	cluster "github.com/minio/m3/cluster"
+	"github.com/minio/m3/cluster"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -33,18 +35,15 @@ const (
 )
 
 func (s *server) UserWhoAmI(ctx context.Context, in *pb.Empty) (*pb.User, error) {
-	sessionRowID, tenantShortName, err := getSessionRowIDAndTenantName(ctx)
-	appCtx, err := cluster.NewContext(tenantShortName)
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	// Get session row from db
-	sessionObj, err := getSessionByID(sessionRowID)
-	if err != nil {
-		return nil, status.New(codes.Internal, err.Error()).Err()
-	}
+	// get User ID from context
+	userIDStr := ctx.Value(cluster.UserIDKey).(string)
+	userID, _ := uuid.FromString(userIDStr)
 	// Get user row from db
-	userObj, err := cluster.GetUserByID(appCtx, sessionObj.UserID)
+	userObj, err := cluster.GetUserByID(appCtx, userID)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -57,22 +56,16 @@ func (s *server) UserWhoAmI(ctx context.Context, in *pb.Empty) (*pb.User, error)
 
 // UserAddInvite invites a new user to the tenant's system by sending an email
 func (s *server) UserAddInvite(ctx context.Context, in *pb.InviteRequest) (*pb.Empty, error) {
-	// Validate sessionID and get tenant short name using the valid sessionID
-	tenantShortName, err := getTenantShortNameFromSessionID(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	reqName := in.GetName()
 	reqEmail := in.GetEmail()
 
 	newUser := cluster.User{Name: reqName, Email: reqEmail}
 
-	appCtx, err := cluster.NewContext(tenantShortName)
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	appCtx.ControlCtx = ctx
 
 	defer func() {
 		if err != nil {
@@ -106,18 +99,12 @@ func (s *server) UserAddInvite(ctx context.Context, in *pb.InviteRequest) (*pb.E
 
 // UserResetPasswordInvite invites a new user to reset their password by sending them an email
 func (s *server) UserResetPasswordInvite(ctx context.Context, in *pb.InviteRequest) (*pb.Empty, error) {
-	// Validate sessionID and get tenant short name using the valid sessionID
-	tenantShortName, err := getTenantShortNameFromSessionID(ctx)
-	if err != nil {
-		return nil, err
-	}
 	reqEmail := in.GetEmail()
 
-	appCtx, err := cluster.NewContext(tenantShortName)
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	appCtx.ControlCtx = ctx
 
 	defer func() {
 		if err != nil {
@@ -143,21 +130,14 @@ func (s *server) UserResetPasswordInvite(ctx context.Context, in *pb.InviteReque
 }
 
 func (s *server) AddUser(ctx context.Context, in *pb.AddUserRequest) (*pb.User, error) {
-	// Validate sessionID and get tenant short name using the valid sessionID
-	tenantShortName, err := getTenantShortNameFromSessionID(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	reqName := in.GetName()
 	reqEmail := in.GetEmail()
 	newUser := cluster.User{Name: reqName, Email: reqEmail}
 
-	appCtx, err := cluster.NewContext(tenantShortName)
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	appCtx.ControlCtx = ctx
 
 	err = cluster.AddUser(appCtx, &newUser)
 	if err != nil {
@@ -179,18 +159,12 @@ func (s *server) AddUser(ctx context.Context, in *pb.AddUserRequest) (*pb.User, 
 }
 
 func (s *server) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*pb.ListUsersResponse, error) {
-	// Validate sessionID and get tenant short name using the valid sessionID
-	tenantShortName, err := getTenantShortNameFromSessionID(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	reqOffset := in.GetOffset()
 	reqLimit := in.GetLimit()
 	if reqLimit == 0 {
 		reqLimit = defaultRequestLimit
 	}
-	appCtx, err := cluster.NewContext(tenantShortName)
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -229,16 +203,8 @@ func (s *server) ChangePassword(ctx context.Context, in *pb.ChangePasswordReques
 	if oldPassword == "" {
 		return nil, status.New(codes.InvalidArgument, "Empty Old Password").Err()
 	}
-	sessionRowID, tenantShortName, err := validateSessionID(ctx)
-	if err != nil {
-		return nil, status.New(codes.Internal, err.Error()).Err()
-	}
-	// Get session row from db
-	sessionObj, err := getSessionByID(sessionRowID)
-	if err != nil {
-		return nil, status.New(codes.Internal, err.Error()).Err()
-	}
-	appCtx, err := cluster.NewContext(tenantShortName)
+
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -251,8 +217,11 @@ func (s *server) ChangePassword(ctx context.Context, in *pb.ChangePasswordReques
 		// if no error happened to this point commit transaction
 		err = appCtx.Commit()
 	}()
+	// get User ID from context
+	userIDStr := ctx.Value(cluster.UserIDKey).(string)
+	userID, _ := uuid.FromString(userIDStr)
 	// Get user row from db
-	userObj, err := cluster.GetUserByID(appCtx, sessionObj.UserID)
+	userObj, err := cluster.GetUserByID(appCtx, userID)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -265,6 +234,8 @@ func (s *server) ChangePassword(ctx context.Context, in *pb.ChangePasswordReques
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
+	// get session ID from context
+	sessionRowID := ctx.Value(cluster.SessionIDKey).(string)
 	// Invalidate Session
 	err = cluster.UpdateSessionStatus(appCtx, sessionRowID, "invalid")
 	if err != nil {
@@ -274,34 +245,28 @@ func (s *server) ChangePassword(ctx context.Context, in *pb.ChangePasswordReques
 }
 
 func (s *server) DisableUser(ctx context.Context, in *pb.UserActionRequest) (*pb.UserActionResponse, error) {
-	// Validate sessionID and get tenant short name using the valid sessionID
-	tenantShortName, err := getTenantShortNameFromSessionID(ctx)
-	if err != nil {
-		return nil, err
-	}
 	reqUserID := in.GetId()
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	err = cluster.SetUserEnabled(appCtx, reqUserID, false)
+	if err != nil {
+		appCtx.Rollback()
 		return nil, status.New(codes.Internal, "Error disabling user").Err()
 	}
-	err = cluster.SetUserEnabled(tenantShortName, reqUserID, false)
-	if err != nil {
-		return nil, status.New(codes.Internal, "Error disabling user").Err()
-	}
+	appCtx.Commit()
 	return &pb.UserActionResponse{Status: "false"}, nil
 }
 
 func (s *server) EnableUser(ctx context.Context, in *pb.UserActionRequest) (*pb.UserActionResponse, error) {
-	// Validate sessionID and get tenant short name using the valid sessionID
-	tenantShortName, err := getTenantShortNameFromSessionID(ctx)
-	if err != nil {
-		return nil, err
-	}
 	reqUserID := in.GetId()
-	// start app context
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
-		return nil, status.New(codes.Internal, "Error enabling user").Err()
+		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
-	err = cluster.SetUserEnabled(tenantShortName, reqUserID, true)
+
+	err = cluster.SetUserEnabled(appCtx, reqUserID, true)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Error enabling user").Err()
 	}

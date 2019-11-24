@@ -19,6 +19,8 @@ package authentication
 import (
 	"log"
 
+	"google.golang.org/grpc/status"
+
 	"google.golang.org/grpc/codes"
 
 	"github.com/minio/m3/cluster"
@@ -61,6 +63,53 @@ func AdminAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 	ctx = context.WithValue(ctx, cluster.WhoAmIKey, adminToken.WhoAmI)
 	// log this call
 	log.Printf("%s - %s", info.FullMethod, adminToken.AdminID.String())
+
+	return handler(ctx, req)
+}
+
+// PublicAuthInterceptor validates the token provided via authorization metadata on all incoming grpc calls
+func PublicAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	// exempted calls from the validation
+	if info.FullMethod == "/m3.PublicAPI/Login" ||
+		info.FullMethod == "/m3.PublicAPI/SetPassword" ||
+		info.FullMethod == "/m3.PublicAPI/ValidateInvite" {
+		// log this call
+		log.Printf("%s", info.FullMethod)
+		return handler(ctx, req)
+	}
+
+	// attempt to validate the session
+	validSession, err := validateSessionID(ctx)
+	if err != nil || validSession == nil {
+		log.Println("Invalid session.", err)
+		return nil, grpc.Errorf(codes.Unauthenticated, "invalid token.")
+	}
+	// attempt to identify the user for the context
+	appCtx, err := cluster.NewEmptyContext()
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "internal error").Err()
+	}
+	tenant, err := cluster.GetTenantByID(&validSession.TenantID)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "internal error").Err()
+	}
+	appCtx.Tenant = &tenant
+	user, err := cluster.GetUserByID(appCtx, validSession.UserID)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "internal error").Err()
+	}
+
+	// attach the details of the session to the context
+	ctx = context.WithValue(ctx, cluster.SessionIDKey, validSession.ID)
+	ctx = context.WithValue(ctx, cluster.UserIDKey, validSession.UserID.String())
+	ctx = context.WithValue(ctx, cluster.TenantIDKey, validSession.TenantID.String())
+	ctx = context.WithValue(ctx, cluster.TenantShortNameKey, tenant.ShortName)
+	ctx = context.WithValue(ctx, cluster.WhoAmIKey, user.Email)
+	// log this call
+	log.Printf("%s - %s", info.FullMethod, validSession.UserID.String())
 
 	return handler(ctx, req)
 }

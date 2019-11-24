@@ -20,19 +20,13 @@ import (
 	"context"
 
 	pb "github.com/minio/m3/api/stubs"
-	cluster "github.com/minio/m3/cluster"
+	"github.com/minio/m3/cluster"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 // MakeBucket makes a bucket after validating the sessionId in the grpc headers in the appropriate tenant's MinIO
 func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (res *pb.Bucket, err error) {
-	// Validate sessionID and get tenant short name using the valid sessionID
-	tenantShortname, err := getTenantShortNameFromSessionID(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	// Make bucket in the tenant's MinIO
 	bucket := in.GetName()
 	accessType := cluster.BucketPrivate
@@ -40,7 +34,10 @@ func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (res 
 		accessType = cluster.BucketPublic
 	}
 
-	err = cluster.MakeBucket(tenantShortname, bucket, accessType)
+	// get tenant short name from context
+	tenantShortName := ctx.Value(cluster.TenantShortNameKey).(string)
+	// TODO: Update to use context
+	err = cluster.MakeBucket(tenantShortName, bucket, accessType)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
 	}
@@ -78,19 +75,14 @@ func getBucketAccess(accessType pb.Access) cluster.BucketAccess {
 
 // ListBuckets lists buckets in the tenant's MinIO after validating the sessionId in the grpc headers
 func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*pb.ListBucketsResponse, error) {
-	var (
-		err             error
-		tenantShortname string
-	)
-	// Validate sessionID and get tenant short name using the valid sessionID
-	tenantShortname, err = getTenantShortNameFromSessionID(ctx)
-	if err != nil {
-		return nil, err
-	}
+	// get tenant short name from context
+	tenantShortName := ctx.Value(cluster.TenantShortNameKey).(string)
+	// TODO: Update to use context
 
+	// TODO: Update List bucket to use context so the tenant is read automatically
 	// List buckets in the tenant's MinIO
 	var bucketInfos []cluster.TenantBucketInfo
-	bucketInfos, err = cluster.ListBuckets(tenantShortname)
+	bucketInfos, err := cluster.ListBuckets(tenantShortName)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Failed to list buckets").Err()
 	}
@@ -109,19 +101,13 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 }
 
 func (s *server) ChangeBucketAccessControl(ctx context.Context, in *pb.AccessControlRequest) (*pb.Empty, error) {
-	var (
-		err             error
-		tenantShortname string
-	)
-	// Validate sessionID and get tenant short name using the valid sessionID
-	tenantShortname, err = getTenantShortNameFromSessionID(ctx)
-	if err != nil {
-		return nil, err
-	}
+	// get tenant short name from context
+	tenantShortName := ctx.Value(cluster.TenantShortNameKey).(string)
+	// TODO: Update to use context
 
 	bucket := in.GetName()
 	accessType := in.GetAccess()
-	if err = cluster.ChangeBucketAccess(tenantShortname, bucket, getBucketAccess(accessType)); err != nil {
+	if err := cluster.ChangeBucketAccess(tenantShortName, bucket, getBucketAccess(accessType)); err != nil {
 		return nil, status.New(codes.Internal, "Failed to set bucket access").Err()
 	}
 	return &pb.Empty{}, nil
@@ -130,18 +116,11 @@ func (s *server) ChangeBucketAccessControl(ctx context.Context, in *pb.AccessCon
 // DeleteBucket deletes bucket in the tenant's MinIO
 // N B sessionId is expected to be present in the grpc headers
 func (s *server) DeleteBucket(ctx context.Context, in *pb.DeleteBucketRequest) (*pb.Bucket, error) {
-	var (
-		err             error
-		tenantShortname string
-	)
-	// Validate sessionID and get tenant short name using the valid sessionID
-	tenantShortname, err = getTenantShortNameFromSessionID(ctx)
-	if err != nil {
-		return nil, err
-	}
-
+	// get tenant short name from context
+	tenantShortName := ctx.Value(cluster.TenantShortNameKey).(string)
+	// TODO: Update to use context
 	bucket := in.GetName()
-	err = cluster.DeleteBucket(tenantShortname, bucket)
+	err := cluster.DeleteBucket(tenantShortName, bucket)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}

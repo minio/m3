@@ -28,6 +28,10 @@ const (
 	TokenResetPasswordEmail     = "reset-password-email"
 	AdminTokenSetPassword       = "admin-set-password"
 	AdminIDKey              key = iota
+	UserIDKey               key = iota
+	TenantIDKey             key = iota
+	TenantShortNameKey      key = iota
 	SessionIDKey            key = iota
 	WhoAmIKey               key = iota
+	sessionValid                = "valid"
 )

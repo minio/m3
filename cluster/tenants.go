@@ -606,13 +606,7 @@ func GetTenant(tenantName string) (tenant Tenant, err error) {
 // It will delete everything, from schema, to the secrets, all data of that tenant will be lost, except the data on the
 // disk.
 // TODO: Remove the tenant data from the disk
-func DeleteTenant(tenantShortName string) error {
-	// Start app context
-	ctx, err := NewContext(tenantShortName)
-	if err != nil {
-		return err
-	}
-
+func DeleteTenant(ctx *Context, tenantShortName string) error {
 	sgt := <-GetTenantStorageGroupByShortName(nil, tenantShortName)
 	if sgt.Error != nil {
 		return sgt.Error
@@ -640,7 +634,7 @@ func DeleteTenant(tenantShortName string) error {
 	svcCh := DeleteTenantServiceInStorageGroup(sgt.StorageGroupTenant)
 
 	// wait for record deletion
-	err = <-recordsCh
+	err := <-recordsCh
 	if err != nil {
 		fmt.Println("Error deleting database records", err)
 	}
@@ -689,10 +683,7 @@ func DeleteTenant(tenantShortName string) error {
 	if err != nil {
 		fmt.Println("error updating router", err)
 	}
-
-	// if no error happened to this point
-	err = ctx.Commit()
-	return err
+	return nil
 }
 
 // DeleteTenantRecord unregisters a tenant from the main DB tenants table,

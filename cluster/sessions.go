@@ -19,10 +19,14 @@ package cluster
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"time"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -49,7 +53,7 @@ func CreateSession(ctx *Context, userID uuid.UUID, tenantID uuid.UUID) (*Session
 		`INSERT INTO
 				sessions ("id","user_id", "tenant_id", "status", "occurred_at", "expires_at")
 			  VALUES
-				($1,$2,$3,$4,NOW(),(NOW() + interval '1 day'))`
+				($1,$2,$3,$4,NOW(),(NOW() + INTERVAL '1 day'))`
 	tx, err := ctx.MainTx()
 	if err != nil {
 		return nil, err
@@ -101,4 +105,30 @@ func GetRandString(size int, method string) (string, error) {
 		randStr = fmt.Sprintf("%x", h.Sum(nil))
 	}
 	return randStr, nil
+}
+
+// GetValidSession validates the sessionID available in the grpc
+// metadata headers and returns the session row id and tenant's id
+func GetValidSession(sessionID string) (*Session, error) {
+	// With validating sessionID behind us, we query the tenant MinIO
+	// service corresponding to the logged-in user to make the bucket
+
+	// Prepare DB instance
+	db := GetInstance().Db
+	session := Session{ID: sessionID}
+	// Get tenant name from the DB
+	getTenantShortnameQ := `SELECT s.tenant_id, s.user_id
+                            FROM sessions AS s 
+                            WHERE s.id=$1 AND s.status=$2 AND NOW() < s.expires_at`
+	tenantRow := db.QueryRow(getTenantShortnameQ, sessionID, sessionValid)
+
+	err := tenantRow.Scan(&session.TenantID, &session.UserID)
+	if err == sql.ErrNoRows {
+		return nil, status.New(codes.Unauthenticated, "Session invalid or expired").Err()
+	}
+	if err != nil {
+		return nil, status.New(codes.Unauthenticated, err.Error()).Err()
+	}
+
+	return &session, nil
 }

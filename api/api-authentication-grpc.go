@@ -18,13 +18,14 @@ package api
 
 import (
 	"context"
+	"log"
 
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	pb "github.com/minio/m3/api/stubs"
-	cluster "github.com/minio/m3/cluster"
+	"github.com/minio/m3/cluster"
 )
 
 // SetPassword requires the ulr token from an invitation to continue setting a user's password
@@ -43,23 +44,33 @@ func (s *server) SetPassword(ctx context.Context, in *pb.SetPasswordRequest) (*p
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
-	appCtx, err := cluster.NewContextWithTenantID(&parsedJwtToken.TenantID)
+	appCtx, err := cluster.NewEmptyContext()
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
+	tenant, err := cluster.GetTenantByID(&parsedJwtToken.TenantID)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Unauthenticated, "Invalid URL Token").Err()
+	}
+	appCtx.Tenant = &tenant
+
 	urlToken, err := cluster.GetTenantTokenDetails(appCtx, &parsedJwtToken.Token)
 	if err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
 	err = cluster.ValidateURLToken(urlToken)
 	if err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Unauthenticated, "Invalid URL Token").Err()
 	}
 
 	err = cluster.CompleteSignup(appCtx, urlToken, reqPassword)
 	if err != nil {
+		log.Println(err)
 		appCtx.Rollback()
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -83,10 +94,11 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteReques
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
-	appCtx, err := cluster.NewContextWithTenantID(&parsedJwtToken.TenantID)
+	tenant, err := cluster.GetTenantByID(&parsedJwtToken.TenantID)
 	if err != nil {
-		return nil, status.New(codes.Internal, err.Error()).Err()
+		return nil, status.New(codes.Unauthenticated, "Invalid token").Err()
 	}
+	appCtx := cluster.NewCtxWithTenant(&tenant)
 
 	urlToken, err := cluster.GetTenantTokenDetails(appCtx, &parsedJwtToken.Token)
 	if err != nil {
@@ -98,11 +110,6 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteReques
 		return nil, status.New(codes.Unauthenticated, "Invalid URL Token").Err()
 	}
 	user, err := cluster.GetUserByID(appCtx, urlToken.UserID)
-	if err != nil {
-		return nil, status.New(codes.Internal, err.Error()).Err()
-	}
-
-	tenant, err := cluster.GetTenantByID(&parsedJwtToken.TenantID)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -125,7 +132,12 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 		return nil, status.New(codes.InvalidArgument, "Tenant not valid").Err()
 	}
 	// start app context
-	appCtx, err := cluster.NewContext(tenantName)
+	appCtx, err := cluster.NewEmptyContext()
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal Error").Err()
+	}
+	appCtx.Tenant = &tenant
 
 	// Password validation
 	// Look for the user on the database by email
@@ -163,17 +175,17 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 // Logout sets session's status to invalid after validating the sessionId
 func (s *server) Logout(ctx context.Context, in *pb.Empty) (*pb.Empty, error) {
 	var (
-		err             error
-		appCtx          *cluster.Context
-		sessionRowID    string
-		tenantShortname string
+		err          error
+		appCtx       *cluster.Context
+		sessionRowID string
 	)
-	sessionRowID, tenantShortname, err = validateSessionID(ctx)
-	if err != nil || tenantShortname == "" || sessionRowID == "" {
-		return nil, err
+	appCtx, err = cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
-
-	appCtx, err = cluster.NewContext(tenantShortname)
+	// get session from context
+	sessionRowID = ctx.Value(cluster.SessionIDKey).(string)
 	err = cluster.UpdateSessionStatus(appCtx, sessionRowID, "invalid")
 	if err != nil {
 		appCtx.Rollback()

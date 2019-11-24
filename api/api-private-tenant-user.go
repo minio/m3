@@ -18,6 +18,7 @@ package api
 
 import (
 	"context"
+	"log"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -82,11 +83,14 @@ func (ps *privateServer) TenantUserForgotPassword(ctx context.Context, in *pb.Te
 	if in.Email == "" {
 		return nil, status.New(codes.InvalidArgument, "User email is needed").Err()
 	}
-	appCtx, err := cluster.NewContext(in.Tenant)
+	// validate tenant
+	tenant, err := cluster.GetTenant(in.Tenant)
 	if err != nil {
+		log.Println(err)
 		return nil, status.New(codes.InvalidArgument, "Invalid tenant").Err()
 	}
-	appCtx.ControlCtx = ctx
+	// start context
+	appCtx := cluster.NewCtxWithTenant(&tenant)
 
 	user, err := cluster.GetUserByEmail(appCtx, in.Email)
 	if err != nil {

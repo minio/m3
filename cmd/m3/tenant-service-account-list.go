@@ -83,13 +83,16 @@ func tenantServiceAccountList(ctx *cli.Context) error {
 		fmt.Println("You must provide tenant name")
 		return errMissingArguments
 	}
-	//TODO: Validate tenant short name
-
-	// perform the action
-	appCtx, err := cluster.NewContext(tenantShortName)
+	//validate tenant
+	tenant, err := cluster.GetTenant(tenantShortName)
 	if err != nil {
+		fmt.Println("Invalid tenant")
 		return err
 	}
+
+	// create context
+	appCtx := cluster.NewCtxWithTenant(&tenant)
+
 	users, err := cluster.GetServiceAccountsForTenant(appCtx, offset, limit)
 	if err != nil {
 		fmt.Println("Error listing service accounts:", err.Error())
