@@ -17,7 +17,6 @@
 package authentication
 
 import (
-	"fmt"
 	"log"
 
 	"google.golang.org/grpc/status"
