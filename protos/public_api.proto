@@ -395,7 +395,8 @@ message Permission {
 
 message PermissionResource {
     string id = 1;
-    string name = 2;
+    string bucket_name = 2;
+    string pattern = 3;
 }
 
 message PermissionAction{

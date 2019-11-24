@@ -94,8 +94,9 @@ func (s *privateServer) TenantPermissionList(ctx context.Context, in *pb.TenantP
 		pbPerm.Effect = perm.Effect.String()
 		for _, permResource := range perm.Resources {
 			pbResource := pb.PermissionResource{
-				Id:   permResource.ID.String(),
-				Name: permResource.BucketName,
+				Id:         permResource.ID.String(),
+				BucketName: permResource.BucketName,
+				Pattern:    permResource.Pattern,
 			}
 			pbPerm.Resources = append(pbPerm.Resources, &pbResource)
 		}

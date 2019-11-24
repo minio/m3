@@ -61,8 +61,9 @@ func (s *server) ListPermissions(ctx context.Context, in *pb.ListPermissionsRequ
 		// resource itself so that we can list them correctly on the UI.
 		for _, permResource := range perm.Resources {
 			pbResource := pb.PermissionResource{
-				Id:   permResource.ID.String(),
-				Name: permResource.BucketName,
+				Id:         permResource.ID.String(),
+				BucketName: permResource.BucketName,
+				Pattern:    permResource.Pattern,
 			}
 			pbPerm.Resources = append(pbPerm.Resources, &pbResource)
 		}
@@ -134,8 +135,9 @@ func (s *server) AddPermission(ctx context.Context, in *pb.AddPermissionRequest)
 	// resource itself so that we can list them correctly on the UI.
 	for _, permResource := range permissionObj.Resources {
 		pbResource := pb.PermissionResource{
-			Id:   permResource.ID.String(),
-			Name: permResource.BucketName,
+			Id:         permResource.ID.String(),
+			BucketName: permResource.BucketName,
+			Pattern:    permResource.Pattern,
 		}
 		permissionResponse.Resources = append(permissionResponse.Resources, &pbResource)
 	}

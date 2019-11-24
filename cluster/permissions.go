@@ -318,7 +318,7 @@ func buildPermissionsForRows(ctx *Context, rows *sql.Rows) ([]*Permission, error
 	if err != nil {
 		return nil, err
 	}
-	// // get the actions
+	// get the actions
 	actionsCh := getActionsForPermissions(ctx, permissionsHash)
 	// get the resources
 	resourcesCh := getResourcesForPermissions(ctx, permissionsHash)
