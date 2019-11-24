@@ -602,3 +602,48 @@ func GetPermissionBySlug(ctx *Context, slug string) (*Permission, error) {
 
 	return nil, errors.New("permission not found")
 }
+
+// GetPermissionByID retrieves a permission by it's id
+func GetPermissionByID(ctx *Context, id string) (*Permission, error) {
+	// Get user from tenants database
+	query := `
+		SELECT 
+				p.id, p.name, p.slug, p.description, p.effect
+			FROM 
+				permissions p
+			WHERE id=$1 LIMIT 1`
+
+	rows, err := ctx.TenantDB().Query(query, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	perms, err := buildPermissionsForRows(ctx, rows)
+	if err != nil {
+		return nil, err
+	}
+	if len(perms) > 0 {
+		return perms[0], nil
+	}
+
+	return nil, errors.New("permission not found")
+}
+
+func DeletePermission(ctx *Context, permission *Permission) error {
+	query := `
+			DELETE FROM 
+				permissions p
+			WHERE id = $1 AND slug = $2`
+	// create records
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	// Execute query
+	fmt.Println(permission.ID, permission.Slug)
+	_, err = tx.Exec(query, permission.ID, permission.Slug)
+	if err != nil {
+		return err
+	}
+	return nil
+}
