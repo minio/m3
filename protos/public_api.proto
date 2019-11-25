@@ -135,6 +135,10 @@ service PublicAPI {
     // Remove a Permission
     rpc RemovePermission (PermissionActionRequest) returns (Empty) {
     }
+
+    // Update a Permission
+    rpc UpdatePermission (UpdatePermissionRequest) returns (Permission) {
+    }
     // Get details of a Permission
     rpc InfoPermission (PermissionActionRequest) returns (Permission) {
     }
@@ -380,6 +384,15 @@ message AddPermissionRequest{
     string effect = 3;
     repeated string resources = 4;
     repeated string actions = 5;
+}
+
+message UpdatePermissionRequest{
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    string effect = 4;
+    repeated string resources = 5;
+    repeated string actions = 6;
 }
 
 // Permission resource

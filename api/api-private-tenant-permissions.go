@@ -56,7 +56,7 @@ func (s *privateServer) TenantPermissionAdd(ctx context.Context, in *pb.TenantPe
 	}
 	appCtx.Tenant = &tenant
 
-	if _, err := cluster.AddPermission(appCtx, in.Name, in.Description, effect, in.Resources, in.Actions); err != nil {
+	if _, err := cluster.AddPermissionToDB(appCtx, in.Name, in.Description, effect, in.Resources, in.Actions); err != nil {
 		appCtx.Rollback()
 		return nil, err
 	}
