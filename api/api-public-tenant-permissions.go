@@ -125,34 +125,59 @@ func (s *server) AddPermission(ctx context.Context, in *pb.AddPermissionRequest)
 	}
 
 	// Create response object
-	permissionResponse := &pb.Permission{
+	permissionResponse := buildPermissionResponseFromPermissionObj(permissionObj)
+
+	return permissionResponse, nil
+}
+
+func buildPermissionResponseFromPermissionObj(permissionObj *cluster.Permission) (res *pb.Permission) {
+	// Create response object
+	res = &pb.Permission{
 		Name:   permissionObj.Name,
 		Slug:   permissionObj.Slug,
 		Id:     permissionObj.ID.String(),
 		Effect: permissionObj.Effect.String()}
 
-	// TODO: use PermissionResource.Id to define the eid of the bucket not the
-	// resource itself so that we can list them correctly on the UI.
 	for _, permResource := range permissionObj.Resources {
 		pbResource := pb.PermissionResource{
 			Id:         permResource.ID.String(),
 			BucketName: permResource.BucketName,
 			Pattern:    permResource.Pattern,
 		}
-		permissionResponse.Resources = append(permissionResponse.Resources, &pbResource)
+		res.Resources = append(res.Resources, &pbResource)
 	}
 	for _, permAction := range permissionObj.Actions {
 		pbAction := pb.PermissionAction{
 			Id:   permAction.ID.String(),
 			Type: string(permAction.ActionType),
 		}
-		permissionResponse.Actions = append(permissionResponse.Actions, &pbAction)
+		res.Actions = append(res.Actions, &pbAction)
 	}
 
 	if permissionObj.Description != nil {
-		permissionResponse.Description = *permissionObj.Description
+		res.Description = *permissionObj.Description
+	}
+	return res
+}
+
+//
+func (s *server) InfoPermission(ctx context.Context, in *pb.PermissionActionRequest) (res *pb.Permission, err error) {
+	id := in.GetId()
+
+	// start app context
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
 	}
 
+	// get permission
+	permission, err := cluster.GetPermissionByID(appCtx, id)
+	if err != nil {
+		return nil, status.New(codes.InvalidArgument, "permission not found").Err()
+	}
+
+	// Create response object
+	permissionResponse := buildPermissionResponseFromPermissionObj(permission)
 	return permissionResponse, nil
 }
 

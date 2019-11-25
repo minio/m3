@@ -135,7 +135,7 @@ service PublicAPI {
     // Remove a Permission
     rpc RemovePermission (PermissionActionRequest) returns (Empty) {
     }
-    // Remove a Permission
+    // Get details of a Permission
     rpc InfoPermission (PermissionActionRequest) returns (Permission) {
     }
 

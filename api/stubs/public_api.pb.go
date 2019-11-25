@@ -2536,7 +2536,7 @@ type PublicAPIClient interface {
 	AddPermission(ctx context.Context, in *AddPermissionRequest, opts ...grpc.CallOption) (*Permission, error)
 	// Remove a Permission
 	RemovePermission(ctx context.Context, in *PermissionActionRequest, opts ...grpc.CallOption) (*Empty, error)
-	// Remove a Permission
+	// Get details of a Permission
 	InfoPermission(ctx context.Context, in *PermissionActionRequest, opts ...grpc.CallOption) (*Permission, error)
 	// Assign this permission to multiple service accounts
 	AssignPermissionToMultipleServiceAccounts(ctx context.Context, in *MultiAddPermissionToSAsRequest, opts ...grpc.CallOption) (*MultiAddPermissionToSAsResponse, error)
@@ -2902,7 +2902,7 @@ type PublicAPIServer interface {
 	AddPermission(context.Context, *AddPermissionRequest) (*Permission, error)
 	// Remove a Permission
 	RemovePermission(context.Context, *PermissionActionRequest) (*Empty, error)
-	// Remove a Permission
+	// Get details of a Permission
 	InfoPermission(context.Context, *PermissionActionRequest) (*Permission, error)
 	// Assign this permission to multiple service accounts
 	AssignPermissionToMultipleServiceAccounts(context.Context, *MultiAddPermissionToSAsRequest) (*MultiAddPermissionToSAsResponse, error)
