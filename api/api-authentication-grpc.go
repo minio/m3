@@ -179,7 +179,7 @@ func (s *server) Logout(ctx context.Context, in *pb.Empty) (*pb.Empty, error) {
 		appCtx       *cluster.Context
 		sessionRowID string
 	)
-	appCtx, err = cluster.NewEmptyContextWithGrpcContext(ctx)
+	appCtx, err = cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()

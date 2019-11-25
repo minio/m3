@@ -195,7 +195,7 @@ func createServiceAccountCredentials(ctx *Context, tenantShortName string, servi
 
 // GetCredentialsForServiceAccount gets the access_key assigned to the provided service account. As stated in other
 // places the secret is not stored and cannot be retrieved.
-func GetCredentialsForServiceAccount(ctx *Context, serviceAccount *string) (*ServiceAccountCredentials, error) {
+func GetCredentialsForServiceAccount(ctx *Context, serviceAccountID *uuid.UUID) (*ServiceAccountCredentials, error) {
 	// Get service-account from tenants database
 	queryUser := `
 		SELECT 
@@ -203,9 +203,9 @@ func GetCredentialsForServiceAccount(ctx *Context, serviceAccount *string) (*Ser
 			FROM 
 				credentials c
 				LEFT JOIN service_accounts sa ON c.service_account_id = sa.id
-			WHERE sa.slug=$1 LIMIT 1`
+			WHERE sa.id=$1 LIMIT 1`
 
-	row := ctx.TenantDB().QueryRow(queryUser, serviceAccount)
+	row := ctx.TenantDB().QueryRow(queryUser, serviceAccountID)
 	sac := ServiceAccountCredentials{}
 	// Save the resulted query on the User struct
 	err := row.Scan(&sac.AccessKey)

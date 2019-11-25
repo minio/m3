@@ -31,7 +31,7 @@ import (
 // permissions associated with it.
 func (s *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, in *pb.TenantServiceAccountActionRequest) (*pb.TenantServiceAccountActionResponse, error) {
 	// get context
-	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
@@ -42,12 +42,13 @@ func (s *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, in
 			appCtx.Rollback()
 		}
 	}()
-	// validate Tenant
-	tenant, err := cluster.GetTenant(in.Tenant)
+	// validate service account
+	saToStrmap, err := cluster.MapServiceAccountsToIDs(appCtx, []string{in.ServiceAccount})
 	if err != nil {
-		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
+		log.Println(err)
+		return nil, status.New(codes.InvalidArgument, "Invalid service account").Err()
 	}
-	appCtx.Tenant = &tenant
+	saID := saToStrmap[in.ServiceAccount]
 
 	// Get in which SG is the tenant located
 	sgt := <-cluster.GetTenantStorageGroupByShortName(appCtx, appCtx.Tenant.ShortName)
@@ -64,7 +65,7 @@ func (s *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, in
 	}
 
 	// perform actions
-	err = <-cluster.UpdatePolicyForServiceAccount(appCtx, sgt.StorageGroupTenant, tenantConf, &in.ServiceAccount)
+	err = <-cluster.UpdatePolicyForServiceAccount(appCtx, sgt.StorageGroupTenant, tenantConf, saID)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}

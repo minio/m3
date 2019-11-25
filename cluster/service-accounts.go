@@ -158,9 +158,8 @@ func GetTotalNumberOfServiceAccounts(ctx *Context) (int, error) {
 }
 
 // MapServiceAccountsToIDs returns an error if at least one of the ids provided is not on the database
-func MapServiceAccountsToIDs(ctx *Context, serviceAccountIDs []string) (map[string]uuid.UUID, error) {
-
-	// Get all the permissions for the provided list of ids
+func MapServiceAccountsToIDs(ctx *Context, serviceAccounts []string) (map[string]*uuid.UUID, error) {
+	// Get all the service accounts for the provided list of ids
 	queryUser := `
 		SELECT 
 			sa.id, sa.slug
@@ -169,14 +168,14 @@ func MapServiceAccountsToIDs(ctx *Context, serviceAccountIDs []string) (map[stri
 		WHERE 
 		      sa.slug = ANY ($1)`
 
-	rows, err := ctx.TenantDB().Query(queryUser, pq.Array(serviceAccountIDs))
+	rows, err := ctx.TenantDB().Query(queryUser, pq.Array(serviceAccounts))
 	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
 	// build a list of ids
 	var dbIDs []*uuid.UUID
-	saToID := make(map[string]uuid.UUID)
+	saToID := make(map[string]*uuid.UUID)
 	for rows.Next() {
 		var pID uuid.UUID
 		var slug string
@@ -185,7 +184,49 @@ func MapServiceAccountsToIDs(ctx *Context, serviceAccountIDs []string) (map[stri
 			return nil, err
 		}
 		dbIDs = append(dbIDs, &pID)
-		saToID[slug] = pID
+		saToID[slug] = &pID
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	// if the counts don't match, at least 1 is invalid
+	if len(dbIDs) != len(serviceAccounts) {
+		return nil, errors.New("an invalid service-account id was provided")
+	}
+	return saToID, nil
+
+}
+
+// MapServiceAccountsIDsToSlugs returns an error if at least one of the ids provided is not on the database
+func MapServiceAccountsIDsToSlugs(ctx *Context, serviceAccountIDs []*uuid.UUID) (map[uuid.UUID]string, error) {
+	// Get all the service accounts for the provided list of ids
+	queryUser := `
+		SELECT 
+			sa.id, sa.slug
+		FROM 
+			service_accounts sa 
+		WHERE 
+		      sa.id = ANY ($1)`
+
+	rows, err := ctx.TenantDB().Query(queryUser, pq.Array(serviceAccountIDs))
+	defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	// build a list of ids
+	var dbIDs []*uuid.UUID
+	saToID := make(map[uuid.UUID]string)
+	for rows.Next() {
+		var pID uuid.UUID
+		var slug string
+		err := rows.Scan(&pID, &slug)
+		if err != nil {
+			return nil, err
+		}
+		dbIDs = append(dbIDs, &pID)
+		saToID[pID] = slug
 	}
 	err = rows.Err()
 	if err != nil {
@@ -202,12 +243,12 @@ func MapServiceAccountsToIDs(ctx *Context, serviceAccountIDs []string) (map[stri
 
 // UpdatePolicyForServiceAccount will retrieve all the permissions associated with the provided service account, build
 // an IAM policy and submit it to the tenant's MinIO instance
-func UpdatePolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenantConf *TenantConfiguration, serviceAccount *string) chan error {
+func UpdatePolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenantConf *TenantConfiguration, serviceAccountID *uuid.UUID) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
 		// get all the permissions for the service account
-		perms, err := GetAllThePermissionForServiceAccount(ctx, serviceAccount)
+		perms, err := GetAllThePermissionForServiceAccount(ctx, serviceAccountID)
 		if err != nil {
 			ch <- err
 			return
@@ -271,14 +312,14 @@ func UpdatePolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenant
 		}
 
 		//get SA access-key
-		sac, err := GetCredentialsForServiceAccount(ctx, serviceAccount)
+		sac, err := GetCredentialsForServiceAccount(ctx, serviceAccountID)
 		if err != nil {
 			fmt.Println(err)
 			ch <- err
 			return
 		}
 		// send the new policy to MinIO
-		policyName := fmt.Sprintf("%s-policy", *serviceAccount)
+		policyName := fmt.Sprintf("%s-policy", serviceAccountID.String())
 		err = addMinioIAMPolicyToUser(sgt, tenantConf, policyName, string(policyJSON), sac.AccessKey)
 		if err != nil {
 			ch <- err
@@ -290,14 +331,12 @@ func UpdatePolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenant
 
 // filterServiceAccountsWithPermission takes a list of service accounts and returns only those who have the provided
 // permissions associated with them
-func filterServiceAccountsWithPermission(ctx *Context, serviceAccounts []string, permission *string) ([]string, error) {
-	// Get user from tenants database
+func filterServiceAccountsWithPermission(ctx *Context, serviceAccounts []*uuid.UUID, permission *uuid.UUID) ([]*uuid.UUID, error) {
+	// check which service accounts already have this permission
 	queryUser := `
-		SELECT sa.slug
+		SELECT sap.service_account_id
 		FROM service_accounts_permissions sap
-				 LEFT JOIN service_accounts sa ON sap.service_account_id = sa.id
-				 LEFT JOIN permissions p ON sap.permission_id = p.id
-		WHERE p.slug = $1 AND sa.slug = ANY($2)`
+		WHERE sap.permission_id = $1 AND sap.service_account_id = ANY($2)`
 
 	rows, err := ctx.TenantDB().Query(queryUser, permission, pq.Array(serviceAccounts))
 	if err != nil {
@@ -305,14 +344,14 @@ func filterServiceAccountsWithPermission(ctx *Context, serviceAccounts []string,
 	}
 	defer rows.Close()
 
-	var saWithPerm []string
+	var saWithPerm []*uuid.UUID
 	for rows.Next() {
-		var saSlug string
-		err := rows.Scan(&saSlug)
+		var saID uuid.UUID
+		err := rows.Scan(&saID)
 		if err != nil {
 			return nil, err
 		}
-		saWithPerm = append(saWithPerm, saSlug)
+		saWithPerm = append(saWithPerm, &saID)
 	}
 
 	err = rows.Close()
