@@ -361,8 +361,3 @@ func filterServiceAccountsWithPermission(ctx *Context, serviceAccounts []*uuid.U
 
 	return saWithPerm, nil
 }
-
-// AssignMultiplePermissions takes a list of permissions and assigns them to a single service account
-func AssignMultiplePermissions(ctx *Context, serviceAccount string, permissions []string) {
-
-}
