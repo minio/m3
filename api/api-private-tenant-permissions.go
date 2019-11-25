@@ -21,6 +21,8 @@ import (
 	"errors"
 	"log"
 
+	uuid "github.com/satori/go.uuid"
+
 	"github.com/minio/m3/cluster"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -129,8 +131,37 @@ func (s *privateServer) TenantPermissionAssign(ctx context.Context, in *pb.Tenan
 		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
 	}
 	appCtx.Tenant = &tenant
+
+	// validate the permission
+	// get the permission to see if it's valid
+	if valid, err := cluster.ValidPermission(appCtx, &in.Permission); !valid || err != nil {
+		if err != nil {
+			log.Println(err)
+			return nil, status.New(codes.Internal, "Internal error").Err()
+		}
+		return nil, status.New(codes.InvalidArgument, "Invalid permission").Err()
+	}
+
+	perm, err := cluster.GetPermissionBySlug(appCtx, in.Permission)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
+	// validate all the service account ids
+	saIDs, err := cluster.MapServiceAccountsToIDs(appCtx, in.ServiceAccounts)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.InvalidArgument, "Invalid list of service accounts").Err()
+	}
+	// pour the map into a list
+	var saList []*uuid.UUID
+	for _, v := range saIDs {
+		saList = append(saList, v)
+	}
+
 	// perform actions
-	err = cluster.AssignPermission(appCtx, &in.Permission, in.ServiceAccounts)
+	err = cluster.AssignPermission(appCtx, &perm.ID, saList)
 	if err != nil {
 		log.Println(err)
 		appCtx.Rollback()

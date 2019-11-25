@@ -449,29 +449,21 @@ func ValidPermission(ctx *Context, permission *string) (bool, error) {
 }
 
 // AssignPermission assigns a single permission to multiple service accounts
-func AssignPermission(ctx *Context, permission *string, serviceAccounts []string) error {
-	// get the permission to see if it's valid
-	if valid, err := ValidPermission(ctx, permission); !valid || err != nil {
-		if err != nil {
-			return err
-		}
-		return errors.New("provided permission id is invalid")
-	}
-	// validate all the service account ids
-	saIDs, err := MapServiceAccountsToIDs(ctx, serviceAccounts)
-	if err != nil {
-		return err
-	}
-	perm, err := GetPermissionBySlug(ctx, *permission)
-	if err != nil {
-		return err
-	}
-	alreadyHaveIt, err := filterServiceAccountsWithPermission(ctx, serviceAccounts, permission)
+func AssignPermission(ctx *Context, permission *uuid.UUID, serviceAccountIDs []*uuid.UUID) error {
+	alreadyHaveIt, err := filterServiceAccountsWithPermission(ctx, serviceAccountIDs, permission)
 	if err != nil {
 		return err
 	}
 	if len(alreadyHaveIt) > 0 {
-		message := fmt.Sprintf("Service accounts `%s` already have this permission", strings.Join(alreadyHaveIt, ", "))
+		saSlugs, err := MapServiceAccountsIDsToSlugs(ctx, alreadyHaveIt)
+		if err != nil {
+			return err
+		}
+		var saSlugsList []string
+		for _, v := range saSlugs {
+			saSlugsList = append(saSlugsList, v)
+		}
+		message := fmt.Sprintf("Service accounts `%s` already have this permission", strings.Join(saSlugsList, ", "))
 		return errors.New(message)
 	}
 	fmt.Println(alreadyHaveIt)
@@ -492,8 +484,8 @@ func AssignPermission(ctx *Context, permission *string, serviceAccounts []string
 		return err
 	}
 	defer stmt.Close()
-	for _, saID := range saIDs {
-		_, err := stmt.Exec(saID, perm.ID, ctx.WhoAmI)
+	for _, saID := range serviceAccountIDs {
+		_, err := stmt.Exec(saID, permission, ctx.WhoAmI)
 		if err != nil {
 			return err
 		}
@@ -512,8 +504,8 @@ func AssignPermission(ctx *Context, permission *string, serviceAccounts []string
 	}
 	// update the policy for each SA
 	var saChs []chan error
-	for _, sa := range serviceAccounts {
-		ch := UpdatePolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, &sa)
+	for _, sa := range serviceAccountIDs {
+		ch := UpdatePolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, sa)
 		saChs = append(saChs, ch)
 	}
 	// wait for all to finish
@@ -527,7 +519,7 @@ func AssignPermission(ctx *Context, permission *string, serviceAccounts []string
 }
 
 // GetAllThePermissionForServiceAccount returns a list of permissions that are assigned to a service account
-func GetAllThePermissionForServiceAccount(ctx *Context, serviceAccount *string) ([]*Permission, error) {
+func GetAllThePermissionForServiceAccount(ctx *Context, serviceAccountID *uuid.UUID) ([]*Permission, error) {
 	// Get permissions associated with the provided service account
 	queryUser := `
 		SELECT 
@@ -536,13 +528,13 @@ func GetAllThePermissionForServiceAccount(ctx *Context, serviceAccount *string) 
 				permissions p
 				LEFT JOIN service_accounts_permissions sap ON p.id = sap.permission_id
 			WHERE 
-			      sap.service_account_id IN (SELECT sa.id FROM service_accounts sa WHERE sa.slug = $1)
+			      sap.service_account_id = $1
 				`
 	tx, err := ctx.TenantTx()
 	if err != nil {
 		return nil, err
 	}
-	rows, err := tx.Query(queryUser, serviceAccount)
+	rows, err := tx.Query(queryUser, serviceAccountID)
 	defer rows.Close()
 	if err != nil {
 		return nil, err
