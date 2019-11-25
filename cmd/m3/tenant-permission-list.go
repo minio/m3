@@ -106,7 +106,8 @@ func permissionList(ctx *cli.Context) error {
 	for _, perm := range resp.Permissions {
 		var resources []string
 		for _, permResource := range perm.Resources {
-			resources = append(resources, permResource.BucketName)
+			res := fmt.Sprintf("%s/%s", permResource.BucketName, permResource.Pattern)
+			resources = append(resources, res)
 		}
 		var actions []string
 		for _, permAction := range perm.Actions {

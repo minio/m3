@@ -21,6 +21,7 @@ import (
 	"log"
 
 	"github.com/minio/m3/cluster"
+	uuid "github.com/satori/go.uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -76,4 +77,62 @@ func (s *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, in
 	}
 
 	return &pb.TenantServiceAccountActionResponse{}, nil
+}
+
+// TenantPermissionAssign provides the endpoint to assign a permission by id-name to multiple service accounts by
+// id-name as well.
+func (s *privateServer) TenantServiceAccountAssign(ctx context.Context, in *pb.TenantServiceAccountAssignRequest) (*pb.TenantServiceAccountAssignResponse, error) {
+	// get context
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// validate Tenant
+	tenant, err := cluster.GetTenant(in.Tenant)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
+	}
+	appCtx.Tenant = &tenant
+
+	// validate the permission
+	// get the permission to see if it's valid
+	if valid, err := cluster.ValidServiceAccount(appCtx, &in.ServiceAccount); !valid || err != nil {
+		if err != nil {
+			log.Println(err)
+			return nil, status.New(codes.Internal, "Internal error").Err()
+		}
+		return nil, status.New(codes.InvalidArgument, "Invalid permission").Err()
+	}
+
+	perm, err := cluster.GetServiceAccountBySlug(appCtx, in.ServiceAccount)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
+	// validate all the service account ids
+	permIDs, err := cluster.MapPermissionsToIDs(appCtx, in.Permissions)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.InvalidArgument, "Invalid list of service accounts").Err()
+	}
+	// pour the map into a list
+	var permList []*uuid.UUID
+	for _, v := range permIDs {
+		permList = append(permList, v)
+	}
+
+	// perform actions
+	err = cluster.AssignMultiplePermissionsAction(appCtx, &perm.ID, permList)
+	if err != nil {
+		log.Println(err)
+		appCtx.Rollback()
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// if no errors, commit
+	appCtx.Commit()
+
+	return &pb.TenantServiceAccountAssignResponse{}, nil
 }

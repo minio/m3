@@ -56,7 +56,7 @@ var tenantServiceAccountListCmd = cli.Command{
 //  Skip the first 20, list 10 users
 //     m3 tenant service-account list acme --offset 20 --limit 10
 func tenantServiceAccountList(ctx *cli.Context) error {
-	fmt.Println("Tenant Service Accounts")
+	fmt.Println("Tenant Service Accounts.")
 	tenantShortName := ctx.String("tenant")
 	offset := ctx.Int("offset")
 	limit := ctx.Int("limit")
@@ -93,7 +93,7 @@ func tenantServiceAccountList(ctx *cli.Context) error {
 	// create context
 	appCtx := cluster.NewCtxWithTenant(&tenant)
 
-	users, err := cluster.GetServiceAccountsForTenant(appCtx, offset, limit)
+	users, err := cluster.GetServiceAccountList(appCtx, offset, limit)
 	if err != nil {
 		fmt.Println("Error listing service accounts:", err.Error())
 		return err
