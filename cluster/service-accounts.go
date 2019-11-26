@@ -262,9 +262,6 @@ func UpdatePolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenant
 			Effect: minioPolicy.Effect("Allow"),
 		}
 		rSet := minioIAMPolicy.ResourceSet{}
-		//rSet.Add(minioIAMPolicy.Resource{
-		//	Pattern: "*",
-		//})
 		rSet.Add(minioIAMPolicy.NewResource("*", ""))
 		statement.Resources = rSet
 		aSet := minioIAMPolicy.ActionSet{}

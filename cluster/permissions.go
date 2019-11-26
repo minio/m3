@@ -268,40 +268,44 @@ func InsertResource(ctx *Context, permission *Permission, resource *Resource) er
 	return nil
 }
 
-// DeletePermissionResourceDB deletes a permission resource row from the database
-func DeletePermissionResourceDB(ctx *Context, resourceID string) error {
-	query := `
+// DeleteBulkPermissionResourceDB deletes a permission resource row from the database
+func DeleteBulkPermissionResourceDB(ctx *Context, resourcesID []uuid.UUID) error {
+	if len(resourcesID) > 0 {
+		query := `
 			DELETE FROM 
 				permissions_resources pr
-			WHERE id = $1`
-	// create records
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
-	// Execute query
-	_, err = tx.Exec(query, resourceID)
-	if err != nil {
-		return err
+			WHERE id = ANY($1)`
+		// create records
+		tx, err := ctx.TenantTx()
+		if err != nil {
+			return err
+		}
+		// Execute query
+		_, err = tx.Exec(query, pq.Array(resourcesID))
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-// DeletePermissionActionDB deletes a permission action row from the database
-func DeletePermissionActionDB(ctx *Context, actionID string) error {
-	query := `
+// DeleteBulkPermissionActionDB deletes a bulk of permission actions rows from the database
+func DeleteBulkPermissionActionDB(ctx *Context, actionsID []uuid.UUID) error {
+	if len(actionsID) > 0 {
+		query := `
 			DELETE FROM 
 				permissions_actions pr
-			WHERE id = $1`
-	// create records
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
-	// Execute query
-	_, err = tx.Exec(query, actionID)
-	if err != nil {
-		return err
+			WHERE id = ANY($1)`
+		// create records
+		tx, err := ctx.TenantTx()
+		if err != nil {
+			return err
+		}
+		// Execute query
+		_, err = tx.Exec(query, pq.Array(actionsID))
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -537,6 +541,15 @@ func AssignPermission(ctx *Context, permission *uuid.UUID, serviceAccountIDs []*
 			return err
 		}
 	}
+	err = UpdateMultiplePoliciesForServiceAccount(ctx, serviceAccountIDs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateMultiplePoliciesForServiceAccount
+func UpdateMultiplePoliciesForServiceAccount(ctx *Context, serviceAccountIDs []*uuid.UUID) error {
 	// Get in which SG is the tenant located
 	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
 
@@ -587,6 +600,38 @@ func GetAllThePermissionForServiceAccount(ctx *Context, serviceAccountID *uuid.U
 		return nil, err
 	}
 	return buildPermissionsForRows(ctx, rows)
+}
+
+// GetAllServiceAccountsForPermission returns a list of all service accounts using a permission
+func GetAllServiceAccountsForPermission(ctx *Context, permissionID *uuid.UUID) ([]*uuid.UUID, error) {
+	// check which service accounts already have this permission
+	queryUser := `
+		SELECT sap.service_account_id
+		FROM service_accounts_permissions sap
+		WHERE sap.permission_id = $1`
+
+	rows, err := ctx.TenantDB().Query(queryUser, permissionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var saWithPerm []*uuid.UUID
+	for rows.Next() {
+		var saID uuid.UUID
+		err := rows.Scan(&saID)
+		if err != nil {
+			return nil, err
+		}
+		saWithPerm = append(saWithPerm, &saID)
+	}
+
+	err = rows.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return saWithPerm, nil
 }
 
 // getValidSASlug generates a valid slug for a name for the service accounts table, if there's a collision it appends
