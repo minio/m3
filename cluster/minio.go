@@ -16,6 +16,10 @@
 
 package cluster
 
+import (
+	"fmt"
+)
+
 func addMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, accessKey string, secretKey string) error {
 	// get an admin with operator keys
 	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
@@ -25,7 +29,7 @@ func addMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, acce
 	// Add the user
 	err := adminClient.AddUser(accessKey, secretKey)
 	if err != nil {
-		return err
+		return tagErrorAsMinio(err)
 	}
 	return nil
 }
@@ -39,7 +43,7 @@ func addMinioCannedPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfi
 	// Add the canned policy
 	err := adminClient.SetPolicy(policy, accessKey, false)
 	if err != nil {
-		return err
+		return tagErrorAsMinio(err)
 	}
 	return nil
 }
@@ -56,12 +60,17 @@ func addMinioIAMPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfigur
 	//err := adminClient.SetPolicy(policy, accessKey, false)
 	err := adminClient.AddCannedPolicy(policyName, policy)
 	if err != nil {
-		return err
+		return tagErrorAsMinio(err)
 	}
 	// Add the canned policy
 	err = adminClient.SetPolicy(policyName, userAccessKey, false)
 	if err != nil {
-		return err
+		return tagErrorAsMinio(err)
 	}
 	return nil
+}
+
+// tagErrorAsMinio takes an error and tags it as a MinIO error
+func tagErrorAsMinio(err error) error {
+	return fmt.Errorf("MinIO: %s", err.Error())
 }

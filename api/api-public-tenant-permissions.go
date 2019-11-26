@@ -257,7 +257,9 @@ func updatePermissionActions(ctx *cluster.Context, permission *cluster.Permissio
 	actionsToDelete := differenceArrays(currentActionTypes, actionsToUpdate)
 	// CREATE New Actions
 	tempPermission := &cluster.Permission{ID: permission.ID}
-	cluster.AppendPermissionActionObj(tempPermission, actionsToCreate)
+	if err := cluster.AppendPermissionActionObj(tempPermission, actionsToCreate); err != nil {
+		return err
+	}
 	// for each resource, save to DB
 	for _, action := range tempPermission.Actions {
 		err = cluster.InsertAction(ctx, tempPermission, &action)

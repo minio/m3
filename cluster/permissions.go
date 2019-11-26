@@ -157,14 +157,18 @@ func NewPermissionObj(name string, description string, effect Effect, resources 
 		perm.Description = nil
 	}
 	// generate resources
-	AppendPermissionResourcesObj(&perm, resources)
+	if err := AppendPermissionResourcesObj(&perm, resources); err != nil {
+		return nil, err
+	}
 
 	// generate actions
-	AppendPermissionActionObj(&perm, actions)
+	if err := AppendPermissionActionObj(&perm, actions); err != nil {
+		return nil, err
+	}
 	return &perm, nil
 }
 
-func AppendPermissionResourcesObj(perm *Permission, resources []string) {
+func AppendPermissionResourcesObj(perm *Permission, resources []string) error {
 	for _, res := range resources {
 		parts := strings.Split(res, "/")
 		resource := Resource{}
@@ -179,13 +183,19 @@ func AppendPermissionResourcesObj(perm *Permission, resources []string) {
 		resource.ID = uuid.NewV4()
 		perm.Resources = append(perm.Resources, resource)
 	}
+	return nil
 }
 
-func AppendPermissionActionObj(perm *Permission, actions []string) {
+func AppendPermissionActionObj(perm *Permission, actions []string) error {
 	for _, act := range actions {
 		actType := ActionTypeFromString(act)
+		// validate the actionType
+		if err := actType.IsValid(); err != nil {
+			return err
+		}
 		perm.Actions = append(perm.Actions, Action{ActionType: actType, ID: uuid.NewV4()})
 	}
+	return nil
 }
 
 func AddPermissionToDB(ctx *Context, name, description string, effect Effect, resources, actions []string) (*Permission, error) {
@@ -771,16 +781,16 @@ func DeletePermissionDB(ctx *Context, permission *Permission) error {
 	return nil
 }
 
-// filterServiceAccountsWithPermission takes a list of service accounts and returns only those who have the provided
-// permissions associated with them
-func filterPermissionsWithServiceAccount(ctx *Context, permissions []*uuid.UUID, permission *uuid.UUID) ([]*uuid.UUID, error) {
+// filterServiceAccountsWithPermission takes a list of permissions and returns only those who have the provided
+// service account associated with them
+func filterPermissionsWithServiceAccount(ctx *Context, permissions []*uuid.UUID, serviceAccount *uuid.UUID) ([]*uuid.UUID, error) {
 	// check which permissions already have this service account
 	queryUser := `
-		SELECT sap.service_account_id
+		SELECT sap.permission_id
 		FROM service_accounts_permissions sap
 		WHERE sap.service_account_id = $1 AND sap.permission_id = ANY($2)`
 
-	rows, err := ctx.TenantDB().Query(queryUser, permission, pq.Array(permissions))
+	rows, err := ctx.TenantDB().Query(queryUser, serviceAccount, pq.Array(permissions))
 	if err != nil {
 		return nil, err
 	}

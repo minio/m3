@@ -303,15 +303,13 @@ func UpdatePolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenant
 		// for debug
 		policyJSON, err := policy.MarshalJSON()
 		if err != nil {
-			fmt.Println(err)
-			ch <- err
+			ch <- tagErrorAsMinio(err)
 			return
 		}
 
 		//get SA access-key
 		sac, err := GetCredentialsForServiceAccount(ctx, serviceAccountID)
 		if err != nil {
-			fmt.Println(err)
 			ch <- err
 			return
 		}
