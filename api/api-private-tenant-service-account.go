@@ -106,7 +106,7 @@ func (s *privateServer) TenantServiceAccountAssign(ctx context.Context, in *pb.T
 		return nil, status.New(codes.InvalidArgument, "Invalid permission").Err()
 	}
 
-	perm, err := cluster.GetServiceAccountBySlug(appCtx, in.ServiceAccount)
+	serviceAccount, err := cluster.GetServiceAccountBySlug(appCtx, in.ServiceAccount)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
@@ -125,14 +125,18 @@ func (s *privateServer) TenantServiceAccountAssign(ctx context.Context, in *pb.T
 	}
 
 	// perform actions
-	err = cluster.AssignMultiplePermissionsAction(appCtx, &perm.ID, permList)
+	err = cluster.AssignMultiplePermissionsAction(appCtx, &serviceAccount.ID, permList)
 	if err != nil {
 		log.Println(err)
 		appCtx.Rollback()
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	// if no errors, commit
-	appCtx.Commit()
+	err = appCtx.Commit()
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.InvalidArgument, err.Error()).Err()
+	}
 
 	return &pb.TenantServiceAccountAssignResponse{}, nil
 }
