@@ -112,7 +112,7 @@ func (s *server) ListServiceAccounts(ctx context.Context, in *pb.ListServiceAcco
 		servAccountsResp = append(servAccountsResp, sa)
 	}
 	return &pb.ListServiceAccountsResponse{
-		ServiceAccounts:       servAccountsResp,
-		Total_ServiceAccounts: int32(len(servAccountsResp)),
+		ServiceAccounts: servAccountsResp,
+		Total:           int32(len(servAccountsResp)),
 	}, nil
 }
