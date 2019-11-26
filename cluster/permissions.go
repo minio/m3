@@ -522,6 +522,15 @@ func AssignPermissionAction(ctx *Context, permission *uuid.UUID, serviceAccountI
 	if len(finalListServiceAccountIDs) == 0 {
 		return nil
 	}
+	// insert to the database
+	if err = assignPermissionToMultipleSAsOnDB(ctx, permission, serviceAccountIDs); err != nil {
+		return err
+	}
+
+	return UpdateMultiplePoliciesForServiceAccount(ctx, finalListServiceAccountIDs)
+}
+
+func UpdateMultiplePoliciesForServiceAccount(ctx *Context, serviceAccountIDs []*uuid.UUID) error {
 
 	// Get in which SG is the tenant located
 	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
@@ -533,10 +542,6 @@ func AssignPermissionAction(ctx *Context, permission *uuid.UUID, serviceAccountI
 	// Get the credentials for a tenant
 	tenantConf, err := GetTenantConfig(ctx.Tenant)
 	if err != nil {
-		return err
-	}
-
-	if err = assignPermissionToMultipleSAs(ctx, permission, finalListServiceAccountIDs); err != nil {
 		return err
 	}
 
@@ -557,8 +562,8 @@ func AssignPermissionAction(ctx *Context, permission *uuid.UUID, serviceAccountI
 	return nil
 }
 
-// assignPermissionToMultipleSAs assigns a single permission to multiple service accounts
-func assignPermissionToMultipleSAs(ctx *Context, permission *uuid.UUID, serviceAccountIDs []*uuid.UUID) error {
+// assignPermissionToMultipleSAsOnDB assigns a single permission to multiple service accounts
+func assignPermissionToMultipleSAsOnDB(ctx *Context, permission *uuid.UUID, serviceAccountIDs []*uuid.UUID) error {
 
 	// create records
 	tx, err := ctx.TenantTx()

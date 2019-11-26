@@ -399,7 +399,7 @@ func AssignMultiplePermissionsAction(ctx *Context, serviceAccount *uuid.UUID, pe
 	// assign all the permissions to the service account
 	singleSAList := []*uuid.UUID{serviceAccount}
 	for _, permID := range finalListPermissionIDs {
-		err := assignPermissionToMultipleSAs(ctx, permID, singleSAList)
+		err := assignPermissionToMultipleSAsOnDB(ctx, permID, singleSAList)
 		if err != nil {
 			return err
 		}
