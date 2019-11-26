@@ -116,3 +116,45 @@ func (s *server) ListServiceAccounts(ctx context.Context, in *pb.ListServiceAcco
 		Total:           int32(len(servAccountsResp)),
 	}, nil
 }
+
+func (s *server) InfoServiceAccount(ctx context.Context, in *pb.ServiceAccountActionRequest) (res *pb.InfoServiceAccountResponse, err error) {
+	idRequest := in.GetId()
+	if idRequest == "" {
+		return nil, status.New(codes.InvalidArgument, "an id is needed").Err()
+	}
+	// start app context
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := uuid.FromString(idRequest)
+	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, id)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// get all the permissions for the service account
+	perms, err := cluster.GetAllThePermissionForServiceAccount(appCtx, &serviceAccount.ID)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
+	//transform the permissions to pb format
+	var pbPerms []*pb.Permission
+	for _, perm := range perms {
+		pbPerm := buildPermissionPBFromPermission(perm)
+		pbPerms = append(pbPerms, pbPerm)
+	}
+
+	servAccountsResp := &pb.ServiceAccount{
+		Id:        serviceAccount.ID.String(),
+		AccessKey: serviceAccount.AccessKey,
+		Enabled:   serviceAccount.Enabled,
+	}
+	return &pb.InfoServiceAccountResponse{
+		ServiceAccount: servAccountsResp,
+		Permissions:    pbPerms,
+	}, nil
+
+}

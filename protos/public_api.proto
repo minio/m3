@@ -115,7 +115,7 @@ service PublicAPI {
     rpc RemoveServiceAccount (ServiceAccountActionRequest) returns (Empty) {
     }
     // Get details of an individual ServiceAccount
-    rpc InfoServiceAccount (ServiceAccountActionRequest) returns (ServiceAccount) {
+    rpc InfoServiceAccount (ServiceAccountActionRequest) returns (InfoServiceAccountResponse) {
     }
 
     // Assign multiple permissions to this service account
@@ -344,7 +344,9 @@ message ServiceAccountActionRequest {
     string id = 1;
 }
 
-message ServiceAccountActionResponse {
+message InfoServiceAccountResponse{
+    ServiceAccount service_account = 1;
+    repeated Permission permissions = 2;
 }
 
 message CreateServiceAccountRequest {

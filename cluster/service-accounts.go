@@ -457,3 +457,24 @@ func GetServiceAccountBySlug(ctx *Context, slug string) (*ServiceAccount, error)
 
 	return &sa, nil
 }
+
+// GetServiceAccountByID retrieves a permission by it's id
+func GetServiceAccountByID(ctx *Context, id uuid.UUID) (*ServiceAccount, error) {
+	// Get user from tenants database
+	queryUser := `
+		SELECT 
+				sa.id, sa.name, sa.slug, sa.description, enabled, c.access_key
+		FROM 
+			service_accounts sa
+			LEFT JOIN credentials c ON sa.id = c.service_account_id
+			WHERE sa.id=$1 LIMIT 1`
+
+	row := ctx.TenantDB().QueryRow(queryUser, id)
+	sa := ServiceAccount{}
+	err := row.Scan(&sa.ID, &sa.Name, &sa.Slug, &sa.Description, &sa.Enabled, &sa.AccessKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sa, nil
+}
