@@ -18,8 +18,11 @@ package api
 
 import (
 	"context"
+	"errors"
+	"log"
 
 	"github.com/minio/m3/cluster"
+	uuid "github.com/satori/go.uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -48,34 +51,8 @@ func (s *server) ListPermissions(ctx context.Context, in *pb.ListPermissionsRequ
 	//transform the permissions to pb format
 	var pbPerms []*pb.Permission
 	for _, perm := range perms {
-		pbPerm := pb.Permission{}
-		pbPerm.Id = perm.ID.String()
-		pbPerm.Slug = perm.Slug
-		pbPerm.Name = perm.Name
-		if perm.Description != nil {
-			pbPerm.Description = *perm.Description
-		}
-
-		pbPerm.Effect = perm.Effect.String()
-		// TODO: use PermissionResource.Id to define the eid of the bucket not the
-		// resource itself so that we can list them correctly on the UI.
-		for _, permResource := range perm.Resources {
-			pbResource := pb.PermissionResource{
-				Id:         permResource.ID.String(),
-				BucketName: permResource.BucketName,
-				Pattern:    permResource.Pattern,
-			}
-			pbPerm.Resources = append(pbPerm.Resources, &pbResource)
-		}
-		for _, permAction := range perm.Actions {
-			pbAction := pb.PermissionAction{
-				Id:   permAction.ID.String(),
-				Type: string(permAction.ActionType),
-			}
-			pbPerm.Actions = append(pbPerm.Actions, &pbAction)
-		}
-
-		pbPerms = append(pbPerms, &pbPerm)
+		pbPerm := buildPermissionPBFromPermission(perm)
+		pbPerms = append(pbPerms, pbPerm)
 	}
 	return &pb.ListPermissionsResponse{Permissions: pbPerms, Total: int32(len(pbPerms))}, nil
 }
@@ -103,7 +80,6 @@ func (s *server) AddPermission(ctx context.Context, in *pb.AddPermissionRequest)
 	if permissionName == "" {
 		return nil, status.New(codes.InvalidArgument, "a valid permission name  is needed").Err()
 	}
-	// description is optional
 	effect := cluster.EffectFromString(permissionEffect)
 	if err := effect.IsValid(); err != nil {
 		return nil, status.New(codes.InvalidArgument, "invalid effect").Err()
@@ -114,7 +90,7 @@ func (s *server) AddPermission(ctx context.Context, in *pb.AddPermissionRequest)
 		return nil, err
 	}
 
-	permissionObj, err := cluster.AddPermission(appCtx, permissionName, description, effect, resources, actions)
+	permissionObj, err := cluster.AddPermissionToDB(appCtx, permissionName, description, effect, resources, actions)
 	if err != nil {
 		appCtx.Rollback()
 		return nil, err
@@ -125,42 +101,202 @@ func (s *server) AddPermission(ctx context.Context, in *pb.AddPermissionRequest)
 	}
 
 	// Create response object
-	permissionResponse := buildPermissionResponseFromPermissionObj(permissionObj)
+	permissionResponse := buildPermissionPBFromPermission(permissionObj)
 
 	return permissionResponse, nil
 }
 
-func buildPermissionResponseFromPermissionObj(permissionObj *cluster.Permission) (res *pb.Permission) {
+// UpdatePermission gets permission and updates fields
+func (s *server) UpdatePermission(ctx context.Context, in *pb.UpdatePermissionRequest) (res *pb.Permission, err error) {
+	id := in.GetId()
+	resourcesBucketNames := in.GetResources()
+	actionTypes := in.GetActions()
+	permissionEffect := in.GetEffect()
+	permissionName := in.GetName()
+	description := in.GetDescription()
+	// Validate request's arguments
+	if len(resourcesBucketNames) == 0 {
+		return nil, status.New(codes.InvalidArgument, "a list of resources is needed").Err()
+	}
+	if len(actionTypes) == 0 {
+		return nil, status.New(codes.InvalidArgument, "a list of actions is needed").Err()
+	}
+	if permissionEffect == "" {
+		return nil, status.New(codes.InvalidArgument, "a valid effect is needed").Err()
+	}
+	if permissionName == "" {
+		return nil, status.New(codes.InvalidArgument, "a valid permission name  is needed").Err()
+	}
+	if description == "" {
+		return nil, status.New(codes.InvalidArgument, "a valid description is needed").Err()
+	}
+	effect := cluster.EffectFromString(permissionEffect)
+	if err := effect.IsValid(); err != nil {
+		return nil, status.New(codes.InvalidArgument, "invalid effect").Err()
+	}
+	// start app context
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+	}()
+
+	// get permission
+	permission, err := cluster.GetPermissionByID(appCtx, id)
+	if err != nil {
+		return nil, status.New(codes.InvalidArgument, "permission not found").Err()
+	}
+
+	// start updating values on the permission obj not yet on db.
+	permission.Name = permissionName
+	permission.Effect = effect
+	permission.Description = &description
+
+	// Nullified values if they are empty
+	if description == "" {
+		permission.Description = nil
+	}
+
+	// -- Update Permission RESOURCES
+	err = updatePermissionResources(appCtx, permission, resourcesBucketNames)
+	if err != nil {
+		return nil, status.New(codes.Internal, "error updating permission resources").Err()
+	}
+	// -- Update Permission ACTIONS
+	err = updatePermissionActions(appCtx, permission, actionTypes)
+	if err != nil {
+		return nil, status.New(codes.Internal, "error updating permission actions").Err()
+	}
+	// Update single parameters
+	err = cluster.UpdatePermissionDB(appCtx, permission)
+	if err != nil {
+		return nil, status.New(codes.Internal, "error updating permission").Err()
+	}
+	// if we reach here, all is good, commit
+	if err := appCtx.Commit(); err != nil {
+		return nil, err
+	}
+
+	// UPDATE All Service Accounts using the updated  permission
+	serviceAccountIDs, err := cluster.GetAllServiceAccountsForPermission(appCtx, &permission.ID)
+	if err != nil {
+		return nil, status.New(codes.Internal, "error updating permission").Err()
+	}
+
+	err = cluster.UpdateMultiplePoliciesForServiceAccount(appCtx, serviceAccountIDs)
+	if err != nil {
+		return nil, status.New(codes.Internal, "error updating permission").Err()
+	}
+
+	// get updated permission
+	updatedPermission, err := cluster.GetPermissionByID(appCtx, permission.ID.String())
+	if err != nil {
+		return nil, status.New(codes.InvalidArgument, "permission not found").Err()
+	}
 	// Create response object
-	res = &pb.Permission{
-		Name:   permissionObj.Name,
-		Slug:   permissionObj.Slug,
-		Id:     permissionObj.ID.String(),
-		Effect: permissionObj.Effect.String()}
+	permissionResponse := buildPermissionPBFromPermission(updatedPermission)
 
-	for _, permResource := range permissionObj.Resources {
-		pbResource := pb.PermissionResource{
-			Id:         permResource.ID.String(),
-			BucketName: permResource.BucketName,
-			Pattern:    permResource.Pattern,
-		}
-		res.Resources = append(res.Resources, &pbResource)
-	}
-	for _, permAction := range permissionObj.Actions {
-		pbAction := pb.PermissionAction{
-			Id:   permAction.ID.String(),
-			Type: string(permAction.ActionType),
-		}
-		res.Actions = append(res.Actions, &pbAction)
-	}
-
-	if permissionObj.Description != nil {
-		res.Description = *permissionObj.Description
-	}
-	return res
+	return permissionResponse, nil
 }
 
-//
+func updatePermissionResources(ctx *cluster.Context, permission *cluster.Permission, resourcesToUpdate []string) (err error) {
+	var currentResourceBucketNames []string
+	mapResourceName := make(map[string]uuid.UUID)
+	for _, perm := range permission.Resources {
+		currentResourceBucketNames = append(currentResourceBucketNames, perm.BucketName)
+		mapResourceName[perm.BucketName] = perm.ID
+	}
+	// TODO: parallelize
+	resourcesToCreate := differenceArrays(resourcesToUpdate, currentResourceBucketNames)
+	resourcesToDelete := differenceArrays(currentResourceBucketNames, resourcesToUpdate)
+
+	// CREATE New Resources
+	// create a Temporal permission to Create the new Permission resources
+	tempPermission := &cluster.Permission{ID: permission.ID}
+	cluster.AppendPermissionResourcesObj(tempPermission, resourcesToCreate)
+	// for each resource, save to DB
+	for _, resc := range tempPermission.Resources {
+		err = cluster.InsertResource(ctx, tempPermission, &resc)
+		if err != nil {
+			return err
+		}
+	}
+	// DELETE unwanted resources
+	var resourcesIDsToDelete []uuid.UUID
+	for _, bucketName := range resourcesToDelete {
+		resourceID, ok := mapResourceName[bucketName]
+		if !ok {
+			log.Println("error retrieving permission resource to delete")
+			return errors.New("error retrieving permission resource to delete")
+		}
+		resourcesIDsToDelete = append(resourcesIDsToDelete, resourceID)
+	}
+	err = cluster.DeleteBulkPermissionResourceDB(ctx, resourcesIDsToDelete)
+	if err != nil {
+		log.Println(err)
+		return errors.New("error deleting permission resources")
+	}
+	return nil
+}
+
+func updatePermissionActions(ctx *cluster.Context, permission *cluster.Permission, actionsToUpdate []string) (err error) {
+	var currentActionTypes []string
+	mapActionTypes := make(map[string]uuid.UUID)
+	for _, perm := range permission.Actions {
+		currentActionTypes = append(currentActionTypes, string(perm.ActionType))
+		mapActionTypes[string(perm.ActionType)] = perm.ID
+	}
+	// TODO: parallelize
+	actionsToCreate := differenceArrays(actionsToUpdate, currentActionTypes)
+	actionsToDelete := differenceArrays(currentActionTypes, actionsToUpdate)
+	// CREATE New Actions
+	tempPermission := &cluster.Permission{ID: permission.ID}
+	cluster.AppendPermissionActionObj(tempPermission, actionsToCreate)
+	// for each resource, save to DB
+	for _, action := range tempPermission.Actions {
+		err = cluster.InsertAction(ctx, tempPermission, &action)
+		if err != nil {
+			return err
+		}
+	}
+	// DELETE unwanted Actions
+	var actionIDsToDelete []uuid.UUID
+	for _, bucketName := range actionsToDelete {
+		actionID, ok := mapActionTypes[bucketName]
+		if !ok {
+			return errors.New("error retrieving permission action to delete")
+		}
+		actionIDsToDelete = append(actionIDsToDelete, actionID)
+	}
+	err = cluster.DeleteBulkPermissionActionDB(ctx, actionIDsToDelete)
+	if err != nil {
+		return errors.New("error deleting permission actions")
+	}
+	return nil
+}
+
+// differenceArrays returns the elements in `a` that aren't in `b`.
+func differenceArrays(a, b []string) []string {
+	mb := make(map[string]struct{}, len(b))
+	for _, x := range b {
+		mb[x] = struct{}{}
+	}
+	var diff []string
+	for _, x := range a {
+		if _, found := mb[x]; !found {
+			diff = append(diff, x)
+		}
+	}
+	return diff
+}
+
+// InfoPermission gives the details of an specific permission
 func (s *server) InfoPermission(ctx context.Context, in *pb.PermissionActionRequest) (res *pb.Permission, err error) {
 	id := in.GetId()
 
@@ -177,7 +313,7 @@ func (s *server) InfoPermission(ctx context.Context, in *pb.PermissionActionRequ
 	}
 
 	// Create response object
-	permissionResponse := buildPermissionResponseFromPermissionObj(permission)
+	permissionResponse := buildPermissionPBFromPermission(permission)
 	return permissionResponse, nil
 }
 
@@ -207,9 +343,40 @@ func (s *server) RemovePermission(ctx context.Context, in *pb.PermissionActionRe
 	}
 
 	// delete permission
-	err = cluster.DeletePermission(appCtx, permission)
+	err = cluster.DeletePermissionDB(appCtx, permission)
 	if err != nil {
 		return nil, status.New(codes.Internal, "failed deleting permission").Err()
 	}
 	return &pb.Empty{}, nil
+}
+
+// buildPermissionPBFromPermission creates a permission object compatible with the pb.Permission
+func buildPermissionPBFromPermission(permissionObj *cluster.Permission) (res *pb.Permission) {
+	// Create response object
+	res = &pb.Permission{
+		Name:   permissionObj.Name,
+		Slug:   permissionObj.Slug,
+		Id:     permissionObj.ID.String(),
+		Effect: permissionObj.Effect.String()}
+
+	for _, permResource := range permissionObj.Resources {
+		pbResource := pb.PermissionResource{
+			Id:         permResource.ID.String(),
+			BucketName: permResource.BucketName,
+			Pattern:    permResource.Pattern,
+		}
+		res.Resources = append(res.Resources, &pbResource)
+	}
+	for _, permAction := range permissionObj.Actions {
+		pbAction := pb.PermissionAction{
+			Id:   permAction.ID.String(),
+			Type: string(permAction.ActionType),
+		}
+		res.Actions = append(res.Actions, &pbAction)
+	}
+
+	if permissionObj.Description != nil {
+		res.Description = *permissionObj.Description
+	}
+	return res
 }

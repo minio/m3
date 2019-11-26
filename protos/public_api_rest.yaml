@@ -88,6 +88,9 @@ http:
       body: "*"
     - selector: m3.PublicAPI.RemovePermission
       delete: /api/v1/permissions/{id}
+    - selector: m3.PublicAPI.UpdatePermission
+      put: /api/v1/permissions/{id}
+      body: "*"
     - selector: m3.PublicAPI.InfoPermission
       get: /api/v1/permissions/{id}
     - selector: m3.PublicAPI.AssignPermissionToMultipleServiceAccounts

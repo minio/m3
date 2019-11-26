@@ -143,9 +143,9 @@ type Permission struct {
 	Actions     []Action
 }
 
-// NewPermission creates a new Permission from a list of raw resources (bucket/pattern/*) and actions
-func NewPermission(name string, description string, effect Effect, resources []string, actions []string) (*Permission, error) {
-	// generate permission
+// NewPermissionObj creates a new Permission from a list of raw resources (bucket/pattern/*) and actions
+func NewPermissionObj(name string, description string, effect Effect, resources []string, actions []string) (*Permission, error) {
+	// generate permission obj
 	perm := Permission{
 		Name:        name,
 		Description: &description,
@@ -157,6 +157,14 @@ func NewPermission(name string, description string, effect Effect, resources []s
 		perm.Description = nil
 	}
 	// generate resources
+	AppendPermissionResourcesObj(&perm, resources)
+
+	// generate actions
+	AppendPermissionActionObj(&perm, actions)
+	return &perm, nil
+}
+
+func AppendPermissionResourcesObj(perm *Permission, resources []string) {
 	for _, res := range resources {
 		parts := strings.Split(res, "/")
 		resource := Resource{}
@@ -171,17 +179,18 @@ func NewPermission(name string, description string, effect Effect, resources []s
 		resource.ID = uuid.NewV4()
 		perm.Resources = append(perm.Resources, resource)
 	}
-	// generate actions
+}
+
+func AppendPermissionActionObj(perm *Permission, actions []string) {
 	for _, act := range actions {
 		actType := ActionTypeFromString(act)
 		perm.Actions = append(perm.Actions, Action{ActionType: actType, ID: uuid.NewV4()})
 	}
-	return &perm, nil
 }
 
-func AddPermission(ctx *Context, name, description string, effect Effect, resources, actions []string) (*Permission, error) {
+func AddPermissionToDB(ctx *Context, name, description string, effect Effect, resources, actions []string) (*Permission, error) {
 	// generate permission
-	perm, err := NewPermission(name, description, effect, resources, actions)
+	perm, err := NewPermissionObj(name, description, effect, resources, actions)
 	if err != nil {
 		return nil, err
 	}
@@ -255,6 +264,48 @@ func InsertResource(ctx *Context, permission *Permission, resource *Resource) er
 	_, err = tx.Exec(queryUpdatePermissionsResources, resource.ID, permission.ID, resource.BucketName, resource.Pattern, ctx.WhoAmI)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+// DeleteBulkPermissionResourceDB deletes a permission resource row from the database
+func DeleteBulkPermissionResourceDB(ctx *Context, resourcesID []uuid.UUID) error {
+	if len(resourcesID) > 0 {
+		query := `
+			DELETE FROM 
+				permissions_resources pr
+			WHERE id = ANY($1)`
+		// create records
+		tx, err := ctx.TenantTx()
+		if err != nil {
+			return err
+		}
+		// Execute query
+		_, err = tx.Exec(query, pq.Array(resourcesID))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// DeleteBulkPermissionActionDB deletes a bulk of permission actions rows from the database
+func DeleteBulkPermissionActionDB(ctx *Context, actionsID []uuid.UUID) error {
+	if len(actionsID) > 0 {
+		query := `
+			DELETE FROM 
+				permissions_actions pr
+			WHERE id = ANY($1)`
+		// create records
+		tx, err := ctx.TenantTx()
+		if err != nil {
+			return err
+		}
+		// Execute query
+		_, err = tx.Exec(query, pq.Array(actionsID))
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -490,6 +541,15 @@ func AssignPermission(ctx *Context, permission *uuid.UUID, serviceAccountIDs []*
 			return err
 		}
 	}
+	err = UpdateMultiplePoliciesForServiceAccount(ctx, serviceAccountIDs)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateMultiplePoliciesForServiceAccount
+func UpdateMultiplePoliciesForServiceAccount(ctx *Context, serviceAccountIDs []*uuid.UUID) error {
 	// Get in which SG is the tenant located
 	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
 
@@ -540,6 +600,38 @@ func GetAllThePermissionForServiceAccount(ctx *Context, serviceAccountID *uuid.U
 		return nil, err
 	}
 	return buildPermissionsForRows(ctx, rows)
+}
+
+// GetAllServiceAccountsForPermission returns a list of all service accounts using a permission
+func GetAllServiceAccountsForPermission(ctx *Context, permissionID *uuid.UUID) ([]*uuid.UUID, error) {
+	// check which service accounts already have this permission
+	queryUser := `
+		SELECT sap.service_account_id
+		FROM service_accounts_permissions sap
+		WHERE sap.permission_id = $1`
+
+	rows, err := ctx.TenantDB().Query(queryUser, permissionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var saWithPerm []*uuid.UUID
+	for rows.Next() {
+		var saID uuid.UUID
+		err := rows.Scan(&saID)
+		if err != nil {
+			return nil, err
+		}
+		saWithPerm = append(saWithPerm, &saID)
+	}
+
+	err = rows.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return saWithPerm, nil
 }
 
 // getValidSASlug generates a valid slug for a name for the service accounts table, if there's a collision it appends
@@ -621,19 +713,45 @@ func GetPermissionByID(ctx *Context, id string) (*Permission, error) {
 	return nil, errors.New("permission not found")
 }
 
-func DeletePermission(ctx *Context, permission *Permission) error {
+// UpdatePermissionDB updates Name, Description and Effect fields from the DB doing the query by ID
+func UpdatePermissionDB(ctx *Context, permission *Permission) error {
 	query := `
-			DELETE FROM 
-				permissions p
-			WHERE id = $1 AND slug = $2`
+			UPDATE
+				permissions
+			SET 
+				name=$2, description=$3, effect=$4
+			WHERE id=$1`
 	// create records
 	tx, err := ctx.TenantTx()
 	if err != nil {
 		return err
 	}
 	// Execute query
-	fmt.Println(permission.ID, permission.Slug)
-	_, err = tx.Exec(query, permission.ID, permission.Slug)
+	_, err = tx.Exec(query,
+		permission.ID,
+		permission.Name,
+		permission.Description,
+		permission.Effect.String(),
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func DeletePermissionDB(ctx *Context, permission *Permission) error {
+	query := `
+			DELETE FROM 
+				permissions p
+			WHERE id = $1`
+	// create records
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	// Execute query
+	_, err = tx.Exec(query, permission.ID)
 	if err != nil {
 		return err
 	}

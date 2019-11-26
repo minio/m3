@@ -169,13 +169,13 @@ func MapServiceAccountsToIDs(ctx *Context, serviceAccounts []string) (map[string
 		      sa.slug = ANY ($1)`
 
 	rows, err := ctx.TenantDB().Query(queryUser, pq.Array(serviceAccounts))
-	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
 	// build a list of ids
 	var dbIDs []*uuid.UUID
 	saToID := make(map[string]*uuid.UUID)
+	defer rows.Close()
 	for rows.Next() {
 		var pID uuid.UUID
 		var slug string
@@ -262,9 +262,6 @@ func UpdatePolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenant
 			Effect: minioPolicy.Effect("Allow"),
 		}
 		rSet := minioIAMPolicy.ResourceSet{}
-		//rSet.Add(minioIAMPolicy.Resource{
-		//	Pattern: "*",
-		//})
 		rSet.Add(minioIAMPolicy.NewResource("*", ""))
 		statement.Resources = rSet
 		aSet := minioIAMPolicy.ActionSet{}
