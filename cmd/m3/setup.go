@@ -30,6 +30,7 @@ var setupCmd = cli.Command{
 	Action: setupDefCmd,
 	Subcommands: []cli.Command{
 		setupDbCmd,
+		setupMigrateCmd,
 	},
 }
 

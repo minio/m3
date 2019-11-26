@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -345,6 +346,7 @@ func MigrateTenantDB(tenantName string) chan error {
 			ch <- err
 			return
 		}
+		log.Printf("Done migrating `%s`", tenantName)
 	}()
 	return ch
 }
@@ -775,4 +777,43 @@ func TenantShortNameAvailable(ctx *Context, tenantShortName string) (bool, error
 	}
 
 	return !exists, nil
+}
+
+// Wraps a Tenant result with a possible error
+type TenantResult struct {
+	Tenant *Tenant
+	Error  error
+}
+
+func GetStreamOfTenants(ctx *Context, maxChanSize int) chan TenantResult {
+	ch := make(chan TenantResult, maxChanSize)
+	go func() {
+		defer close(ch)
+		query :=
+			`SELECT 
+				t1.id, t1.name, t1.short_name
+			FROM 
+				tenants t1`
+
+		// no context? straight to db
+		rows, err := GetInstance().Db.Query(query)
+		if err != nil {
+			ch <- TenantResult{Error: err}
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			// Save the resulted query on the User struct
+			tenant := Tenant{}
+			err = rows.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName)
+			if err != nil {
+				ch <- TenantResult{Error: err}
+				return
+			}
+			ch <- TenantResult{Tenant: &tenant}
+		}
+
+	}()
+	return ch
 }

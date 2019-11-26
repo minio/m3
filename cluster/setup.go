@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
@@ -464,8 +466,10 @@ func RunMigrations() error {
 		return err
 	}
 	if err := m.Up(); err != nil {
-		log.Println("Error migrating up")
-		return err
+		if !strings.Contains(err.Error(), "no change") {
+			log.Println("Error migrating up:", err)
+			return err
+		}
 	}
 	return nil
 }
@@ -568,4 +572,47 @@ func SetupJwtSecrets(clientset *kubernetes.Clientset) <-chan struct{} {
 		}
 	}()
 	return doneCh
+}
+
+// SetupDBAction runs all the operations to setup the DB or migrate it
+func SetupMigrateAction() error {
+	log.Println("Starting migrations for all schemas")
+	// run the migrations for the main schema
+	if err := RunMigrations(); err != nil {
+		return err
+	}
+
+	ctx, err := NewEmptyContext()
+	if err != nil {
+		return err
+	}
+
+	// restrict how many tenants will be placed in the channel at any given time, this is to avoid massive
+	// concurrent processing
+	maxChannelSize := 10
+	if os.Getenv(maxTenantChannelSize) != "" {
+		mtcs, err := strconv.Atoi(os.Getenv(maxTenantChannelSize))
+		if err != nil {
+			log.Println("Invalid MAX_TENANT_CHANNEL_SIZE value:", err)
+		} else {
+			maxChannelSize = mtcs
+		}
+	}
+
+	// get a list of tenants and run the migrations for each tenant
+	tenantsCh := GetStreamOfTenants(ctx, maxChannelSize)
+	var migrationChs []chan error
+	for tenantResult := range tenantsCh {
+		if tenantResult.Error != nil {
+			return tenantResult.Error
+		}
+		ch := MigrateTenantDB(tenantResult.Tenant.ShortName)
+		migrationChs = append(migrationChs, ch)
+	}
+	// wait for all channels to complete
+	for _, ch := range migrationChs {
+		<-ch
+	}
+
+	return nil
 }

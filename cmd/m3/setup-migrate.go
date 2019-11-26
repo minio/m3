@@ -14,27 +14,33 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cluster
+package main
 
-type key int
+import (
+	"fmt"
 
-const (
-	Version = `0.1.0`
-	// Environment variables
-	minioAccessKey       = "MINIO_ACCESS_KEY"
-	minioSecretKey       = "MINIO_SECRET_KEY"
-	accessKey            = "ACCESS_KEY"
-	secretKey            = "SECRET_KEY"
-	maxTenantChannelSize = "MAX_TENANT_CHANNEL_SIZE"
-	// constants
-	TokenSignupEmail            = "signup-email"
-	TokenResetPasswordEmail     = "reset-password-email"
-	AdminTokenSetPassword       = "admin-set-password"
-	AdminIDKey              key = iota
-	UserIDKey               key = iota
-	TenantIDKey             key = iota
-	TenantShortNameKey      key = iota
-	SessionIDKey            key = iota
-	WhoAmIKey               key = iota
-	sessionValid                = "valid"
+	"github.com/minio/cli"
+	pb "github.com/minio/m3/api/stubs"
 )
+
+// Setups the cluster database
+var setupMigrateCmd = cli.Command{
+	Name:   "migrate",
+	Usage:  "runs DB migrations for all schemas",
+	Action: setupMigrate,
+}
+
+func setupMigrate(ctx *cli.Context) error {
+	cnxs, err := GetGRPCChannel()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer cnxs.Conn.Close()
+	_, err = cnxs.Client.SetupMigrate(cnxs.Context, &pb.AdminEmpty{})
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	return nil
+}
