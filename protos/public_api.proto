@@ -321,6 +321,7 @@ message ListServiceAccountsRequest {
     int32 offset = 2;
     // a query to filter ServiceAccounts with
     string query = 3;
+    int32 limit =4;
 }
 
 // Request a list of ServiceAccounts on the tenant account

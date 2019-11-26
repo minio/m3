@@ -119,7 +119,7 @@ func GetServiceAccountList(ctx *Context, offset int, limit int) ([]*ServiceAccou
 	// Get service accounts from tenants database and paginate
 	queryUser := `
 		SELECT 
-				sa.id, sa.name, sa.slug, sa.description, c.access_key
+				sa.id, sa.name, sa.slug, sa.description, sa.enabled, c.access_key
 		FROM 
 			service_accounts sa
 			LEFT JOIN credentials c ON sa.id = c.service_account_id
@@ -135,7 +135,7 @@ func GetServiceAccountList(ctx *Context, offset int, limit int) ([]*ServiceAccou
 	var sas []*ServiceAccount
 	for rows.Next() {
 		sa := ServiceAccount{}
-		err := rows.Scan(&sa.ID, &sa.Name, &sa.Slug, &sa.Description, &sa.AccessKey)
+		err := rows.Scan(&sa.ID, &sa.Name, &sa.Slug, &sa.Description, &sa.Enabled, &sa.AccessKey)
 		if err != nil {
 			return nil, err
 		}

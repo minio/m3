@@ -173,11 +173,6 @@ func (s *server) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*pb.Li
 	if err != nil {
 		return nil, status.New(codes.Internal, "Error getting Users").Err()
 	}
-	// Get total of users
-	total, err := cluster.GetTotalNumberOfUsers(appCtx)
-	if err != nil {
-		return nil, status.New(codes.Internal, "Error getting Users").Err()
-	}
 
 	var respUsers []*pb.User
 	for _, user := range users {
@@ -190,7 +185,7 @@ func (s *server) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*pb.Li
 		respUsers = append(respUsers, usr)
 
 	}
-	return &pb.ListUsersResponse{Users: respUsers, TotalUsers: int32(total)}, nil
+	return &pb.ListUsersResponse{Users: respUsers, TotalUsers: int32(len(respUsers))}, nil
 }
 
 // ChangePassword Gets the old password, validates it and sets new password to the user.
