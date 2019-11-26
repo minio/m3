@@ -188,7 +188,6 @@ func (s *server) UpdatePermission(ctx context.Context, in *pb.UpdatePermissionRe
 	if err != nil {
 		return nil, status.New(codes.Internal, "error updating permission").Err()
 	}
-
 	err = cluster.UpdateMultiplePoliciesForServiceAccount(appCtx, serviceAccountIDs)
 	if err != nil {
 		return nil, status.New(codes.Internal, "error updating permission").Err()
@@ -334,8 +333,6 @@ func (s *server) RemovePermission(ctx context.Context, in *pb.PermissionActionRe
 			appCtx.Rollback()
 			return
 		}
-		// if no error happened to this point commit transaction
-		err = appCtx.Commit()
 	}()
 
 	// get permission
@@ -349,6 +346,22 @@ func (s *server) RemovePermission(ctx context.Context, in *pb.PermissionActionRe
 	if err != nil {
 		return nil, status.New(codes.Internal, "failed deleting permission").Err()
 	}
+
+	// if we reach here, all is good, commit
+	if err := appCtx.Commit(); err != nil {
+		return nil, err
+	}
+
+	// UPDATE All Service Accounts that were using the deleted permission
+	serviceAccountIDs, err := cluster.GetAllServiceAccountsForPermission(appCtx, &permission.ID)
+	if err != nil {
+		return nil, status.New(codes.Internal, "error updating service accounts").Err()
+	}
+	err = cluster.UpdateMultiplePoliciesForServiceAccount(appCtx, serviceAccountIDs)
+	if err != nil {
+		return nil, status.New(codes.Internal, "error updating service accounts").Err()
+	}
+
 	return &pb.Empty{}, nil
 }
 
