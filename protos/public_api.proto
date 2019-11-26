@@ -321,14 +321,15 @@ message ListServiceAccountsRequest {
     int32 offset = 2;
     // a query to filter ServiceAccounts with
     string query = 3;
+    int32 limit =4;
 }
 
 // Request a list of ServiceAccounts on the tenant account
 message ListServiceAccountsResponse {
     // list of resulting ServiceAccounts
-    repeated ServiceAccount ServiceAccounts = 1;
+    repeated ServiceAccount service_accounts = 1;
     // number of ServiceAccounts on the tenant account
-    int32 total_ServiceAccounts = 2;
+    int32 total = 2;
 }
 
 message ServiceAccount {
