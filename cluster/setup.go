@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"k8s.io/client-go/informers"
@@ -586,8 +587,20 @@ func SetupMigrateAction() error {
 		return err
 	}
 
+	// restrict how many tenants will be placed in the channel at any given time, this is to avoid massive
+	// concurrent processing
+	maxChannelSize := 10
+	if os.Getenv(maxTenantChannelSize) != "" {
+		mtcs, err := strconv.Atoi(os.Getenv(maxTenantChannelSize))
+		if err != nil {
+			log.Println("Invalid MAX_TENANT_CHANNEL_SIZE value:", err)
+		} else {
+			maxChannelSize = mtcs
+		}
+	}
+
 	// get a list of tenants and run the migrations for each tenant
-	tenantsCh := GetStreamOfTenants(ctx)
+	tenantsCh := GetStreamOfTenants(ctx, maxChannelSize)
 	var migrationChs []chan error
 	for tenantResult := range tenantsCh {
 		if tenantResult.Error != nil {

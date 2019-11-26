@@ -785,8 +785,8 @@ type TenantResult struct {
 	Error  error
 }
 
-func GetStreamOfTenants(ctx *Context) chan TenantResult {
-	ch := make(chan TenantResult)
+func GetStreamOfTenants(ctx *Context, maxChanSize int) chan TenantResult {
+	ch := make(chan TenantResult, maxChanSize)
 	go func() {
 		defer close(ch)
 		query :=
@@ -801,6 +801,7 @@ func GetStreamOfTenants(ctx *Context) chan TenantResult {
 			ch <- TenantResult{Error: err}
 			return
 		}
+		defer rows.Close()
 
 		for rows.Next() {
 			// Save the resulted query on the User struct
