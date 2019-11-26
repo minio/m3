@@ -88,15 +88,15 @@ func tenantServiceAccountAdd(ctx *cli.Context) error {
 	appCtx := cluster.NewCtxWithTenant(&tenant)
 
 	// perform the action
-	sa, err := cluster.AddServiceAccount(appCtx, tenantShortName, name, desc)
+	_, saCred, err := cluster.AddServiceAccount(appCtx, tenantShortName, name, desc)
 	if err != nil {
 		fmt.Println("Error adding service-account:", err.Error())
 		return err
 	}
 
 	fmt.Printf("Service Account `%s` created.\n", name)
-	fmt.Printf("Access Key: %s\n", sa.AccessKey)
-	fmt.Printf("Secret Key: %s\n", sa.SecretKey)
+	fmt.Printf("Access Key: %s\n", saCred.AccessKey)
+	fmt.Printf("Secret Key: %s\n", saCred.SecretKey)
 	fmt.Println("Write these credentials down as this is the only time the secret will be shown.")
 
 	return nil

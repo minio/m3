@@ -35,6 +35,7 @@ type ServiceAccount struct {
 	Slug        string
 	Description *string
 	AccessKey   string
+	Enabled     bool
 }
 
 // getValidSASlug generates a valid slug for a name for the service accounts table, if there's a collision it appends
@@ -67,40 +68,46 @@ func getValidSASlug(ctx *Context, saName string) (*string, error) {
 // AddServiceAccount adds a new service accounts to the tenant's database.
 // It generates the credentials and store them kon k8s, the returns a complete struct with secret and access key.
 // This is the only time the secret is returned.
-func AddServiceAccount(ctx *Context, tenantShortName string, name string, description *string) (*ServiceAccountCredentials, error) {
+func AddServiceAccount(ctx *Context, tenantShortName string, name string, description *string) (serviceAccount *ServiceAccount, credentials *ServiceAccountCredentials, err error) {
 	// generate slug
 	saSlug, err := getValidSASlug(ctx, name)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
+	serviceAccount = &ServiceAccount{
+		ID:          uuid.NewV4(),
+		Slug:        *saSlug,
+		Description: description,
+		Enabled:     true,
+	}
+	fmt.Println(serviceAccount.ID.String(), serviceAccount.Slug, &serviceAccount.Description)
 	// Add parameters to query
-	serviceAccountID := uuid.NewV4()
 	query := `INSERT INTO
-				service_accounts ("id", "name", "slug", "description", "sys_created_by")
+				service_accounts ("id", "name", "slug", "description", "enabled", "sys_created_by")
 			  VALUES
-				($1, $2, $3, $4, $5)`
+				($1, $2, $3, $4, $5, $6)`
 	tx, err := ctx.TenantTx()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// Execute query
-	_, err = tx.Exec(query, serviceAccountID, name, saSlug, description, ctx.WhoAmI)
+	_, err = tx.Exec(query, serviceAccount.ID, serviceAccount.Name, serviceAccount.Slug, &serviceAccount.Description, serviceAccount.Enabled, ctx.WhoAmI)
 	if err != nil {
-		return nil, err
-	}
-	// Create this user's credentials so he can interact with it's own buckets/data
-	sa, err := createServiceAccountCredentials(ctx, tenantShortName, serviceAccountID)
-	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
+	// Create this user's credentials so he can interact with it's own buckets/data
+	saCred, err := createServiceAccountCredentials(ctx, tenantShortName, serviceAccount.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	serviceAccount.AccessKey = saCred.AccessKey
 	// if no error happened to this point commit transaction
 	err = ctx.Commit()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return sa, nil
+	return serviceAccount, saCred, nil
 }
 
 // GetServiceAccountList returns a page of services accounts for the provided tenant

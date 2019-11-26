@@ -105,21 +105,21 @@ service PublicAPI {
     rpc CreateServiceAccount (CreateServiceAccountRequest) returns (CreateServiceAccountResponse) {
     }
     // Disable a ServiceAccount
-    rpc DisableServiceAccount (ServiceAccountActionRequest) returns (ServiceAccountActionResponse) {
+    rpc DisableServiceAccount (ServiceAccountActionRequest) returns (ServiceAccount) {
     }
 
     // Enable a ServiceAccount
-    rpc EnableServiceAccount (ServiceAccountActionRequest) returns (ServiceAccountActionResponse) {
+    rpc EnableServiceAccount (ServiceAccountActionRequest) returns (ServiceAccount) {
     }
     // Remove a ServiceAccount
-    rpc RemoveServiceAccount (ServiceAccountActionRequest) returns (ServiceAccountActionResponse) {
+    rpc RemoveServiceAccount (ServiceAccountActionRequest) returns (Empty) {
     }
     // Get details of an individual ServiceAccount
     rpc InfoServiceAccount (ServiceAccountActionRequest) returns (ServiceAccount) {
     }
 
     // Assign multiple permissions to this service account
-    rpc AssignPermissionsToServiceAccount (AddPermissionsSARequest) returns (AddPermissionsSAResponse) {
+    rpc AssignPermissionsToServiceAccount (AddPermissionsSARequest) returns (Empty) {
     }
 
     // Permission
@@ -312,8 +312,7 @@ message UserActionRequest {
 }
 
 message UserActionResponse {
-    string error = 1;
-    string status = 2;
+    string status = 1;
 }
 
 // Request a list of ServiceAccounts on the tenant account
@@ -326,23 +325,18 @@ message ListServiceAccountsRequest {
 
 // Request a list of ServiceAccounts on the tenant account
 message ListServiceAccountsResponse {
-    // if any error, like user not allowed to list ServiceAccounts
-    string error = 1;
     // list of resulting ServiceAccounts
-    repeated ServiceAccount ServiceAccounts = 2;
+    repeated ServiceAccount ServiceAccounts = 1;
     // number of ServiceAccounts on the tenant account
-    int32 total_ServiceAccounts = 3;
+    int32 total_ServiceAccounts = 2;
 }
 
 message ServiceAccount {
+    string id = 1;
     // Identifier for the ServiceAccount
-    string access_key = 1;
+    string access_key = 2;
     // State of the ServiceAccount
-    enum Status {
-        ACTIVE = 0;
-        INACTIVE = 1;
-    }
-    Status status = 2;
+    bool enabled = 3;
 }
 
 message ServiceAccountActionRequest {
@@ -350,15 +344,15 @@ message ServiceAccountActionRequest {
 }
 
 message ServiceAccountActionResponse {
-    // If any error happened
-    string error = 1;
 }
 
 message CreateServiceAccountRequest {
-    string user_access_key = 1;
+    string name = 1;
+    repeated string permission_ids = 2;
 }
 message CreateServiceAccountResponse {
-    string access_key = 1;
+    ServiceAccount service_account = 1;
+    // secret_key will be shown only when creating a service account
     string secret_key = 2;
 }
 
@@ -428,11 +422,6 @@ message AddPermissionsSARequest {
     // list of permission id, an absence of a permission_id means it's not desired and should be removed
     // from the assigned list
     repeated string permission_id = 2;
-}
-
-message AddPermissionsSAResponse {
-    string error = 1;
-    string status = 2;
 }
 
 message MultiAddPermissionToSAsRequest {
