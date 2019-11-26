@@ -104,7 +104,7 @@ CREATE TABLE permissions_resources
             REFERENCES permissions
             ON DELETE CASCADE,
     bucket_name      VARCHAR(64)                            NOT NULL,
-    path             VARCHAR(512)                           NOT NULL,
+    pattern          VARCHAR(512)                           NOT NULL,
     sys_created_by   VARCHAR(256)                           NOT NULL,
     sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
 );
