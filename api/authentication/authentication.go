@@ -39,6 +39,7 @@ func AdminAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 		// temporarely allow these methods
 		// TODO: Remove this before release
 		info.FullMethod == "/m3.PrivateAPI/Setup" ||
+		info.FullMethod == "/m3.PrivateAPI/SetupMigrate" ||
 		info.FullMethod == "/m3.PrivateAPI/SetupDB" {
 		// log this call
 		log.Printf("%s", info.FullMethod)

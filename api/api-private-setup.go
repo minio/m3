@@ -36,9 +36,18 @@ func (ps *privateServer) Setup(ctx context.Context, in *pb.AdminEmpty) (*pb.Admi
 	return &pb.AdminEmpty{}, nil
 }
 
-// Setup performs the cluster setup operation
+// SetupDB installs the base schema
 func (ps *privateServer) SetupDB(ctx context.Context, in *pb.AdminEmpty) (*pb.AdminEmpty, error) {
 	err := cluster.SetupDBAction()
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	return &pb.AdminEmpty{}, nil
+}
+
+// SetupMigrate runs the databse migrations
+func (ps *privateServer) SetupMigrate(ctx context.Context, in *pb.AdminEmpty) (*pb.AdminEmpty, error) {
+	err := cluster.SetupMigrateAction()
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}

@@ -23,25 +23,21 @@ import (
 	pb "github.com/minio/m3/api/stubs"
 )
 
-// Setups the m3 cluster
-var setupCmd = cli.Command{
-	Name:   "setup",
-	Usage:  "Creates the m3 cluster",
-	Action: setupDefCmd,
-	Subcommands: []cli.Command{
-		setupDbCmd,
-		setupMigrateCmd,
-	},
+// Setups the cluster database
+var setupMigrateCmd = cli.Command{
+	Name:   "migrate",
+	Usage:  "runs DB migrations for all schemas",
+	Action: setupMigrate,
 }
 
-func setupDefCmd(ctx *cli.Context) error {
+func setupMigrate(ctx *cli.Context) error {
 	cnxs, err := GetGRPCChannel()
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 	defer cnxs.Conn.Close()
-	_, err = cnxs.Client.Setup(cnxs.Context, &pb.AdminEmpty{})
+	_, err = cnxs.Client.SetupMigrate(cnxs.Context, &pb.AdminEmpty{})
 	if err != nil {
 		fmt.Println(err)
 		return err
