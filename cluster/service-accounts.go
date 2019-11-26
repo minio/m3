@@ -103,8 +103,8 @@ func AddServiceAccount(ctx *Context, tenantShortName string, name string, descri
 	return sa, nil
 }
 
-// GetServiceAccountsForTenant returns a page of services accounts for the provided tenant
-func GetServiceAccountsForTenant(ctx *Context, offset int, limit int) ([]*ServiceAccount, error) {
+// GetServiceAccountList returns a page of services accounts for the provided tenant
+func GetServiceAccountList(ctx *Context, offset int, limit int) ([]*ServiceAccount, error) {
 	if offset < 0 || limit < 0 {
 		return nil, errors.New("invalid offset/limit")
 	}
@@ -117,7 +117,7 @@ func GetServiceAccountsForTenant(ctx *Context, offset int, limit int) ([]*Servic
 			service_accounts sa
 			LEFT JOIN credentials c ON sa.id = c.service_account_id
 		WHERE 
-		      sys_deleted = FALSE
+		      sa.sys_deleted IS NULL
 		OFFSET $1 
 		LIMIT $2`
 
@@ -144,9 +144,9 @@ func GetTotalNumberOfServiceAccounts(ctx *Context) (int, error) {
 		SELECT 
 			COUNT(*)
 		FROM 
-			service_accounts
+			service_accounts sa
 		WHERE 
-		    sys_deleted = FALSE`
+		    sa.sys_deleted IS NULL`
 
 	row := ctx.TenantDB().QueryRow(queryUser)
 	var count int
@@ -303,15 +303,13 @@ func UpdatePolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenant
 		// for debug
 		policyJSON, err := policy.MarshalJSON()
 		if err != nil {
-			fmt.Println(err)
-			ch <- err
+			ch <- tagErrorAsMinio(err)
 			return
 		}
 
 		//get SA access-key
 		sac, err := GetCredentialsForServiceAccount(ctx, serviceAccountID)
 		if err != nil {
-			fmt.Println(err)
 			ch <- err
 			return
 		}
@@ -357,4 +355,98 @@ func filterServiceAccountsWithPermission(ctx *Context, serviceAccounts []*uuid.U
 	}
 
 	return saWithPerm, nil
+}
+
+// AssignMultiplePermissionsAction takes a list of permissions and assigns them to a single service account
+func AssignMultiplePermissionsAction(ctx *Context, serviceAccount *uuid.UUID, permissions []*uuid.UUID) error {
+	alreadyHaveIt, err := filterPermissionsWithServiceAccount(ctx, permissions, serviceAccount)
+	if err != nil {
+		return err
+	}
+	haveItSet := make(map[uuid.UUID]bool)
+	for _, id := range alreadyHaveIt {
+		haveItSet[*id] = true
+	}
+	// skip the service accounts that already have this permission
+	var finalListPermissionIDs []*uuid.UUID
+	for _, permID := range permissions {
+		// if the permission is not set yet, save it
+		if _, ok := haveItSet[*permID]; !ok {
+			//do something here
+			finalListPermissionIDs = append(finalListPermissionIDs, permID)
+		}
+	}
+	// if there's no extra accounts, we are done
+	if len(finalListPermissionIDs) == 0 {
+		return nil
+	}
+
+	// Get in which SG is the tenant located
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
+
+	if sgt.Error != nil {
+		return sgt.Error
+	}
+
+	// Get the credentials for a tenant
+	tenantConf, err := GetTenantConfig(ctx.Tenant)
+	if err != nil {
+		return err
+	}
+
+	// assign all the permissions to the service account
+	singleSAList := []*uuid.UUID{serviceAccount}
+	for _, permID := range finalListPermissionIDs {
+		err := assignPermissionToMultipleSAsOnDB(ctx, permID, singleSAList)
+		if err != nil {
+			return err
+		}
+	}
+
+	// update the policy for the SA
+	err = <-UpdatePolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, serviceAccount)
+
+	return err
+}
+
+// Validates a service-account by it's id-name (slug)
+func ValidServiceAccount(ctx *Context, serviceAccount *string) (bool, error) {
+	// Get user from tenants database
+	queryUser := `SELECT EXISTS(
+					SELECT 
+						1
+					FROM 
+						service_accounts t1
+					WHERE slug=$1 LIMIT 1)`
+
+	row := ctx.TenantDB().QueryRow(queryUser, serviceAccount)
+	// Whether the serviceAccount id is valid
+	var exists bool
+	err := row.Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+// GetServiceAccountBySlug retrieves a permission by it's id-name
+func GetServiceAccountBySlug(ctx *Context, slug string) (*ServiceAccount, error) {
+	// Get user from tenants database
+	queryUser := `
+		SELECT 
+				sa.id, sa.name, sa.slug, sa.description, c.access_key
+		FROM 
+			service_accounts sa
+			LEFT JOIN credentials c ON sa.id = c.service_account_id
+			WHERE sa.slug=$1 LIMIT 1`
+
+	row := ctx.TenantDB().QueryRow(queryUser, slug)
+	sa := ServiceAccount{}
+	err := row.Scan(&sa.ID, &sa.Name, &sa.Slug, &sa.Description, &sa.AccessKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sa, nil
 }

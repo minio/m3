@@ -47,6 +47,8 @@ service PrivateAPI {
     // Tenant Service Accounts
     rpc TenantServiceAccountUpdatePolicy (TenantServiceAccountActionRequest) returns (TenantServiceAccountActionResponse) {
     }
+    rpc TenantServiceAccountAssign (TenantServiceAccountAssignRequest) returns (TenantServiceAccountAssignResponse) {
+    }
     // Tenant User Operations
     rpc TenantUserAdd (TenantUserAddRequest) returns (TenantUserAddResponse) {
     }
@@ -176,4 +178,12 @@ message TenantServiceAccountActionRequest {
     string service_account = 2;
 }
 message TenantServiceAccountActionResponse {
+}
+
+message TenantServiceAccountAssignRequest {
+    string tenant = 1;
+    string service_account = 2;
+    repeated string permissions = 3;
+}
+message TenantServiceAccountAssignResponse {
 }

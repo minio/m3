@@ -28,6 +28,7 @@ var tenantServiceAccountCmd = cli.Command{
 		tenantServiceAccountAddCmd,
 		tenantServiceAccountListCmd,
 		tenantServiceAccountUpdatePolicyCmd,
+		assignServiceAccountCmd,
 	},
 }
 

@@ -70,17 +70,20 @@ func (s *privateServer) TenantPermissionAdd(ctx context.Context, in *pb.TenantPe
 func (s *privateServer) TenantPermissionList(ctx context.Context, in *pb.TenantPermissionListRequest) (*pb.TenantPermissionListResponse, error) {
 	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	// validate Tenant
 	tenant, err := cluster.GetTenant(in.Tenant)
 	if err != nil {
+		log.Println(err)
 		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
 	}
 	appCtx.Tenant = &tenant
 	// perform actions
 	perms, err := cluster.ListPermissions(appCtx, in.Offset, in.Limit)
 	if err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	//transform the permissions to pb format
@@ -161,7 +164,7 @@ func (s *privateServer) TenantPermissionAssign(ctx context.Context, in *pb.Tenan
 	}
 
 	// perform actions
-	err = cluster.AssignPermission(appCtx, &perm.ID, saList)
+	err = cluster.AssignPermissionAction(appCtx, &perm.ID, saList)
 	if err != nil {
 		log.Println(err)
 		appCtx.Rollback()
