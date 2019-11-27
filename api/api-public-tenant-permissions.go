@@ -188,7 +188,7 @@ func (s *server) UpdatePermission(ctx context.Context, in *pb.UpdatePermissionRe
 	if err != nil {
 		return nil, status.New(codes.Internal, "error updating permission").Err()
 	}
-	err = cluster.UpdateMultiplePoliciesForServiceAccount(appCtx, serviceAccountIDs)
+	err = cluster.UpdatePoliciesForMultipleServiceAccount(appCtx, serviceAccountIDs)
 	if err != nil {
 		return nil, status.New(codes.Internal, "error updating permission").Err()
 	}
@@ -227,6 +227,7 @@ func updatePermissionResources(ctx *cluster.Context, permission *cluster.Permiss
 		}
 	}
 	// DELETE unwanted resources
+	// TODO: remove map since it is not necessary, instead do other array filling
 	var resourcesIDsToDelete []uuid.UUID
 	for _, bucketName := range resourcesToDelete {
 		resourceID, ok := mapResourceName[bucketName]
@@ -357,7 +358,7 @@ func (s *server) RemovePermission(ctx context.Context, in *pb.PermissionActionRe
 	if err != nil {
 		return nil, status.New(codes.Internal, "error updating service accounts").Err()
 	}
-	err = cluster.UpdateMultiplePoliciesForServiceAccount(appCtx, serviceAccountIDs)
+	err = cluster.UpdatePoliciesForMultipleServiceAccount(appCtx, serviceAccountIDs)
 	if err != nil {
 		return nil, status.New(codes.Internal, "error updating service accounts").Err()
 	}

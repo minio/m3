@@ -66,7 +66,7 @@ func (s *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, in
 	}
 
 	// perform actions
-	err = <-cluster.UpdatePolicyForServiceAccount(appCtx, sgt.StorageGroupTenant, tenantConf, saID)
+	err = <-cluster.UpdateMinioPolicyForServiceAccount(appCtx, sgt.StorageGroupTenant, tenantConf, saID)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
@@ -125,7 +125,7 @@ func (s *privateServer) TenantServiceAccountAssign(ctx context.Context, in *pb.T
 	}
 
 	// perform actions
-	err = cluster.AssignMultiplePermissionsAction(appCtx, &serviceAccount.ID, permList)
+	err = cluster.AssignMultiplePermissionsToSA(appCtx, &serviceAccount.ID, permList)
 	if err != nil {
 		log.Println(err)
 		appCtx.Rollback()
