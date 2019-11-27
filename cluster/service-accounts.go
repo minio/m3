@@ -507,17 +507,12 @@ func UpdateServiceAccountDB(ctx *Context, serviceAccount *ServiceAccount) error 
 }
 
 // UpdateServiceAccountFields update a service account by single fields (name, enabled) and all it's corresponding permissions assigned to it.
-func UpdateServiceAccountFields(ctx *Context, serviceAccountID *uuid.UUID, name string, enabled bool, permisionsIDs []string) (*ServiceAccount, error) {
-	serviceAccount, err := GetServiceAccountByID(ctx, serviceAccountID)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, errors.New("service account not found")
-	}
+func UpdateServiceAccountFields(ctx *Context, serviceAccount *ServiceAccount, name string, enabled bool, permisionsIDs []string) error {
 	// get all the permissions for the service account
 	perms, err := GetAllThePermissionForServiceAccount(ctx, &serviceAccount.ID)
 	if err != nil {
 		log.Println(err.Error())
-		return nil, errors.New("Internal error")
+		return errors.New("Internal error")
 	}
 
 	// Compare current Permissions with the desired ones
@@ -533,22 +528,22 @@ func UpdateServiceAccountFields(ctx *Context, serviceAccountID *uuid.UUID, name 
 	permsToCreateIDs, err := UUIDsFromStringArr(permissionsToCreate)
 	if err != nil {
 		log.Println(err.Error())
-		return nil, errors.New("invalid permission id")
+		return errors.New("invalid permission id")
 	}
 	err = AssignMultiplePermissionsToSADB(ctx, &serviceAccount.ID, permsToCreateIDs)
 	if err != nil {
 		log.Println(err.Error())
-		return nil, errors.New("Internal error")
+		return errors.New("Internal error")
 	}
 	permsToDeleteIDs, err := UUIDsFromStringArr(permissionsToDelete)
 	if err != nil {
 		log.Println(err.Error())
-		return nil, errors.New("invalid permission id")
+		return errors.New("invalid permission id")
 	}
 	err = DeleteMultiplePermissionsOnSADB(ctx, &serviceAccount.ID, permsToDeleteIDs)
 	if err != nil {
 		log.Println(err.Error())
-		return nil, errors.New("Internal error")
+		return errors.New("Internal error")
 	}
 
 	// Update single parameters
@@ -557,7 +552,62 @@ func UpdateServiceAccountFields(ctx *Context, serviceAccountID *uuid.UUID, name 
 	err = UpdateServiceAccountDB(ctx, serviceAccount)
 	if err != nil {
 		log.Println(err.Error())
-		return nil, errors.New("Internal error")
+		return errors.New("Internal error")
 	}
-	return serviceAccount, nil
+
+	return nil
+}
+
+// UpdateMinioServiceAccountPoliciesAndStatus Update Minio side User's Policies and Status
+func UpdateMinioServiceAccountPoliciesAndStatus(ctx *Context, serviceAccount *ServiceAccount, updateStatus bool) error {
+	// Update the policies for the SA on Minio
+	// Get in which SG is the tenant located
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
+	if sgt.Error != nil {
+		return sgt.Error
+	}
+	// Get the credentials for a tenant
+	tenantConf, err := GetTenantConfig(ctx.Tenant)
+	if err != nil {
+		return err
+	}
+	// update the policy for a single SA
+	err = <-UpdateMinioPolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, &serviceAccount.ID)
+	if err != nil {
+		return err
+	}
+
+	// Update MinIO User's status
+	if updateStatus {
+		err = SetMinioUserStatus(sgt.StorageGroupTenant, tenantConf, serviceAccount.AccessKey, serviceAccount.Enabled)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SetMinioServiceAccountStatus Updates service Account enabled status and Minio user related status
+func SetMinioServiceAccountStatus(ctx *Context, serviceAccount *ServiceAccount, enabled bool) error {
+	serviceAccount.Enabled = enabled
+	err := UpdateServiceAccountDB(ctx, serviceAccount)
+	if err != nil {
+		return err
+	}
+	// Get in which SG is the tenant located
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
+	if sgt.Error != nil {
+		return sgt.Error
+	}
+	// Get the credentials for a tenant
+	tenantConf, err := GetTenantConfig(ctx.Tenant)
+	if err != nil {
+		return err
+	}
+	// Update MinIO User's status
+	err = SetMinioUserStatus(sgt.StorageGroupTenant, tenantConf, serviceAccount.AccessKey, serviceAccount.Enabled)
+	if err != nil {
+		return err
+	}
+	return nil
 }
