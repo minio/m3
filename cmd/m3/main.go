@@ -58,6 +58,7 @@ var appCmds = []cli.Command{
 	setPasswordCmd,
 	devCmd,
 	portalCmd,
+	emailTemplateCmd,
 }
 
 func main() {

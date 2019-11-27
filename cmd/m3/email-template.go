@@ -21,16 +21,16 @@ import (
 )
 
 // commands to interact with cluster admins
-var adminCmd = cli.Command{
-	Name:    "admin",
-	Usage:   "admin commands",
-	Aliases: []string{"a"},
-	Action:  adminHelp,
+var emailTemplateCmd = cli.Command{
+	Name:    "email-template",
+	Aliases: []string{"et"},
+	Usage:   "Email templates commands",
+	Action:  emailTemplate,
 	Subcommands: []cli.Command{
-		adminAddCmd,
+		emailSetCmd,
 	},
 }
 
-func adminHelp(ctx *cli.Context) error {
+func emailTemplate(ctx *cli.Context) error {
 	return cli.ShowAppHelp(ctx)
 }
