@@ -246,7 +246,7 @@ func (s *server) EnableServiceAccount(ctx context.Context, in *pb.ServiceAccount
 		err = cluster.SetMinioServiceAccountStatus(appCtx, serviceAccount, true)
 		if err != nil {
 			log.Println(err.Error())
-			return nil, status.New(codes.NotFound, "Service Account Not Found").Err()
+			return nil, status.New(codes.Internal, "Error Updating Status").Err()
 		}
 	}
 
@@ -295,7 +295,7 @@ func (s *server) DisableServiceAccount(ctx context.Context, in *pb.ServiceAccoun
 		err = cluster.SetMinioServiceAccountStatus(appCtx, serviceAccount, false)
 		if err != nil {
 			log.Println(err.Error())
-			return nil, status.New(codes.NotFound, "Service Account Not Found").Err()
+			return nil, status.New(codes.Internal, "Error Updating Status").Err()
 		}
 	}
 	return &pb.ServiceAccount{
