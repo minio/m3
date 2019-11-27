@@ -119,6 +119,7 @@ func (s *server) ListServiceAccounts(ctx context.Context, in *pb.ListServiceAcco
 	}, nil
 }
 
+// UpdateServiceAccount update a service account by single fields (name, enabled) and all it's corresponding permissions assigned to it.
 func (s *server) UpdateServiceAccount(ctx context.Context, in *pb.UpdateServiceAccountRequest) (res *pb.InfoServiceAccountResponse, err error) {
 	idRequest := in.GetId()
 	nameRequest := in.GetName()
@@ -152,59 +153,11 @@ func (s *server) UpdateServiceAccount(ctx context.Context, in *pb.UpdateServiceA
 		log.Println(err.Error())
 		return nil, status.New(codes.InvalidArgument, "not valid id").Err()
 	}
-	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, id)
+	serviceAccount, err := cluster.UpdateServiceAccountFields(appCtx, &id, nameRequest, enabledRequest, permisionsIDs)
 	if err != nil {
 		log.Println(err.Error())
-		return nil, status.New(codes.NotFound, "service account not found").Err()
+		return nil, status.New(codes.Internal, "Error updating Service Account").Err()
 	}
-	// get all the permissions for the service account
-	perms, err := cluster.GetAllThePermissionForServiceAccount(appCtx, &serviceAccount.ID)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
-
-	// Compare current Permissions with the desired ones
-
-	var currentPerms []string
-	for _, perm := range perms {
-		currentPerms = append(currentPerms, perm.ID.String())
-	}
-	// TODO: parallelize
-	permissionsToCreate := differenceArrays(permisionsIDs, currentPerms)
-	permissionsToDelete := differenceArrays(currentPerms, permisionsIDs)
-
-	// Create new service_accounts_permissions
-	permsToCreateIDs, err := cluster.UUIDsFromStringArr(permissionsToCreate)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, status.New(codes.InvalidArgument, "invalid permission id").Err()
-	}
-	err = cluster.AssignMultiplePermissionsToSADB(appCtx, &serviceAccount.ID, permsToCreateIDs)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
-	permsToDeleteIDs, err := cluster.UUIDsFromStringArr(permissionsToDelete)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, status.New(codes.InvalidArgument, "invalid permission id").Err()
-	}
-	err = cluster.DeleteMultiplePermissionsOnSADB(appCtx, &serviceAccount.ID, permsToDeleteIDs)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
-
-	// Update single parameters
-	serviceAccount.Name = nameRequest
-	serviceAccount.Enabled = enabledRequest
-	err = cluster.UpdateServiceAccountDB(appCtx, serviceAccount)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
-
 	// if we reach here, all is good, commit
 	if err := appCtx.Commit(); err != nil {
 		return nil, err
@@ -253,7 +206,7 @@ func (s *server) InfoServiceAccount(ctx context.Context, in *pb.ServiceAccountAc
 		return nil, err
 	}
 	id, err := uuid.FromString(idRequest)
-	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, id)
+	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, &id)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, status.New(codes.Internal, "Internal error").Err()

@@ -139,3 +139,18 @@ func UUIDsFromStringArr(arr []string) (uuids []*uuid.UUID, err error) {
 	}
 	return uuids, nil
 }
+
+// DifferenceArrays returns the elements in `a` that aren't in `b`.
+func DifferenceArrays(a, b []string) []string {
+	mb := make(map[string]struct{}, len(b))
+	for _, x := range b {
+		mb[x] = struct{}{}
+	}
+	var diff []string
+	for _, x := range a {
+		if _, found := mb[x]; !found {
+			diff = append(diff, x)
+		}
+	}
+	return diff
+}

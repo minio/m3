@@ -19,6 +19,7 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/gosimple/slug"
 
@@ -459,7 +460,7 @@ func GetServiceAccountBySlug(ctx *Context, slug string) (*ServiceAccount, error)
 }
 
 // GetServiceAccountByID retrieves a permission by it's id
-func GetServiceAccountByID(ctx *Context, id uuid.UUID) (*ServiceAccount, error) {
+func GetServiceAccountByID(ctx *Context, id *uuid.UUID) (*ServiceAccount, error) {
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
@@ -503,4 +504,60 @@ func UpdateServiceAccountDB(ctx *Context, serviceAccount *ServiceAccount) error 
 	}
 	return nil
 
+}
+
+// UpdateServiceAccountFields update a service account by single fields (name, enabled) and all it's corresponding permissions assigned to it.
+func UpdateServiceAccountFields(ctx *Context, serviceAccountID *uuid.UUID, name string, enabled bool, permisionsIDs []string) (*ServiceAccount, error) {
+	serviceAccount, err := GetServiceAccountByID(ctx, serviceAccountID)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("service account not found")
+	}
+	// get all the permissions for the service account
+	perms, err := GetAllThePermissionForServiceAccount(ctx, &serviceAccount.ID)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("Internal error")
+	}
+
+	// Compare current Permissions with the desired ones
+	var currentPerms []string
+	for _, perm := range perms {
+		currentPerms = append(currentPerms, perm.ID.String())
+	}
+	// TODO: parallelize
+	permissionsToCreate := DifferenceArrays(permisionsIDs, currentPerms)
+	permissionsToDelete := DifferenceArrays(currentPerms, permisionsIDs)
+
+	// Create new service_accounts_permissions
+	permsToCreateIDs, err := UUIDsFromStringArr(permissionsToCreate)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("invalid permission id")
+	}
+	err = AssignMultiplePermissionsToSADB(ctx, &serviceAccount.ID, permsToCreateIDs)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("Internal error")
+	}
+	permsToDeleteIDs, err := UUIDsFromStringArr(permissionsToDelete)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("invalid permission id")
+	}
+	err = DeleteMultiplePermissionsOnSADB(ctx, &serviceAccount.ID, permsToDeleteIDs)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("Internal error")
+	}
+
+	// Update single parameters
+	serviceAccount.Name = name
+	serviceAccount.Enabled = enabled
+	err = UpdateServiceAccountDB(ctx, serviceAccount)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("Internal error")
+	}
+	return serviceAccount, nil
 }

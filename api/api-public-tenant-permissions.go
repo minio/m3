@@ -212,8 +212,8 @@ func updatePermissionResources(ctx *cluster.Context, permission *cluster.Permiss
 		mapResourceName[perm.BucketName] = perm.ID
 	}
 	// TODO: parallelize
-	resourcesToCreate := differenceArrays(resourcesToUpdate, currentResourceBucketNames)
-	resourcesToDelete := differenceArrays(currentResourceBucketNames, resourcesToUpdate)
+	resourcesToCreate := cluster.DifferenceArrays(resourcesToUpdate, currentResourceBucketNames)
+	resourcesToDelete := cluster.DifferenceArrays(currentResourceBucketNames, resourcesToUpdate)
 
 	// CREATE New Resources
 	// create a Temporal permission to Create the new Permission resources
@@ -253,8 +253,8 @@ func updatePermissionActions(ctx *cluster.Context, permission *cluster.Permissio
 		mapActionTypes[string(perm.ActionType)] = perm.ID
 	}
 	// TODO: parallelize
-	actionsToCreate := differenceArrays(actionsToUpdate, currentActionTypes)
-	actionsToDelete := differenceArrays(currentActionTypes, actionsToUpdate)
+	actionsToCreate := cluster.DifferenceArrays(actionsToUpdate, currentActionTypes)
+	actionsToDelete := cluster.DifferenceArrays(currentActionTypes, actionsToUpdate)
 	// CREATE New Actions
 	tempPermission := &cluster.Permission{ID: permission.ID}
 	if err := cluster.AppendPermissionActionObj(tempPermission, actionsToCreate); err != nil {
@@ -281,21 +281,6 @@ func updatePermissionActions(ctx *cluster.Context, permission *cluster.Permissio
 		return errors.New("error deleting permission actions")
 	}
 	return nil
-}
-
-// differenceArrays returns the elements in `a` that aren't in `b`.
-func differenceArrays(a, b []string) []string {
-	mb := make(map[string]struct{}, len(b))
-	for _, x := range b {
-		mb[x] = struct{}{}
-	}
-	var diff []string
-	for _, x := range a {
-		if _, found := mb[x]; !found {
-			diff = append(diff, x)
-		}
-	}
-	return diff
 }
 
 // InfoPermission gives the details of an specific permission
