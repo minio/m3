@@ -133,7 +133,7 @@ func UUIDsFromStringArr(arr []string) (uuids []*uuid.UUID, err error) {
 	for _, elem := range arr {
 		elemID, err := uuid.FromString(elem)
 		if err != nil {
-			return nil, fmt.Errorf("invalid id: %", elem)
+			return nil, fmt.Errorf("invalid id: %s", elem)
 		}
 		uuids = append(uuids, &elemID)
 	}
