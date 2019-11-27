@@ -27,6 +27,7 @@ import (
 	"net/mail"
 	"net/smtp"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -129,6 +130,11 @@ func SendMail(toName, toEmail, subject, body string) error {
 
 // GetTemplate gets a template from the templates folder and applies the template date
 func GetTemplate(templateName string, data interface{}) (*string, error) {
+	// validate that the template is only alpha numerical stuff
+	var re = regexp.MustCompile(`^[a-z0-9-]{2,}$`)
+	if !re.MatchString(templateName) {
+		return nil, errors.New("invalid template name")
+	}
 	// try to load the template from the db
 	dbTemplate, err := getTemplateFromDB(nil, templateName)
 	if err != nil {
@@ -171,7 +177,7 @@ func getTemplateFromDB(ctx *Context, templateName string) (*string, error) {
 				et.template
 			FROM 
 				email_templates et
-			WHERE et.id=$1`
+			WHERE et.name=$1`
 	// non-transactional query
 	var row *sql.Row
 	// did we got a context? query inside of it
@@ -198,11 +204,16 @@ func getTemplateFromDB(ctx *Context, templateName string) (*string, error) {
 // SetEmailTemplate upserts a template into the database. If the id is not present the record will be inserted, if it's
 // present it will be updated
 func SetEmailTemplate(ctx *Context, templateID, templateBody string) error {
+	// validate that the template is only alpha numerical stuff
+	var re = regexp.MustCompile(`^[a-z0-9-]{2,}$`)
+	if !re.MatchString(templateID) {
+		return errors.New("invalid template name")
+	}
 	// Insert or Update template
 	query := `INSERT INTO 
-					email_templates (id, template) 
+					email_templates (name, template) 
 				VALUES ($1, $2) 
-				ON CONFLICT (id) DO 
+				ON CONFLICT (name) DO 
 			    UPDATE SET template=$2`
 	tx, err := ctx.MainTx()
 	if err != nil {

@@ -16,7 +16,7 @@
 
 CREATE TABLE email_templates
 (
-    id       VARCHAR(256) NOT NULL
+    name       VARCHAR(256) NOT NULL
         CONSTRAINT email_templates_pk
             PRIMARY KEY,
     template TEXT         NOT NULL
@@ -24,6 +24,6 @@ CREATE TABLE email_templates
 
 COMMENT ON TABLE email_templates IS 'Table to store the email templates';
 
-COMMENT ON COLUMN email_templates.id IS 'Identifies the template by it''s key name, for example `signup` will have the template for the signup email';
+COMMENT ON COLUMN email_templates.name IS 'Identifies the template by it''s key name, for example `signup` will have the template for the signup email';
 
 
