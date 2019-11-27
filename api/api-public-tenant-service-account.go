@@ -140,6 +140,7 @@ func (s *server) UpdateServiceAccount(ctx context.Context, in *pb.UpdateServiceA
 		return nil, err
 	}
 
+	// if errors are returned, rollback all transactions
 	defer func() {
 		if err != nil {
 			appCtx.Rollback()
@@ -153,7 +154,19 @@ func (s *server) UpdateServiceAccount(ctx context.Context, in *pb.UpdateServiceA
 		log.Println(err.Error())
 		return nil, status.New(codes.InvalidArgument, "not valid id").Err()
 	}
-	serviceAccount, err := cluster.UpdateServiceAccountFields(appCtx, &id, nameRequest, enabledRequest, permisionsIDs)
+	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, &id)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.NotFound, "Service Account Not Found").Err()
+	}
+
+	// Only update minio user status if the enabled status changed on the update
+	updateMinioUser := false
+	if serviceAccount.Enabled != enabledRequest {
+		updateMinioUser = true
+	}
+
+	err = cluster.UpdateServiceAccountFields(appCtx, serviceAccount, nameRequest, enabledRequest, permisionsIDs)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, status.New(codes.Internal, "Error updating Service Account").Err()
@@ -176,8 +189,9 @@ func (s *server) UpdateServiceAccount(ctx context.Context, in *pb.UpdateServiceA
 		pbPerm := buildPermissionPBFromPermission(perm)
 		pbPerms = append(pbPerms, pbPerm)
 	}
-	// update the policies for the SA on Minio
-	err = cluster.UpdatePoliciesForSingleServiceAccount(appCtx, &serviceAccount.ID)
+
+	// Update Minio side User's Policies and Status
+	err = cluster.UpdateMinioServiceAccountPoliciesAndStatus(appCtx, serviceAccount, updateMinioUser)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, status.New(codes.Internal, "Internal error").Err()
@@ -195,6 +209,103 @@ func (s *server) UpdateServiceAccount(ctx context.Context, in *pb.UpdateServiceA
 	}, nil
 }
 
+func (s *server) EnableServiceAccount(ctx context.Context, in *pb.ServiceAccountActionRequest) (res *pb.ServiceAccount, err error) {
+	idRequest := in.GetId()
+	if idRequest == "" {
+		return nil, status.New(codes.InvalidArgument, "an id is needed").Err()
+	}
+	id, err := uuid.FromString(idRequest)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.Internal, "id not valid").Err()
+	}
+
+	// start app context
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// if errors are returned, rollback all transactions
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+		err = appCtx.Commit()
+	}()
+
+	// Fetch the service account
+	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, &id)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.NotFound, "Service Account Not Found").Err()
+	}
+	// Only update minio user status if the enabled status changed on the update
+	updateMinioUser := !serviceAccount.Enabled
+	if updateMinioUser {
+		err = cluster.SetMinioServiceAccountStatus(appCtx, serviceAccount, true)
+		if err != nil {
+			log.Println(err.Error())
+			return nil, status.New(codes.Internal, "Error Updating Status").Err()
+		}
+	}
+
+	return &pb.ServiceAccount{
+		Id:        serviceAccount.ID.String(),
+		Name:      serviceAccount.Name,
+		AccessKey: serviceAccount.AccessKey,
+		Enabled:   serviceAccount.Enabled,
+	}, nil
+}
+
+func (s *server) DisableServiceAccount(ctx context.Context, in *pb.ServiceAccountActionRequest) (res *pb.ServiceAccount, err error) {
+	idRequest := in.GetId()
+	if idRequest == "" {
+		return nil, status.New(codes.InvalidArgument, "an id is needed").Err()
+	}
+	id, err := uuid.FromString(idRequest)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.Internal, "id not valid").Err()
+	}
+
+	// start app context
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// if errors are returned, rollback all transactions
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+		err = appCtx.Commit()
+	}()
+
+	// Fetch the service account
+	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, &id)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.NotFound, "Service Account Not Found").Err()
+	}
+	// Only update minio user status if the enabled status changed on the update
+	updateMinioUser := serviceAccount.Enabled
+	if updateMinioUser {
+		err = cluster.SetMinioServiceAccountStatus(appCtx, serviceAccount, false)
+		if err != nil {
+			log.Println(err.Error())
+			return nil, status.New(codes.Internal, "Error Updating Status").Err()
+		}
+	}
+	return &pb.ServiceAccount{
+		Id:        serviceAccount.ID.String(),
+		Name:      serviceAccount.Name,
+		AccessKey: serviceAccount.AccessKey,
+		Enabled:   serviceAccount.Enabled,
+	}, nil
+}
+
 func (s *server) InfoServiceAccount(ctx context.Context, in *pb.ServiceAccountActionRequest) (res *pb.InfoServiceAccountResponse, err error) {
 	idRequest := in.GetId()
 	if idRequest == "" {
@@ -206,6 +317,10 @@ func (s *server) InfoServiceAccount(ctx context.Context, in *pb.ServiceAccountAc
 		return nil, err
 	}
 	id, err := uuid.FromString(idRequest)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.Internal, "id not valid").Err()
+	}
 	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, &id)
 	if err != nil {
 		log.Println(err.Error())

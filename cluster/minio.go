@@ -18,6 +18,8 @@ package cluster
 
 import (
 	"fmt"
+
+	"github.com/minio/minio/pkg/madmin"
 )
 
 func addMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, accessKey string, secretKey string) error {
@@ -57,13 +59,34 @@ func addMinioIAMPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfigur
 		return pErr.Cause
 	}
 	// Add the canned policy
-	//err := adminClient.SetPolicy(policy, accessKey, false)
 	err := adminClient.AddCannedPolicy(policyName, policy)
 	if err != nil {
 		return tagErrorAsMinio(err)
 	}
 	// Add the canned policy
 	err = adminClient.SetPolicy(policyName, userAccessKey, false)
+	if err != nil {
+		return tagErrorAsMinio(err)
+	}
+	return nil
+}
+
+// SetMinioUserStatus sets the status for a MinIO user
+func SetMinioUserStatus(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, userAccessKey string, enabled bool) error {
+	// get an admin with operator keys
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	if pErr != nil {
+		return pErr.Cause
+	}
+	var status madmin.AccountStatus
+	switch enabled {
+	case true:
+		status = madmin.AccountEnabled
+	case false:
+		status = madmin.AccountDisabled
+	}
+	// Set Minio User's status
+	err := adminClient.SetUserStatus(userAccessKey, status)
 	if err != nil {
 		return tagErrorAsMinio(err)
 	}

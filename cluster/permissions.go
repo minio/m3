@@ -572,32 +572,6 @@ func UpdatePoliciesForMultipleServiceAccount(ctx *Context, serviceAccountIDs []*
 	return nil
 }
 
-// UpdatePoliciesForSingleServiceAccount updates all policies assigned to a single service Account
-func UpdatePoliciesForSingleServiceAccount(ctx *Context, serviceAccountID *uuid.UUID) error {
-
-	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
-
-	if sgt.Error != nil {
-		return sgt.Error
-	}
-
-	// Get the credentials for a tenant
-	tenantConf, err := GetTenantConfig(ctx.Tenant)
-	if err != nil {
-		return err
-	}
-
-	// update the policy for a single SA
-	ch := UpdateMinioPolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, serviceAccountID)
-	err = <-ch
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // assignPermissionToMultipleSAsOnDB assigns a single permission to multiple service accounts
 func assignPermissionToMultipleSAsOnDB(ctx *Context, permission *uuid.UUID, serviceAccountIDs []*uuid.UUID) error {
 
