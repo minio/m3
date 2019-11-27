@@ -19,6 +19,7 @@ package cluster
 import (
 	"bytes"
 	"crypto/tls"
+	"database/sql"
 	"errors"
 	"fmt"
 	"html/template"
@@ -26,6 +27,8 @@ import (
 	"net/mail"
 	"net/smtp"
 	"os"
+	"regexp"
+	"strings"
 )
 
 // SendMail sends an email to `toName <toEmail>` with the provided subject and body.
@@ -126,20 +129,100 @@ func SendMail(toName, toEmail, subject, body string) error {
 }
 
 // GetTemplate gets a template from the templates folder and applies the template date
-func GetTemplate(templateFileName string, data interface{}) (*string, error) {
-	// Working Directory
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
+func GetTemplate(templateName string, data interface{}) (*string, error) {
+	// validate that the template is only alpha numerical stuff
+	var re = regexp.MustCompile(`^[a-z0-9-]{2,}$`)
+	if !re.MatchString(templateName) {
+		return nil, errors.New("invalid template name")
 	}
-	t, err := template.ParseFiles(wd + fmt.Sprintf("/cluster/templates/%s.html", templateFileName))
+	// try to load the template from the db
+	dbTemplate, err := getTemplateFromDB(nil, templateName)
 	if err != nil {
-		return nil, err
+		// ignore no results error
+		if !strings.Contains(err.Error(), "no rows in result set") {
+			return nil, err
+		}
 	}
+	var t *template.Template
+	if dbTemplate != nil && *dbTemplate != "" {
+		// parse the template from the DB
+		t, err = template.New(templateName).Parse(*dbTemplate)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// if we found no template, load from disk
+		// Working Directory
+		wd, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+		t, err = template.ParseFiles(wd + fmt.Sprintf("/cluster/templates/%s.html", templateName))
+		if err != nil {
+			return nil, err
+		}
+	}
+	// replace the {{.Tokens}} from the template with the provided struct data
 	buf := new(bytes.Buffer)
 	if err = t.Execute(buf, data); err != nil {
 		return nil, err
 	}
 	body := buf.String()
 	return &body, nil
+}
+
+func getTemplateFromDB(ctx *Context, templateName string) (*string, error) {
+	query :=
+		`SELECT 
+				et.template
+			FROM 
+				email_templates et
+			WHERE et.name=$1`
+	// non-transactional query
+	var row *sql.Row
+	// did we got a context? query inside of it
+	if ctx != nil {
+		tx, err := ctx.MainTx()
+		if err != nil {
+			return nil, err
+		}
+		row = tx.QueryRow(query, templateName)
+	} else {
+		// no context? straight to db
+		row = GetInstance().Db.QueryRow(query, templateName)
+	}
+
+	// Save the resulted query on the User struct
+	var template string
+	err := row.Scan(&template)
+	if err != nil {
+		return nil, err
+	}
+	return &template, nil
+}
+
+// SetEmailTemplate upserts a template into the database. If the id is not present the record will be inserted, if it's
+// present it will be updated
+func SetEmailTemplate(ctx *Context, templateName, templateBody string) error {
+	// validate that the template is only alpha numerical stuff
+	var re = regexp.MustCompile(`^[a-z0-9-]{2,}$`)
+	if !re.MatchString(templateName) {
+		return errors.New("invalid template name")
+	}
+	// Insert or Update template
+	query := `INSERT INTO 
+					email_templates (name, template) 
+				VALUES ($1, $2) 
+				ON CONFLICT (name) DO 
+			    UPDATE SET template=$2`
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return err
+	}
+	// Execute query
+	_, err = tx.Exec(query, templateName, templateBody)
+	if err != nil {
+		return err
+	}
+	return nil
 }

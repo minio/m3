@@ -14,23 +14,27 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package main
+package api
 
 import (
-	"github.com/minio/cli"
+	"context"
+
+	pb "github.com/minio/m3/api/stubs"
+	"github.com/minio/m3/cluster"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-// commands to interact with cluster admins
-var adminCmd = cli.Command{
-	Name:    "admin",
-	Usage:   "admin commands",
-	Aliases: []string{"a"},
-	Action:  adminHelp,
-	Subcommands: []cli.Command{
-		adminAddCmd,
-	},
-}
-
-func adminHelp(ctx *cli.Context) error {
-	return cli.ShowAppHelp(ctx)
+// SetEmail sets an email temaplte
+func (ps *privateServer) SetEmailTemplate(ctx context.Context, in *pb.SetEmailTemplateRequest) (*pb.SetEmailTemplateResponse, error) {
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	if err = cluster.SetEmailTemplate(appCtx, in.Name, in.Template); err != nil {
+		appCtx.Rollback()
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	appCtx.Commit()
+	return &pb.SetEmailTemplateResponse{}, nil
 }

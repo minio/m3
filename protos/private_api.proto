@@ -69,6 +69,9 @@ service PrivateAPI {
     // Cluster Operations
     rpc ClusterScSgAdd (StorageGroupAddRequest) returns (StorageGroupAddResponse) {
     }
+    // Sets Email Template
+    rpc SetEmailTemplate (SetEmailTemplateRequest) returns (SetEmailTemplateResponse) {
+    }
 }
 
 message AdminEmpty {
@@ -188,4 +191,11 @@ message TenantServiceAccountAssignRequest {
     repeated string permissions = 3;
 }
 message TenantServiceAccountAssignResponse {
+}
+
+message SetEmailTemplateRequest {
+    string name = 1;
+    string template = 2;
+}
+message SetEmailTemplateResponse {
 }
