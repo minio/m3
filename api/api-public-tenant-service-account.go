@@ -18,7 +18,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	pb "github.com/minio/m3/api/stubs"
@@ -155,14 +154,12 @@ func (s *server) UpdateServiceAccount(ctx context.Context, in *pb.UpdateServiceA
 	}
 	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, id)
 	if err != nil {
-		fmt.Println(err.Error())
 		log.Println(err.Error())
 		return nil, status.New(codes.NotFound, "service account not found").Err()
 	}
 	// get all the permissions for the service account
 	perms, err := cluster.GetAllThePermissionForServiceAccount(appCtx, &serviceAccount.ID)
 	if err != nil {
-		fmt.Println(err.Error())
 		log.Println(err.Error())
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
@@ -173,7 +170,6 @@ func (s *server) UpdateServiceAccount(ctx context.Context, in *pb.UpdateServiceA
 	for _, perm := range perms {
 		currentPerms = append(currentPerms, perm.ID.String())
 	}
-	fmt.Println("currentPerms: ", currentPerms)
 	// TODO: parallelize
 	permissionsToCreate := differenceArrays(permisionsIDs, currentPerms)
 	permissionsToDelete := differenceArrays(currentPerms, permisionsIDs)
@@ -184,7 +180,6 @@ func (s *server) UpdateServiceAccount(ctx context.Context, in *pb.UpdateServiceA
 		log.Println(err.Error())
 		return nil, status.New(codes.InvalidArgument, "invalid permission id").Err()
 	}
-	fmt.Println("tocreate: ", permsToCreateIDs)
 	err = cluster.AssignMultiplePermissionsToSADB(appCtx, &serviceAccount.ID, permsToCreateIDs)
 	if err != nil {
 		log.Println(err.Error())
@@ -195,7 +190,6 @@ func (s *server) UpdateServiceAccount(ctx context.Context, in *pb.UpdateServiceA
 		log.Println(err.Error())
 		return nil, status.New(codes.InvalidArgument, "invalid permission id").Err()
 	}
-	fmt.Println("todelete: ", permsToDeleteIDs)
 	err = cluster.DeleteMultiplePermissionsOnSADB(appCtx, &serviceAccount.ID, permsToDeleteIDs)
 	if err != nil {
 		log.Println(err.Error())
