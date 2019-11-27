@@ -93,6 +93,21 @@ func SetMinioUserStatus(sgt *StorageGroupTenant, tenantConf *TenantConfiguration
 	return nil
 }
 
+// RemoveMinioUser sets the status for a MinIO user
+func RemoveMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, userAccessKey string) error {
+	// get an admin with operator keys
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	if pErr != nil {
+		return pErr.Cause
+	}
+	// Remove MinIO's user
+	err := adminClient.RemoveUser(userAccessKey)
+	if err != nil {
+		return tagErrorAsMinio(err)
+	}
+	return nil
+}
+
 // tagErrorAsMinio takes an error and tags it as a MinIO error
 func tagErrorAsMinio(err error) error {
 	return fmt.Errorf("MinIO: %s", err.Error())

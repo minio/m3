@@ -306,6 +306,52 @@ func (s *server) DisableServiceAccount(ctx context.Context, in *pb.ServiceAccoun
 	}, nil
 }
 
+func (s *server) RemoveServiceAccount(ctx context.Context, in *pb.ServiceAccountActionRequest) (res *pb.Empty, err error) {
+	idRequest := in.GetId()
+	if idRequest == "" {
+		return nil, status.New(codes.InvalidArgument, "an id is needed").Err()
+	}
+	// start app context
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// if errors are returned, rollback all transactions
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+		err = appCtx.Commit()
+	}()
+
+	id, err := uuid.FromString(idRequest)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.Internal, "id not valid").Err()
+	}
+	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, &id)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.NotFound, "Serrvice Account Not Found").Err()
+	}
+
+	err = cluster.DeleteServiceAccountDB(appCtx, serviceAccount)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.Internal, "Error deleting Service Account").Err()
+	}
+
+	err = cluster.RemoveMinioServiceAccount(appCtx, serviceAccount)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.Internal, "Error deleting Service Account").Err()
+	}
+
+	return &pb.Empty{}, nil
+}
+
 func (s *server) InfoServiceAccount(ctx context.Context, in *pb.ServiceAccountActionRequest) (res *pb.InfoServiceAccountResponse, err error) {
 	idRequest := in.GetId()
 	if idRequest == "" {
@@ -324,7 +370,7 @@ func (s *server) InfoServiceAccount(ctx context.Context, in *pb.ServiceAccountAc
 	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, &id)
 	if err != nil {
 		log.Println(err.Error())
-		return nil, status.New(codes.Internal, "Internal error").Err()
+		return nil, status.New(codes.NotFound, "Service Account Not Found").Err()
 	}
 	// get all the permissions for the service account
 	perms, err := cluster.GetAllThePermissionForServiceAccount(appCtx, &serviceAccount.ID)

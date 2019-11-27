@@ -611,3 +611,46 @@ func SetMinioServiceAccountStatus(ctx *Context, serviceAccount *ServiceAccount, 
 	}
 	return nil
 }
+
+// DeleteServiceAccountDB deletes a service account from the database and cascades it's dependencies
+func DeleteServiceAccountDB(ctx *Context, serviceAccount *ServiceAccount) error {
+	query := `
+			DELETE FROM 
+				service_accounts s
+			WHERE id = $1`
+	// create records
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	// Execute query
+	_, err = tx.Exec(query, serviceAccount.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// RemoveMinioServiceAccount deletes a serviceAccount related to a particular tenant
+func RemoveMinioServiceAccount(ctx *Context, serviceAccount *ServiceAccount) error {
+	err := UpdateServiceAccountDB(ctx, serviceAccount)
+	if err != nil {
+		return err
+	}
+	// Get in which SG is the tenant located
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
+	if sgt.Error != nil {
+		return sgt.Error
+	}
+	// Get the credentials for a tenant
+	tenantConf, err := GetTenantConfig(ctx.Tenant)
+	if err != nil {
+		return err
+	}
+	// Delete MinIO's user
+	err = RemoveMinioUser(sgt.StorageGroupTenant, tenantConf, serviceAccount.AccessKey)
+	if err != nil {
+		return err
+	}
+	return nil
+}
