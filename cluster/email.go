@@ -203,13 +203,13 @@ func SetEmailTemplate(ctx *Context, templateName, templateBody string) error {
 					email_templates (id, template) 
 				VALUES ($1, $2) 
 				ON CONFLICT (id) DO 
-			    UPDATE SET template=$3`
+			    UPDATE SET template=$2`
 	tx, err := ctx.MainTx()
 	if err != nil {
 		return err
 	}
 	// Execute query
-	_, err = tx.Exec(query, templateName, templateBody, templateBody)
+	_, err = tx.Exec(query, templateName, templateBody)
 	if err != nil {
 		return err
 	}
