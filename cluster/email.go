@@ -197,7 +197,7 @@ func getTemplateFromDB(ctx *Context, templateName string) (*string, error) {
 
 // SetEmailTemplate upserts a template into the database. If the id is not present the record will be inserted, if it's
 // present it will be updated
-func SetEmailTemplate(ctx *Context, templateName, templateBody string) error {
+func SetEmailTemplate(ctx *Context, templateID, templateBody string) error {
 	// Insert or Update template
 	query := `INSERT INTO 
 					email_templates (id, template) 
