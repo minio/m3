@@ -30,9 +30,9 @@ var emailSetCmd = cli.Command{
 	Action: emailTemplateSet,
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:  "id",
+			Name:  "name",
 			Value: "",
-			Usage: "template id",
+			Usage: "template name",
 		},
 		cli.StringFlag{
 			Name:  "template",
@@ -43,17 +43,17 @@ var emailSetCmd = cli.Command{
 }
 
 func emailTemplateSet(ctx *cli.Context) error {
-	id := ctx.String("id")
+	name := ctx.String("name")
 	templateBody := ctx.String("template")
-	if id == "" && ctx.Args().Get(0) != "" {
-		id = ctx.Args().Get(0)
+	if name == "" && ctx.Args().Get(0) != "" {
+		name = ctx.Args().Get(0)
 	}
 	if templateBody == "" && ctx.Args().Get(1) != "" {
 		templateBody = ctx.Args().Get(1)
 	}
 
-	if id == "" {
-		fmt.Println("A template ID is needed")
+	if name == "" {
+		fmt.Println("A template name is needed")
 		return errMissingArguments
 	}
 
@@ -71,7 +71,7 @@ func emailTemplateSet(ctx *cli.Context) error {
 	defer cnxs.Conn.Close()
 	// perform RPC
 	_, err = cnxs.Client.SetEmailTemplate(cnxs.Context, &pb.SetEmailTemplateRequest{
-		Name:     id,
+		Name:     name,
 		Template: templateBody,
 	})
 
