@@ -209,7 +209,7 @@ func SetEmailTemplate(ctx *Context, templateID, templateBody string) error {
 		return err
 	}
 	// Execute query
-	_, err = tx.Exec(query, templateName, templateBody)
+	_, err = tx.Exec(query, templateID, templateBody)
 	if err != nil {
 		return err
 	}
