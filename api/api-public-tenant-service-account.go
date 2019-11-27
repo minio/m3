@@ -68,7 +68,7 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 		permissionIDsArr = append(permissionIDsArr, &permUUID)
 	}
 	// perform actions
-	err = cluster.AssignMultiplePermissionsAction(appCtx, &serviceAccount.ID, permissionIDsArr)
+	err = cluster.AssignMultiplePermissionsToSA(appCtx, &serviceAccount.ID, permissionIDsArr)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, status.New(codes.Internal, "Internal error").Err()
@@ -77,6 +77,7 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 	return &pb.CreateServiceAccountResponse{
 		ServiceAccount: &pb.ServiceAccount{
 			Id:        serviceAccount.ID.String(),
+			Name:      serviceAccount.Name,
 			AccessKey: serviceAccount.AccessKey,
 			Enabled:   serviceAccount.Enabled,
 		},
@@ -106,6 +107,7 @@ func (s *server) ListServiceAccounts(ctx context.Context, in *pb.ListServiceAcco
 	for _, serviceAccount := range serviceAccounts {
 		sa := &pb.ServiceAccount{
 			Id:        serviceAccount.ID.String(),
+			Name:      serviceAccount.Name,
 			AccessKey: serviceAccount.AccessKey,
 			Enabled:   serviceAccount.Enabled,
 		}
@@ -114,6 +116,82 @@ func (s *server) ListServiceAccounts(ctx context.Context, in *pb.ListServiceAcco
 	return &pb.ListServiceAccountsResponse{
 		ServiceAccounts: servAccountsResp,
 		Total:           int32(len(servAccountsResp)),
+	}, nil
+}
+
+// UpdateServiceAccount update a service account by single fields (name, enabled) and all it's corresponding permissions assigned to it.
+func (s *server) UpdateServiceAccount(ctx context.Context, in *pb.UpdateServiceAccountRequest) (res *pb.InfoServiceAccountResponse, err error) {
+	idRequest := in.GetId()
+	nameRequest := in.GetName()
+	enabledRequest := in.GetEnabled()
+	permisionsIDs := in.GetPermissionIds()
+	if idRequest == "" {
+		return nil, status.New(codes.InvalidArgument, "an id is needed").Err()
+	}
+	if nameRequest == "" {
+		return nil, status.New(codes.InvalidArgument, "an name is needed").Err()
+	}
+	if len(permisionsIDs) == 0 {
+		return nil, status.New(codes.InvalidArgument, "a list of permissions is needed").Err()
+	}
+	// start app context
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+	}()
+
+	// Fetch the service account
+	id, err := uuid.FromString(idRequest)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.InvalidArgument, "not valid id").Err()
+	}
+	serviceAccount, err := cluster.UpdateServiceAccountFields(appCtx, &id, nameRequest, enabledRequest, permisionsIDs)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.Internal, "Error updating Service Account").Err()
+	}
+	// if we reach here, all is good, commit
+	if err := appCtx.Commit(); err != nil {
+		return nil, err
+	}
+
+	// get all the updated permissions for the service account
+	newPerms, err := cluster.GetAllThePermissionForServiceAccount(appCtx, &serviceAccount.ID)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// Build Response
+	//transform the permissions to pb format
+	var pbPerms []*pb.Permission
+	for _, perm := range newPerms {
+		pbPerm := buildPermissionPBFromPermission(perm)
+		pbPerms = append(pbPerms, pbPerm)
+	}
+	// update the policies for the SA on Minio
+	err = cluster.UpdatePoliciesForSingleServiceAccount(appCtx, &serviceAccount.ID)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
+	servAccountsResp := &pb.ServiceAccount{
+		Id:        serviceAccount.ID.String(),
+		Name:      serviceAccount.Name,
+		AccessKey: serviceAccount.AccessKey,
+		Enabled:   serviceAccount.Enabled,
+	}
+	return &pb.InfoServiceAccountResponse{
+		ServiceAccount: servAccountsResp,
+		Permissions:    pbPerms,
 	}, nil
 }
 
@@ -128,7 +206,7 @@ func (s *server) InfoServiceAccount(ctx context.Context, in *pb.ServiceAccountAc
 		return nil, err
 	}
 	id, err := uuid.FromString(idRequest)
-	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, id)
+	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, &id)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, status.New(codes.Internal, "Internal error").Err()
@@ -149,6 +227,7 @@ func (s *server) InfoServiceAccount(ctx context.Context, in *pb.ServiceAccountAc
 
 	servAccountsResp := &pb.ServiceAccount{
 		Id:        serviceAccount.ID.String(),
+		Name:      serviceAccount.Name,
 		AccessKey: serviceAccount.AccessKey,
 		Enabled:   serviceAccount.Enabled,
 	}

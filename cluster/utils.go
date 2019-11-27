@@ -29,6 +29,7 @@ import (
 	"strings"
 
 	"github.com/minio/minio-go/v6"
+	uuid "github.com/satori/go.uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -109,7 +110,7 @@ func newS3Config(appName, url string, hostCfg *hostConfigV9) *Config {
 	return s3Config
 }
 
-// getLookupType returns the minio.BucketLookupType for lookup
+// toLookupType returns the minio.BucketLookupType for lookup
 // option entered on the command line
 func toLookupType(s string) minio.BucketLookupType {
 	switch strings.ToLower(s) {
@@ -125,4 +126,31 @@ func toLookupType(s string) minio.BucketLookupType {
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(bytes), err
+}
+
+// UUIDsFromStringArr gets an array of strings and returns them as an array of UUIDs
+func UUIDsFromStringArr(arr []string) (uuids []*uuid.UUID, err error) {
+	for _, elem := range arr {
+		elemID, err := uuid.FromString(elem)
+		if err != nil {
+			return nil, fmt.Errorf("invalid id: %s", elem)
+		}
+		uuids = append(uuids, &elemID)
+	}
+	return uuids, nil
+}
+
+// DifferenceArrays returns the elements in `a` that aren't in `b`.
+func DifferenceArrays(a, b []string) []string {
+	mb := make(map[string]struct{}, len(b))
+	for _, x := range b {
+		mb[x] = struct{}{}
+	}
+	var diff []string
+	for _, x := range a {
+		if _, found := mb[x]; !found {
+			diff = append(diff, x)
+		}
+	}
+	return diff
 }

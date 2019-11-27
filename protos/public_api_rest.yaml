@@ -71,6 +71,9 @@ http:
       delete: /api/v1/service_accounts/{id}
     - selector: m3.PublicAPI.InfoServiceAccount
       get: /api/v1/service_accounts/{id}
+    - selector: m3.PublicAPI.UpdateServiceAccount
+      put: /api/v1/service_accounts/{id}
+      body: "*"
     - selector: m3.PublicAPI.DisableServiceAccount
       post: /api/v1/service_accounts/{id}/disable
       body: "*"

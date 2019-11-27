@@ -117,7 +117,9 @@ service PublicAPI {
     // Get details of an individual ServiceAccount
     rpc InfoServiceAccount (ServiceAccountActionRequest) returns (InfoServiceAccountResponse) {
     }
-
+    // Updates a Service Account with the selected permissions
+    rpc UpdateServiceAccount (UpdateServiceAccountRequest)returns (InfoServiceAccountResponse){
+    }
     // Assign multiple permissions to this service account
     rpc AssignPermissionsToServiceAccount (AddPermissionsSARequest) returns (Empty) {
     }
@@ -334,10 +336,11 @@ message ListServiceAccountsResponse {
 
 message ServiceAccount {
     string id = 1;
+    string name = 2;
     // Identifier for the ServiceAccount
-    string access_key = 2;
+    string access_key = 3;
     // State of the ServiceAccount
-    bool enabled = 3;
+    bool enabled = 4;
 }
 
 message ServiceAccountActionRequest {
@@ -353,10 +356,18 @@ message CreateServiceAccountRequest {
     string name = 1;
     repeated string permission_ids = 2;
 }
+
 message CreateServiceAccountResponse {
     ServiceAccount service_account = 1;
     // secret_key will be shown only when creating a service account
     string secret_key = 2;
+}
+
+message UpdateServiceAccountRequest{
+    string id = 1;
+    bool enabled = 2;
+    string name = 3;
+    repeated string permission_ids = 4;
 }
 
 // Request a list of Permissions on the tenant account

@@ -19,6 +19,7 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/gosimple/slug"
 
@@ -75,12 +76,12 @@ func AddServiceAccount(ctx *Context, tenantShortName string, name string, descri
 		return nil, nil, err
 	}
 	serviceAccount = &ServiceAccount{
+		Name:        name,
 		ID:          uuid.NewV4(),
 		Slug:        *saSlug,
 		Description: description,
 		Enabled:     true,
 	}
-	fmt.Println(serviceAccount.ID.String(), serviceAccount.Slug, &serviceAccount.Description)
 	// Add parameters to query
 	query := `INSERT INTO
 				service_accounts ("id", "name", "slug", "description", "enabled", "sys_created_by")
@@ -248,9 +249,9 @@ func MapServiceAccountsIDsToSlugs(ctx *Context, serviceAccountIDs []*uuid.UUID) 
 
 }
 
-// UpdatePolicyForServiceAccount will retrieve all the permissions associated with the provided service account, build
+// UpdateMinioPolicyForServiceAccount will retrieve all the permissions associated with the provided service account, build
 // an IAM policy and submit it to the tenant's MinIO instance
-func UpdatePolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenantConf *TenantConfiguration, serviceAccountID *uuid.UUID) chan error {
+func UpdateMinioPolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenantConf *TenantConfiguration, serviceAccountID *uuid.UUID) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
@@ -364,8 +365,8 @@ func filterServiceAccountsWithPermission(ctx *Context, serviceAccounts []*uuid.U
 	return saWithPerm, nil
 }
 
-// AssignMultiplePermissionsAction takes a list of permissions and assigns them to a single service account
-func AssignMultiplePermissionsAction(ctx *Context, serviceAccount *uuid.UUID, permissions []*uuid.UUID) error {
+// AssignMultiplePermissions takes a list of permissions and assigns them to a single service account
+func AssignMultiplePermissionsToSA(ctx *Context, serviceAccount *uuid.UUID, permissions []*uuid.UUID) error {
 	alreadyHaveIt, err := filterPermissionsWithServiceAccount(ctx, permissions, serviceAccount)
 	if err != nil {
 		return err
@@ -411,7 +412,7 @@ func AssignMultiplePermissionsAction(ctx *Context, serviceAccount *uuid.UUID, pe
 	}
 
 	// update the policy for the SA
-	err = <-UpdatePolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, serviceAccount)
+	err = <-UpdateMinioPolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, serviceAccount)
 
 	return err
 }
@@ -459,7 +460,7 @@ func GetServiceAccountBySlug(ctx *Context, slug string) (*ServiceAccount, error)
 }
 
 // GetServiceAccountByID retrieves a permission by it's id
-func GetServiceAccountByID(ctx *Context, id uuid.UUID) (*ServiceAccount, error) {
+func GetServiceAccountByID(ctx *Context, id *uuid.UUID) (*ServiceAccount, error) {
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
@@ -477,4 +478,86 @@ func GetServiceAccountByID(ctx *Context, id uuid.UUID) (*ServiceAccount, error) 
 	}
 
 	return &sa, nil
+}
+
+// UpdateServiceAccountDB updates Name from the DB doing the query by ID
+func UpdateServiceAccountDB(ctx *Context, serviceAccount *ServiceAccount) error {
+	query := `
+			UPDATE
+				service_accounts
+			SET 
+				name = $2, enabled = $3
+			WHERE id=$1`
+	// create records
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	// Execute query
+	_, err = tx.Exec(query,
+		serviceAccount.ID,
+		serviceAccount.Name,
+		serviceAccount.Enabled,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+// UpdateServiceAccountFields update a service account by single fields (name, enabled) and all it's corresponding permissions assigned to it.
+func UpdateServiceAccountFields(ctx *Context, serviceAccountID *uuid.UUID, name string, enabled bool, permisionsIDs []string) (*ServiceAccount, error) {
+	serviceAccount, err := GetServiceAccountByID(ctx, serviceAccountID)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("service account not found")
+	}
+	// get all the permissions for the service account
+	perms, err := GetAllThePermissionForServiceAccount(ctx, &serviceAccount.ID)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("Internal error")
+	}
+
+	// Compare current Permissions with the desired ones
+	var currentPerms []string
+	for _, perm := range perms {
+		currentPerms = append(currentPerms, perm.ID.String())
+	}
+	// TODO: parallelize
+	permissionsToCreate := DifferenceArrays(permisionsIDs, currentPerms)
+	permissionsToDelete := DifferenceArrays(currentPerms, permisionsIDs)
+
+	// Create new service_accounts_permissions
+	permsToCreateIDs, err := UUIDsFromStringArr(permissionsToCreate)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("invalid permission id")
+	}
+	err = AssignMultiplePermissionsToSADB(ctx, &serviceAccount.ID, permsToCreateIDs)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("Internal error")
+	}
+	permsToDeleteIDs, err := UUIDsFromStringArr(permissionsToDelete)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("invalid permission id")
+	}
+	err = DeleteMultiplePermissionsOnSADB(ctx, &serviceAccount.ID, permsToDeleteIDs)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("Internal error")
+	}
+
+	// Update single parameters
+	serviceAccount.Name = name
+	serviceAccount.Enabled = enabled
+	err = UpdateServiceAccountDB(ctx, serviceAccount)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, errors.New("Internal error")
+	}
+	return serviceAccount, nil
 }

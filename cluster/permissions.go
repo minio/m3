@@ -537,10 +537,10 @@ func AssignPermissionAction(ctx *Context, permission *uuid.UUID, serviceAccountI
 		return err
 	}
 
-	return UpdateMultiplePoliciesForServiceAccount(ctx, finalListServiceAccountIDs)
+	return UpdatePoliciesForMultipleServiceAccount(ctx, finalListServiceAccountIDs)
 }
 
-func UpdateMultiplePoliciesForServiceAccount(ctx *Context, serviceAccountIDs []*uuid.UUID) error {
+func UpdatePoliciesForMultipleServiceAccount(ctx *Context, serviceAccountIDs []*uuid.UUID) error {
 
 	// Get in which SG is the tenant located
 	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
@@ -558,7 +558,7 @@ func UpdateMultiplePoliciesForServiceAccount(ctx *Context, serviceAccountIDs []*
 	// update the policy for each SA
 	var saChs []chan error
 	for _, sa := range serviceAccountIDs {
-		ch := UpdatePolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, sa)
+		ch := UpdateMinioPolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, sa)
 		saChs = append(saChs, ch)
 	}
 	// wait for all to finish
@@ -567,6 +567,32 @@ func UpdateMultiplePoliciesForServiceAccount(ctx *Context, serviceAccountIDs []*
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// UpdatePoliciesForSingleServiceAccount updates all policies assigned to a single service Account
+func UpdatePoliciesForSingleServiceAccount(ctx *Context, serviceAccountID *uuid.UUID) error {
+
+	// Get in which SG is the tenant located
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
+
+	if sgt.Error != nil {
+		return sgt.Error
+	}
+
+	// Get the credentials for a tenant
+	tenantConf, err := GetTenantConfig(ctx.Tenant)
+	if err != nil {
+		return err
+	}
+
+	// update the policy for a single SA
+	ch := UpdateMinioPolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, serviceAccountID)
+	err = <-ch
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -598,6 +624,53 @@ func assignPermissionToMultipleSAsOnDB(ctx *Context, permission *uuid.UUID, serv
 		}
 	}
 
+	return nil
+}
+
+// AssignMultiplePermissionsToSADB inserts on table service_accounts_permissions, multiple permissions to a single service account
+func AssignMultiplePermissionsToSADB(ctx *Context, serviceAccountID *uuid.UUID, permissionsIDs []*uuid.UUID) error {
+	// create records
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	// prepare re-usable statement
+	stmt, err := tx.Prepare(`INSERT INTO 
+    								service_accounts_permissions (
+    	                              service_account_id, 
+    	                              permission_id, 
+    	                              sys_created_by) 
+    	                              VALUES ($1, $2, $3)`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	for _, permissionID := range permissionsIDs {
+		_, err := stmt.Exec(serviceAccountID, permissionID, ctx.WhoAmI)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// DeleteMultiplePermissionsOnSADB removes on table service_accounts_permissions, multiple permissions on a single service account
+func DeleteMultiplePermissionsOnSADB(ctx *Context, serviceAccountID *uuid.UUID, permissionsIDs []*uuid.UUID) error {
+	if len(permissionsIDs) > 0 {
+		query := `
+			DELETE FROM service_accounts_permissions sap
+			WHERE sap.service_account_id = $1 AND sap.permission_id = ANY($2)`
+		// create records
+		tx, err := ctx.TenantTx()
+		if err != nil {
+			return err
+		}
+		// Execute query
+		_, err = tx.Exec(query, serviceAccountID, pq.Array(permissionsIDs))
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
