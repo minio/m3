@@ -194,7 +194,7 @@ message TenantServiceAccountAssignResponse {
 }
 
 message SetEmailTemplateRequest {
-    string id = 1;
+    string name = 1;
     string template = 2;
 }
 message SetEmailTemplateResponse {

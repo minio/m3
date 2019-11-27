@@ -71,7 +71,7 @@ func emailTemplateSet(ctx *cli.Context) error {
 	defer cnxs.Conn.Close()
 	// perform RPC
 	_, err = cnxs.Client.SetEmailTemplate(cnxs.Context, &pb.SetEmailTemplateRequest{
-		Id:       id,
+		Name:     id,
 		Template: templateBody,
 	})
 

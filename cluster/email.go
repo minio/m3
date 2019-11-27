@@ -203,10 +203,10 @@ func getTemplateFromDB(ctx *Context, templateName string) (*string, error) {
 
 // SetEmailTemplate upserts a template into the database. If the id is not present the record will be inserted, if it's
 // present it will be updated
-func SetEmailTemplate(ctx *Context, templateID, templateBody string) error {
+func SetEmailTemplate(ctx *Context, templateName, templateBody string) error {
 	// validate that the template is only alpha numerical stuff
 	var re = regexp.MustCompile(`^[a-z0-9-]{2,}$`)
-	if !re.MatchString(templateID) {
+	if !re.MatchString(templateName) {
 		return errors.New("invalid template name")
 	}
 	// Insert or Update template
@@ -220,7 +220,7 @@ func SetEmailTemplate(ctx *Context, templateID, templateBody string) error {
 		return err
 	}
 	// Execute query
-	_, err = tx.Exec(query, templateID, templateBody)
+	_, err = tx.Exec(query, templateName, templateBody)
 	if err != nil {
 		return err
 	}

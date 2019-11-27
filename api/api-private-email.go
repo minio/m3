@@ -31,7 +31,7 @@ func (ps *privateServer) SetEmailTemplate(ctx context.Context, in *pb.SetEmailTe
 	if err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
-	if err = cluster.SetEmailTemplate(appCtx, in.Id, in.Template); err != nil {
+	if err = cluster.SetEmailTemplate(appCtx, in.Name, in.Template); err != nil {
 		appCtx.Rollback()
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
