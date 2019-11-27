@@ -19,7 +19,7 @@ CREATE TABLE email_templates
     id       VARCHAR(256) NOT NULL
         CONSTRAINT email_templates_pk
             PRIMARY KEY,
-    template TEXT
+    template TEXT         NOT NULL
 );
 
 COMMENT ON TABLE email_templates IS 'Table to store the email templates';
