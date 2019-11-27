@@ -69,7 +69,7 @@ service PrivateAPI {
     // Cluster Operations
     rpc ClusterScSgAdd (StorageGroupAddRequest) returns (StorageGroupAddResponse) {
     }
-    // Configuration operations
+    // Sets Email Template
     rpc SetEmailTemplate (SetEmailTemplateRequest) returns (SetEmailTemplateResponse) {
     }
 }
