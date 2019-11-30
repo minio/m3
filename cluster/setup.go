@@ -91,8 +91,6 @@ func SetupM3() error {
 
 	postReadyCh := make(chan struct{})
 
-	var postgresPodName string
-
 	podInformer := factory.Core().V1().Pods().Informer()
 	podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -100,7 +98,6 @@ func SetupM3() error {
 			// monitor for postgres pods
 			if strings.HasPrefix(pod.ObjectMeta.Name, "postgres") {
 				log.Println("Postgres Pod created:", pod.ObjectMeta.Name)
-				postgresPodName = pod.Name
 				close(postReadyCh)
 				close(doneCh)
 			}
