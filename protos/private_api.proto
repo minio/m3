@@ -27,8 +27,6 @@ package m3;
 
 service PrivateAPI {
     // Setup Operations
-    rpc Setup (AdminEmpty) returns (AdminEmpty) {
-    }
     rpc SetupDB (AdminEmpty) returns (AdminEmpty) {
     }
     rpc SetupMigrate (AdminEmpty) returns (AdminEmpty) {
