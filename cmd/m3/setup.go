@@ -17,10 +17,7 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/minio/cli"
-	pb "github.com/minio/m3/api/stubs"
 )
 
 // Setups the m3 cluster
@@ -35,16 +32,5 @@ var setupCmd = cli.Command{
 }
 
 func setupDefCmd(ctx *cli.Context) error {
-	cnxs, err := GetGRPCChannel()
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	defer cnxs.Conn.Close()
-	_, err = cnxs.Client.Setup(cnxs.Context, &pb.AdminEmpty{})
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	return nil
+	return cli.ShowAppHelp(ctx)
 }
