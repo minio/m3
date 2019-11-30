@@ -19,6 +19,7 @@ package cluster
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -176,10 +177,14 @@ func UpdateNginxResolverService(clientset *kubernetes.Clientset, deploymentVersi
 		go serviceInformer.Run(doneCh)
 
 		//Update nginx-resolver service to route traffic to the new nginx pods
-		nginxService, _ := clientset.CoreV1().Services("default").Get("nginx-resolver", metav1.GetOptions{})
-		nginxService.Spec.Selector["app"] = deploymentVersionName
-		_, err := clientset.CoreV1().Services("default").Update(nginxService)
+		nginxService, err := clientset.CoreV1().Services("default").Get("nginx-resolver", metav1.GetOptions{})
 		if err != nil {
+			log.Println(err)
+		}
+		nginxService.Spec.Selector["app"] = deploymentVersionName
+		_, err = clientset.CoreV1().Services("default").Update(nginxService)
+		if err != nil {
+			log.Println(err)
 			close(doneCh)
 		}
 	}()
@@ -191,26 +196,30 @@ func UpdateNginxResolverService(clientset *kubernetes.Clientset, deploymentVersi
 //
 // N B If an nginx-resolver is already running we delete the deployment and create a
 // new one that reads the updated rules.
-func DeployNginxResolver() error {
-	// creates the clientset
-	clientset, err := k8sClient()
-	if err != nil {
-		return err
-	}
-	nginxResolverVersion := fmt.Sprintf(`nginx-resolver-%s`, strings.ToLower(RandomCharString(6)))
-	waitCreateCh := CreateNginxResolverDeployment(clientset, nginxResolverVersion)
-	<-waitCreateCh
-	waitUpdateCh := UpdateNginxResolverService(clientset, nginxResolverVersion)
-	<-waitUpdateCh
-	// Delete nginx-resolver deployment and wait until all its pods
-	// are deleted too. This is to ensure that the creation of the
-	// deployment results in new set of pods that have read the
-	// updated rules
-	waitDeleteCh := DeleteNginxLBDeployments(clientset, nginxResolverVersion)
-	// waiting for the delete of the nginx-resolver deployment to complete
-	<-waitDeleteCh
-	fmt.Println("done creating nginx-resolver deployment")
-	return nil
+func DeployNginxResolver() chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		// creates the clientset
+		clientset, err := k8sClient()
+		if err != nil {
+			ch <- err
+		}
+		nginxResolverVersion := fmt.Sprintf(`nginx-resolver-%s`, strings.ToLower(RandomCharString(6)))
+		waitCreateCh := CreateNginxResolverDeployment(clientset, nginxResolverVersion)
+		<-waitCreateCh
+		waitUpdateCh := UpdateNginxResolverService(clientset, nginxResolverVersion)
+		<-waitUpdateCh
+		// Delete nginx-resolver deployment and wait until all its pods
+		// are deleted too. This is to ensure that the creation of the
+		// deployment results in new set of pods that have read the
+		// updated rules
+		waitDeleteCh := DeleteNginxLBDeployments(clientset, nginxResolverVersion)
+		// waiting for the delete of the nginx-resolver deployment to complete
+		<-waitDeleteCh
+		fmt.Println("done creating nginx-resolver deployment")
+	}()
+	return ch
 }
 
 // UpdateNginxConfiguration Update the nginx.conf ConfigMap used by the nginx-resolver service

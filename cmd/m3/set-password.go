@@ -102,7 +102,7 @@ func setPassword(ctx *cli.Context) error {
 		return nil
 	}
 
-	fmt.Printf("Done Setting password")
+	fmt.Println("Done Setting password")
 
 	return nil
 }
