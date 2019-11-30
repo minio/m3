@@ -38,7 +38,7 @@ func startAPIServiceCmd(ctx *cli.Context) error {
 	if err != nil {
 		log.Println("problem checking on the setup of m3")
 	}
-	if setupComplete == false {
+	if !setupComplete {
 		err = cluster.SetupM3()
 		if err != nil {
 			log.Println(err)

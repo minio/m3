@@ -30,8 +30,8 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	// the postgres driver for go-migrate
 	"github.com/golang-migrate/migrate/v4"
+	// the postgres driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 
 	// the file driver for go-migrate
