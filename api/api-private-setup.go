@@ -27,15 +27,6 @@ import (
 	pb "github.com/minio/m3/api/stubs"
 )
 
-// Setup performs the cluster setup operation
-func (ps *privateServer) Setup(ctx context.Context, in *pb.AdminEmpty) (*pb.AdminEmpty, error) {
-	err := cluster.SetupM3()
-	if err != nil {
-		return nil, status.New(codes.Internal, err.Error()).Err()
-	}
-	return &pb.AdminEmpty{}, nil
-}
-
 // SetupDB installs the base schema
 func (ps *privateServer) SetupDB(ctx context.Context, in *pb.AdminEmpty) (*pb.AdminEmpty, error) {
 	err := cluster.SetupDBAction()

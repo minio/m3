@@ -19,6 +19,8 @@ package main
 import (
 	"log"
 
+	"github.com/minio/m3/cluster"
+
 	"github.com/minio/cli"
 	"github.com/minio/m3/api"
 )
@@ -32,6 +34,17 @@ var serviceCmd = cli.Command{
 }
 
 func startAPIServiceCmd(ctx *cli.Context) error {
+	setupComplete, err := cluster.IsSetupComplete()
+	if err != nil {
+		log.Println("problem checking on the setup of m3")
+	}
+	if !setupComplete {
+		err = cluster.SetupM3()
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
 	log.Println("Starting m3 services...")
 	publicCh := api.InitPublicAPIServiceGRPCServer()
 	privateCh := api.InitPrivateAPIServiceGRPCServer()

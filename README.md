@@ -86,17 +86,6 @@ kubectl apply -f k8s/deployments/m3-deployment.yaml
 ./m3 dev
 ```
 
-- Run `m3 setup` on the local kubernetes
-
-```
-./m3 setup
-```
-
-- To setup db
-
-```
-./m3 setup db
-```
 - You should get an email with your activation command, execute it
 ```
 ./m3 set-password <YOUR_TOKEN>

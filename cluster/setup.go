@@ -17,11 +17,13 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
@@ -29,9 +31,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/golang-migrate/migrate/v4"
-
 	// the postgres driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+
 	// the file driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	appsv1 "k8s.io/api/apps/v1"
@@ -52,39 +54,114 @@ func SetupM3() error {
 	}
 
 	// setup m3 namespace on k8s
-	fmt.Println("Setting up m3 namespace")
+	log.Println("Setting up m3 namespace")
 	waitCh := setupM3Namespace(clientset)
 	<-waitCh
 	// setup nginx router
-	fmt.Println("setting up nginx configmap")
+	log.Println("setting up nginx configmap")
 	waitCh = SetupNginxConfigMap(clientset)
 	<-waitCh
-	fmt.Println("setting up nginx service")
-	waitCh = SetupNginxLoadBalancer(clientset)
-	<-waitCh
-	fmt.Println("setting up nginx deployment")
-	err = DeployNginxResolver()
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
+	//// Setup Jwt Secret
+	log.Println("Setting up jwt secret")
+	waitJwtCh := SetupJwtSecrets(clientset)
+
+	log.Println("setting up nginx service")
+	<-SetupNginxLoadBalancer(clientset)
+
+	log.Println("setting up nginx deployment")
+	waitNginxResolverCh := DeployNginxResolver()
+
+	// setup postgres service
+	log.Println("Setting up postgres service")
+	waitPgSvcCh := setupPostgresService(clientset)
+
 	// setup postgres configmap
-	fmt.Println("Setting up postgres configmap")
+	log.Println("Setting up postgres configmap")
 	waitCh = setupPostgresConfigMap(clientset)
 	<-waitCh
+
+	// let's wait on postgres to finish setting up the database and first admin
 	// setup postgres deployment
-	fmt.Println("Setting up postgres deployment")
-	waitCh = setupPostgresDeployment(clientset)
-	<-waitCh
-	// setup postgres service
-	fmt.Println("Setting up postgres service")
-	waitCh = setupPostgresService(clientset)
-	<-waitCh
-	//// Setup Jwt Secret
-	fmt.Println("Setting up jwt secret")
-	waitCh = SetupJwtSecrets(clientset)
-	<-waitCh
-	fmt.Println("Setup process done")
+	log.Println("Setting up postgres deployment")
+	waitPgCh := setupPostgresDeployment(clientset)
+
+	// informer factory
+	doneCh := make(chan struct{})
+	factory := informers.NewSharedInformerFactory(clientset, 0)
+
+	postReadyCh := make(chan struct{})
+
+	podInformer := factory.Core().V1().Pods().Informer()
+	podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			pod := obj.(*v1.Pod)
+			// monitor for postgres pods
+			if strings.HasPrefix(pod.ObjectMeta.Name, "postgres") {
+				log.Println("Postgres Pod created:", pod.ObjectMeta.Name)
+				close(postReadyCh)
+				close(doneCh)
+			}
+		},
+	})
+
+	go podInformer.Run(doneCh)
+	<-waitPgSvcCh
+	<-waitPgCh
+	// wait for the informer to detect postgres being done
+	<-doneCh
+	<-postReadyCh
+
+	log.Println("Postgres is created")
+
+	// ping postgres until it's ready
+	// Wait for the DB connection
+	ctx := context.Background()
+
+	// Get the m3 Database configuration
+	config := GetM3DbConfig()
+
+	for {
+		// try to connect
+		cnxResult := <-ConnectToDb(ctx, config)
+		if cnxResult.Error != nil {
+			log.Println(cnxResult.Error)
+			return err
+		}
+		// if we were able to create the connection, try to query postgres
+		if cnxResult.Cnx != nil {
+			row := cnxResult.Cnx.QueryRow("SELECT 1")
+			var emptyInt int
+			err := row.Scan(&emptyInt)
+			if err != nil {
+				log.Println(err)
+			}
+			// if we got a 1 back, postgres is online and accepting connections
+			if emptyInt == 1 {
+				break
+			}
+			// if we failed, sleep 2 seconds and try again
+			log.Println("gonna sleep 2 seconds")
+			time.Sleep(time.Second * 2)
+		}
+	}
+	log.Println("postgres is online")
+
+	err = SetupDBAction()
+	if err != nil {
+		log.Println(err)
+	}
+
+	// wait for all other services
+	<-waitJwtCh
+	// wait on nginx resolver and check if there were any errors
+	err = <-waitNginxResolverCh
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	// mark setup as complete
+	<-markSetupComplete(clientset)
+	log.Println("Setup process done")
 	return nil
 }
 
@@ -94,17 +171,17 @@ func SetupDBAction() error {
 	err := CreateProvisioningSchema()
 	if err != nil {
 		// this error could be because the database already exists, so we are going to tolerate it.
-		fmt.Println(err)
+		log.Println(err)
 	}
 	err = CreateTenantsSharedDatabase()
 	if err != nil {
 		// this error could be because the database already exists, so we are going to tolerate it.
-		fmt.Println(err)
+		log.Println(err)
 	}
 	// run the migrations
 	err = RunMigrations()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	//we'll try to re-add the first admin, if it fails we can tolerate it
@@ -112,9 +189,9 @@ func SetupDBAction() error {
 	adminEmail := os.Getenv("ADMIN_EMAIL")
 	err = AddM3Admin(adminName, adminEmail)
 	if err != nil {
-		fmt.Println("admin m3 error")
+		log.Println("admin m3 error")
 		//we can tolerate this failure
-		fmt.Println(err)
+		log.Println(err)
 	}
 
 	return err
@@ -127,7 +204,7 @@ func setupM3Namespace(clientset *kubernetes.Clientset) <-chan struct{} {
 	go func() {
 		_, m3NamespaceExists := clientset.CoreV1().Namespaces().Get(namespaceName, metav1.GetOptions{})
 		if m3NamespaceExists == nil {
-			fmt.Println("m3 namespace already exists... skip create")
+			log.Println("m3 namespace already exists... skip create")
 			close(doneCh)
 		} else {
 			factory := informers.NewSharedInformerFactory(clientset, 0)
@@ -136,7 +213,7 @@ func setupM3Namespace(clientset *kubernetes.Clientset) <-chan struct{} {
 				AddFunc: func(obj interface{}) {
 					namespace := obj.(*v1.Namespace)
 					if namespace.Name == namespaceName {
-						fmt.Println("m3 namespace created correctly")
+						log.Println("m3 namespace created correctly")
 						close(doneCh)
 					}
 				},
@@ -149,7 +226,7 @@ func setupM3Namespace(clientset *kubernetes.Clientset) <-chan struct{} {
 			}
 			_, err := clientset.CoreV1().Namespaces().Create(&namespace)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				close(doneCh)
 			}
 		}
@@ -163,7 +240,7 @@ func setupPostgresConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
 	go func() {
 		_, configMapExists := clientset.CoreV1().ConfigMaps(m3SystemNamespace).Get(configMapName, metav1.GetOptions{})
 		if configMapExists == nil {
-			fmt.Println("postgres configmap already exists... skip create")
+			log.Println("postgres configmap already exists... skip create")
 			close(doneCh)
 		} else {
 			factory := informers.NewSharedInformerFactory(clientset, 0)
@@ -172,7 +249,7 @@ func setupPostgresConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
 				AddFunc: func(obj interface{}) {
 					configMap := obj.(*v1.ConfigMap)
 					if configMap.Name == configMapName {
-						fmt.Println("postgres configmap created correctly")
+						log.Println("postgres configmap created correctly")
 						close(doneCh)
 					}
 				},
@@ -194,7 +271,7 @@ func setupPostgresConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
 			}
 			_, err := clientset.CoreV1().ConfigMaps(m3SystemNamespace).Create(&configMap)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				close(doneCh)
 			}
 		}
@@ -208,7 +285,7 @@ func setupPostgresDeployment(clientset *kubernetes.Clientset) <-chan struct{} {
 	go func() {
 		_, deploymentExists := clientset.AppsV1().Deployments(m3SystemNamespace).Get(deploymentName, metav1.GetOptions{})
 		if deploymentExists == nil {
-			fmt.Println("postgres deployment already exists... skip create")
+			log.Println("postgres deployment already exists... skip create")
 			close(doneCh)
 		} else {
 			factory := informers.NewSharedInformerFactory(clientset, 0)
@@ -217,7 +294,7 @@ func setupPostgresDeployment(clientset *kubernetes.Clientset) <-chan struct{} {
 				UpdateFunc: func(oldObj, newObj interface{}) {
 					deployment := newObj.(*appsv1.Deployment)
 					if deployment.Name == deploymentName && len(deployment.Status.Conditions) > 0 && deployment.Status.Conditions[0].Status == "True" {
-						fmt.Println("postgres deployment created correctly")
+						log.Println("postgres deployment created correctly")
 						close(doneCh)
 					}
 				},
@@ -274,7 +351,7 @@ func setupPostgresDeployment(clientset *kubernetes.Clientset) <-chan struct{} {
 
 			_, err := appsV1API(clientset).Deployments(m3SystemNamespace).Create(&deployment)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				close(doneCh)
 			}
 		}
@@ -289,7 +366,7 @@ func setupPostgresService(clientset *kubernetes.Clientset) <-chan struct{} {
 	go func() {
 		_, postgresServiceExists := clientset.CoreV1().Services(m3SystemNamespace).Get(serviceName, metav1.GetOptions{})
 		if postgresServiceExists == nil {
-			fmt.Println("postgres service already exists... skip create")
+			log.Println("postgres service already exists... skip create")
 			close(doneCh)
 		} else {
 			factory := informers.NewSharedInformerFactory(clientset, 0)
@@ -298,7 +375,7 @@ func setupPostgresService(clientset *kubernetes.Clientset) <-chan struct{} {
 				AddFunc: func(obj interface{}) {
 					service := obj.(*v1.Service)
 					if service.Name == serviceName {
-						fmt.Println("postgres service created correctly")
+						log.Println("postgres service created correctly")
 						close(doneCh)
 					}
 				},
@@ -327,7 +404,7 @@ func setupPostgresService(clientset *kubernetes.Clientset) <-chan struct{} {
 			}
 			_, err := clientset.CoreV1().Services(m3SystemNamespace).Create(&pgSvc)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				close(doneCh)
 			}
 		}
@@ -342,7 +419,7 @@ func SetupNginxConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
 	go func() {
 		_, nginxConfigMapExists := clientset.CoreV1().ConfigMaps("default").Get(nginxConfigMapName, metav1.GetOptions{})
 		if nginxConfigMapExists == nil {
-			fmt.Println("nginx configmap already exists... skip create")
+			log.Println("nginx configmap already exists... skip create")
 			close(doneCh)
 		} else {
 			factory := informers.NewSharedInformerFactory(clientset, 0)
@@ -351,7 +428,7 @@ func SetupNginxConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
 				AddFunc: func(obj interface{}) {
 					configMap := obj.(*v1.ConfigMap)
 					if configMap.Name == nginxConfigMapName {
-						fmt.Println("nginx configmap created correctly")
+						log.Println("nginx configmap created correctly")
 						close(doneCh)
 					}
 				},
@@ -378,7 +455,7 @@ events {
 			}
 			_, err := clientset.CoreV1().ConfigMaps("default").Create(&configMap)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				close(doneCh)
 			}
 		}
@@ -394,7 +471,7 @@ func SetupNginxLoadBalancer(clientset *kubernetes.Clientset) <-chan struct{} {
 	go func() {
 		_, nginxServiceExists := clientset.CoreV1().Services("default").Get(nginxServiceName, metav1.GetOptions{})
 		if nginxServiceExists == nil {
-			fmt.Println("nginx service already exists... skip create")
+			log.Println("nginx service already exists... skip create")
 			close(doneCh)
 		} else {
 			factory := informers.NewSharedInformerFactory(clientset, 0)
@@ -403,7 +480,7 @@ func SetupNginxLoadBalancer(clientset *kubernetes.Clientset) <-chan struct{} {
 				AddFunc: func(obj interface{}) {
 					service := obj.(*v1.Service)
 					if service.Name == nginxServiceName {
-						fmt.Println("nginx service created correctly")
+						log.Println("nginx service created correctly")
 						close(doneCh)
 					}
 				},
@@ -432,7 +509,7 @@ func SetupNginxLoadBalancer(clientset *kubernetes.Clientset) <-chan struct{} {
 			}
 			_, err := clientset.CoreV1().Services("default").Create(&nginxService)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				close(doneCh)
 			}
 		}
@@ -508,18 +585,18 @@ func CreateProvisioningSchema() error {
 // Add an m3 admin account with the given name and email
 func AddM3Admin(name, email string) error {
 	// Add the first cluster admin
-	fmt.Println("Adding the first admin")
+	log.Println("Adding the first admin")
 	apptCtx, err := NewEmptyContext()
 	if err != nil {
 		return err
 	}
 	_, err = AddAdminAction(apptCtx, name, email)
 	if err != nil {
-		fmt.Println("Error adding user:", err.Error())
+		log.Println("Error adding user:", err.Error())
 		return err
 	}
 	apptCtx.Commit()
-	fmt.Println("Admin was added")
+	log.Println("Admin was added")
 	return nil
 }
 
@@ -531,7 +608,7 @@ func SetupJwtSecrets(clientset *kubernetes.Clientset) <-chan struct{} {
 	go func() {
 		_, secretExists := clientset.CoreV1().Secrets("default").Get(secretName, metav1.GetOptions{})
 		if secretExists == nil {
-			fmt.Println("jwt secret already exists... skip create")
+			log.Println("jwt secret already exists... skip create")
 			close(doneCh)
 		} else {
 			factory := informers.NewSharedInformerFactory(clientset, 0)
@@ -540,7 +617,7 @@ func SetupJwtSecrets(clientset *kubernetes.Clientset) <-chan struct{} {
 				AddFunc: func(obj interface{}) {
 					secret := obj.(*v1.Secret)
 					if secret.Name == secretName {
-						fmt.Println("jwt secret created correctly")
+						log.Println("jwt secret created correctly")
 						close(doneCh)
 					}
 				},
@@ -551,7 +628,7 @@ func SetupJwtSecrets(clientset *kubernetes.Clientset) <-chan struct{} {
 			// Create secret for JWT key for rest api
 			jwtKey, err := GetRandString(64, "default")
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				close(doneCh)
 				return
 			}
@@ -565,7 +642,7 @@ func SetupJwtSecrets(clientset *kubernetes.Clientset) <-chan struct{} {
 			}
 			_, err = clientset.CoreV1().Secrets("default").Create(&secret)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 				close(doneCh)
 				return
 			}
@@ -615,4 +692,69 @@ func SetupMigrateAction() error {
 	}
 
 	return nil
+}
+
+// markSetupComplete creates a kubernetes secrets that indicates m3 has been setup
+func markSetupComplete(clientset *kubernetes.Clientset) <-chan struct{} {
+	doneCh := make(chan struct{})
+	secretName := "m3-setup-complete"
+
+	go func() {
+		_, secretExists := clientset.CoreV1().Secrets("default").Get(secretName, metav1.GetOptions{})
+		if secretExists == nil {
+			log.Println("m3 setup complete secret already exists... skip create")
+			close(doneCh)
+		} else {
+			factory := informers.NewSharedInformerFactory(clientset, 0)
+			secretInformer := factory.Core().V1().Secrets().Informer()
+			secretInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
+					secret := obj.(*v1.Secret)
+					if secret.Name == secretName {
+						log.Println("m3 setup secret created correctly")
+						close(doneCh)
+					}
+				},
+			})
+
+			go secretInformer.Run(doneCh)
+
+			// Create secret with right now time
+			secret := v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: secretName,
+				},
+				Data: map[string][]byte{
+					"completed": []byte(time.Now().String()),
+				},
+			}
+			_, err := clientset.CoreV1().Secrets("default").Create(&secret)
+			if err != nil {
+				log.Println(err)
+				close(doneCh)
+				return
+			}
+		}
+	}()
+	return doneCh
+}
+
+// getSetupDoneSecret gets m3 setup secret from kubernetes secrets
+func IsSetupComplete() (bool, error) {
+	config := getConfig()
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Println(err)
+		return false, err
+	}
+	res, err := clientset.CoreV1().Secrets("default").Get("m3-setup-complete", metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+	completed := string(res.Data["completed"])
+	if completed == "" {
+		return false, nil
+	}
+	return true, nil
 }

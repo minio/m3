@@ -44,13 +44,13 @@ func GetInstance() *Singleton {
 
 		// Get the m3 Database configuration
 		config := GetM3DbConfig()
-		db := <-ConnectToDb(ctx, config)
+		cnxResult := <-ConnectToDb(ctx, config)
 
 		//build connections cache
 		cnxCache := make(map[string]*sql.DB)
 
 		instance = &Singleton{
-			Db:         db,
+			Db:         cnxResult.Cnx,
 			tenantsCnx: cnxCache,
 		}
 	})
@@ -124,9 +124,14 @@ func GetM3DbConfig() *DbConfig {
 	}
 }
 
+type DBCnxResult struct {
+	Cnx   *sql.DB
+	Error error
+}
+
 // Creates a connection to the DB and returns it
-func ConnectToDb(ctx context.Context, config *DbConfig) chan *sql.DB {
-	ch := make(chan *sql.DB)
+func ConnectToDb(ctx context.Context, config *DbConfig) chan DBCnxResult {
+	ch := make(chan DBCnxResult)
 	go func() {
 		defer close(ch)
 		select {
@@ -150,9 +155,11 @@ func ConnectToDb(ctx context.Context, config *DbConfig) chan *sql.DB {
 
 			db, err := sql.Open("postgres", dbStr)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
+				ch <- DBCnxResult{Error: err}
+				return
 			}
-			ch <- db
+			ch <- DBCnxResult{Cnx: db}
 		}
 	}()
 	return ch
@@ -171,7 +178,10 @@ func (s *Singleton) GetTenantDB(tenantName string) *sql.DB {
 	// Get the tenant DB configuration
 	config := GetTenantDBConfig(tenantName)
 	tenantDbCnx := <-ConnectToDb(ctx, config)
-	s.tenantsCnx[tenantName] = tenantDbCnx
+	if tenantDbCnx.Error != nil {
+		return nil
+	}
+	s.tenantsCnx[tenantName] = tenantDbCnx.Cnx
 	return s.tenantsCnx[tenantName]
 }
 
