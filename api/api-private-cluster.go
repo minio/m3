@@ -102,7 +102,7 @@ func (ps *privateServer) ClusterStorageGroupAdd(ctx context.Context, in *pb.Stor
 		}
 		return nil, status.New(codes.Internal, "Failed to add Storage Group").Err()
 	}
-	err = <-cluster.ProvisionServicesForStorageGroup(storageGroupResult.StorageGroup)
+	err = <-cluster.ProvisionServicesForStorageGroup(appCtx, storageGroupResult.StorageGroup)
 	if err != nil {
 		log.Println(err)
 		if err = appCtx.Rollback(); err != nil {

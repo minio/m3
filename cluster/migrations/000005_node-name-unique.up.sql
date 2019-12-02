@@ -41,4 +41,8 @@ ALTER TABLE storage_cluster_nodes
 ALTER TABLE storage_cluster_nodes
     ADD num INT NOT NULL;
 
+ALTER TABLE node_volumes
+    ADD num INT NOT NULL;
+
+
 

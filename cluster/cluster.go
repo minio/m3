@@ -80,13 +80,13 @@ func appsV1API(client *kubernetes.Clientset) v12.AppsV1Interface {
 }
 
 //Creates a headless service that will point to a specific node inside a storage group
-func CreateSGHostService(sg *StorageGroup, hostNum string) error {
+func CreateSGHostService(sg *StorageGroup, sgNode *StorageGroupNode) error {
 	clientset, err := k8sClient()
 	if err != nil {
 		return err
 	}
 
-	serviceName := fmt.Sprintf("sg-%d-host-%s", sg.Num, hostNum)
+	serviceName := fmt.Sprintf("sg-%d-host-%s", sg.Num, sgNode.Num)
 
 	sgSvc := v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -255,17 +255,17 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 		return err
 	}
 
-	sgHostName := fmt.Sprintf("sg-%d-host-%s", sg.Num, node.Name)
+	sgHostName := fmt.Sprintf("sg-%d-host-%s", sg.Num, sgNode.Num)
 	var replicas int32 = 1
 
 	mainPodSpec := v1.PodSpec{
 		NodeSelector: map[string]string{
-			"kubernetes.io/hostname": node.K8sLabel,
+			"kubernetes.io/hostname": sgNode.Node.K8sLabel,
 		},
 	}
 
 	for _, sgTenant := range tenants {
-		tenantContainer, tenantVolume := mkTenantMinioContainer(sgTenant, node)
+		tenantContainer, tenantVolume := mkTenantMinioContainer(sgTenant, sgNode)
 		mainPodSpec.Containers = append(mainPodSpec.Containers, tenantContainer)
 		mainPodSpec.Volumes = append(mainPodSpec.Volumes, tenantVolume...)
 	}
@@ -397,7 +397,7 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sg *StorageGroup, sgNode *S
 
 		//volumes that will be used by this tenant
 		for _, vol := range sgNode.Node.Volumes {
-			vName := fmt.Sprintf("%s-pv-%d", tenant.ShortName, vol.ID.String())
+			vName := fmt.Sprintf("%s-pv-%d", tenant.ShortName, vol.Num)
 			volumeSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: vol.MountPath}}
 			hostPathVolume := v1.Volume{Name: vName, VolumeSource: volumeSource}
 			job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, hostPathVolume)
@@ -478,8 +478,7 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 			ch <- err
 		}
 		for _, sgNode := range sgNodes {
-			hostNum := fmt.Sprintf("%d", sgNode.Num)
-			sgHostName := fmt.Sprintf("sg-%d-host-%d", sg.Num, sg.Num)
+			sgHostName := fmt.Sprintf("sg-%d-host-%d", sg.Num, sgNode.Num)
 			deployment, err := clientset.AppsV1().Deployments("default").Get(sgHostName, metav1.GetOptions{})
 			switch {
 			case k8errors.IsNotFound(err): // No deployment for sgHostname is present in the storage cluster, CREATE it

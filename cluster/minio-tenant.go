@@ -40,9 +40,9 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 			fmt.Sprintf(
 				"http://sg-%d-host-{1...%d}:%d/mnt/tdisk{1...%d}",
 				sg.Num,
-				MaxNumberHost,
+				sgTenant.StorageGroup.TotalNodes,
 				sgTenant.Port,
-				MaxNumberDiskPerNode),
+				sgTenant.StorageGroup.TotalVolumes),
 		},
 		Ports: []v1.ContainerPort{
 			{
@@ -72,14 +72,14 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 	}
 	var tenantVolumes []v1.Volume
 	//volumes that will be used by this sgTenant
-	for vi := 1; vi <= MaxNumberDiskPerNode; vi++ {
-		vname := fmt.Sprintf("%s-pv-%d", sgTenant.Tenant.ShortName, vi)
-		volumenSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: fmt.Sprintf("/mnt/disk%d/%s", vi, sgTenant.Tenant.ShortName)}}
+	for _, vol := range sgNode.Node.Volumes {
+		vname := fmt.Sprintf("%s-pv-%d", sgTenant.Tenant.ShortName, vol.Num)
+		volumenSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: fmt.Sprintf("%s/%s", vol.MountPath, sgTenant.Tenant.ShortName)}}
 		hostPathVolume := v1.Volume{Name: vname, VolumeSource: volumenSource}
 
 		mount := v1.VolumeMount{
 			Name:      vname,
-			MountPath: fmt.Sprintf("/mnt/tdisk%d", vi),
+			MountPath: fmt.Sprintf("/mnt/tdisk%d", vol.Num),
 		}
 		tenantVolumes = append(tenantVolumes, hostPathVolume)
 		volumeMounts = append(volumeMounts, mount)

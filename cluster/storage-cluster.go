@@ -76,6 +76,8 @@ type StorageGroup struct {
 	StorageClusterID *uuid.UUID
 	Num              int32
 	Name             string
+	TotalNodes       int32
+	TotalVolumes     int32
 }
 
 // Struct returned by goroutines via channels that bundles a possible error.
@@ -147,7 +149,7 @@ func GetStorageGroupByName(ctx *Context, name string) (*StorageGroup, error) {
 }
 
 // provisions the storage group supporting services that point to each node in the storage group
-func ProvisionServicesForStorageGroup(storageGroup *StorageGroup) chan error {
+func ProvisionServicesForStorageGroup(ctx *Context, storageGroup *StorageGroup) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
@@ -155,10 +157,15 @@ func ProvisionServicesForStorageGroup(storageGroup *StorageGroup) chan error {
 			ch <- errors.New("empty storage group received")
 			return
 		}
-		for i := 1; i <= MaxNumberHost; i++ {
+		// get a list of nodes on the cluster
+		sgNodes, err := GetNodesForStorageGroup(ctx, &storageGroup.ID)
+		if err != nil {
+			ch <- err
+		}
+		for _, node := range sgNodes {
 			err := CreateSGHostService(
 				storageGroup,
-				fmt.Sprintf("%d", i))
+				node)
 			if err != nil {
 				ch <- err
 			}
@@ -172,28 +179,58 @@ func SelectSGWithSpace(ctx *Context) chan *StorageGroupResult {
 	ch := make(chan *StorageGroupResult)
 	go func() {
 		defer close(ch)
+		// TODO: Move hydration of storage group to it's own function
 		var id uuid.UUID
 		var name string
 		var num int32
+		var storageClusterID uuid.UUID
 		// For now, let's select a storage group at random
 		query := `
 			SELECT 
-			       id, name, num
+			       sg.id, sg.name, sg.num, sg.storage_cluster_id
 			FROM 
-			     storage_groups 
+			     storage_groups sg
 			OFFSET 
 				floor(random() * (SELECT COUNT(*) FROM storage_groups)) LIMIT 1;`
 		// non-transactional query as there cannot be a storage group insert along with a read
-		err := GetInstance().Db.QueryRow(query).Scan(&id, &name, &num)
-		if err != nil {
+		if err := GetInstance().Db.QueryRow(query).Scan(&id, &name, &num, &storageClusterID); err != nil {
 			ch <- &StorageGroupResult{Error: err}
 			return
 		}
+		// get volume counts and host counts
+		var totalNodes int32
+		queryNodes := `
+			SELECT 
+			       COUNT(*) AS total_nodes 
+			FROM storage_cluster_nodes sgn 
+			WHERE sgn.storage_cluster_id=$1`
+		// non-transactional query as there cannot be a storage group insert along with a read
+		if err := GetInstance().Db.QueryRow(queryNodes, id).Scan(&totalNodes); err != nil {
+			ch <- &StorageGroupResult{Error: err}
+			return
+		}
+
+		var totalVolumes int32
+		queryVolumes := `
+			SELECT 
+			       COUNT(*) AS total_volumes 
+			FROM node_volumes nv 
+			    LEFT JOIN storage_cluster_nodes scn ON scn.node_id=nv.node_id  
+			WHERE scn.storage_cluster_id=$1;`
+		// non-transactional query as there cannot be a storage group insert along with a read
+		if err := GetInstance().Db.QueryRow(queryVolumes, id).Scan(&totalVolumes); err != nil {
+			ch <- &StorageGroupResult{Error: err}
+			return
+		}
+
 		ch <- &StorageGroupResult{
 			StorageGroup: &StorageGroup{
-				ID:   id,
-				Name: name,
-				Num:  num,
+				ID:               id,
+				Name:             name,
+				Num:              num,
+				StorageClusterID: &storageClusterID,
+				TotalNodes:       totalNodes,
+				TotalVolumes:     totalVolumes,
 			},
 		}
 
@@ -210,9 +247,9 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*Sto
 			return
 		}
 		query := `
-			SELECT 
+			SELECT
 			       t1.tenant_id, t1.port, t1.service_name, t2.name, t2.short_name
-			FROM 
+			FROM
 			     tenants_storage_groups t1
 			LEFT JOIN tenants t2
 			ON t1.tenant_id = t2.id
@@ -306,6 +343,7 @@ type StorageGroupTenant struct {
 	*StorageGroup
 	Port        int32
 	ServiceName string
+	MaxNodes    int32
 }
 
 // Address returns the address where the tenant is located on the storage group

@@ -112,6 +112,7 @@ type Volume struct {
 	ID        uuid.UUID
 	NodeID    *uuid.UUID
 	MountPath string
+	Num       int32
 }
 
 func NewVolume(nodeID *uuid.UUID, mountPath string) (*Volume, error) {
@@ -130,17 +131,16 @@ func VolumeAdd(ctx *Context, nodeID *uuid.UUID, mountPoint string) (*Volume, err
 	if err != nil {
 		return nil, err
 	}
-	// insert the volume in the DB
 	query := `INSERT INTO
-				node_volumes ("id", "node_id", "mount_path", "sys_created_by")
-			  VALUES
-				($1, $2, $3, $4)`
+				node_volumes ("num", "id", "node_id", "mount_path", "sys_created_by")
+				SELECT COUNT(*)+1, $2, $3, $4, $5 FROM node_volumes WHERE node_id=$1`
+
 	tx, err := ctx.MainTx()
 	if err != nil {
 		return nil, err
 	}
 	// Execute query
-	_, err = tx.Exec(query, volume.ID, volume.NodeID, volume.MountPath, ctx.WhoAmI)
+	_, err = tx.Exec(query, volume.NodeID, volume.ID, volume.NodeID, volume.MountPath, ctx.WhoAmI)
 	if err != nil {
 		return nil, err
 	}
@@ -149,22 +149,18 @@ func VolumeAdd(ctx *Context, nodeID *uuid.UUID, mountPoint string) (*Volume, err
 
 // Creates a storage cluster in the DB
 func AssignNodeToStorageCluster(ctx *Context, nodeID *uuid.UUID, storageClusterID *uuid.UUID) error {
+	// TODO: Validate the symmetry of disk of this node to other existing nodes on the storage cluster
 	tx, err := ctx.MainTx()
 	if err != nil {
 		return err
 	}
 	// Create association m-n
-	//query :=
-	//	`INSERT INTO
-	//			storage_cluster_nodes ("storage_cluster_id", "node_id", "sys_created_by")
-	//		  VALUES
-	//			($1, $2, $3)`
 	query :=
 		`INSERT INTO
 				storage_cluster_nodes ("num","storage_cluster_id", "node_id", "sys_created_by")
 			  SELECT COUNT(*)+1 ,$2, $3 ,$4 FROM storage_cluster_nodes WHERE storage_cluster_id=$1`
 
-	if _, err = tx.Exec(query, storageClusterID, nodeID, ctx.WhoAmI); err != nil {
+	if _, err = tx.Exec(query, storageClusterID, storageClusterID, nodeID, ctx.WhoAmI); err != nil {
 		return err
 	}
 	return nil
@@ -204,7 +200,7 @@ func GetNodesForStorageGroup(ctx *Context, storageGroupID *uuid.UUID) ([]*Storag
 
 	queryVolumes := `
 		SELECT 
-				nv.node_id, nv.id, nv.mount_path
+				nv.node_id, nv.id, nv.mount_path, nv.num
 		FROM 
 			node_volumes nv
 		WHERE 
@@ -216,7 +212,7 @@ func GetNodesForStorageGroup(ctx *Context, storageGroupID *uuid.UUID) ([]*Storag
 	}
 	for volRows.Next() {
 		vol := Volume{}
-		err := volRows.Scan(&vol.NodeID, &vol.ID, &vol.MountPath)
+		err := volRows.Scan(&vol.NodeID, &vol.ID, &vol.MountPath, &vol.Num)
 		if err != nil {
 			return nil, err
 		}
