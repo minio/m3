@@ -54,17 +54,15 @@ func (ps *privateServer) ClusterNodesAdd(ctx context.Context, in *pb.NodeAddRequ
 		var re = regexp.MustCompile(`^.*?({([0-9]+)\.\.\.([0-9]+)}).*?$`)
 		if !re.MatchString(in.Volumes) {
 			return nil, status.New(codes.InvalidArgument, "Invalid descriptor of volumes mount points").Err()
-		} else {
-			rs := re.FindStringSubmatch(in.Volumes)
-			// parse nums, regex should have validated valid integers
-			fromNum, _ := strconv.Atoi(rs[2])
-			toNum, _ := strconv.Atoi(rs[3])
-			// if we received /mnt/disk{1...4} we will iterate 4 times, and replace {1...4} for the corresponding number
-			for i := fromNum; i <= toNum; i++ {
-				volumes = append(volumes, strings.Replace(in.Volumes, rs[1], fmt.Sprintf("%d", i), 1))
-			}
 		}
-
+		rs := re.FindStringSubmatch(in.Volumes)
+		// parse nums, regex should have validated valid integers
+		fromNum, _ := strconv.Atoi(rs[2])
+		toNum, _ := strconv.Atoi(rs[3])
+		// if we received /mnt/disk{1...4} we will iterate 4 times, and replace {1...4} for the corresponding number
+		for i := fromNum; i <= toNum; i++ {
+			volumes = append(volumes, strings.Replace(in.Volumes, rs[1], fmt.Sprintf("%d", i), 1))
+		}
 	} else {
 		// attempt to validate single volume mount path
 		randomNodeID := uuid.NewV4()

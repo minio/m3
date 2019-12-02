@@ -120,7 +120,7 @@ type Volume struct {
 func NewVolume(nodeID *uuid.UUID, mountPath string) (*Volume, error) {
 	var re = regexp.MustCompile(`^(\/[a-zA-Z0-9_-]+)+$`)
 	if !re.MatchString(mountPath) {
-		errMsg := fmt.Sprintf("invalid mounth path: `%s`", mountPath)
+		errMsg := fmt.Sprintf("invalid mount path: `%s`", mountPath)
 		return nil, errors.New(errMsg)
 	}
 	return &Volume{ID: uuid.NewV4(), NodeID: nodeID, MountPath: mountPath}, nil
