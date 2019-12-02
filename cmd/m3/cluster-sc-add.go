@@ -24,17 +24,12 @@ import (
 )
 
 // Add a storage group to a storage cluster
-var addStorageGroupCmd = cli.Command{
+var addStorageClusterCmd = cli.Command{
 	Name:    "add",
 	Aliases: []string{"a"},
-	Usage:   "add a storage group",
-	Action:  addStorageGroup,
+	Usage:   "add a storage cluster",
+	Action:  addStorageCluster,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "storage_cluster",
-			Value: "",
-			Usage: "Name of the storage cluster to add this group to",
-		},
 		cli.StringFlag{
 			Name:  "name",
 			Value: "",
@@ -44,14 +39,10 @@ var addStorageGroupCmd = cli.Command{
 }
 
 // Adds a Storage Group to house multiple tenants
-func addStorageGroup(ctx *cli.Context) error {
-	storageCluster := ctx.String("storage_cluster")
-	if storageCluster == "" && ctx.Args().Get(0) != "" {
-		storageCluster = ctx.Args().Get(0)
-	}
+func addStorageCluster(ctx *cli.Context) error {
 	name := ctx.String("name")
-	if name == "" && ctx.Args().Get(1) != "" {
-		name = ctx.Args().Get(1)
+	if name == "" && ctx.Args().Get(0) != "" {
+		name = ctx.Args().Get(0)
 	}
 
 	cnxs, err := GetGRPCChannel()
@@ -61,12 +52,9 @@ func addStorageGroup(ctx *cli.Context) error {
 	}
 	defer cnxs.Conn.Close()
 	// perform RPC
-	_, err = cnxs.Client.ClusterStorageGroupAdd(cnxs.Context, &pb.StorageGroupAddRequest{
-		StorageCluster: storageCluster,
-		Name:           name,
-	})
-
-	if err != nil {
+	if _, err = cnxs.Client.ClusterStorageClusterAdd(cnxs.Context, &pb.StorageClusterAddRequest{
+		Name: name,
+	}); err != nil {
 		fmt.Println(err)
 		return nil
 	}

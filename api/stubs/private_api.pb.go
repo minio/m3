@@ -894,7 +894,8 @@ func (m *CLILoginResponse) GetRefreshTokenExpires() int64 {
 }
 
 type StorageGroupAddRequest struct {
-	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	StorageCluster       string   `protobuf:"bytes,1,opt,name=storage_cluster,json=storageCluster,proto3" json:"storage_cluster,omitempty"`
+	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -924,6 +925,13 @@ func (m *StorageGroupAddRequest) XXX_DiscardUnknown() {
 }
 
 var xxx_messageInfo_StorageGroupAddRequest proto.InternalMessageInfo
+
+func (m *StorageGroupAddRequest) GetStorageCluster() string {
+	if m != nil {
+		return m.StorageCluster
+	}
+	return ""
+}
 
 func (m *StorageGroupAddRequest) GetName() string {
 	if m != nil {
@@ -1283,6 +1291,703 @@ func (m *SetEmailTemplateResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_SetEmailTemplateResponse proto.InternalMessageInfo
 
+type Node struct {
+	Id                   string    `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name                 string    `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	K8SLabel             string    `protobuf:"bytes,3,opt,name=k8s_label,json=k8sLabel,proto3" json:"k8s_label,omitempty"`
+	Volumes              []*Volume `protobuf:"bytes,4,rep,name=volumes,proto3" json:"volumes,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
+	XXX_unrecognized     []byte    `json:"-"`
+	XXX_sizecache        int32     `json:"-"`
+}
+
+func (m *Node) Reset()         { *m = Node{} }
+func (m *Node) String() string { return proto.CompactTextString(m) }
+func (*Node) ProtoMessage()    {}
+func (*Node) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{29}
+}
+
+func (m *Node) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Node.Unmarshal(m, b)
+}
+func (m *Node) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Node.Marshal(b, m, deterministic)
+}
+func (m *Node) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Node.Merge(m, src)
+}
+func (m *Node) XXX_Size() int {
+	return xxx_messageInfo_Node.Size(m)
+}
+func (m *Node) XXX_DiscardUnknown() {
+	xxx_messageInfo_Node.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Node proto.InternalMessageInfo
+
+func (m *Node) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *Node) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *Node) GetK8SLabel() string {
+	if m != nil {
+		return m.K8SLabel
+	}
+	return ""
+}
+
+func (m *Node) GetVolumes() []*Volume {
+	if m != nil {
+		return m.Volumes
+	}
+	return nil
+}
+
+type NodeAddRequest struct {
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	K8SLabel             string   `protobuf:"bytes,2,opt,name=k8s_label,json=k8sLabel,proto3" json:"k8s_label,omitempty"`
+	Volumes              string   `protobuf:"bytes,3,opt,name=volumes,proto3" json:"volumes,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *NodeAddRequest) Reset()         { *m = NodeAddRequest{} }
+func (m *NodeAddRequest) String() string { return proto.CompactTextString(m) }
+func (*NodeAddRequest) ProtoMessage()    {}
+func (*NodeAddRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{30}
+}
+
+func (m *NodeAddRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NodeAddRequest.Unmarshal(m, b)
+}
+func (m *NodeAddRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NodeAddRequest.Marshal(b, m, deterministic)
+}
+func (m *NodeAddRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NodeAddRequest.Merge(m, src)
+}
+func (m *NodeAddRequest) XXX_Size() int {
+	return xxx_messageInfo_NodeAddRequest.Size(m)
+}
+func (m *NodeAddRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_NodeAddRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_NodeAddRequest proto.InternalMessageInfo
+
+func (m *NodeAddRequest) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *NodeAddRequest) GetK8SLabel() string {
+	if m != nil {
+		return m.K8SLabel
+	}
+	return ""
+}
+
+func (m *NodeAddRequest) GetVolumes() string {
+	if m != nil {
+		return m.Volumes
+	}
+	return ""
+}
+
+type NodeAddResponse struct {
+	Node                 *Node    `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *NodeAddResponse) Reset()         { *m = NodeAddResponse{} }
+func (m *NodeAddResponse) String() string { return proto.CompactTextString(m) }
+func (*NodeAddResponse) ProtoMessage()    {}
+func (*NodeAddResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{31}
+}
+
+func (m *NodeAddResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NodeAddResponse.Unmarshal(m, b)
+}
+func (m *NodeAddResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NodeAddResponse.Marshal(b, m, deterministic)
+}
+func (m *NodeAddResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NodeAddResponse.Merge(m, src)
+}
+func (m *NodeAddResponse) XXX_Size() int {
+	return xxx_messageInfo_NodeAddResponse.Size(m)
+}
+func (m *NodeAddResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_NodeAddResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_NodeAddResponse proto.InternalMessageInfo
+
+func (m *NodeAddResponse) GetNode() *Node {
+	if m != nil {
+		return m.Node
+	}
+	return nil
+}
+
+type NodeListRequest struct {
+	Offset               int64    `protobuf:"varint,1,opt,name=offset,proto3" json:"offset,omitempty"`
+	Limit                int32    `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *NodeListRequest) Reset()         { *m = NodeListRequest{} }
+func (m *NodeListRequest) String() string { return proto.CompactTextString(m) }
+func (*NodeListRequest) ProtoMessage()    {}
+func (*NodeListRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{32}
+}
+
+func (m *NodeListRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NodeListRequest.Unmarshal(m, b)
+}
+func (m *NodeListRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NodeListRequest.Marshal(b, m, deterministic)
+}
+func (m *NodeListRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NodeListRequest.Merge(m, src)
+}
+func (m *NodeListRequest) XXX_Size() int {
+	return xxx_messageInfo_NodeListRequest.Size(m)
+}
+func (m *NodeListRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_NodeListRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_NodeListRequest proto.InternalMessageInfo
+
+func (m *NodeListRequest) GetOffset() int64 {
+	if m != nil {
+		return m.Offset
+	}
+	return 0
+}
+
+func (m *NodeListRequest) GetLimit() int32 {
+	if m != nil {
+		return m.Limit
+	}
+	return 0
+}
+
+type NodeListResponse struct {
+	Nodes                []*Node  `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	Total                int32    `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *NodeListResponse) Reset()         { *m = NodeListResponse{} }
+func (m *NodeListResponse) String() string { return proto.CompactTextString(m) }
+func (*NodeListResponse) ProtoMessage()    {}
+func (*NodeListResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{33}
+}
+
+func (m *NodeListResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NodeListResponse.Unmarshal(m, b)
+}
+func (m *NodeListResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NodeListResponse.Marshal(b, m, deterministic)
+}
+func (m *NodeListResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NodeListResponse.Merge(m, src)
+}
+func (m *NodeListResponse) XXX_Size() int {
+	return xxx_messageInfo_NodeListResponse.Size(m)
+}
+func (m *NodeListResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_NodeListResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_NodeListResponse proto.InternalMessageInfo
+
+func (m *NodeListResponse) GetNodes() []*Node {
+	if m != nil {
+		return m.Nodes
+	}
+	return nil
+}
+
+func (m *NodeListResponse) GetTotal() int32 {
+	if m != nil {
+		return m.Total
+	}
+	return 0
+}
+
+type Volume struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	NodeId               string   `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	MountPath            string   `protobuf:"bytes,3,opt,name=mount_path,json=mountPath,proto3" json:"mount_path,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Volume) Reset()         { *m = Volume{} }
+func (m *Volume) String() string { return proto.CompactTextString(m) }
+func (*Volume) ProtoMessage()    {}
+func (*Volume) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{34}
+}
+
+func (m *Volume) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Volume.Unmarshal(m, b)
+}
+func (m *Volume) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Volume.Marshal(b, m, deterministic)
+}
+func (m *Volume) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Volume.Merge(m, src)
+}
+func (m *Volume) XXX_Size() int {
+	return xxx_messageInfo_Volume.Size(m)
+}
+func (m *Volume) XXX_DiscardUnknown() {
+	xxx_messageInfo_Volume.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Volume proto.InternalMessageInfo
+
+func (m *Volume) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *Volume) GetNodeId() string {
+	if m != nil {
+		return m.NodeId
+	}
+	return ""
+}
+
+func (m *Volume) GetMountPath() string {
+	if m != nil {
+		return m.MountPath
+	}
+	return ""
+}
+
+type VolumeAddRequest struct {
+	Node                 string   `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
+	MountPath            string   `protobuf:"bytes,2,opt,name=mount_path,json=mountPath,proto3" json:"mount_path,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *VolumeAddRequest) Reset()         { *m = VolumeAddRequest{} }
+func (m *VolumeAddRequest) String() string { return proto.CompactTextString(m) }
+func (*VolumeAddRequest) ProtoMessage()    {}
+func (*VolumeAddRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{35}
+}
+
+func (m *VolumeAddRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_VolumeAddRequest.Unmarshal(m, b)
+}
+func (m *VolumeAddRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_VolumeAddRequest.Marshal(b, m, deterministic)
+}
+func (m *VolumeAddRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VolumeAddRequest.Merge(m, src)
+}
+func (m *VolumeAddRequest) XXX_Size() int {
+	return xxx_messageInfo_VolumeAddRequest.Size(m)
+}
+func (m *VolumeAddRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_VolumeAddRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VolumeAddRequest proto.InternalMessageInfo
+
+func (m *VolumeAddRequest) GetNode() string {
+	if m != nil {
+		return m.Node
+	}
+	return ""
+}
+
+func (m *VolumeAddRequest) GetMountPath() string {
+	if m != nil {
+		return m.MountPath
+	}
+	return ""
+}
+
+type VolumeAddResponse struct {
+	Volume               *Volume  `protobuf:"bytes,1,opt,name=volume,proto3" json:"volume,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *VolumeAddResponse) Reset()         { *m = VolumeAddResponse{} }
+func (m *VolumeAddResponse) String() string { return proto.CompactTextString(m) }
+func (*VolumeAddResponse) ProtoMessage()    {}
+func (*VolumeAddResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{36}
+}
+
+func (m *VolumeAddResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_VolumeAddResponse.Unmarshal(m, b)
+}
+func (m *VolumeAddResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_VolumeAddResponse.Marshal(b, m, deterministic)
+}
+func (m *VolumeAddResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VolumeAddResponse.Merge(m, src)
+}
+func (m *VolumeAddResponse) XXX_Size() int {
+	return xxx_messageInfo_VolumeAddResponse.Size(m)
+}
+func (m *VolumeAddResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_VolumeAddResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VolumeAddResponse proto.InternalMessageInfo
+
+func (m *VolumeAddResponse) GetVolume() *Volume {
+	if m != nil {
+		return m.Volume
+	}
+	return nil
+}
+
+type VolumeListRequest struct {
+	Node                 string   `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
+	Offset               int64    `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
+	Limit                int32    `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *VolumeListRequest) Reset()         { *m = VolumeListRequest{} }
+func (m *VolumeListRequest) String() string { return proto.CompactTextString(m) }
+func (*VolumeListRequest) ProtoMessage()    {}
+func (*VolumeListRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{37}
+}
+
+func (m *VolumeListRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_VolumeListRequest.Unmarshal(m, b)
+}
+func (m *VolumeListRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_VolumeListRequest.Marshal(b, m, deterministic)
+}
+func (m *VolumeListRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VolumeListRequest.Merge(m, src)
+}
+func (m *VolumeListRequest) XXX_Size() int {
+	return xxx_messageInfo_VolumeListRequest.Size(m)
+}
+func (m *VolumeListRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_VolumeListRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VolumeListRequest proto.InternalMessageInfo
+
+func (m *VolumeListRequest) GetNode() string {
+	if m != nil {
+		return m.Node
+	}
+	return ""
+}
+
+func (m *VolumeListRequest) GetOffset() int64 {
+	if m != nil {
+		return m.Offset
+	}
+	return 0
+}
+
+func (m *VolumeListRequest) GetLimit() int32 {
+	if m != nil {
+		return m.Limit
+	}
+	return 0
+}
+
+type VolumeListResponse struct {
+	Volumes              []*Volume `protobuf:"bytes,1,rep,name=volumes,proto3" json:"volumes,omitempty"`
+	Total                int32     `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
+	XXX_unrecognized     []byte    `json:"-"`
+	XXX_sizecache        int32     `json:"-"`
+}
+
+func (m *VolumeListResponse) Reset()         { *m = VolumeListResponse{} }
+func (m *VolumeListResponse) String() string { return proto.CompactTextString(m) }
+func (*VolumeListResponse) ProtoMessage()    {}
+func (*VolumeListResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{38}
+}
+
+func (m *VolumeListResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_VolumeListResponse.Unmarshal(m, b)
+}
+func (m *VolumeListResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_VolumeListResponse.Marshal(b, m, deterministic)
+}
+func (m *VolumeListResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VolumeListResponse.Merge(m, src)
+}
+func (m *VolumeListResponse) XXX_Size() int {
+	return xxx_messageInfo_VolumeListResponse.Size(m)
+}
+func (m *VolumeListResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_VolumeListResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VolumeListResponse proto.InternalMessageInfo
+
+func (m *VolumeListResponse) GetVolumes() []*Volume {
+	if m != nil {
+		return m.Volumes
+	}
+	return nil
+}
+
+func (m *VolumeListResponse) GetTotal() int32 {
+	if m != nil {
+		return m.Total
+	}
+	return 0
+}
+
+type AssignNodeRequest struct {
+	StorageCluster       string   `protobuf:"bytes,1,opt,name=storage_cluster,json=storageCluster,proto3" json:"storage_cluster,omitempty"`
+	Node                 string   `protobuf:"bytes,2,opt,name=node,proto3" json:"node,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AssignNodeRequest) Reset()         { *m = AssignNodeRequest{} }
+func (m *AssignNodeRequest) String() string { return proto.CompactTextString(m) }
+func (*AssignNodeRequest) ProtoMessage()    {}
+func (*AssignNodeRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{39}
+}
+
+func (m *AssignNodeRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AssignNodeRequest.Unmarshal(m, b)
+}
+func (m *AssignNodeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AssignNodeRequest.Marshal(b, m, deterministic)
+}
+func (m *AssignNodeRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AssignNodeRequest.Merge(m, src)
+}
+func (m *AssignNodeRequest) XXX_Size() int {
+	return xxx_messageInfo_AssignNodeRequest.Size(m)
+}
+func (m *AssignNodeRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_AssignNodeRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AssignNodeRequest proto.InternalMessageInfo
+
+func (m *AssignNodeRequest) GetStorageCluster() string {
+	if m != nil {
+		return m.StorageCluster
+	}
+	return ""
+}
+
+func (m *AssignNodeRequest) GetNode() string {
+	if m != nil {
+		return m.Node
+	}
+	return ""
+}
+
+type AssignNodeResponse struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *AssignNodeResponse) Reset()         { *m = AssignNodeResponse{} }
+func (m *AssignNodeResponse) String() string { return proto.CompactTextString(m) }
+func (*AssignNodeResponse) ProtoMessage()    {}
+func (*AssignNodeResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{40}
+}
+
+func (m *AssignNodeResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_AssignNodeResponse.Unmarshal(m, b)
+}
+func (m *AssignNodeResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_AssignNodeResponse.Marshal(b, m, deterministic)
+}
+func (m *AssignNodeResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AssignNodeResponse.Merge(m, src)
+}
+func (m *AssignNodeResponse) XXX_Size() int {
+	return xxx_messageInfo_AssignNodeResponse.Size(m)
+}
+func (m *AssignNodeResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_AssignNodeResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AssignNodeResponse proto.InternalMessageInfo
+
+type StorageCluster struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *StorageCluster) Reset()         { *m = StorageCluster{} }
+func (m *StorageCluster) String() string { return proto.CompactTextString(m) }
+func (*StorageCluster) ProtoMessage()    {}
+func (*StorageCluster) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{41}
+}
+
+func (m *StorageCluster) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_StorageCluster.Unmarshal(m, b)
+}
+func (m *StorageCluster) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_StorageCluster.Marshal(b, m, deterministic)
+}
+func (m *StorageCluster) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StorageCluster.Merge(m, src)
+}
+func (m *StorageCluster) XXX_Size() int {
+	return xxx_messageInfo_StorageCluster.Size(m)
+}
+func (m *StorageCluster) XXX_DiscardUnknown() {
+	xxx_messageInfo_StorageCluster.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_StorageCluster proto.InternalMessageInfo
+
+func (m *StorageCluster) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *StorageCluster) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+type StorageClusterAddRequest struct {
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *StorageClusterAddRequest) Reset()         { *m = StorageClusterAddRequest{} }
+func (m *StorageClusterAddRequest) String() string { return proto.CompactTextString(m) }
+func (*StorageClusterAddRequest) ProtoMessage()    {}
+func (*StorageClusterAddRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{42}
+}
+
+func (m *StorageClusterAddRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_StorageClusterAddRequest.Unmarshal(m, b)
+}
+func (m *StorageClusterAddRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_StorageClusterAddRequest.Marshal(b, m, deterministic)
+}
+func (m *StorageClusterAddRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StorageClusterAddRequest.Merge(m, src)
+}
+func (m *StorageClusterAddRequest) XXX_Size() int {
+	return xxx_messageInfo_StorageClusterAddRequest.Size(m)
+}
+func (m *StorageClusterAddRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_StorageClusterAddRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_StorageClusterAddRequest proto.InternalMessageInfo
+
+func (m *StorageClusterAddRequest) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+type StorageClusterAddResponse struct {
+	StorageCluster       *StorageCluster `protobuf:"bytes,1,opt,name=storage_cluster,json=storageCluster,proto3" json:"storage_cluster,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
+}
+
+func (m *StorageClusterAddResponse) Reset()         { *m = StorageClusterAddResponse{} }
+func (m *StorageClusterAddResponse) String() string { return proto.CompactTextString(m) }
+func (*StorageClusterAddResponse) ProtoMessage()    {}
+func (*StorageClusterAddResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f4274b222e5fbd62, []int{43}
+}
+
+func (m *StorageClusterAddResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_StorageClusterAddResponse.Unmarshal(m, b)
+}
+func (m *StorageClusterAddResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_StorageClusterAddResponse.Marshal(b, m, deterministic)
+}
+func (m *StorageClusterAddResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StorageClusterAddResponse.Merge(m, src)
+}
+func (m *StorageClusterAddResponse) XXX_Size() int {
+	return xxx_messageInfo_StorageClusterAddResponse.Size(m)
+}
+func (m *StorageClusterAddResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_StorageClusterAddResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_StorageClusterAddResponse proto.InternalMessageInfo
+
+func (m *StorageClusterAddResponse) GetStorageCluster() *StorageCluster {
+	if m != nil {
+		return m.StorageCluster
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*AdminEmpty)(nil), "m3.AdminEmpty")
 	proto.RegisterType((*TenantAddRequest)(nil), "m3.TenantAddRequest")
@@ -1313,81 +2018,121 @@ func init() {
 	proto.RegisterType((*TenantServiceAccountAssignResponse)(nil), "m3.TenantServiceAccountAssignResponse")
 	proto.RegisterType((*SetEmailTemplateRequest)(nil), "m3.SetEmailTemplateRequest")
 	proto.RegisterType((*SetEmailTemplateResponse)(nil), "m3.SetEmailTemplateResponse")
+	proto.RegisterType((*Node)(nil), "m3.Node")
+	proto.RegisterType((*NodeAddRequest)(nil), "m3.NodeAddRequest")
+	proto.RegisterType((*NodeAddResponse)(nil), "m3.NodeAddResponse")
+	proto.RegisterType((*NodeListRequest)(nil), "m3.NodeListRequest")
+	proto.RegisterType((*NodeListResponse)(nil), "m3.NodeListResponse")
+	proto.RegisterType((*Volume)(nil), "m3.Volume")
+	proto.RegisterType((*VolumeAddRequest)(nil), "m3.VolumeAddRequest")
+	proto.RegisterType((*VolumeAddResponse)(nil), "m3.VolumeAddResponse")
+	proto.RegisterType((*VolumeListRequest)(nil), "m3.VolumeListRequest")
+	proto.RegisterType((*VolumeListResponse)(nil), "m3.VolumeListResponse")
+	proto.RegisterType((*AssignNodeRequest)(nil), "m3.AssignNodeRequest")
+	proto.RegisterType((*AssignNodeResponse)(nil), "m3.AssignNodeResponse")
+	proto.RegisterType((*StorageCluster)(nil), "m3.StorageCluster")
+	proto.RegisterType((*StorageClusterAddRequest)(nil), "m3.StorageClusterAddRequest")
+	proto.RegisterType((*StorageClusterAddResponse)(nil), "m3.StorageClusterAddResponse")
 }
 
 func init() { proto.RegisterFile("private_api.proto", fileDescriptor_f4274b222e5fbd62) }
 
 var fileDescriptor_f4274b222e5fbd62 = []byte{
-	// 1093 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x57, 0x5b, 0x6f, 0xdb, 0x36,
-	0x14, 0x8e, 0x92, 0x38, 0xb1, 0x8f, 0xd3, 0xd8, 0x65, 0x9c, 0x44, 0x55, 0x6e, 0x2e, 0xdb, 0x75,
-	0xd9, 0x2d, 0x28, 0x92, 0x01, 0x03, 0xb6, 0x27, 0x27, 0x4b, 0x87, 0xac, 0x59, 0xeb, 0xd9, 0xe9,
-	0x30, 0x60, 0x0f, 0x86, 0x22, 0xd3, 0x2e, 0x51, 0xeb, 0x32, 0x91, 0xce, 0xd6, 0xc7, 0xed, 0x61,
-	0x4f, 0xfb, 0x07, 0xfb, 0x17, 0x7b, 0xdc, 0xaf, 0x1b, 0x44, 0x52, 0xd4, 0xc5, 0x92, 0x1d, 0xf4,
-	0x4d, 0xe7, 0xfe, 0xf1, 0xf0, 0x5c, 0x28, 0x78, 0x18, 0x84, 0xf4, 0xce, 0xe6, 0x64, 0x60, 0x07,
-	0xf4, 0x24, 0x08, 0x7d, 0xee, 0xa3, 0x65, 0xf7, 0xcc, 0x6a, 0x06, 0xd3, 0xdb, 0x09, 0x75, 0x12,
-	0x2e, 0xde, 0x00, 0xe8, 0x0c, 0x5d, 0xea, 0x5d, 0xba, 0x01, 0x7f, 0x8f, 0xff, 0x30, 0xa0, 0x79,
-	0x43, 0x3c, 0xdb, 0xe3, 0x9d, 0xe1, 0xb0, 0x47, 0x7e, 0x9d, 0x12, 0xc6, 0x11, 0x82, 0x55, 0xcf,
-	0x76, 0x89, 0x69, 0xb4, 0x8d, 0xe3, 0x5a, 0x4f, 0x7c, 0xa3, 0x03, 0x00, 0xf6, 0xd6, 0x0f, 0xf9,
-	0x40, 0x48, 0x96, 0x85, 0xa4, 0x26, 0x38, 0xaf, 0x22, 0xf1, 0x1e, 0xd4, 0xa6, 0x8c, 0x84, 0x52,
-	0xba, 0x22, 0xa4, 0xd5, 0x88, 0xf1, 0x4a, 0xd9, 0x0a, 0x21, 0x71, 0x6d, 0x3a, 0x31, 0x57, 0xa5,
-	0x6d, 0xc4, 0xb9, 0x8c, 0x18, 0x78, 0x0b, 0x1e, 0xa6, 0x20, 0xb0, 0xc0, 0xf7, 0x18, 0xc1, 0x3f,
-	0xc2, 0x8e, 0x64, 0x9e, 0x4f, 0x9d, 0x77, 0x24, 0x8d, 0x6e, 0x07, 0xd6, 0xb8, 0x90, 0x28, 0x7c,
-	0x8a, 0x42, 0x47, 0x50, 0xbf, 0x15, 0xba, 0x69, 0x88, 0x20, 0x59, 0x11, 0x0c, 0xfc, 0x08, 0x76,
-	0x67, 0x5c, 0xaa, 0x68, 0xff, 0x19, 0x60, 0x49, 0x59, 0x97, 0x84, 0x2e, 0x65, 0x8c, 0xfa, 0xde,
-	0x3d, 0x42, 0xc6, 0x89, 0x5a, 0x4e, 0x25, 0xaa, 0x0d, 0xf5, 0x21, 0x61, 0x4e, 0x48, 0x03, 0x4e,
-	0x7d, 0x4f, 0xe5, 0x22, 0xcd, 0x8a, 0xbc, 0x91, 0xd1, 0x88, 0x38, 0x5c, 0xa5, 0x42, 0x51, 0x68,
-	0x1f, 0x6a, 0x21, 0x61, 0xfe, 0x34, 0x74, 0x08, 0x33, 0x2b, 0xed, 0x95, 0x28, 0x4b, 0x9a, 0x81,
-	0x4c, 0x58, 0xb7, 0x9d, 0xc8, 0x9e, 0x99, 0x6b, 0x42, 0x16, 0x93, 0xf8, 0x00, 0xf6, 0x0a, 0xb1,
-	0xab, 0xb3, 0x39, 0xb3, 0xe2, 0x6b, 0xca, 0xf8, 0xa2, 0xb3, 0xed, 0xc0, 0x9a, 0x3f, 0x1a, 0x31,
-	0xc2, 0xc5, 0xe9, 0x56, 0x7a, 0x8a, 0x42, 0x2d, 0xa8, 0x4c, 0xa8, 0x4b, 0xb9, 0x38, 0x59, 0xa5,
-	0x27, 0x09, 0x3c, 0x82, 0xfd, 0xe2, 0x20, 0x12, 0x04, 0x7a, 0x0e, 0xf5, 0x40, 0x4b, 0x98, 0x69,
-	0xb4, 0x57, 0x8e, 0xeb, 0xa7, 0x9b, 0x27, 0xee, 0xd9, 0x49, 0x62, 0xd0, 0x4b, 0xab, 0x44, 0x71,
-	0xb8, 0xcf, 0xed, 0x89, 0x08, 0x5f, 0xe9, 0x49, 0x02, 0xff, 0x69, 0xc0, 0xc1, 0xcc, 0x61, 0x19,
-	0xa3, 0x63, 0x6f, 0xd1, 0x79, 0x0e, 0x01, 0x12, 0xf7, 0x71, 0x75, 0x24, 0x1c, 0xf4, 0x09, 0x34,
-	0x19, 0x09, 0xef, 0xa8, 0x43, 0x06, 0xb6, 0xe3, 0xf8, 0x53, 0x8f, 0x33, 0x73, 0x45, 0x24, 0xba,
-	0xa1, 0xf8, 0x1d, 0xc5, 0xc6, 0x6d, 0x38, 0x2c, 0xc3, 0xa0, 0x72, 0xfe, 0xb7, 0x01, 0x2d, 0xa9,
-	0xf2, 0x86, 0x91, 0xf0, 0x03, 0x2b, 0xa9, 0x05, 0x15, 0xd9, 0x31, 0xb2, 0x86, 0x24, 0x81, 0x2c,
-	0xa8, 0x06, 0x36, 0x63, 0xbf, 0xf9, 0xe1, 0x50, 0xd5, 0x8f, 0xa6, 0x23, 0xef, 0xd4, 0xbb, 0xa3,
-	0x9c, 0x98, 0x95, 0xb6, 0x71, 0x5c, 0xed, 0x29, 0x0a, 0xef, 0xc2, 0x76, 0x0e, 0x8d, 0xc2, 0xf9,
-	0x0d, 0x34, 0xc4, 0x30, 0x58, 0xd0, 0xfc, 0x1a, 0xc9, 0x72, 0x0a, 0x09, 0x46, 0xd0, 0x4c, 0x8c,
-	0x95, 0xc3, 0x97, 0xb0, 0xdb, 0x8f, 0x5a, 0xcb, 0xa5, 0x5e, 0x57, 0xa1, 0x8a, 0x1d, 0x8b, 0x0b,
-	0x7d, 0x47, 0x3c, 0xe5, 0x59, 0x12, 0x99, 0xe3, 0x2c, 0x67, 0x8f, 0x83, 0x2d, 0x30, 0x67, 0x9d,
-	0xa9, 0x40, 0x17, 0xd0, 0xb8, 0xb8, 0xbe, 0xba, 0xf6, 0xc7, 0xd4, 0x4b, 0x05, 0x90, 0x28, 0x8d,
-	0xb2, 0x7c, 0xe5, 0x03, 0xfc, 0x63, 0x40, 0x33, 0xf1, 0xa2, 0x4a, 0xb5, 0x18, 0xa7, 0x09, 0xeb,
-	0xe4, 0xf7, 0x80, 0x86, 0x84, 0xa9, 0x7e, 0x88, 0x49, 0xf4, 0x04, 0x1e, 0x84, 0x64, 0x14, 0x12,
-	0xf6, 0x76, 0x20, 0xed, 0xe4, 0x75, 0x6d, 0x28, 0xe6, 0x8d, 0x30, 0x3f, 0x85, 0xed, 0x8c, 0xd2,
-	0x20, 0x76, 0xb6, 0x2a, 0x9c, 0x6d, 0xa5, 0x95, 0x2f, 0xa5, 0x08, 0x7f, 0x0e, 0x3b, 0x7d, 0xee,
-	0x87, 0xf6, 0x98, 0x7c, 0x17, 0xfa, 0xd3, 0x60, 0xfe, 0x1d, 0x45, 0xd3, 0x6d, 0x46, 0x5b, 0xe5,
-	0xea, 0x35, 0x1c, 0x25, 0xd7, 0xff, 0xc2, 0x0f, 0xc7, 0x3e, 0xcf, 0x5f, 0x4e, 0x59, 0x5d, 0x16,
-	0xdf, 0x3c, 0x86, 0x76, 0xb9, 0x43, 0x15, 0x74, 0x08, 0x8f, 0xa5, 0x4e, 0x3f, 0xd3, 0x3d, 0x1d,
-	0x31, 0xb4, 0x16, 0x85, 0xfd, 0x18, 0x1a, 0xb9, 0x66, 0x54, 0x00, 0x36, 0xb3, 0xbd, 0x88, 0x9f,
-	0x02, 0x9e, 0x17, 0x45, 0x61, 0xf9, 0xcb, 0x28, 0x01, 0x73, 0xaf, 0xc9, 0x71, 0x5f, 0x30, 0xd1,
-	0xe8, 0x4f, 0x0f, 0x39, 0x39, 0x3d, 0xd2, 0xac, 0x52, 0xb8, 0xd9, 0xe9, 0x71, 0x25, 0x9a, 0x48,
-	0x2c, 0xc7, 0x1b, 0xe2, 0x06, 0x13, 0x9b, 0x93, 0x79, 0xdd, 0x69, 0x41, 0x95, 0x2b, 0xb5, 0xb8,
-	0xc2, 0x63, 0x5a, 0xb5, 0x50, 0xce, 0x95, 0x0c, 0x73, 0xfa, 0x2f, 0x00, 0x74, 0xe5, 0xab, 0xa1,
-	0xd3, 0xbd, 0x42, 0x9f, 0xc1, 0x7a, 0x9f, 0xf0, 0x69, 0xf0, 0xed, 0x39, 0x12, 0x83, 0x39, 0x79,
-	0x25, 0x58, 0x39, 0x1a, 0x2f, 0xa1, 0xe7, 0xb0, 0x21, 0x94, 0x7f, 0xa0, 0xe3, 0xd0, 0xe6, 0xe4,
-	0x1e, 0x16, 0x5f, 0x43, 0x4d, 0x6f, 0x79, 0xd4, 0x8a, 0xc4, 0xf9, 0x77, 0x87, 0xb5, 0x9d, 0xe3,
-	0xaa, 0x74, 0x2c, 0xa1, 0x6b, 0x68, 0xe4, 0x36, 0x37, 0xb2, 0x12, 0xdd, 0xfc, 0x0b, 0xc1, 0xda,
-	0x2b, 0x94, 0x69, 0x6f, 0x3f, 0xc3, 0x56, 0xc1, 0xbe, 0x44, 0x87, 0x89, 0x55, 0xd1, 0x23, 0xc0,
-	0x3a, 0x2a, 0x95, 0x6b, 0xcf, 0xbf, 0xc4, 0x53, 0x3f, 0xbb, 0x05, 0x51, 0xa1, 0x69, 0x6a, 0x09,
-	0x5b, 0xed, 0x72, 0x05, 0xed, 0xdc, 0x8e, 0x5f, 0x44, 0xf9, 0xad, 0x83, 0x1e, 0x17, 0x22, 0x4b,
-	0xd7, 0xb6, 0x85, 0xe7, 0xa9, 0xe8, 0x10, 0x2c, 0xee, 0xeb, 0x6c, 0x79, 0xbe, 0x09, 0x86, 0x36,
-	0x27, 0x5d, 0x7f, 0x42, 0x9d, 0xf7, 0xe8, 0xa3, 0xc4, 0xd3, 0x9c, 0xce, 0xb6, 0x9e, 0x2d, 0x52,
-	0xd3, 0x41, 0xdd, 0xf8, 0xe9, 0x55, 0xd4, 0x13, 0x73, 0xc2, 0x65, 0xce, 0xf7, 0x6c, 0x91, 0x9a,
-	0x0e, 0xf7, 0x02, 0x1e, 0x64, 0x76, 0x21, 0x32, 0x13, 0xd3, 0xec, 0xb2, 0xb6, 0x1e, 0x15, 0x48,
-	0xb4, 0x9f, 0x31, 0x98, 0x65, 0x33, 0x10, 0x3d, 0xc9, 0x1a, 0x16, 0x8e, 0x5c, 0xeb, 0xe9, 0x7c,
-	0x25, 0x1d, 0xe8, 0x2b, 0xa8, 0xc6, 0x6b, 0x16, 0x6d, 0xe9, 0xb6, 0x4a, 0xc1, 0x6c, 0x65, 0x99,
-	0xda, 0xf0, 0x7b, 0xa8, 0xf7, 0x49, 0x02, 0x4a, 0x74, 0x45, 0xc9, 0x72, 0xb6, 0xf6, 0x8b, 0x85,
-	0xda, 0xd7, 0x97, 0x50, 0x11, 0x5b, 0x52, 0x22, 0xc8, 0x6d, 0x5e, 0x89, 0x20, 0xbf, 0x48, 0xf1,
-	0x12, 0x3a, 0x83, 0xc6, 0x4f, 0xf6, 0x84, 0x46, 0xd5, 0xd3, 0x27, 0xf2, 0x99, 0xb5, 0x78, 0x50,
-	0xbc, 0x84, 0xcd, 0x8b, 0xc9, 0x94, 0x71, 0x12, 0xf6, 0x9d, 0xfe, 0x58, 0xf7, 0x7a, 0xf1, 0x2a,
-	0x94, 0xbd, 0x5e, 0xb6, 0xf8, 0x96, 0xd0, 0x6b, 0x68, 0xe6, 0xe7, 0x9f, 0x4e, 0x44, 0xd1, 0x80,
-	0xd5, 0x89, 0x28, 0x1c, 0x99, 0x78, 0xe9, 0xfc, 0x53, 0xd8, 0xa6, 0xfe, 0x89, 0x4b, 0xbd, 0x48,
-	0x4f, 0xfd, 0x73, 0x7d, 0x61, 0x07, 0xf4, 0xbc, 0x11, 0x8f, 0xd2, 0x80, 0x76, 0xa3, 0x1f, 0xad,
-	0xae, 0x71, 0xbb, 0x26, 0xfe, 0xb8, 0xce, 0xfe, 0x0f, 0x00, 0x00, 0xff, 0xff, 0x3b, 0xce, 0x3e,
-	0xd3, 0x9c, 0x0d, 0x00, 0x00,
+	// 1502 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x58, 0xdd, 0x72, 0xdb, 0x44,
+	0x14, 0x8e, 0x9c, 0xd8, 0xb1, 0x8f, 0xdb, 0xd8, 0xd9, 0x38, 0x89, 0xaa, 0xfc, 0xd4, 0x55, 0x4b,
+	0x29, 0x30, 0x84, 0x4e, 0xd2, 0x99, 0x76, 0x28, 0x33, 0x9d, 0xa4, 0xa4, 0x25, 0x10, 0x5a, 0x63,
+	0x37, 0x9d, 0x32, 0xbd, 0xf0, 0x28, 0xf6, 0x26, 0xd9, 0x89, 0xf5, 0x83, 0x76, 0x1d, 0xe8, 0x25,
+	0x5c, 0x70, 0xc5, 0x1b, 0xf0, 0x26, 0xbc, 0x15, 0x6f, 0xc0, 0xec, 0x8f, 0xa4, 0x95, 0x2c, 0xd9,
+	0xa1, 0x77, 0xde, 0x73, 0xf6, 0x7c, 0xe7, 0xdb, 0xa3, 0x3d, 0x3f, 0x6b, 0x58, 0x0e, 0x42, 0x72,
+	0xe5, 0x30, 0xdc, 0x77, 0x02, 0xb2, 0x13, 0x84, 0x3e, 0xf3, 0x51, 0xc9, 0xdd, 0xb3, 0x9a, 0xc1,
+	0xf8, 0x74, 0x44, 0x06, 0x89, 0xd4, 0xbe, 0x01, 0xb0, 0x3f, 0x74, 0x89, 0x77, 0xe8, 0x06, 0xec,
+	0x83, 0xfd, 0xbb, 0x01, 0xcd, 0x37, 0xd8, 0x73, 0x3c, 0xb6, 0x3f, 0x1c, 0x76, 0xf1, 0x2f, 0x63,
+	0x4c, 0x19, 0x42, 0xb0, 0xe0, 0x39, 0x2e, 0x36, 0x8d, 0xb6, 0xf1, 0xa0, 0xd6, 0x15, 0xbf, 0xd1,
+	0x16, 0x00, 0xbd, 0xf0, 0x43, 0xd6, 0x17, 0x9a, 0x92, 0xd0, 0xd4, 0x84, 0xe4, 0x15, 0x57, 0x6f,
+	0x40, 0x6d, 0x4c, 0x71, 0x28, 0xb5, 0xf3, 0x42, 0x5b, 0xe5, 0x82, 0x57, 0xca, 0x56, 0x28, 0xb1,
+	0xeb, 0x90, 0x91, 0xb9, 0x20, 0x6d, 0xb9, 0xe4, 0x90, 0x0b, 0xec, 0x15, 0x58, 0xd6, 0x28, 0xd0,
+	0xc0, 0xf7, 0x28, 0xb6, 0x7f, 0x82, 0x35, 0x29, 0x3c, 0x18, 0x0f, 0x2e, 0xb1, 0xce, 0x6e, 0x0d,
+	0x2a, 0x4c, 0x68, 0x14, 0x3f, 0xb5, 0x42, 0xb7, 0xa1, 0x7e, 0x2a, 0xf6, 0xea, 0x14, 0x41, 0x8a,
+	0x38, 0x0d, 0xfb, 0x16, 0xac, 0x4f, 0x40, 0x2a, 0x6f, 0xff, 0x18, 0x60, 0x49, 0x5d, 0x07, 0x87,
+	0x2e, 0xa1, 0x94, 0xf8, 0xde, 0x35, 0x5c, 0x46, 0x81, 0x2a, 0x69, 0x81, 0x6a, 0x43, 0x7d, 0x88,
+	0xe9, 0x20, 0x24, 0x01, 0x23, 0xbe, 0xa7, 0x62, 0xa1, 0x8b, 0x38, 0x1a, 0x3e, 0x3b, 0xc3, 0x03,
+	0xa6, 0x42, 0xa1, 0x56, 0x68, 0x13, 0x6a, 0x21, 0xa6, 0xfe, 0x38, 0x1c, 0x60, 0x6a, 0x96, 0xdb,
+	0xf3, 0x3c, 0x4a, 0xb1, 0x00, 0x99, 0xb0, 0xe8, 0x0c, 0xb8, 0x3d, 0x35, 0x2b, 0x42, 0x17, 0x2d,
+	0xed, 0x2d, 0xd8, 0xc8, 0xe5, 0xae, 0xce, 0x36, 0x98, 0x54, 0x1f, 0x13, 0xca, 0x66, 0x9d, 0x6d,
+	0x0d, 0x2a, 0xfe, 0xd9, 0x19, 0xc5, 0x4c, 0x9c, 0x6e, 0xbe, 0xab, 0x56, 0xa8, 0x05, 0xe5, 0x11,
+	0x71, 0x09, 0x13, 0x27, 0x2b, 0x77, 0xe5, 0xc2, 0x3e, 0x83, 0xcd, 0x7c, 0x27, 0x92, 0x04, 0x7a,
+	0x08, 0xf5, 0x20, 0xd6, 0x50, 0xd3, 0x68, 0xcf, 0x3f, 0xa8, 0xef, 0x2e, 0xed, 0xb8, 0x7b, 0x3b,
+	0x89, 0x41, 0x57, 0xdf, 0xc2, 0xfd, 0x30, 0x9f, 0x39, 0x23, 0xe1, 0xbe, 0xdc, 0x95, 0x0b, 0xfb,
+	0x0f, 0x03, 0xb6, 0x26, 0x0e, 0x4b, 0x29, 0x39, 0xf7, 0x66, 0x9d, 0x67, 0x1b, 0x20, 0x81, 0x8f,
+	0x6e, 0x47, 0x22, 0x41, 0x9f, 0x41, 0x93, 0xe2, 0xf0, 0x8a, 0x0c, 0x70, 0xdf, 0x19, 0x0c, 0xfc,
+	0xb1, 0xc7, 0xa8, 0x39, 0x2f, 0x02, 0xdd, 0x50, 0xf2, 0x7d, 0x25, 0xb6, 0xdb, 0xb0, 0x5d, 0xc4,
+	0x41, 0xc5, 0xfc, 0x2f, 0x03, 0x5a, 0x72, 0xcb, 0x09, 0xc5, 0xe1, 0x47, 0xde, 0xa4, 0x16, 0x94,
+	0x65, 0xc6, 0xc8, 0x3b, 0x24, 0x17, 0xc8, 0x82, 0x6a, 0xe0, 0x50, 0xfa, 0xab, 0x1f, 0x0e, 0xd5,
+	0xfd, 0x89, 0xd7, 0x1c, 0x9d, 0x78, 0x57, 0x84, 0x61, 0xb3, 0xdc, 0x36, 0x1e, 0x54, 0xbb, 0x6a,
+	0x65, 0xaf, 0xc3, 0x6a, 0x86, 0x8d, 0xe2, 0xf9, 0x14, 0x1a, 0xa2, 0x18, 0xcc, 0x48, 0xfe, 0x98,
+	0x49, 0x49, 0x63, 0x62, 0x23, 0x68, 0x26, 0xc6, 0x0a, 0xf0, 0x07, 0x58, 0xef, 0xf1, 0xd4, 0x72,
+	0x89, 0xd7, 0x51, 0xac, 0x22, 0x60, 0xf1, 0x41, 0x2f, 0xb1, 0xa7, 0x90, 0xe5, 0x22, 0x75, 0x9c,
+	0x52, 0xfa, 0x38, 0xb6, 0x05, 0xe6, 0x24, 0x98, 0x72, 0xf4, 0x1c, 0x1a, 0xcf, 0x8f, 0x8f, 0x8e,
+	0xfd, 0x73, 0xe2, 0x69, 0x0e, 0x24, 0x4b, 0xa3, 0x28, 0x5e, 0x59, 0x07, 0x7f, 0x1b, 0xd0, 0x4c,
+	0x50, 0xd4, 0x55, 0xcd, 0xe7, 0x69, 0xc2, 0x22, 0xfe, 0x2d, 0x20, 0x21, 0xa6, 0x2a, 0x1f, 0xa2,
+	0x25, 0xba, 0x0b, 0x37, 0x43, 0x7c, 0x16, 0x62, 0x7a, 0xd1, 0x97, 0x76, 0xf2, 0x73, 0xdd, 0x50,
+	0xc2, 0x37, 0xc2, 0x7c, 0x17, 0x56, 0x53, 0x9b, 0xfa, 0x11, 0xd8, 0x82, 0x00, 0x5b, 0xd1, 0x37,
+	0x1f, 0x4a, 0x95, 0x7d, 0x02, 0x6b, 0x3d, 0xe6, 0x87, 0xce, 0x39, 0x7e, 0x19, 0xfa, 0xe3, 0x40,
+	0xfb, 0x46, 0x9f, 0x42, 0x83, 0x4a, 0x4d, 0x7f, 0x30, 0x1a, 0x53, 0x86, 0x43, 0x45, 0x76, 0x49,
+	0x89, 0x9f, 0x4b, 0x69, 0xde, 0xb5, 0xe2, 0x65, 0x70, 0x02, 0x56, 0x05, 0xf5, 0x35, 0xdc, 0x4e,
+	0xee, 0xc9, 0x0b, 0x3f, 0x3c, 0xf7, 0x59, 0xf6, 0x2b, 0x16, 0x5d, 0xe0, 0xfc, 0x2b, 0x62, 0x43,
+	0xbb, 0x18, 0x50, 0x39, 0x1d, 0xc2, 0x1d, 0xb9, 0xa7, 0x97, 0x4a, 0xb3, 0x7d, 0x51, 0xdd, 0x66,
+	0xb9, 0xe5, 0x91, 0x48, 0x67, 0xad, 0x22, 0xb0, 0x94, 0x4e, 0x5a, 0xfb, 0x1e, 0xd8, 0xd3, 0xbc,
+	0x28, 0x2e, 0x7f, 0x1a, 0x05, 0x64, 0xae, 0x55, 0x62, 0xae, 0x4b, 0x86, 0xf7, 0x08, 0xbd, 0x1a,
+	0xca, 0x32, 0xa3, 0x8b, 0x0a, 0xe9, 0xa6, 0xcb, 0xcc, 0x91, 0xc8, 0x36, 0xd1, 0x45, 0xdf, 0x60,
+	0x37, 0x18, 0x39, 0x0c, 0x4f, 0x4b, 0x63, 0x0b, 0xaa, 0x4c, 0x6d, 0x8b, 0x52, 0x21, 0x5a, 0xab,
+	0x5c, 0xcb, 0x40, 0x29, 0x37, 0x2e, 0x2c, 0xbc, 0xf2, 0x87, 0x18, 0x2d, 0x41, 0x89, 0x0c, 0x15,
+	0x62, 0x89, 0x0c, 0x73, 0x8b, 0xd6, 0x06, 0xd4, 0x2e, 0x9f, 0xd0, 0xfe, 0xc8, 0x39, 0xc5, 0x51,
+	0xe1, 0xaa, 0x5e, 0x3e, 0xa1, 0xc7, 0x7c, 0x8d, 0xee, 0xc1, 0xe2, 0x95, 0x3f, 0x1a, 0xbb, 0xe2,
+	0xde, 0xf3, 0x0e, 0x00, 0xbc, 0x03, 0xbc, 0x15, 0xa2, 0x6e, 0xa4, 0xb2, 0xdf, 0xc3, 0x12, 0x77,
+	0x37, 0xa3, 0x26, 0xa5, 0x1c, 0x95, 0x32, 0x8e, 0xcc, 0xc4, 0x91, 0xe4, 0x10, 0x83, 0x7f, 0x05,
+	0x8d, 0x18, 0x5c, 0x25, 0xfc, 0x26, 0x2c, 0x78, 0xfe, 0x50, 0xa2, 0xd7, 0x77, 0xab, 0x9c, 0x12,
+	0xdf, 0xd2, 0x15, 0x52, 0xfb, 0x99, 0x34, 0xc8, 0xb4, 0x4c, 0xd5, 0x1a, 0x8d, 0xfc, 0xd6, 0x58,
+	0xd2, 0x5b, 0xe3, 0x77, 0xd0, 0x4c, 0x00, 0x94, 0xcb, 0x6d, 0x28, 0x73, 0xf0, 0xa8, 0x11, 0x26,
+	0x3e, 0xa5, 0xb8, 0xa0, 0xf9, 0x75, 0xa0, 0x22, 0x63, 0x35, 0xf1, 0x25, 0xd6, 0x61, 0x91, 0x1b,
+	0xf6, 0x49, 0x54, 0xe3, 0x2a, 0x7c, 0x79, 0x34, 0xe4, 0xa3, 0x97, 0xcb, 0x2f, 0x4e, 0x3f, 0x70,
+	0xd8, 0x85, 0x8a, 0x45, 0x4d, 0x48, 0x3a, 0x0e, 0xbb, 0xb0, 0x0f, 0xa1, 0x29, 0x11, 0x33, 0xc1,
+	0x8e, 0xc2, 0x51, 0x93, 0x41, 0xc8, 0xc0, 0x94, 0xb2, 0x30, 0x8f, 0x61, 0x59, 0x83, 0x51, 0x67,
+	0xb4, 0xa1, 0x22, 0x83, 0xae, 0x02, 0xab, 0x7f, 0x6b, 0xa5, 0xb1, 0x4f, 0x22, 0x43, 0x3d, 0xbc,
+	0x79, 0x04, 0xfe, 0xdf, 0x34, 0xd2, 0x01, 0xa4, 0xc3, 0x2a, 0x42, 0xda, 0xed, 0x33, 0x0a, 0x6f,
+	0x5f, 0x61, 0xe8, 0x97, 0x65, 0xee, 0x89, 0xaf, 0xf4, 0x31, 0x65, 0x98, 0x9f, 0xa8, 0x94, 0x9c,
+	0xc8, 0x6e, 0x01, 0xd2, 0x11, 0x55, 0xaa, 0x3d, 0x82, 0xa5, 0x5e, 0xda, 0xf6, 0x1a, 0x49, 0x67,
+	0xef, 0x80, 0x99, 0xb6, 0x9a, 0x9e, 0x3b, 0xf6, 0x3b, 0xb8, 0x95, 0xb3, 0x5f, 0x85, 0xe9, 0x69,
+	0xfe, 0xa9, 0xea, 0xbb, 0x88, 0x87, 0x2b, 0x6d, 0x97, 0x3d, 0xe9, 0xee, 0xbf, 0x37, 0x01, 0x3a,
+	0xf2, 0x25, 0xb2, 0xdf, 0x39, 0x42, 0x5f, 0xc0, 0x62, 0x0f, 0xb3, 0x71, 0xf0, 0xed, 0x01, 0x12,
+	0xc3, 0x5e, 0xf2, 0xf2, 0xb0, 0x32, 0x6b, 0x7b, 0x0e, 0x3d, 0x84, 0x1b, 0x62, 0xf3, 0x8f, 0xe4,
+	0x3c, 0x74, 0x18, 0xbe, 0x86, 0xc5, 0xd7, 0x50, 0x8b, 0x5f, 0x0e, 0xa8, 0xc5, 0xd5, 0xd9, 0xb7,
+	0x8c, 0xb5, 0x9a, 0x91, 0xaa, 0x38, 0xcf, 0xa1, 0x63, 0x68, 0x64, 0x5e, 0x03, 0xc8, 0x4a, 0xf6,
+	0x66, 0x5f, 0x1d, 0xd6, 0x46, 0xae, 0x2e, 0x46, 0x7b, 0x07, 0x2b, 0x39, 0x33, 0x38, 0xda, 0x4e,
+	0xac, 0xf2, 0x1e, 0x16, 0xd6, 0xed, 0x42, 0x7d, 0x8c, 0xfc, 0x3e, 0x9a, 0x24, 0xd3, 0x93, 0x35,
+	0xca, 0x35, 0xd5, 0xd2, 0xc8, 0x6a, 0x17, 0x6f, 0x88, 0xc1, 0x9d, 0xe8, 0x95, 0x95, 0x9d, 0x64,
+	0xd1, 0x9d, 0x5c, 0x66, 0x7a, 0x1b, 0xb4, 0xec, 0x69, 0x5b, 0x62, 0x17, 0x34, 0x1a, 0x01, 0xd2,
+	0x9d, 0xec, 0x24, 0x18, 0x3a, 0x0c, 0x77, 0xfc, 0x11, 0x19, 0x7c, 0x40, 0x9f, 0x24, 0x48, 0x53,
+	0x86, 0x00, 0xeb, 0xfe, 0xac, 0x6d, 0xb1, 0x53, 0x37, 0x7a, 0xce, 0xe5, 0xb5, 0xcf, 0x29, 0xee,
+	0x52, 0xe7, 0xbb, 0x3f, 0x6b, 0x5b, 0xec, 0xee, 0x05, 0xdc, 0x4c, 0xcd, 0xd7, 0xc8, 0x4c, 0x4c,
+	0xd3, 0x0f, 0x00, 0xeb, 0x56, 0x8e, 0x26, 0xc6, 0x39, 0x07, 0xb3, 0x68, 0x5c, 0x42, 0x77, 0xd3,
+	0x86, 0xb9, 0xd3, 0x99, 0x75, 0x6f, 0xfa, 0xa6, 0xd8, 0xd1, 0x63, 0xa8, 0x46, 0xa3, 0x3b, 0x5a,
+	0x89, 0xd3, 0x4a, 0xa3, 0xd9, 0x4a, 0x0b, 0x63, 0xc3, 0xef, 0xa1, 0xde, 0xc3, 0x09, 0x29, 0x91,
+	0x15, 0x05, 0x03, 0xbf, 0xb5, 0x99, 0xaf, 0x8c, 0xb1, 0x1e, 0x41, 0x59, 0x4c, 0xde, 0x92, 0x41,
+	0x66, 0x9a, 0x97, 0x0c, 0xb2, 0xc3, 0xb9, 0x3d, 0x87, 0xf6, 0xa0, 0xf1, 0xd6, 0x19, 0x11, 0x7e,
+	0x7b, 0x7a, 0x58, 0x3e, 0xdd, 0x66, 0x17, 0x8a, 0x6f, 0xa0, 0xa1, 0x2a, 0x14, 0xaf, 0xb6, 0x94,
+	0x1f, 0x1b, 0x45, 0x3d, 0x57, 0x3b, 0xf5, 0x4a, 0x4a, 0x16, 0xbb, 0x7c, 0x06, 0x4d, 0xdd, 0x5a,
+	0xa4, 0x5f, 0xbc, 0x55, 0x4f, 0xb9, 0x56, 0x5a, 0x18, 0x03, 0xbc, 0x84, 0x35, 0x1d, 0x40, 0xb6,
+	0x1c, 0x1a, 0x17, 0xad, 0x6c, 0x0b, 0x96, 0x45, 0x6b, 0xa2, 0xa3, 0x8a, 0xf0, 0xaf, 0xe7, 0x00,
+	0x09, 0x42, 0x9a, 0x8d, 0x4e, 0x69, 0x2d, 0x2b, 0x8e, 0xb1, 0x7e, 0x06, 0x53, 0x61, 0x4d, 0xf4,
+	0x02, 0xb4, 0x39, 0x59, 0xea, 0x35, 0x7a, 0x5b, 0x05, 0x5a, 0x2d, 0x1f, 0x56, 0x22, 0xe8, 0x41,
+	0xd2, 0xe4, 0x24, 0xc5, 0x89, 0x36, 0x2a, 0x29, 0xe6, 0xf4, 0xc2, 0x39, 0xd4, 0x8b, 0xe3, 0x96,
+	0x79, 0xb1, 0xc8, 0x52, 0x9d, 0xff, 0x3a, 0x92, 0xa5, 0xba, 0xe8, 0x89, 0x33, 0x87, 0x5e, 0x43,
+	0x33, 0x3b, 0xe9, 0xc6, 0xf7, 0x38, 0x6f, 0x94, 0x8e, 0xef, 0x71, 0xfe, 0x70, 0x3c, 0x77, 0xf0,
+	0x39, 0xac, 0x12, 0x7f, 0xc7, 0x25, 0x1e, 0xdf, 0xa7, 0xfe, 0x86, 0xfb, 0xd2, 0x09, 0xc8, 0x41,
+	0x23, 0xea, 0x84, 0x01, 0xe9, 0x84, 0x3e, 0xf3, 0x3b, 0xc6, 0x69, 0x45, 0xfc, 0x09, 0xb7, 0xf7,
+	0x5f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x2c, 0xd4, 0x3a, 0x98, 0xaf, 0x13, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1426,7 +2171,15 @@ type PrivateAPIClient interface {
 	// Session related
 	ValidateSession(ctx context.Context, in *AdminEmpty, opts ...grpc.CallOption) (*AdminEmpty, error)
 	// Cluster Operations
-	ClusterScSgAdd(ctx context.Context, in *StorageGroupAddRequest, opts ...grpc.CallOption) (*StorageGroupAddResponse, error)
+	ClusterNodesAdd(ctx context.Context, in *NodeAddRequest, opts ...grpc.CallOption) (*NodeAddResponse, error)
+	//TODO
+	ClusterNodesList(ctx context.Context, in *NodeListRequest, opts ...grpc.CallOption) (*NodeListResponse, error)
+	ClusterNodesVolumesAdd(ctx context.Context, in *VolumeAddRequest, opts ...grpc.CallOption) (*VolumeAddResponse, error)
+	//TODO
+	ClusterNodesVolumesList(ctx context.Context, in *VolumeListRequest, opts ...grpc.CallOption) (*VolumeListResponse, error)
+	ClusterStorageClusterAdd(ctx context.Context, in *StorageClusterAddRequest, opts ...grpc.CallOption) (*StorageClusterAddResponse, error)
+	ClusterScAssignNode(ctx context.Context, in *AssignNodeRequest, opts ...grpc.CallOption) (*AssignNodeResponse, error)
+	ClusterStorageGroupAdd(ctx context.Context, in *StorageGroupAddRequest, opts ...grpc.CallOption) (*StorageGroupAddResponse, error)
 	// Sets Email Template
 	SetEmailTemplate(ctx context.Context, in *SetEmailTemplateRequest, opts ...grpc.CallOption) (*SetEmailTemplateResponse, error)
 }
@@ -1574,9 +2327,63 @@ func (c *privateAPIClient) ValidateSession(ctx context.Context, in *AdminEmpty, 
 	return out, nil
 }
 
-func (c *privateAPIClient) ClusterScSgAdd(ctx context.Context, in *StorageGroupAddRequest, opts ...grpc.CallOption) (*StorageGroupAddResponse, error) {
+func (c *privateAPIClient) ClusterNodesAdd(ctx context.Context, in *NodeAddRequest, opts ...grpc.CallOption) (*NodeAddResponse, error) {
+	out := new(NodeAddResponse)
+	err := c.cc.Invoke(ctx, "/m3.PrivateAPI/ClusterNodesAdd", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *privateAPIClient) ClusterNodesList(ctx context.Context, in *NodeListRequest, opts ...grpc.CallOption) (*NodeListResponse, error) {
+	out := new(NodeListResponse)
+	err := c.cc.Invoke(ctx, "/m3.PrivateAPI/ClusterNodesList", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *privateAPIClient) ClusterNodesVolumesAdd(ctx context.Context, in *VolumeAddRequest, opts ...grpc.CallOption) (*VolumeAddResponse, error) {
+	out := new(VolumeAddResponse)
+	err := c.cc.Invoke(ctx, "/m3.PrivateAPI/ClusterNodesVolumesAdd", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *privateAPIClient) ClusterNodesVolumesList(ctx context.Context, in *VolumeListRequest, opts ...grpc.CallOption) (*VolumeListResponse, error) {
+	out := new(VolumeListResponse)
+	err := c.cc.Invoke(ctx, "/m3.PrivateAPI/ClusterNodesVolumesList", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *privateAPIClient) ClusterStorageClusterAdd(ctx context.Context, in *StorageClusterAddRequest, opts ...grpc.CallOption) (*StorageClusterAddResponse, error) {
+	out := new(StorageClusterAddResponse)
+	err := c.cc.Invoke(ctx, "/m3.PrivateAPI/ClusterStorageClusterAdd", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *privateAPIClient) ClusterScAssignNode(ctx context.Context, in *AssignNodeRequest, opts ...grpc.CallOption) (*AssignNodeResponse, error) {
+	out := new(AssignNodeResponse)
+	err := c.cc.Invoke(ctx, "/m3.PrivateAPI/ClusterScAssignNode", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *privateAPIClient) ClusterStorageGroupAdd(ctx context.Context, in *StorageGroupAddRequest, opts ...grpc.CallOption) (*StorageGroupAddResponse, error) {
 	out := new(StorageGroupAddResponse)
-	err := c.cc.Invoke(ctx, "/m3.PrivateAPI/ClusterScSgAdd", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/m3.PrivateAPI/ClusterStorageGroupAdd", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1618,7 +2425,15 @@ type PrivateAPIServer interface {
 	// Session related
 	ValidateSession(context.Context, *AdminEmpty) (*AdminEmpty, error)
 	// Cluster Operations
-	ClusterScSgAdd(context.Context, *StorageGroupAddRequest) (*StorageGroupAddResponse, error)
+	ClusterNodesAdd(context.Context, *NodeAddRequest) (*NodeAddResponse, error)
+	//TODO
+	ClusterNodesList(context.Context, *NodeListRequest) (*NodeListResponse, error)
+	ClusterNodesVolumesAdd(context.Context, *VolumeAddRequest) (*VolumeAddResponse, error)
+	//TODO
+	ClusterNodesVolumesList(context.Context, *VolumeListRequest) (*VolumeListResponse, error)
+	ClusterStorageClusterAdd(context.Context, *StorageClusterAddRequest) (*StorageClusterAddResponse, error)
+	ClusterScAssignNode(context.Context, *AssignNodeRequest) (*AssignNodeResponse, error)
+	ClusterStorageGroupAdd(context.Context, *StorageGroupAddRequest) (*StorageGroupAddResponse, error)
 	// Sets Email Template
 	SetEmailTemplate(context.Context, *SetEmailTemplateRequest) (*SetEmailTemplateResponse, error)
 }
@@ -1672,8 +2487,26 @@ func (*UnimplementedPrivateAPIServer) Login(ctx context.Context, req *CLILoginRe
 func (*UnimplementedPrivateAPIServer) ValidateSession(ctx context.Context, req *AdminEmpty) (*AdminEmpty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateSession not implemented")
 }
-func (*UnimplementedPrivateAPIServer) ClusterScSgAdd(ctx context.Context, req *StorageGroupAddRequest) (*StorageGroupAddResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ClusterScSgAdd not implemented")
+func (*UnimplementedPrivateAPIServer) ClusterNodesAdd(ctx context.Context, req *NodeAddRequest) (*NodeAddResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClusterNodesAdd not implemented")
+}
+func (*UnimplementedPrivateAPIServer) ClusterNodesList(ctx context.Context, req *NodeListRequest) (*NodeListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClusterNodesList not implemented")
+}
+func (*UnimplementedPrivateAPIServer) ClusterNodesVolumesAdd(ctx context.Context, req *VolumeAddRequest) (*VolumeAddResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClusterNodesVolumesAdd not implemented")
+}
+func (*UnimplementedPrivateAPIServer) ClusterNodesVolumesList(ctx context.Context, req *VolumeListRequest) (*VolumeListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClusterNodesVolumesList not implemented")
+}
+func (*UnimplementedPrivateAPIServer) ClusterStorageClusterAdd(ctx context.Context, req *StorageClusterAddRequest) (*StorageClusterAddResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClusterStorageClusterAdd not implemented")
+}
+func (*UnimplementedPrivateAPIServer) ClusterScAssignNode(ctx context.Context, req *AssignNodeRequest) (*AssignNodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClusterScAssignNode not implemented")
+}
+func (*UnimplementedPrivateAPIServer) ClusterStorageGroupAdd(ctx context.Context, req *StorageGroupAddRequest) (*StorageGroupAddResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClusterStorageGroupAdd not implemented")
 }
 func (*UnimplementedPrivateAPIServer) SetEmailTemplate(ctx context.Context, req *SetEmailTemplateRequest) (*SetEmailTemplateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetEmailTemplate not implemented")
@@ -1953,20 +2786,128 @@ func _PrivateAPI_ValidateSession_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PrivateAPI_ClusterScSgAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _PrivateAPI_ClusterNodesAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NodeAddRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrivateAPIServer).ClusterNodesAdd(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/m3.PrivateAPI/ClusterNodesAdd",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrivateAPIServer).ClusterNodesAdd(ctx, req.(*NodeAddRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PrivateAPI_ClusterNodesList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NodeListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrivateAPIServer).ClusterNodesList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/m3.PrivateAPI/ClusterNodesList",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrivateAPIServer).ClusterNodesList(ctx, req.(*NodeListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PrivateAPI_ClusterNodesVolumesAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VolumeAddRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrivateAPIServer).ClusterNodesVolumesAdd(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/m3.PrivateAPI/ClusterNodesVolumesAdd",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrivateAPIServer).ClusterNodesVolumesAdd(ctx, req.(*VolumeAddRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PrivateAPI_ClusterNodesVolumesList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VolumeListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrivateAPIServer).ClusterNodesVolumesList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/m3.PrivateAPI/ClusterNodesVolumesList",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrivateAPIServer).ClusterNodesVolumesList(ctx, req.(*VolumeListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PrivateAPI_ClusterStorageClusterAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StorageClusterAddRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrivateAPIServer).ClusterStorageClusterAdd(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/m3.PrivateAPI/ClusterStorageClusterAdd",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrivateAPIServer).ClusterStorageClusterAdd(ctx, req.(*StorageClusterAddRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PrivateAPI_ClusterScAssignNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AssignNodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrivateAPIServer).ClusterScAssignNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/m3.PrivateAPI/ClusterScAssignNode",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrivateAPIServer).ClusterScAssignNode(ctx, req.(*AssignNodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PrivateAPI_ClusterStorageGroupAdd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StorageGroupAddRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PrivateAPIServer).ClusterScSgAdd(ctx, in)
+		return srv.(PrivateAPIServer).ClusterStorageGroupAdd(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/m3.PrivateAPI/ClusterScSgAdd",
+		FullMethod: "/m3.PrivateAPI/ClusterStorageGroupAdd",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PrivateAPIServer).ClusterScSgAdd(ctx, req.(*StorageGroupAddRequest))
+		return srv.(PrivateAPIServer).ClusterStorageGroupAdd(ctx, req.(*StorageGroupAddRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2054,8 +2995,32 @@ var _PrivateAPI_serviceDesc = grpc.ServiceDesc{
 			Handler:    _PrivateAPI_ValidateSession_Handler,
 		},
 		{
-			MethodName: "ClusterScSgAdd",
-			Handler:    _PrivateAPI_ClusterScSgAdd_Handler,
+			MethodName: "ClusterNodesAdd",
+			Handler:    _PrivateAPI_ClusterNodesAdd_Handler,
+		},
+		{
+			MethodName: "ClusterNodesList",
+			Handler:    _PrivateAPI_ClusterNodesList_Handler,
+		},
+		{
+			MethodName: "ClusterNodesVolumesAdd",
+			Handler:    _PrivateAPI_ClusterNodesVolumesAdd_Handler,
+		},
+		{
+			MethodName: "ClusterNodesVolumesList",
+			Handler:    _PrivateAPI_ClusterNodesVolumesList_Handler,
+		},
+		{
+			MethodName: "ClusterStorageClusterAdd",
+			Handler:    _PrivateAPI_ClusterStorageClusterAdd_Handler,
+		},
+		{
+			MethodName: "ClusterScAssignNode",
+			Handler:    _PrivateAPI_ClusterScAssignNode_Handler,
+		},
+		{
+			MethodName: "ClusterStorageGroupAdd",
+			Handler:    _PrivateAPI_ClusterStorageGroupAdd_Handler,
 		},
 		{
 			MethodName: "SetEmailTemplate",

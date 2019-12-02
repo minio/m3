@@ -95,10 +95,43 @@ kubectl apply -f k8s/deployments/m3-deployment.yaml
 ./m3 login
 ```
 
+## Creating a new Storage Cluster
+
+```
+./m3 cluster sc add --name my-dc-rack-1
+```
+
+## Creating a nodes to store the information
+
+```
+./m3 cluster nodes add --name node-1 --k8s_label m3cluster-worker --volumes /mnt/disk{1...4}
+```
+
+For development add 3 additional nodes
+
+```
+./m3 cluster nodes add --name node-2 --k8s_label m3cluster-worker2 --volumes /mnt/disk{1...4}
+./m3 cluster nodes add --name node-3 --k8s_label m3cluster-worker3 --volumes /mnt/disk{1...4}
+./m3 cluster nodes add --name node-4 --k8s_label m3cluster-worker4 --volumes /mnt/disk{1...4}
+```
+
+## Associate the nodes to a storage cluster
+
+```
+./m3 cluster nodes assign --storage_cluster my-dc-rack-1 --node node-1
+```
+
+For development assign the remaining 3 nodes
+```
+./m3 cluster nodes assign --storage_cluster my-dc-rack-1 --node node-2
+./m3 cluster nodes assign --storage_cluster my-dc-rack-1 --node node-3
+./m3 cluster nodes assign --storage_cluster my-dc-rack-1 --node node-4
+```
+
 ## Creating a new Storage Group
 
 ```
-./m3 cluster sc sg add --name my-dc-rack-1
+./m3 cluster sc sg add --storage_cluster my-dc-rack-1 --name group-1
 ```
 
 ## Adding a new tenant

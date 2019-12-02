@@ -24,12 +24,12 @@ import (
 )
 
 // mkTenantContainer builds the container spec for the `sgTenant` tenant on host identified by `hostNum`
-func mkTenantMinioContainer(sgTenant *StorageGroupTenant, hostNum string) (v1.Container, []v1.Volume) {
+func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNode) (v1.Container, []v1.Volume) {
 	sg := sgTenant.StorageGroup
 	envName := fmt.Sprintf("%s-env", sgTenant.ShortName)
 	volumeMounts := []v1.VolumeMount{}
 	tenantContainer := v1.Container{
-		Name:  fmt.Sprintf("%s-minio-%s", sgTenant.Tenant.ShortName, hostNum),
+		Name:  fmt.Sprintf("%s-minio-%d", sgTenant.Tenant.ShortName, sgNode.Num),
 		Image: "minio/minio:RELEASE.2019-10-12T01-39-57Z",
 		//Image:           "minio/minio:latest",
 		ImagePullPolicy: "IfNotPresent",

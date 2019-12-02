@@ -30,7 +30,7 @@ import (
 	pb "github.com/minio/m3/api/stubs"
 )
 
-func (s *privateServer) TenantPermissionAdd(ctx context.Context, in *pb.TenantPermissionAddRequest) (*pb.TenantPermissionAddResponse, error) {
+func (ps *privateServer) TenantPermissionAdd(ctx context.Context, in *pb.TenantPermissionAddRequest) (*pb.TenantPermissionAddResponse, error) {
 	if len(in.Resources) == 0 {
 		return nil, errors.New("a list of resources is needed")
 	}
@@ -67,7 +67,7 @@ func (s *privateServer) TenantPermissionAdd(ctx context.Context, in *pb.TenantPe
 	return &pb.TenantPermissionAddResponse{}, nil
 }
 
-func (s *privateServer) TenantPermissionList(ctx context.Context, in *pb.TenantPermissionListRequest) (*pb.TenantPermissionListResponse, error) {
+func (ps *privateServer) TenantPermissionList(ctx context.Context, in *pb.TenantPermissionListRequest) (*pb.TenantPermissionListResponse, error) {
 	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
 		log.Println(err)
@@ -120,7 +120,7 @@ func (s *privateServer) TenantPermissionList(ctx context.Context, in *pb.TenantP
 
 // TenantPermissionAssign provides the endpoint to assign a permission by id-name to multiple service accounts by
 // id-name as well.
-func (s *privateServer) TenantPermissionAssign(ctx context.Context, in *pb.TenantPermissionAssignRequest) (*pb.TenantPermissionAssignResponse, error) {
+func (ps *privateServer) TenantPermissionAssign(ctx context.Context, in *pb.TenantPermissionAssignRequest) (*pb.TenantPermissionAssignResponse, error) {
 	// get context
 	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {

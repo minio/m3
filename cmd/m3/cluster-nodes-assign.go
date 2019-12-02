@@ -23,37 +23,44 @@ import (
 	pb "github.com/minio/m3/api/stubs"
 )
 
-// Add a storage group to a storage cluster
-var addStorageGroupCmd = cli.Command{
-	Name:    "add",
-	Aliases: []string{"a"},
-	Usage:   "add a storage group",
-	Action:  addStorageGroup,
+var clusterNodesAssignCmd = cli.Command{
+	Name:   "assign",
+	Usage:  "Assigns a node to a storage cluster",
+	Action: clusterNodesAssign,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "storage_cluster",
 			Value: "",
-			Usage: "Name of the storage cluster to add this group to",
+			Usage: "Name of the storage-cluster",
 		},
 		cli.StringFlag{
-			Name:  "name",
+			Name:  "node",
 			Value: "",
-			Usage: "Name for the storage group. Must meet the requirements of a hostname.",
+			Usage: "Name of the node.",
 		},
 	},
 }
 
-// Adds a Storage Group to house multiple tenants
-func addStorageGroup(ctx *cli.Context) error {
-	storageCluster := ctx.String("storage_cluster")
-	if storageCluster == "" && ctx.Args().Get(0) != "" {
-		storageCluster = ctx.Args().Get(0)
+func clusterNodesAssign(ctx *cli.Context) error {
+	storageClusterName := ctx.String("storage_cluster")
+	nodeName := ctx.String("node")
+	if storageClusterName == "" && ctx.Args().Get(0) != "" {
+		storageClusterName = ctx.Args().Get(0)
 	}
-	name := ctx.String("name")
-	if name == "" && ctx.Args().Get(1) != "" {
-		name = ctx.Args().Get(1)
+	if nodeName == "" && ctx.Args().Get(1) != "" {
+		nodeName = ctx.Args().Get(1)
 	}
 
+	if nodeName == "" {
+		fmt.Println("You must provide a node name")
+		return nil
+	}
+
+	if storageClusterName == "" {
+		fmt.Println("A storage cluster name")
+		return nil
+	}
+	// perform the action
 	cnxs, err := GetGRPCChannel()
 	if err != nil {
 		fmt.Println(err)
@@ -61,15 +68,16 @@ func addStorageGroup(ctx *cli.Context) error {
 	}
 	defer cnxs.Conn.Close()
 	// perform RPC
-	_, err = cnxs.Client.ClusterStorageGroupAdd(cnxs.Context, &pb.StorageGroupAddRequest{
-		StorageCluster: storageCluster,
-		Name:           name,
+	_, err = cnxs.Client.ClusterScAssignNode(cnxs.Context, &pb.AssignNodeRequest{
+		StorageCluster: storageClusterName,
+		Node:           nodeName,
 	})
 
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
-	fmt.Println("Done adding storage group")
+
+	fmt.Println("Done assigning node!")
 	return nil
 }

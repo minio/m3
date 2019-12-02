@@ -24,12 +24,58 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// Represents a group of machines with attached storage in which multiple storage groups reside
+type StorageCluster struct {
+	ID   uuid.UUID
+	Name string
+}
+
+// Creates a storage cluster in the DB
+func AddStorageCluster(ctx *Context, scName string) (*StorageCluster, error) {
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return nil, err
+	}
+	scID := uuid.NewV4()
+	// insert a new Storage Cluster
+	query :=
+		`INSERT INTO
+				storage_clusters ("id", "name", "sys_created_by")
+			  VALUES
+				($1, $2, $3)`
+
+	if _, err = tx.Exec(query, scID, scName, ctx.WhoAmI); err != nil {
+		return nil, err
+	}
+	return &StorageCluster{ID: scID, Name: scName}, nil
+}
+
+// GetStorageClusterByName returns a storage cluster by name
+func GetStorageClusterByName(ctx *Context, name string) (*StorageCluster, error) {
+	query := `
+		SELECT 
+				sg.id, sg.name
+			FROM 
+				storage_clusters sg
+			WHERE sg.name=$1 LIMIT 1`
+
+	row := GetInstance().Db.QueryRow(query, name)
+	storageGroup := StorageCluster{}
+	err := row.Scan(&storageGroup.ID, &storageGroup.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &storageGroup, nil
+}
+
 // Represents a logical entity in which multiple tenants resides inside a set of machines (Storage Cluster)
 // and spawns across multiple nodes.
 type StorageGroup struct {
-	ID   uuid.UUID
-	Num  int32
-	Name *string
+	ID               uuid.UUID
+	StorageClusterID *uuid.UUID
+	Num              int32
+	Name             string
 }
 
 // Struct returned by goroutines via channels that bundles a possible error.
@@ -39,7 +85,7 @@ type StorageGroupResult struct {
 }
 
 // Creates a storage group in the DB
-func AddStorageGroup(ctx *Context, sgName *string) chan StorageGroupResult {
+func AddStorageGroup(ctx *Context, storageClusterID *uuid.UUID, sgName string) chan StorageGroupResult {
 	ch := make(chan StorageGroupResult)
 	go func() {
 		defer close(ch)
@@ -50,15 +96,15 @@ func AddStorageGroup(ctx *Context, sgName *string) chan StorageGroupResult {
 		}
 		sgID := uuid.NewV4()
 		var sgNum int32
-		// insert a new Storage Group with the optional name
+		// insert a new Storage Group with name
 		query :=
 			`INSERT INTO
-				storage_groups ("id", "name", "sys_created_by")
+				storage_groups ("id","storage_cluster_id", "name", "sys_created_by")
 			  VALUES
-				($1, $2, $3)
+				($1, $2, $3, $4)
 				RETURNING num`
 
-		err = tx.QueryRow(query, sgID, sgName, ctx.WhoAmI).Scan(&sgNum)
+		err = tx.QueryRow(query, sgID, storageClusterID, sgName, ctx.WhoAmI).Scan(&sgNum)
 		if err != nil {
 			ch <- StorageGroupResult{
 				Error: err,
@@ -69,15 +115,35 @@ func AddStorageGroup(ctx *Context, sgName *string) chan StorageGroupResult {
 		// return result via channel
 		ch <- StorageGroupResult{
 			StorageGroup: &StorageGroup{
-				ID:   sgID,
-				Name: sgName,
-				Num:  sgNum,
+				ID:               sgID,
+				StorageClusterID: storageClusterID,
+				Name:             sgName,
+				Num:              sgNum,
 			},
 			Error: nil,
 		}
 
 	}()
 	return ch
+}
+
+// GetStorageGroupByName returns a storage group by name
+func GetStorageGroupByName(ctx *Context, name string) (*StorageGroup, error) {
+	query := `
+		SELECT 
+				sg.id, sg.name, sg.num
+			FROM 
+				storage_groups sg
+			WHERE sg.name=$1 LIMIT 1`
+
+	row := GetInstance().Db.QueryRow(query, name)
+	storageGroup := StorageGroup{}
+	err := row.Scan(&storageGroup.ID, &storageGroup.Name, &storageGroup.Num)
+	if err != nil {
+		return nil, err
+	}
+
+	return &storageGroup, nil
 }
 
 // provisions the storage group supporting services that point to each node in the storage group
@@ -107,7 +173,7 @@ func SelectSGWithSpace(ctx *Context) chan *StorageGroupResult {
 	go func() {
 		defer close(ch)
 		var id uuid.UUID
-		var name *string
+		var name string
 		var num int32
 		// For now, let's select a storage group at random
 		query := `
@@ -374,7 +440,7 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 		var tenantShortName string
 		var port int32
 		var sgNum int32
-		var sgName *string
+		var sgName string
 		var serviceName string
 		err := row.Scan(
 			&tenantID,
