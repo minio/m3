@@ -205,20 +205,22 @@ func SelectSGWithSpace(ctx *Context) chan *StorageGroupResult {
 			FROM storage_cluster_nodes sgn 
 			WHERE sgn.storage_cluster_id=$1`
 		// non-transactional query as there cannot be a storage group insert along with a read
-		if err := GetInstance().Db.QueryRow(queryNodes, id).Scan(&totalNodes); err != nil {
+		if err := GetInstance().Db.QueryRow(queryNodes, storageClusterID).Scan(&totalNodes); err != nil {
 			ch <- &StorageGroupResult{Error: err}
 			return
 		}
 
 		var totalVolumes int32
 		queryVolumes := `
-			SELECT 
-			       COUNT(*) AS total_volumes 
-			FROM node_volumes nv 
-			    LEFT JOIN storage_cluster_nodes scn ON scn.node_id=nv.node_id  
-			WHERE scn.storage_cluster_id=$1;`
+			SELECT  ct.total_volumes FROM (SELECT
+				COUNT(*) AS total_volumes, nv.node_id
+			FROM node_volumes nv
+					 LEFT JOIN storage_cluster_nodes scn ON scn.node_id=nv.node_id
+			WHERE scn.storage_cluster_id=$1
+			GROUP BY nv.node_id
+			LIMIT 1) as ct`
 		// non-transactional query as there cannot be a storage group insert along with a read
-		if err := GetInstance().Db.QueryRow(queryVolumes, id).Scan(&totalVolumes); err != nil {
+		if err := GetInstance().Db.QueryRow(queryVolumes, storageClusterID).Scan(&totalVolumes); err != nil {
 			ch <- &StorageGroupResult{Error: err}
 			return
 		}
@@ -343,7 +345,6 @@ type StorageGroupTenant struct {
 	*StorageGroup
 	Port        int32
 	ServiceName string
-	MaxNodes    int32
 }
 
 // Address returns the address where the tenant is located on the storage group

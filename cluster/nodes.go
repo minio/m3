@@ -22,6 +22,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/lib/pq"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -178,7 +180,7 @@ func GetNodesForStorageGroup(ctx *Context, storageGroupID *uuid.UUID) ([]*Storag
 		WHERE 
 		      sg.id = $1`
 
-	rows, err := ctx.TenantDB().Query(queryNodes, storageGroupID)
+	rows, err := GetInstance().Db.Query(queryNodes, storageGroupID)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +208,7 @@ func GetNodesForStorageGroup(ctx *Context, storageGroupID *uuid.UUID) ([]*Storag
 		WHERE 
 		      nv.node_id = ANY($1)`
 
-	volRows, err := ctx.TenantDB().Query(queryVolumes, storageGroupID)
+	volRows, err := GetInstance().Db.Query(queryVolumes, pq.Array(nodeIDs))
 	if err != nil {
 		return nil, err
 	}

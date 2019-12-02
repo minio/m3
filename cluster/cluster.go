@@ -86,7 +86,7 @@ func CreateSGHostService(sg *StorageGroup, sgNode *StorageGroupNode) error {
 		return err
 	}
 
-	serviceName := fmt.Sprintf("sg-%d-host-%s", sg.Num, sgNode.Num)
+	serviceName := fmt.Sprintf("sg-%d-host-%d", sg.Num, sgNode.Num)
 
 	sgSvc := v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -255,7 +255,7 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 		return err
 	}
 
-	sgHostName := fmt.Sprintf("sg-%d-host-%s", sg.Num, sgNode.Num)
+	sgHostName := fmt.Sprintf("sg-%d-host-%d", sg.Num, sgNode.Num)
 	var replicas int32 = 1
 
 	mainPodSpec := v1.PodSpec{
@@ -316,7 +316,7 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGrou
 		// start the jobs that create the tenant folder on each disk on each node of the storage group
 		var jobChs []chan error
 		// get a list of nodes on the cluster
-		nodes, err := GetNodesForStorageGroup(ctx, sg.StorageClusterID)
+		nodes, err := GetNodesForStorageGroup(ctx, &sg.ID)
 		if err != nil {
 			ch <- err
 		}
@@ -473,7 +473,7 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 
 		// for each host in storage cluster, create a deployment
 		// get a list of nodes on the cluster
-		sgNodes, err := GetNodesForStorageGroup(ctx, sg.StorageClusterID)
+		sgNodes, err := GetNodesForStorageGroup(ctx, &sg.ID)
 		if err != nil {
 			ch <- err
 		}

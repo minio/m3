@@ -53,13 +53,7 @@ const (
 
 // TenantAddAction adds a tenant to the cluster, if an admin name and email are provided, the user is created and invited
 // via email.
-func TenantAddAction(name, shortName, userName, userEmail string) error {
-	// Start app context
-	ctx, err := NewEmptyContext()
-	if err != nil {
-		return err
-	}
-
+func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) error {
 	// check if tenant name is available
 	available, err := TenantShortNameAvailable(ctx, shortName)
 	if err != nil {
@@ -72,19 +66,17 @@ func TenantAddAction(name, shortName, userName, userEmail string) error {
 	// first find a cluster where to allocate the tenant
 	sg := <-SelectSGWithSpace(ctx)
 	if sg.Error != nil {
-		fmt.Println("There was an error adding the tenant, no storage group available.", sg.Error)
-		ctx.Rollback()
+		log.Println("There was an error adding the tenant, no storage group available.", sg.Error)
 		return nil
 	}
 
 	// register the tenant
 	tenantResult := <-InsertTenant(ctx, name, shortName)
 	if tenantResult.Error != nil {
-		ctx.Rollback()
 		return tenantResult.Error
 	}
 	ctx.Tenant = tenantResult.Tenant
-	fmt.Println(fmt.Sprintf("Registered as tenant %s\n", tenantResult.Tenant.ID.String()))
+	log.Println(fmt.Sprintf("Registered as tenant %s\n", tenantResult.Tenant.ID.String()))
 
 	// Create tenant namespace
 	namespaceCh := createTenantNamespace(shortName)
@@ -106,7 +98,6 @@ func TenantAddAction(name, shortName, userName, userEmail string) error {
 	// provision the tenant on that cluster
 	err = <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sg.StorageGroup)
 	if err != nil {
-		ctx.Rollback()
 		return err
 	}
 	// announce the tenant on the router
@@ -114,20 +105,17 @@ func TenantAddAction(name, shortName, userName, userEmail string) error {
 	// check if we were able to provision the schema and be done running the migrations
 	err = <-tenantSchemaCh
 	if err != nil {
-		ctx.Rollback()
 		return err
 	}
 	// wait for router
 	err = <-nginxCh
 	if err != nil {
-		ctx.Rollback()
 		return err
 	}
 
 	// wait for the tenant namespace to finish creating
 	err = <-namespaceCh
 	if err != nil {
-		ctx.Rollback()
 		return err
 	}
 	// if the first admin name and email was provided send them an invitation
@@ -141,14 +129,10 @@ func TenantAddAction(name, shortName, userName, userEmail string) error {
 		// Invite it's first admin
 		err = InviteUserByEmail(ctx, TokenSignupEmail, &newUser)
 		if err != nil {
-			ctx.Rollback()
 			fmt.Println("Tenant added however the was an error adding first user:", err.Error())
 			return err
 		}
 	}
-
-	// if no error happened to this point
-	err = ctx.Commit()
 	return err
 }
 

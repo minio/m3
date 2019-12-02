@@ -18,7 +18,7 @@ package api
 
 import (
 	"context"
-	"fmt"
+	"log"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -30,10 +30,23 @@ import (
 
 // AddTenant rpc to add a new tenant and it's first user
 func (ps *privateServer) TenantAdd(ctx context.Context, in *pb.TenantAddRequest) (*pb.TenantAddResponse, error) {
-	err := cluster.TenantAddAction(in.Name, in.ShortName, in.UserName, in.UserEmail)
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil, status.New(codes.Internal, fmt.Sprintf("Internal error %s", err.Error())).Err()
+		return nil, err
+	}
+	err = cluster.TenantAddAction(appCtx, in.Name, in.ShortName, in.UserName, in.UserEmail)
+	if err != nil {
+		log.Println(err)
+		if err = appCtx.Rollback(); err != nil {
+			log.Println(err)
+			return nil, status.New(codes.Internal, "Internal error").Err()
+		}
+		return nil, status.New(codes.Internal, "Internal Error").Err()
+	}
+	// if no error happened to this point
+	if err = appCtx.Commit(); err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	return &pb.TenantAddResponse{}, nil
 }
