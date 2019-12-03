@@ -18,11 +18,11 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"regexp"
-	"strconv"
 	"strings"
+
+	"github.com/minio/minio/pkg/ellipses"
 
 	uuid "github.com/satori/go.uuid"
 
@@ -44,32 +44,29 @@ func (ps *privateServer) ClusterNodesAdd(ctx context.Context, in *pb.NodeAddRequ
 	}
 
 	// validate volumes string
-	if in.Volumes == "" {
-		return nil, status.New(codes.InvalidArgument, "A list of volumes on the node is needed").Err()
-	}
+	//if in.Volumes == "" {
+	//	return nil, status.New(codes.InvalidArgument, "A list of volumes on the node is needed").Err()
+	//}
 
 	var volumes []string
-
-	if strings.Contains(in.Volumes, "...") {
-		var re = regexp.MustCompile(`^.*?({([0-9]+)\.\.\.([0-9]+)}).*?$`)
-		if !re.MatchString(in.Volumes) {
+	if ellipses.HasEllipses(in.Volumes) {
+		patterns, perr := ellipses.FindEllipsesPatterns(in.Volumes)
+		if perr != nil {
 			return nil, status.New(codes.InvalidArgument, "Invalid descriptor of volumes mount points").Err()
 		}
-		rs := re.FindStringSubmatch(in.Volumes)
-		// parse nums, regex should have validated valid integers
-		fromNum, _ := strconv.Atoi(rs[2])
-		toNum, _ := strconv.Atoi(rs[3])
-		// if we received /mnt/disk{1...4} we will iterate 4 times, and replace {1...4} for the corresponding number
-		for i := fromNum; i <= toNum; i++ {
-			volumes = append(volumes, strings.Replace(in.Volumes, rs[1], fmt.Sprintf("%d", i), 1))
+
+		for _, lbls := range patterns.Expand() {
+			volumes = append(volumes, strings.Join(lbls, ""))
 		}
 	} else {
-		// attempt to validate single volume mount path
-		randomNodeID := uuid.NewV4()
-		if _, err := cluster.NewVolume(&randomNodeID, in.Volumes); err != nil {
-			return nil, status.New(codes.InvalidArgument, "Volume mount path is not valid").Err()
+		if in.Volumes != "" {
+			// attempt to validate single volume mount path
+			randomNodeID := uuid.NewV4()
+			if _, err := cluster.NewVolume(&randomNodeID, in.Volumes); err != nil {
+				return nil, status.New(codes.InvalidArgument, "Volume mount path is not valid.").Err()
+			}
+			volumes = append(volumes, in.Volumes)
 		}
-		volumes = append(volumes, in.Volumes)
 	}
 
 	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
@@ -122,8 +119,8 @@ func nodeToPb(node *cluster.Node) *pb.Node {
 	return &pbNode
 }
 
-// volumeToPb takes a cluster.Volume and maps it to it's protocol buffer representation
-func volumeToPb(volume *cluster.Volume) *pb.Volume {
+// volumeToPb takes a cluster.NodeVolume and maps it to it's protocol buffer representation
+func volumeToPb(volume *cluster.NodeVolume) *pb.Volume {
 	return &pb.Volume{
 		Id:        volume.ID.String(),
 		NodeId:    volume.NodeID.String(),

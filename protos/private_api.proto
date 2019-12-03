@@ -67,12 +67,10 @@ service PrivateAPI {
     // Cluster Operations
     rpc ClusterNodesAdd (NodeAddRequest) returns (NodeAddResponse) {
     }
-    //TODO
     rpc ClusterNodesList (NodeListRequest) returns (NodeListResponse) {
     }
     rpc ClusterNodesVolumesAdd (VolumeAddRequest) returns (VolumeAddResponse) {
     }
-    //TODO
     rpc ClusterNodesVolumesList (VolumeListRequest) returns (VolumeListResponse) {
     }
     rpc ClusterStorageClusterAdd (StorageClusterAddRequest) returns (StorageClusterAddResponse) {

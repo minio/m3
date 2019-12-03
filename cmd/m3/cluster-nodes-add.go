@@ -57,6 +57,9 @@ func clusterNodesAdd(ctx *cli.Context) error {
 	if k8sLabel == "" && ctx.Args().Get(1) != "" {
 		k8sLabel = ctx.Args().Get(1)
 	}
+	if volumes == "" && ctx.Args().Get(2) != "" {
+		volumes = ctx.Args().Get(2)
+	}
 	if name == "" {
 		fmt.Println("You must provide a node name")
 		return nil

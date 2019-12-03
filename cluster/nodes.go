@@ -37,7 +37,7 @@ type Node struct {
 	ID       uuid.UUID
 	Name     string
 	K8sLabel string
-	Volumes  []*Volume
+	Volumes  []*NodeVolume
 }
 
 func NewNode(name, k8sLabel string) (*Node, error) {
@@ -110,24 +110,24 @@ func GetNodeByName(ctx *Context, name string) (*Node, error) {
 	return &node, nil
 }
 
-type Volume struct {
+type NodeVolume struct {
 	ID        uuid.UUID
 	NodeID    *uuid.UUID
 	MountPath string
 	Num       int32
 }
 
-func NewVolume(nodeID *uuid.UUID, mountPath string) (*Volume, error) {
+func NewVolume(nodeID *uuid.UUID, mountPath string) (*NodeVolume, error) {
 	var re = regexp.MustCompile(`^(\/[a-zA-Z0-9_-]+)+$`)
 	if !re.MatchString(mountPath) {
 		errMsg := fmt.Sprintf("invalid mount path: `%s`", mountPath)
 		return nil, errors.New(errMsg)
 	}
-	return &Volume{ID: uuid.NewV4(), NodeID: nodeID, MountPath: mountPath}, nil
+	return &NodeVolume{ID: uuid.NewV4(), NodeID: nodeID, MountPath: mountPath}, nil
 }
 
 // VolumeAdd adds a new volume to a node
-func VolumeAdd(ctx *Context, nodeID *uuid.UUID, mountPoint string) (*Volume, error) {
+func VolumeAdd(ctx *Context, nodeID *uuid.UUID, mountPoint string) (*NodeVolume, error) {
 	// if we can instantiate a new volume from the data, insert it
 	volume, err := NewVolume(nodeID, mountPoint)
 	if err != nil {
@@ -187,6 +187,7 @@ func GetNodesForStorageGroup(ctx *Context, storageGroupID *uuid.UUID) ([]*Storag
 	var nodes []*StorageGroupNode
 	nodeMap := make(map[uuid.UUID]*Node)
 	var nodeIDs []uuid.UUID
+	defer rows.Close()
 	for rows.Next() {
 		node := Node{}
 		var num int32
@@ -212,8 +213,9 @@ func GetNodesForStorageGroup(ctx *Context, storageGroupID *uuid.UUID) ([]*Storag
 	if err != nil {
 		return nil, err
 	}
+	defer volRows.Close()
 	for volRows.Next() {
-		vol := Volume{}
+		vol := NodeVolume{}
 		err := volRows.Scan(&vol.NodeID, &vol.ID, &vol.MountPath, &vol.Num)
 		if err != nil {
 			return nil, err
