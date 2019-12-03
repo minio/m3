@@ -211,7 +211,7 @@ func GetNodesForStorageGroup(ctx *Context, storageGroupID *uuid.UUID) ([]*Storag
 			node_volumes nv
 		WHERE 
 		      nv.node_id = ANY($1)`
-	tx, err := ctx.MainTx()
+	tx, err = ctx.MainTx()
 	if err != nil {
 		return nil, err
 	}
