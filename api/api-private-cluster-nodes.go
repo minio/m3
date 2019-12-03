@@ -18,6 +18,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"regexp"
 	"strings"
@@ -43,20 +44,20 @@ func (ps *privateServer) ClusterNodesAdd(ctx context.Context, in *pb.NodeAddRequ
 		return nil, status.New(codes.InvalidArgument, "A kubernetes label is needed").Err()
 	}
 
-	// validate volumes string
-	//if in.Volumes == "" {
-	//	return nil, status.New(codes.InvalidArgument, "A list of volumes on the node is needed").Err()
-	//}
-
 	var volumes []string
 	if ellipses.HasEllipses(in.Volumes) {
 		patterns, perr := ellipses.FindEllipsesPatterns(in.Volumes)
 		if perr != nil {
 			return nil, status.New(codes.InvalidArgument, "Invalid descriptor of volumes mount points").Err()
 		}
-
-		for _, lbls := range patterns.Expand() {
-			volumes = append(volumes, strings.Join(lbls, ""))
+		randomNodeID := uuid.NewV4()
+		for _, volumeMountPath := range patterns.Expand() {
+			mountPath := strings.Join(volumeMountPath, "")
+			if _, err := cluster.NewVolume(&randomNodeID, mountPath); err != nil {
+				msg := fmt.Sprintf("Volume mount path `%s` is not valid.", mountPath)
+				return nil, status.New(codes.InvalidArgument, msg).Err()
+			}
+			volumes = append(volumes, mountPath)
 		}
 	} else {
 		if in.Volumes != "" {
