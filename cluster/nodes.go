@@ -179,8 +179,11 @@ func GetNodesForStorageGroup(ctx *Context, storageGroupID *uuid.UUID) ([]*Storag
 		LEFT JOIN storage_groups sg ON scn.storage_cluster_id = sg.storage_cluster_id
 		WHERE 
 		      sg.id = $1`
-
-	rows, err := GetInstance().Db.Query(queryNodes, storageGroupID)
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := tx.Query(queryNodes, storageGroupID)
 	if err != nil {
 		return nil, err
 	}
@@ -208,8 +211,11 @@ func GetNodesForStorageGroup(ctx *Context, storageGroupID *uuid.UUID) ([]*Storag
 			node_volumes nv
 		WHERE 
 		      nv.node_id = ANY($1)`
-
-	volRows, err := GetInstance().Db.Query(queryVolumes, pq.Array(nodeIDs))
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return nil, err
+	}
+	volRows, err := tx.Query(queryVolumes, pq.Array(nodeIDs))
 	if err != nil {
 		return nil, err
 	}

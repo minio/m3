@@ -33,12 +33,12 @@ var addStorageClusterCmd = cli.Command{
 		cli.StringFlag{
 			Name:  "name",
 			Value: "",
-			Usage: "Name for the storage group. Must meet the requirements of a hostname.",
+			Usage: "Name for the storage cluster. Must meet the requirements of a hostname.",
 		},
 	},
 }
 
-// Adds a Storage Group to house multiple tenants
+// Adds a Storage Cluster to house multiple tenants
 func addStorageCluster(ctx *cli.Context) error {
 	name := ctx.String("name")
 	if name == "" && ctx.Args().Get(0) != "" {
@@ -58,6 +58,6 @@ func addStorageCluster(ctx *cli.Context) error {
 		fmt.Println(err)
 		return nil
 	}
-	fmt.Println("Done adding storage group")
+	fmt.Println("Done adding storage cluster")
 	return nil
 }
