@@ -1,7 +1,7 @@
 {{ $pullPolicy := .Values.image.pullPolicy }}
 {{ $imageRepo := .Values.image.repository }}
 {{ $appVersion := .Chart.AppVersion }}
-{{ $name := include "mirror.fullname" . }}
+{{ $name := list "mirror" .Release.Name | join "-" }}
 {{ $envs := .Values.env }}
 {{ $resources := .Values.resources }}
 {{ $buckets := .Values.location.buckets }}
@@ -23,7 +23,7 @@ spec:
           projected:
             sources:
             - configMap:
-                name: {{ $name }}
+                name: {{ .Release.Name }}-configmap
       containers:
       {{- range $bucket := $buckets }}
         - name: {{ list $name $bucket | join "-" }}
