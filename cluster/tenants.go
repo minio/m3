@@ -136,7 +136,7 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 			log.Println("MinIO not ready, sleeping 2 seconds.")
 			time.Sleep(time.Second * 2)
 			currentTries++
-			if currentTries > maxReadynessTries {
+			if currentTries > maxReadinessTries {
 				break
 			}
 		}
