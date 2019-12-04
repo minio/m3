@@ -90,7 +90,10 @@ func (ps *privateServer) ClusterStorageGroupAdd(ctx context.Context, in *pb.Stor
 
 	storageCluster, err := cluster.GetStorageClusterByName(appCtx, in.StorageCluster)
 	if err != nil || storageCluster == nil {
-		return nil, status.New(codes.InvalidArgument, "Invalid storage cluster name.").Err()
+		if err != nil {
+			log.Println(err)
+		}
+		return nil, status.New(codes.NotFound, "Storage Cluster not found").Err()
 	}
 
 	// create a new storage group in the DB
