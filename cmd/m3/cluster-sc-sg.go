@@ -29,7 +29,7 @@ var storageGroupCmd = cli.Command{
 	Usage:   "storage group sub commands",
 	Action:  defStorageGroupCmd,
 	Subcommands: []cli.Command{
-		addStorageClusterCmd,
+		addStorageGroupCmd,
 	},
 }
 

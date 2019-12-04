@@ -23,37 +23,53 @@ import (
 	pb "github.com/minio/m3/api/stubs"
 )
 
-// Add a storage group to a storage cluster
-var addStorageGroupCmd = cli.Command{
+var clusterNodesAddCmd = cli.Command{
 	Name:    "add",
 	Aliases: []string{"a"},
-	Usage:   "add a storage group",
-	Action:  addStorageGroup,
+	Usage:   "Adds a new Node for mkube to administer",
+	Action:  clusterNodesAdd,
 	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "storage_cluster",
-			Value: "",
-			Usage: "Name of the storage cluster to add this group to",
-		},
 		cli.StringFlag{
 			Name:  "name",
 			Value: "",
-			Usage: "Name for the storage group. Must meet the requirements of a hostname.",
+			Usage: "Alphanumeric name for the node. Can include dots, dashes and underscores. ",
+		},
+		cli.StringFlag{
+			Name:  "k8s_label",
+			Value: "",
+			Usage: "Kubernetes label. How mkube can identify the node inside the kubernetes cluster.",
+		},
+		cli.StringFlag{
+			Name:  "volumes",
+			Value: "",
+			Usage: "A list of volumes present on the node. Can use ellipsis format: /mnt/disk{1...4}",
 		},
 	},
 }
 
-// Adds a Storage Group to house multiple tenants
-func addStorageGroup(ctx *cli.Context) error {
-	storageCluster := ctx.String("storage_cluster")
-	if storageCluster == "" && ctx.Args().Get(0) != "" {
-		storageCluster = ctx.Args().Get(0)
-	}
+func clusterNodesAdd(ctx *cli.Context) error {
 	name := ctx.String("name")
-	if name == "" && ctx.Args().Get(1) != "" {
-		name = ctx.Args().Get(1)
+	k8sLabel := ctx.String("k8s_label")
+	volumes := ctx.String("volumes")
+	if name == "" && ctx.Args().Get(0) != "" {
+		name = ctx.Args().Get(0)
+	}
+	if k8sLabel == "" && ctx.Args().Get(1) != "" {
+		k8sLabel = ctx.Args().Get(1)
+	}
+	if volumes == "" && ctx.Args().Get(2) != "" {
+		volumes = ctx.Args().Get(2)
+	}
+	if name == "" {
+		fmt.Println("You must provide a node name")
+		return nil
 	}
 
+	if k8sLabel == "" {
+		fmt.Println("A kubernetes label is needed")
+		return nil
+	}
+	// perform the action
 	cnxs, err := GetGRPCChannel()
 	if err != nil {
 		fmt.Println(err)
@@ -61,15 +77,17 @@ func addStorageGroup(ctx *cli.Context) error {
 	}
 	defer cnxs.Conn.Close()
 	// perform RPC
-	_, err = cnxs.Client.ClusterStorageGroupAdd(cnxs.Context, &pb.StorageGroupAddRequest{
-		StorageCluster: storageCluster,
-		Name:           name,
+	_, err = cnxs.Client.ClusterNodesAdd(cnxs.Context, &pb.NodeAddRequest{
+		Name:     name,
+		K8SLabel: k8sLabel,
+		Volumes:  volumes,
 	})
 
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
-	fmt.Println("Done adding storage group")
+
+	fmt.Println("Done adding node!")
 	return nil
 }

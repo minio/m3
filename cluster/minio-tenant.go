@@ -24,12 +24,12 @@ import (
 )
 
 // mkTenantContainer builds the container spec for the `sgTenant` tenant on host identified by `hostNum`
-func mkTenantMinioContainer(sgTenant *StorageGroupTenant, hostNum string) (v1.Container, []v1.Volume) {
+func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNode) (v1.Container, []v1.Volume) {
 	sg := sgTenant.StorageGroup
 	envName := fmt.Sprintf("%s-env", sgTenant.ShortName)
 	volumeMounts := []v1.VolumeMount{}
 	tenantContainer := v1.Container{
-		Name:  fmt.Sprintf("%s-minio-%s", sgTenant.Tenant.ShortName, hostNum),
+		Name:  fmt.Sprintf("%s-minio-%d", sgTenant.Tenant.ShortName, sgNode.Num),
 		Image: "minio/minio:RELEASE.2019-10-12T01-39-57Z",
 		//Image:           "minio/minio:latest",
 		ImagePullPolicy: "IfNotPresent",
@@ -40,9 +40,9 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, hostNum string) (v1.Co
 			fmt.Sprintf(
 				"http://sg-%d-host-{1...%d}:%d/mnt/tdisk{1...%d}",
 				sg.Num,
-				MaxNumberHost,
+				sgTenant.StorageGroup.TotalNodes,
 				sgTenant.Port,
-				MaxNumberDiskPerNode),
+				sgTenant.StorageGroup.TotalVolumes),
 		},
 		Ports: []v1.ContainerPort{
 			{
@@ -72,14 +72,14 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, hostNum string) (v1.Co
 	}
 	var tenantVolumes []v1.Volume
 	//volumes that will be used by this sgTenant
-	for vi := 1; vi <= MaxNumberDiskPerNode; vi++ {
-		vname := fmt.Sprintf("%s-pv-%d", sgTenant.Tenant.ShortName, vi)
-		volumenSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: fmt.Sprintf("/mnt/disk%d/%s", vi, sgTenant.Tenant.ShortName)}}
+	for _, vol := range sgNode.Node.Volumes {
+		vname := fmt.Sprintf("%s-pv-%d", sgTenant.Tenant.ShortName, vol.Num)
+		volumenSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: fmt.Sprintf("%s/%s", vol.MountPath, sgTenant.Tenant.ShortName)}}
 		hostPathVolume := v1.Volume{Name: vname, VolumeSource: volumenSource}
 
 		mount := v1.VolumeMount{
 			Name:      vname,
-			MountPath: fmt.Sprintf("/mnt/tdisk%d", vi),
+			MountPath: fmt.Sprintf("/mnt/tdisk%d", vol.Num),
 		}
 		tenantVolumes = append(tenantVolumes, hostPathVolume)
 		volumeMounts = append(volumeMounts, mount)

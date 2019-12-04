@@ -18,7 +18,8 @@ package api
 
 import (
 	"context"
-	"fmt"
+	"log"
+	"regexp"
 
 	pb "github.com/minio/m3/api/stubs"
 	"github.com/minio/m3/cluster"
@@ -26,32 +27,94 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// ClusterScSgAdd rpc to add a new storage group
-func (ps *privateServer) ClusterScSgAdd(ctx context.Context, in *pb.StorageGroupAddRequest) (*pb.StorageGroupAddResponse, error) {
+// ClusterStorageClusterAdd rpc to add a new storage cluster
+func (ps *privateServer) ClusterStorageClusterAdd(ctx context.Context, in *pb.StorageClusterAddRequest) (*pb.StorageClusterAddResponse, error) {
+	appCtx, err := cluster.NewEmptyContext()
+	if err != nil {
+		return nil, status.New(codes.Internal, "An internal error happened").Err()
+	}
+	// validate storage cluster name
+	if in.Name == "" {
+		return nil, status.New(codes.InvalidArgument, "A storage cluster name is needed").Err()
+	}
+	// validate hostname like storage cluster name
+	var re = regexp.MustCompile(`^[a-z0-9-]{1,63}$`)
+	if !re.MatchString(in.Name) {
+		return nil, status.New(codes.InvalidArgument, "Invalid storage cluster name.").Err()
+	}
+
+	// create a new storage group in the DB
+	storageCluster, err := cluster.AddStorageCluster(appCtx, in.Name)
+	if err != nil {
+		log.Println(err)
+		if err = appCtx.Rollback(); err != nil {
+			log.Println(err)
+			return nil, status.New(codes.Internal, "Internal error").Err()
+		}
+		return nil, status.New(codes.Internal, "Failed to add Storage Cluster").Err()
+	}
+	// everything seems fine, commit the transaction.
+	if err = appCtx.Commit(); err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	return &pb.StorageClusterAddResponse{StorageCluster: storageClusterToPb(storageCluster)}, nil
+}
+
+func storageClusterToPb(storageCluster *cluster.StorageCluster) *pb.StorageCluster {
+	return &pb.StorageCluster{
+		Id:   storageCluster.ID.String(),
+		Name: storageCluster.Name,
+	}
+}
+
+// ClusterStorageGroupAdd rpc to add a new storage group
+func (ps *privateServer) ClusterStorageGroupAdd(ctx context.Context, in *pb.StorageGroupAddRequest) (*pb.StorageGroupAddResponse, error) {
+	// validate storage cluster name
+	if in.Name == "" {
+		return nil, status.New(codes.InvalidArgument, "A storage group name is needed").Err()
+	}
+	// validate hostname like storage cluster name
+	var re = regexp.MustCompile(`^[a-z0-9-]{1,63}$`)
+	if !re.MatchString(in.StorageCluster) {
+		return nil, status.New(codes.InvalidArgument, "Invalid storage cluster name.").Err()
+	}
+	// validate hostname like storage group name
+	if !re.MatchString(in.Name) {
+		return nil, status.New(codes.InvalidArgument, "Invalid storage group name.").Err()
+	}
 	appCtx, err := cluster.NewEmptyContext()
 	if err != nil {
 		return nil, status.New(codes.Internal, "An internal error happened").Err()
 	}
 
-	var name *string
-	if in.Name != "" {
-		name = &in.Name
+	storageCluster, err := cluster.GetStorageClusterByName(appCtx, in.StorageCluster)
+	if err != nil || storageCluster == nil {
+		return nil, status.New(codes.InvalidArgument, "Invalid storage cluster name.").Err()
 	}
 
 	// create a new storage group in the DB
-	storageGroupResult := <-cluster.AddStorageGroup(appCtx, name)
+	storageGroupResult := <-cluster.AddStorageGroup(appCtx, &storageCluster.ID, in.Name)
 	if storageGroupResult.Error != nil {
-		fmt.Println(storageGroupResult.Error)
-		appCtx.Rollback()
+		log.Println(storageGroupResult.Error)
+		if err = appCtx.Rollback(); err != nil {
+			return nil, status.New(codes.Internal, "Internal error").Err()
+		}
 		return nil, status.New(codes.Internal, "Failed to add Storage Group").Err()
 	}
-	err = <-cluster.ProvisionServicesForStorageGroup(storageGroupResult.StorageGroup)
+	err = <-cluster.ProvisionServicesForStorageGroup(appCtx, storageGroupResult.StorageGroup)
 	if err != nil {
-		fmt.Println(err)
-		appCtx.Rollback()
+		log.Println(err)
+		if err = appCtx.Rollback(); err != nil {
+			log.Println(err)
+			return nil, status.New(codes.Internal, "Internal error").Err()
+		}
 		return nil, status.New(codes.Internal, "Failed to provision Storage Group").Err()
 	}
 	// everything seems fine, commit the transaction.
-	appCtx.Commit()
+	if err = appCtx.Commit(); err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 	return &pb.StorageGroupAddResponse{}, nil
 }

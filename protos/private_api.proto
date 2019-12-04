@@ -65,7 +65,19 @@ service PrivateAPI {
     rpc ValidateSession (AdminEmpty) returns (AdminEmpty) {
     }
     // Cluster Operations
-    rpc ClusterScSgAdd (StorageGroupAddRequest) returns (StorageGroupAddResponse) {
+    rpc ClusterNodesAdd (NodeAddRequest) returns (NodeAddResponse) {
+    }
+    rpc ClusterNodesList (NodeListRequest) returns (NodeListResponse) {
+    }
+    rpc ClusterNodesVolumesAdd (VolumeAddRequest) returns (VolumeAddResponse) {
+    }
+    rpc ClusterNodesVolumesList (VolumeListRequest) returns (VolumeListResponse) {
+    }
+    rpc ClusterStorageClusterAdd (StorageClusterAddRequest) returns (StorageClusterAddResponse) {
+    }
+    rpc ClusterScAssignNode (AssignNodeRequest) returns (AssignNodeResponse) {
+    }
+    rpc ClusterStorageGroupAdd (StorageGroupAddRequest) returns (StorageGroupAddResponse) {
     }
     // Sets Email Template
     rpc SetEmailTemplate (SetEmailTemplateRequest) returns (SetEmailTemplateResponse) {
@@ -162,7 +174,8 @@ message CLILoginResponse {
 }
 
 message StorageGroupAddRequest {
-    string name = 1;
+    string storage_cluster = 1;
+    string name = 2;
 }
 
 message StorageGroupAddResponse {
@@ -196,4 +209,74 @@ message SetEmailTemplateRequest {
     string template = 2;
 }
 message SetEmailTemplateResponse {
+}
+
+
+message Node {
+    string id = 1;
+    string name = 2;
+    string k8s_label = 3;
+    repeated Volume volumes = 4;
+}
+
+message NodeAddRequest {
+    string name = 1;
+    string k8s_label = 2;
+    string volumes = 3;
+}
+message NodeAddResponse {
+    Node node = 1;
+}
+
+message NodeListRequest {
+    int64 offset = 1;
+    int32 limit = 2;
+}
+message NodeListResponse {
+    repeated Node nodes = 1;
+    int32 total = 2;
+}
+
+message Volume {
+    string id = 1;
+    string node_id = 2;
+    string mount_path = 3;
+}
+message VolumeAddRequest {
+    string node = 1;
+    string mount_path = 2;
+}
+message VolumeAddResponse {
+    Volume volume = 1;
+}
+
+message VolumeListRequest {
+    string node = 1;
+    int64 offset = 2;
+    int32 limit = 3;
+}
+
+message VolumeListResponse {
+    repeated Volume volumes = 1;
+    int32 total = 2;
+}
+
+message AssignNodeRequest {
+    string storage_cluster = 1;
+    string node = 2;
+}
+message AssignNodeResponse {
+}
+
+message StorageCluster {
+    string id = 1;
+    string name = 2;
+}
+
+message StorageClusterAddRequest {
+    string name = 1;
+}
+
+message StorageClusterAddResponse {
+    StorageCluster storage_cluster = 1;
 }

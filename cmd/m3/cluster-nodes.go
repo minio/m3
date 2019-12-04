@@ -21,18 +21,17 @@ import (
 )
 
 // list files and folders.
-var clusterCmd = cli.Command{
-	Name:    "cluster",
-	Aliases: []string{"c"},
-	Usage:   "runs cluster commands",
-	Action:  clusterAction,
+var clusterNodesCmd = cli.Command{
+	Name:    "nodes",
+	Aliases: []string{"n"},
+	Usage:   "Nodes sub commands",
+	Action:  clusterNodes,
 	Subcommands: []cli.Command{
-		storageClusterCmd,
-		clusterRouterCmd,
-		clusterNodesCmd,
+		clusterNodesAddCmd,
+		clusterNodesAssignCmd,
 	},
 }
 
-func clusterAction(ctx *cli.Context) error {
+func clusterNodes(ctx *cli.Context) error {
 	return cli.ShowAppHelp(ctx)
 }

@@ -30,7 +30,7 @@ import (
 
 // TenantServiceAccountUpdatePolicy causes a service account to have it's policy re-applied by pulling all the
 // permissions associated with it.
-func (s *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, in *pb.TenantServiceAccountActionRequest) (*pb.TenantServiceAccountActionResponse, error) {
+func (ps *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, in *pb.TenantServiceAccountActionRequest) (*pb.TenantServiceAccountActionResponse, error) {
 	// get context
 	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
@@ -81,7 +81,7 @@ func (s *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, in
 
 // TenantPermissionAssign provides the endpoint to assign a permission by id-name to multiple service accounts by
 // id-name as well.
-func (s *privateServer) TenantServiceAccountAssign(ctx context.Context, in *pb.TenantServiceAccountAssignRequest) (*pb.TenantServiceAccountAssignResponse, error) {
+func (ps *privateServer) TenantServiceAccountAssign(ctx context.Context, in *pb.TenantServiceAccountAssignRequest) (*pb.TenantServiceAccountAssignResponse, error) {
 	// get context
 	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
