@@ -112,3 +112,19 @@ func RemoveMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, u
 func tagErrorAsMinio(err error) error {
 	return fmt.Errorf("MinIO: %s", err.Error())
 }
+
+// minioIsReady determines whether the MinIO for a tenant is ready or not
+func minioIsReady(ctx *Context) (bool, error) {
+	// Get tenant specific MinIO client
+	minioClient, err := newTenantMinioClient(ctx, ctx.Tenant.ShortName)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = minioClient.ListBuckets()
+	if err != nil {
+		return false, tagErrorAsMinio(err)
+	}
+
+	return true, nil
+}
