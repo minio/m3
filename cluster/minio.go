@@ -120,8 +120,10 @@ func minioIsReady(ctx *Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
-	_, err = minioClient.ListBuckets()
+	// Generate a random bucket name
+	randBucket := RandomCharString(32)
+	// Check if it exist, we expect it to say no, or fail if MinIO is not ready
+	_, err = minioClient.BucketExists(randBucket)
 	if err != nil {
 		return false, tagErrorAsMinio(err)
 	}
