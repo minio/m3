@@ -52,6 +52,12 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 	if err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
+	tenant, err := cluster.GetTenant(in.Tenant)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.NotFound, "Tenant not found").Err()
+	}
+	appCtx.Tenant = &tenant
 	// perform the action
 	err = cluster.AddUser(appCtx, &user)
 	if err != nil {

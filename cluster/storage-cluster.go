@@ -111,7 +111,6 @@ func AddStorageGroup(ctx *Context, storageClusterID *uuid.UUID, sgName string) c
 			ch <- StorageGroupResult{
 				Error: err,
 			}
-			ctx.Rollback()
 			return
 		}
 		// return result via channel

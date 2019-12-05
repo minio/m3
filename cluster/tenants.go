@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/minio/minio-go/pkg/policy"
@@ -120,6 +121,29 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 	}
 	// if the first admin name and email was provided send them an invitation
 	if userName != "" && userEmail != "" {
+		// wait for MinIO to be ready before creating the first user
+		currentTries := 0
+		ready := false
+		for {
+			ready, err = minioIsReady(ctx)
+			if err != nil {
+				// we'll tolerate errors here, probably minio not responding
+				log.Println(err)
+			}
+			if ready {
+				break
+			}
+			log.Println("MinIO not ready, sleeping 2 seconds.")
+			time.Sleep(time.Second * 2)
+			currentTries++
+			if currentTries > maxReadinessTries {
+				break
+			}
+		}
+		if !ready {
+			return errors.New("MinIO was never ready. Unable to complete configuration of tenant")
+		}
+
 		// insert user to DB with random password
 		newUser := User{Name: userName, Email: userEmail}
 		err := AddUser(ctx, &newUser)
@@ -336,9 +360,9 @@ func MigrateTenantDB(tenantName string) chan error {
 }
 
 // newTenantMinioClient creates a MinIO client for the given tenant
-func newTenantMinioClient(tenantShortname string) (*minio.Client, error) {
+func newTenantMinioClient(ctx *Context, tenantShortname string) (*minio.Client, error) {
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(nil, tenantShortname)
+	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortname)
 	if sgt.Error != nil {
 		return nil, sgt.Error
 	}
@@ -355,7 +379,7 @@ func newTenantMinioClient(tenantShortname string) (*minio.Client, error) {
 		tenantConf.SecretKey,
 		false)
 	if err != nil {
-		return nil, err
+		return nil, tagErrorAsMinio(err)
 	}
 
 	return minioClient, nil
@@ -384,7 +408,7 @@ func SetBucketAccess(minioClient *minio.Client, bucketName string, accessType Bu
 // ChangeBucketAccess changes access type assigned to the given bucket
 func ChangeBucketAccess(tenantShortname, bucketName string, accessType BucketAccess) error {
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(tenantShortname)
+	minioClient, err := newTenantMinioClient(nil, tenantShortname)
 	if err != nil {
 		return err
 	}
@@ -404,7 +428,7 @@ func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) err
 	}
 
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(tenantShortname)
+	minioClient, err := newTenantMinioClient(nil, tenantShortname)
 	if err != nil {
 		return err
 	}
@@ -456,7 +480,7 @@ func GetBucketAccess(minioClient *minio.Client, bucketName string) (BucketAccess
 // ListBuckets for the given tenant's short name
 func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(tenantShortname)
+	minioClient, err := newTenantMinioClient(nil, tenantShortname)
 	if err != nil {
 		return []TenantBucketInfo{}, err
 	}
@@ -485,7 +509,7 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 // Deletes a bucket in the given tenant's MinIO
 func DeleteBucket(tenantShortname, bucket string) error {
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(tenantShortname)
+	minioClient, err := newTenantMinioClient(nil, tenantShortname)
 	if err != nil {
 		return err
 	}
