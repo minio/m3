@@ -80,6 +80,10 @@ A valid `smtp` account is needed, if you don't have one we recommend you create 
 kubectl apply -f k8s/deployments/m3-deployment.yaml
 ``` 
 
+- Install and deploy to k8s your preferred frontend and backend portal 
+
+- Frontend service name must be called faceliftfe and run in port 80
+
 - Start m3 development environment
 
 ```
