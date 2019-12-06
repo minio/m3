@@ -19,6 +19,8 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,11 +38,11 @@ type ServiceAccountCredentials struct {
 	SecretKey string
 }
 
-// createUserCredentials creates some random access/secret key pair and then stores them on k8s, if successful
+// createUserWithCredentials creates some random access/secret key pair and then stores them on k8s, if successful
 // it will create a MinIO User and attach `readwrite` policy, if successful, it will insert this credential to the
 // tenant DB
-func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UUID) error {
-
+func createUserWithCredentials(ctx *Context, tenantShortName string, userdID uuid.UUID) error {
+	log.Println("createUserWithCredentials")
 	userUICredentials := UserUICredentials{
 		AccessKey: RandomCharString(16),
 		SecretKey: RandomCharString(32)}
@@ -67,12 +69,21 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UU
 		return err
 	}
 	// create minio user
+	log.Println("addMinioUser")
 	err = addMinioUser(sgt.StorageGroupTenant, tenantConf, userUICredentials.AccessKey, userUICredentials.SecretKey)
 	if err != nil {
+		log.Println("error on addMinioUser")
 		return err
 	}
 	// add readwrite canned policy
+	log.Println("addMinioCannedPolicyToUser")
 	err = addMinioCannedPolicyToUser(sgt.StorageGroupTenant, tenantConf, userUICredentials.AccessKey, "readwrite")
+	if err != nil {
+		return err
+	}
+	// create minio postgres configuration for bucket notification
+	log.Println("before setMinioConfig")
+	err = setMinioConfigPostgresNotification(sgt.StorageGroupTenant, tenantConf)
 	if err != nil {
 		return err
 	}
@@ -92,6 +103,32 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UU
 		return err
 	}
 	return nil
+}
+
+func getPostgresNotificationMinioConfigKV() (config string) {
+	log.Println("getPostgresNotificationMinioConfigKV")
+	// Get the Database configuration
+	dbConfg := GetM3DbConfig()
+	// Build the database URL connection
+	dbConfigSSLMode := "disable"
+	if dbConfg.Ssl {
+		dbConfigSSLMode = "enable"
+	}
+	postgresTable := "bucketevents"
+	if os.Getenv("MINIO_POSTGRES_NOTIFICATION_TABLE") != "" {
+		postgresTable = os.Getenv("MINIO_POSTGRES_NOTIFICATION_TABLE")
+	}
+
+	config = fmt.Sprintf("notify_postgres state=on format=access connection_string=sslmode=%s table=%s host=%s port=%s username=%s password=%s database=%s",
+		dbConfigSSLMode,
+		postgresTable,
+		dbConfg.Host,
+		dbConfg.Port,
+		dbConfg.User,
+		dbConfg.Pwd,
+		dbConfg.Name)
+	log.Println(config)
+	return config
 }
 
 // storeUserUICredentialsSecret saves some UserUICredentials to a k8s secret on the tenant namespace
