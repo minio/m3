@@ -42,7 +42,6 @@ type ServiceAccountCredentials struct {
 // it will create a MinIO User and attach `readwrite` policy, if successful, it will insert this credential to the
 // tenant DB
 func createUserWithCredentials(ctx *Context, tenantShortName string, userdID uuid.UUID) error {
-	log.Println("createUserWithCredentials")
 	userUICredentials := UserUICredentials{
 		AccessKey: RandomCharString(16),
 		SecretKey: RandomCharString(32)}
@@ -69,20 +68,16 @@ func createUserWithCredentials(ctx *Context, tenantShortName string, userdID uui
 		return err
 	}
 	// create minio user
-	log.Println("addMinioUser")
 	err = addMinioUser(sgt.StorageGroupTenant, tenantConf, userUICredentials.AccessKey, userUICredentials.SecretKey)
 	if err != nil {
-		log.Println("error on addMinioUser")
 		return err
 	}
 	// add readwrite canned policy
-	log.Println("addMinioCannedPolicyToUser")
 	err = addMinioCannedPolicyToUser(sgt.StorageGroupTenant, tenantConf, userUICredentials.AccessKey, "readwrite")
 	if err != nil {
 		return err
 	}
 	// create minio postgres configuration for bucket notification
-	log.Println("before setMinioConfig")
 	err = setMinioConfigPostgresNotification(sgt.StorageGroupTenant, tenantConf)
 	if err != nil {
 		return err
@@ -127,7 +122,6 @@ func getPostgresNotificationMinioConfigKV() (config string) {
 		dbConfg.User,
 		dbConfg.Pwd,
 		dbConfg.Name)
-	log.Println(config)
 	return config
 }
 
