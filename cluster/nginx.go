@@ -267,7 +267,7 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 						 proxy_connect_timeout 90;
 						 proxy_send_timeout 300;
 						 proxy_read_timeout 90s;
-						 proxy_pass http://m3-portal-proxy:80;
+						 proxy_pass http://portal-proxy:80;
 					}
 				}
 		`)
