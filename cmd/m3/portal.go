@@ -17,7 +17,7 @@
 package main
 
 import (
-	portal_backend "github.com/minio/m3/portal-backend"
+	portal_backend "github.com/minio/m3/portal"
 
 	"github.com/minio/cli"
 )
