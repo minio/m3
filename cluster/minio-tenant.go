@@ -28,22 +28,34 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 	sg := sgTenant.StorageGroup
 	envName := fmt.Sprintf("%s-env", sgTenant.ShortName)
 	volumeMounts := []v1.VolumeMount{}
+
+	var minioPath string
+	minioConfigCmd := []string{"server"}
+	// Set minio server commands depending on number of nodes and disks
+	if sgTenant.StorageGroup.TotalNodes > 1 {
+		minioPath = fmt.Sprintf("http://sg-%d-host-{1...%d}", sg.Num, sgTenant.StorageGroup.TotalNodes)
+		if sgTenant.StorageGroup.TotalVolumes > 1 {
+			// set path like "http://sg-%d-host-{1...%d}/mnt/tdisk{1...%d}"
+			minioPath = minioPath + fmt.Sprintf("/mnt/tdisk{1...%d}", sgTenant.StorageGroup.TotalVolumes)
+		} else if sgTenant.StorageGroup.TotalVolumes == 1 {
+			// set path like "http://sg-%d-host-{1...%d}/mnt/tdisk1"
+			minioPath = minioPath + "/mnt/tdisk1"
+		}
+		// set minio command
+		minioConfigCmd = append(minioConfigCmd, "--address", fmt.Sprintf(":%d", sgTenant.Port), minioPath)
+
+	} else if sgTenant.StorageGroup.TotalNodes == 1 {
+		// execute minio command like "server --address :9001 /mnt/tdisk1"
+		minioPath = minioPath + "/mnt/tdisk1"
+		minioConfigCmd = append(minioConfigCmd, "--address", fmt.Sprintf(":%d", sgTenant.Port), minioPath)
+	}
+
 	tenantContainer := v1.Container{
 		Name:  fmt.Sprintf("%s-minio-%d", sgTenant.Tenant.ShortName, sgNode.Num),
-		Image: "minio/minio:RELEASE.2019-10-12T01-39-57Z",
+		Image: "minio/minio:edge",
 		//Image:           "minio/minio:latest",
 		ImagePullPolicy: "IfNotPresent",
-		Args: []string{
-			"server",
-			"--address",
-			fmt.Sprintf(":%d", sgTenant.Port),
-			fmt.Sprintf(
-				"http://sg-%d-host-{1...%d}:%d/mnt/tdisk{1...%d}",
-				sg.Num,
-				sgTenant.StorageGroup.TotalNodes,
-				sgTenant.Port,
-				sgTenant.StorageGroup.TotalVolumes),
-		},
+		Args:            minioConfigCmd,
 		Ports: []v1.ContainerPort{
 			{
 				Name:          "http",

@@ -19,7 +19,6 @@ package cluster
 import (
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"time"
 
@@ -36,7 +35,6 @@ type User struct {
 
 // AddUser adds a new user to the tenant's database
 func AddUser(ctx *Context, newUser *User) error {
-	log.Println("AddUser")
 	// validate user Name
 	if newUser.Name == "" {
 		return errors.New("a valid user name is needed")
