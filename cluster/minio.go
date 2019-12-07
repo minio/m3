@@ -143,8 +143,10 @@ func setMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *Ten
 			if k == "notify" {
 				v.(map[string]interface{})["postgresql"] = postgresConfig
 			}
+		case string:
+		case int:
 		default:
-			log.Println("configuration not type map[string]interface{}, type: ", t)
+			log.Println("configuration type: ", t)
 		}
 	}
 
