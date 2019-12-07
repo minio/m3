@@ -250,10 +250,25 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 																		'$status $body_bytes_sent "$http_referer" '
 																		'"$http_user_agent" "$http_x_forwarded_for"';
 				server {
-					#listen 80 default_server;
-					#listen 443 ssl default_server;
-					server_name _ ;
-					return 404;
+					location / {
+						 proxy_set_header Upgrade $http_upgrade;
+						 proxy_set_header Connection "upgrade";
+						 client_max_body_size 50M;
+						 proxy_set_header Host $http_host;
+						 proxy_set_header X-Real-IP $remote_addr;
+						 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+						 proxy_set_header X-Forwarded-Proto $scheme;
+						 proxy_set_header X-Frame-Options SAMEORIGIN;
+						 proxy_buffers 256 16k;
+						 proxy_buffer_size 16k;
+						 client_body_timeout 60;
+						 send_timeout 300;
+						 lingering_timeout 5;
+						 proxy_connect_timeout 90;
+						 proxy_send_timeout 300;
+						 proxy_read_timeout 90s;
+						 proxy_pass http://m3-portal-proxy:80;
+					}
 				}
 		`)
 		for index := 0; index < len(tenantRoutes); index++ {

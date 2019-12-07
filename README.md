@@ -80,6 +80,10 @@ A valid `smtp` account is needed, if you don't have one we recommend you create 
 kubectl apply -f k8s/deployments/m3-deployment.yaml
 ``` 
 
+- Install and deploy to k8s your preferred frontend and backend portal 
+
+- Frontend service name must be called `portal` and run in port 80
+
 - Start m3 development environment
 
 ```
@@ -202,3 +206,32 @@ Modify your `/etc/hosts` and add the following record
 ```
 
 Then in your browser go to: http://company-short-name.s3.localhost:9000/, you can add more tenants and access them via a subdomain in localhost for now.
+
+## Accessing the M3 Portal service via browser UI
+
+- Build and prepare the frontend
+
+```
+cd portal-ui
+make k8sdev
+cd ..
+kubectl apply -f k8s/deployments/m3-portal-frontend-deployment.yaml
+```
+
+- Build and prepare the backend, portal backend uses the existing `m3`
+
+```
+kubectl apply -f k8s/deployments/m3-portal-backend-deployment.yaml
+```
+
+- Build and prepare the portal-proxy that connect frontend and backend
+
+```
+kubectl apply -f k8s/deployments/m3-portal-proxy.yaml
+```
+
+- Do port-forward to `nginx-resolver` service that should be able to route to both, portal and Minio tenants
+
+```
+kubectl port-forward svc/nginx-resolver 1337:80
+```

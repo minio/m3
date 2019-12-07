@@ -17,7 +17,7 @@
 package main
 
 import (
-	"github.com/minio/m3/portal"
+	portal_backend "github.com/minio/m3/portal"
 
 	"github.com/minio/cli"
 )
@@ -31,7 +31,7 @@ var portalCmd = cli.Command{
 }
 
 func startPortalServer(ctx *cli.Context) error {
-	err := portal.StartPortal()
+	err := portal_backend.StartPortal()
 	if err != nil {
 		return err
 	}

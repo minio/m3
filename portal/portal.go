@@ -18,8 +18,10 @@ package portal
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -41,8 +43,18 @@ func StartPortal() error {
 		return "", false
 	}))
 
+	m3Hostname := "localhost"
+	if os.Getenv("M3_HOSTNAME") != "" {
+		m3Hostname = os.Getenv("M3_HOSTNAME")
+	}
+	m3PublicPort := "50051"
+	if os.Getenv("M3_PUBLIC_PORT") != "" {
+		m3PublicPort = os.Getenv("M3_PUBLIC_PORT")
+	}
+	m3Address := fmt.Sprintf("%s:%s", m3Hostname, m3PublicPort)
+
 	opts := []grpc.DialOption{grpc.WithInsecure()}
-	err := gw.RegisterPublicAPIHandlerFromEndpoint(ctx, mux, "localhost:50051", opts)
+	err := gw.RegisterPublicAPIHandlerFromEndpoint(ctx, mux, m3Address, opts)
 	if err != nil {
 		return err
 	}
