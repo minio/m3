@@ -130,26 +130,30 @@ func setMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *Ten
 	}
 
 	cfg := map[string]interface{}{}
-
 	// Check if read data is in json format
 	if err = json.Unmarshal(configBytes, &cfg); err != nil {
 		return errors.New("Invalid JSON format: " + err.Error())
 	}
 
 	postgresConfig := getPostgresNotificationMinioConfig()
+	// modify configuration
 	for k, v := range cfg {
-		switch v.(type) {
+		switch t := v.(type) {
 		case map[string]interface{}:
 			if k == "notify" {
 				v.(map[string]interface{})["postgresql"] = postgresConfig
 			}
+		default:
+			log.Println("configuration not type map[string]interface{}, type: ", t)
 		}
 	}
 
+	// convert json to bytes again
 	b, err := json.Marshal(cfg)
 	if err != nil {
 		return tagErrorAsMinio(err)
 	}
+	// creat Reader
 	r := bytes.NewReader(b)
 	err = adminClient.SetConfig(r)
 	if err != nil {
@@ -163,6 +167,7 @@ func setMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *Ten
 	return nil
 }
 
+// getPostgresNotificationMinioConfig creates minio postgres notification configuration
 func getPostgresNotificationMinioConfig() map[string]map[string]interface{} {
 	// Get the Database configuration
 	dbConfg := GetM3DbConfig()
@@ -191,7 +196,6 @@ func getPostgresNotificationMinioConfig() map[string]map[string]interface{} {
 
 // addMinioBucketNotification
 func addMinioBucketNotification(minioClient *minio.Client, bucketName, region string) error {
-	fmt.Println("addMinioBucketNotification")
 	queueArn := minio.NewArn("minio", "sqs", region, "1", "postgresql")
 	queueConfig := minio.NewNotificationConfig(queueArn)
 	queueConfig.AddEvents(minio.ObjectCreatedAll, minio.ObjectRemovedAll)
@@ -213,7 +217,6 @@ func tagErrorAsMinio(err error) error {
 
 // minioIsReady determines whether the MinIO for a tenant is ready or not
 func minioIsReady(ctx *Context) (bool, error) {
-	log.Println("minioIsReady")
 	// Get tenant specific MinIO client
 	minioClient, err := newTenantMinioClient(ctx, ctx.Tenant.ShortName)
 	if err != nil {
