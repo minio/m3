@@ -114,7 +114,6 @@ func removeMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, u
 
 // setMinioConfigPostgresNotification configures Minio for Postgres notification
 func setMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *TenantConfiguration) error {
-	log.Println("setMinioConfig")
 	// get an admin with operator keys
 	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
@@ -133,8 +132,7 @@ func setMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *Ten
 	return nil
 }
 
-func getPostgresNotificationMinioConfig() map[string]map[string]interface{} {
-	log.Println("getPostgresNotificationMinioConfig")
+func getPostgresNotificationMinioConfigKV() (config string) {
 	// Get the Database configuration
 	dbConfg := GetM3DbConfig()
 	// Build the database URL connection
@@ -147,57 +145,20 @@ func getPostgresNotificationMinioConfig() map[string]map[string]interface{} {
 		postgresTable = os.Getenv("MINIO_POSTGRES_NOTIFICATION_TABLE")
 	}
 
-	// postgresJSONConfig := &target.PostgreSQLArgs{
-	// 	Enable:           true,
-	// 	Format:           "access",
-	// 	ConnectionString: fmt.Sprintf("sslmode=%s", dbConfigSSLMode),
-	// 	Table:            postgresTable,
-	// 	Host: &xnet.Host{
-	// 		Name: dbConfg.Host},
-	// 	Port:     dbConfg.Port,
-	// 	User:     dbConfg.User,
-	// 	Password: dbConfg.Pwd,
-	// 	Database: dbConfg.Name,
-	// }
-
-	// postgresJSONConfig := fmt.Sprintf(`
-	// 	{
-	// 	    "1": {
-	// 	        "enable": true,
-	// 	        "format": "access",
-	// 	        "connectionString": "sslmode=%s",
-	// 	        "table": "%s",
-	// 	        "host": "%s",
-	// 	        "port": "%s",
-	// 	        "user": "%s",
-	// 	        "password": "%s",
-	// 	        "database": "%s"
-	// 	    	}
-	// 	}`, dbConfigSSLMode,
-	// 	postgresTable,
-	// 	dbConfg.Host,
-	// 	dbConfg.Port,
-	// 	dbConfg.User,
-	// 	dbConfg.Pwd,
-	// 	dbConfg.Name)
-
-	var postgresJSONConfig map[string]map[string]interface{}
-	postgresJSONConfig["1"]["enable"] = true
-	postgresJSONConfig["1"]["format"] = "access"
-	postgresJSONConfig["1"]["connectionString"] = fmt.Sprintf("sslmode=%s", dbConfigSSLMode)
-	postgresJSONConfig["1"]["table"] = postgresTable
-	postgresJSONConfig["1"]["host"] = dbConfg.Host
-	postgresJSONConfig["1"]["port"] = dbConfg.Port
-	postgresJSONConfig["1"]["user"] = dbConfg.User
-	postgresJSONConfig["1"]["password"] = dbConfg.Pwd
-	postgresJSONConfig["1"]["database"] = dbConfg.Name
-	return postgresJSONConfig
+	config = fmt.Sprintf(`notify_postgres format=access connection_string=sslmode=%s table=%s host=%s port=%s username=%s password=%s database=%s`,
+		dbConfigSSLMode,
+		postgresTable,
+		dbConfg.Host,
+		dbConfg.Port,
+		dbConfg.User,
+		dbConfg.Pwd,
+		dbConfg.Name)
+	return config
 }
 
 // addMinioBucketNotification
-func addMinioBucketNotification(minioClient *minio.Client, bucketName string) error {
-	fmt.Println("addMinioBucketNotification")
-	queueArn := minio.NewArn("minio", "sqs", "", "_", "postgresql")
+func addMinioBucketNotification(minioClient *minio.Client, bucketName, region string) error {
+	queueArn := minio.NewArn("minio", "sqs", region, "_", "postgresql")
 	queueConfig := minio.NewNotificationConfig(queueArn)
 	queueConfig.AddEvents(minio.ObjectCreatedAll, minio.ObjectRemovedAll)
 
@@ -218,7 +179,6 @@ func tagErrorAsMinio(err error) error {
 
 // minioIsReady determines whether the MinIO for a tenant is ready or not
 func minioIsReady(ctx *Context) (bool, error) {
-	log.Println("minioIsReady")
 	// Get tenant specific MinIO client
 	minioClient, err := newTenantMinioClient(ctx, ctx.Tenant.ShortName)
 	if err != nil {

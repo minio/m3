@@ -129,12 +129,10 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 		for {
 			ready, err = minioIsReady(ctx)
 			if err != nil {
-				log.Println("error minio is Ready")
 				// we'll tolerate errors here, probably minio not responding
 				log.Println(err)
 			}
 			if ready {
-				log.Println("ready")
 				break
 			}
 			time.Sleep(time.Second * 2)
@@ -157,11 +155,9 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 		newUser := User{Name: userName, Email: userEmail}
 		err := AddUser(ctx, &newUser)
 		if err != nil {
-			log.Println("error Adding User")
 			return err
 		}
 		// Invite it's first admin
-		log.Println("InviteUserByEmail")
 		err = InviteUserByEmail(ctx, TokenSignupEmail, &newUser)
 		if err != nil {
 			fmt.Println("Tenant added however the was an error adding first user:", err.Error())
