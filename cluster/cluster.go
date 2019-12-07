@@ -165,8 +165,8 @@ func CreateSGHostService(sg *StorageGroup, sgNode *StorageGroupNode) error {
 			Selector: map[string]string{
 				"app": serviceName,
 			},
-			ClusterIP: "None",
-			//PublishNotReadyAddresses: true,
+			ClusterIP:                "None",
+			PublishNotReadyAddresses: true,
 		},
 	}
 
