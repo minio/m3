@@ -299,18 +299,22 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 }
 
 // spins up the tenant on the target storage group, waits for it to start, then shuts it down
-func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) chan error {
-	ch := make(chan error)
+func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) chan *StorageGroupTenantResult {
+	ch := make(chan *StorageGroupTenantResult)
 	go func() {
 		defer close(ch)
 		if tenant == nil || sg == nil {
-			ch <- errors.New("nil Tenant or StorageGroup passed")
+			ch <- &StorageGroupTenantResult{
+				Error: errors.New("nil Tenant or StorageGroup passed"),
+			}
 			return
 		}
 		// assign the tenant to the storage group
 		sgTenantResult := <-createTenantInStorageGroup(ctx, tenant, sg)
 		if sgTenantResult.Error != nil {
-			ch <- sgTenantResult.Error
+			ch <- &StorageGroupTenantResult{
+				Error: sgTenantResult.Error,
+			}
 			return
 		}
 		// start the jobs that create the tenant folder on each disk on each node of the storage group
@@ -318,7 +322,9 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGrou
 		// get a list of nodes on the cluster
 		nodes, err := GetNodesForStorageGroup(ctx, &sg.ID)
 		if err != nil {
-			ch <- err
+			ch <- &StorageGroupTenantResult{
+				Error: err,
+			}
 		}
 		for _, sgNode := range nodes {
 			jobCh := CreateTenantFolderInDiskAndWait(tenant, sg, sgNode)
@@ -328,7 +334,9 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGrou
 		for chi := range jobChs {
 			err := <-jobChs[chi]
 			if err != nil {
-				ch <- err
+				ch <- &StorageGroupTenantResult{
+					Error: err,
+				}
 				return
 			}
 		}
@@ -337,9 +345,12 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGrou
 		// call for the storage group to refresh
 		err = <-ReDeployStorageGroup(ctx, sgTenantResult.StorageGroupTenant)
 		if err != nil {
-			ch <- err
+			ch <- &StorageGroupTenantResult{
+				Error: err,
+			}
 		}
 
+		ch <- sgTenantResult
 	}()
 	return ch
 }
