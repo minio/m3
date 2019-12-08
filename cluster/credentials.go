@@ -36,11 +36,10 @@ type ServiceAccountCredentials struct {
 	SecretKey string
 }
 
-// createUserCredentials creates some random access/secret key pair and then stores them on k8s, if successful
+// createUserWithCredentials creates some random access/secret key pair and then stores them on k8s, if successful
 // it will create a MinIO User and attach `readwrite` policy, if successful, it will insert this credential to the
 // tenant DB
-func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UUID) error {
-
+func createUserWithCredentials(ctx *Context, tenantShortName string, userdID uuid.UUID) error {
 	userUICredentials := UserUICredentials{
 		AccessKey: RandomCharString(16),
 		SecretKey: RandomCharString(32)}
@@ -76,6 +75,7 @@ func createUserCredentials(ctx *Context, tenantShortName string, userdID uuid.UU
 	if err != nil {
 		return err
 	}
+
 	// Now insert the credentials into the DB
 	query := `
 		INSERT INTO

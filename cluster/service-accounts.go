@@ -579,7 +579,7 @@ func UpdateMinioServiceAccountPoliciesAndStatus(ctx *Context, serviceAccount *Se
 
 	// Update MinIO User's status
 	if updateStatus {
-		err = SetMinioUserStatus(sgt.StorageGroupTenant, tenantConf, serviceAccount.AccessKey, serviceAccount.Enabled)
+		err = setMinioUserStatus(sgt.StorageGroupTenant, tenantConf, serviceAccount.AccessKey, serviceAccount.Enabled)
 		if err != nil {
 			return err
 		}
@@ -605,7 +605,7 @@ func SetMinioServiceAccountStatus(ctx *Context, serviceAccount *ServiceAccount, 
 		return err
 	}
 	// Update MinIO User's status
-	err = SetMinioUserStatus(sgt.StorageGroupTenant, tenantConf, serviceAccount.AccessKey, serviceAccount.Enabled)
+	err = setMinioUserStatus(sgt.StorageGroupTenant, tenantConf, serviceAccount.AccessKey, serviceAccount.Enabled)
 	if err != nil {
 		return err
 	}
@@ -648,7 +648,7 @@ func RemoveMinioServiceAccount(ctx *Context, serviceAccount *ServiceAccount) err
 		return err
 	}
 	// Delete MinIO's user
-	err = RemoveMinioUser(sgt.StorageGroupTenant, tenantConf, serviceAccount.AccessKey)
+	err = removeMinioUser(sgt.StorageGroupTenant, tenantConf, serviceAccount.AccessKey)
 	if err != nil {
 		return err
 	}

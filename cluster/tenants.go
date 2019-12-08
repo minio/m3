@@ -97,10 +97,11 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 	}
 
 	// provision the tenant on that cluster
-	err = <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sg.StorageGroup)
-	if err != nil {
-		return err
+	sgTenantResult := <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sg.StorageGroup)
+	if sgTenantResult.Error != nil {
+		return sgTenantResult.Error
 	}
+
 	// announce the tenant on the router
 	nginxCh := UpdateNginxConfiguration(ctx)
 	// check if we were able to provision the schema and be done running the migrations
@@ -142,6 +143,12 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 		}
 		if !ready {
 			return errors.New("MinIO was never ready. Unable to complete configuration of tenant")
+		}
+
+		// create minio postgres configuration for bucket notification
+		err = setMinioConfigPostgresNotification(sgTenantResult.StorageGroupTenant, &tenantConfig)
+		if err != nil {
+			return err
 		}
 
 		// insert user to DB with random password
@@ -435,6 +442,11 @@ func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) err
 
 	// Create Bucket on tenant's MinIO
 	if err = minioClient.MakeBucket(bucketName, "us-east-1"); err != nil {
+		return err
+	}
+
+	if err = addMinioBucketNotification(minioClient, bucketName, "us-east-1"); err != nil {
+		log.Println(err)
 		return err
 	}
 

@@ -2172,10 +2172,8 @@ type PrivateAPIClient interface {
 	ValidateSession(ctx context.Context, in *AdminEmpty, opts ...grpc.CallOption) (*AdminEmpty, error)
 	// Cluster Operations
 	ClusterNodesAdd(ctx context.Context, in *NodeAddRequest, opts ...grpc.CallOption) (*NodeAddResponse, error)
-	//TODO
 	ClusterNodesList(ctx context.Context, in *NodeListRequest, opts ...grpc.CallOption) (*NodeListResponse, error)
 	ClusterNodesVolumesAdd(ctx context.Context, in *VolumeAddRequest, opts ...grpc.CallOption) (*VolumeAddResponse, error)
-	//TODO
 	ClusterNodesVolumesList(ctx context.Context, in *VolumeListRequest, opts ...grpc.CallOption) (*VolumeListResponse, error)
 	ClusterStorageClusterAdd(ctx context.Context, in *StorageClusterAddRequest, opts ...grpc.CallOption) (*StorageClusterAddResponse, error)
 	ClusterScAssignNode(ctx context.Context, in *AssignNodeRequest, opts ...grpc.CallOption) (*AssignNodeResponse, error)
@@ -2426,10 +2424,8 @@ type PrivateAPIServer interface {
 	ValidateSession(context.Context, *AdminEmpty) (*AdminEmpty, error)
 	// Cluster Operations
 	ClusterNodesAdd(context.Context, *NodeAddRequest) (*NodeAddResponse, error)
-	//TODO
 	ClusterNodesList(context.Context, *NodeListRequest) (*NodeListResponse, error)
 	ClusterNodesVolumesAdd(context.Context, *VolumeAddRequest) (*VolumeAddResponse, error)
-	//TODO
 	ClusterNodesVolumesList(context.Context, *VolumeListRequest) (*VolumeListResponse, error)
 	ClusterStorageClusterAdd(context.Context, *StorageClusterAddRequest) (*StorageClusterAddResponse, error)
 	ClusterScAssignNode(context.Context, *AssignNodeRequest) (*AssignNodeResponse, error)

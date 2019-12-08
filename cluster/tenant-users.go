@@ -83,7 +83,7 @@ func AddUser(ctx *Context, newUser *User) error {
 	}
 
 	// Create this user's credentials so he can interact with it's own buckets/data
-	err = createUserCredentials(ctx, ctx.Tenant.ShortName, newUser.ID)
+	err = createUserWithCredentials(ctx, ctx.Tenant.ShortName, newUser.ID)
 	if err != nil {
 		return err
 	}
