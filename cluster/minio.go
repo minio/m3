@@ -182,17 +182,19 @@ func getPostgresNotificationMinioConfig() map[string]map[string]interface{} {
 	if os.Getenv("MINIO_POSTGRES_NOTIFICATION_TABLE") != "" {
 		postgresTable = os.Getenv("MINIO_POSTGRES_NOTIFICATION_TABLE")
 	}
-	postgresJSONConfig := make(map[string]map[string]interface{})
-	postgresJSONConfig["1"] = make(map[string]interface{})
-	postgresJSONConfig["1"]["enable"] = true
-	postgresJSONConfig["1"]["format"] = "access"
-	postgresJSONConfig["1"]["connectionString"] = fmt.Sprintf("sslmode=%s", dbConfigSSLMode)
-	postgresJSONConfig["1"]["table"] = postgresTable
-	postgresJSONConfig["1"]["host"] = dbConfg.Host
-	postgresJSONConfig["1"]["port"] = dbConfg.Port
-	postgresJSONConfig["1"]["user"] = dbConfg.User
-	postgresJSONConfig["1"]["password"] = dbConfg.Pwd
-	postgresJSONConfig["1"]["database"] = dbConfg.Name
+	postgresJSONConfig := map[string]map[string]interface{}{
+		"1": {
+			"enable":           true,
+			"format":           "access",
+			"connectionString": fmt.Sprintf("sslmode=%s", dbConfigSSLMode),
+			"table":            postgresTable,
+			"host":             dbConfg.Host,
+			"port":             dbConfg.Port,
+			"user":             dbConfg.User,
+			"password":         dbConfg.Pwd,
+			"database":         dbConfg.Name,
+		},
+	}
 	return postgresJSONConfig
 }
 
