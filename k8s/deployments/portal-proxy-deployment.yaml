@@ -2,20 +2,20 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: m3-portal-proxy
+  name: portal-proxy
   labels:
-    name: m3-portal-proxy
+    name: portal-proxy
 spec:
   ports:
     - port: 80
       name: webserver
   selector:
-    app: m3-portal-proxy
+    app: portal-proxy
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: m3-portal-proxy-config
+  name: portal-proxy-config
 data:
   nginx.conf: |
     user nginx;
@@ -79,29 +79,29 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: m3-portal-proxy
+  name: portal-proxy
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: m3-portal-proxy
+      app: portal-proxy
   template:
     metadata:
       labels:
-        app: m3-portal-proxy
+        app: portal-proxy
     spec:
       volumes:
-        - name: m3-portal-proxy-volume
+        - name: portal-proxy-volume
           configMap:
-            name: m3-portal-proxy-config
+            name: portal-proxy-config
       containers:
-        - name: m3-portal-proxy
+        - name: portal-proxy
           image: nginx:latest
           imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: 80
               name: webserver
           volumeMounts:
-            - name: m3-portal-proxy-volume
+            - name: portal-proxy-volume
               mountPath: /etc/nginx/nginx.conf
               subPath: nginx.conf
