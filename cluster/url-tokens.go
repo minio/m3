@@ -125,7 +125,7 @@ func CompleteSignup(ctx *Context, urlToken *URLToken, password string) error {
 
 // getJWTSecretKey gets jwt secret key from kubernetes secrets
 func getJWTSecretKey() ([]byte, error) {
-	config := getConfig()
+	config := getK8sConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {

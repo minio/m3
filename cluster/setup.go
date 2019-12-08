@@ -55,11 +55,14 @@ func SetupM3() error {
 
 	// setup m3 namespace on k8s
 	log.Println("Setting up m3 namespace")
-	waitCh := setupM3Namespace(clientset)
-	<-waitCh
+	waitNsCh := setupM3Namespace(clientset)
+
+	//setup etcd cluster
+	waitEtcdCh := SetupEtcCluster()
+
 	// setup nginx router
 	log.Println("setting up nginx configmap")
-	waitCh = SetupNginxConfigMap(clientset)
+	waitCh := SetupNginxConfigMap(clientset)
 	<-waitCh
 	//// Setup Jwt Secret
 	log.Println("Setting up jwt secret")
@@ -71,6 +74,8 @@ func SetupM3() error {
 	log.Println("setting up nginx deployment")
 	waitNginxResolverCh := DeployNginxResolver()
 
+	// Wait for the m3 NS to install postgres
+	<-waitNsCh
 	// setup postgres service
 	log.Println("Setting up postgres service")
 	waitPgSvcCh := setupPostgresService(clientset)
@@ -153,6 +158,10 @@ func SetupM3() error {
 
 	// wait for all other services
 	<-waitJwtCh
+	err = <-waitEtcdCh
+	if err != nil {
+		log.Println(err)
+	}
 	// wait on nginx resolver and check if there were any errors
 	err = <-waitNginxResolverCh
 	if err != nil {
@@ -741,7 +750,7 @@ func markSetupComplete(clientset *kubernetes.Clientset) <-chan struct{} {
 
 // getSetupDoneSecret gets m3 setup secret from kubernetes secrets
 func IsSetupComplete() (bool, error) {
-	config := getConfig()
+	config := getK8sConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {

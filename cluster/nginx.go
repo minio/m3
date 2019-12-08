@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
@@ -33,19 +33,19 @@ import (
 
 func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 	nginxLBReplicas := int32(1)
-	nginxLBPodSpec := v1.PodSpec{
-		Containers: []v1.Container{
+	nginxLBPodSpec := corev1.PodSpec{
+		Containers: []corev1.Container{
 			{
 				Name:            "nginx-resolver",
 				Image:           "nginx",
 				ImagePullPolicy: "IfNotPresent",
-				Ports: []v1.ContainerPort{
+				Ports: []corev1.ContainerPort{
 					{
 						Name:          "http",
 						ContainerPort: 80,
 					},
 				},
-				VolumeMounts: []v1.VolumeMount{
+				VolumeMounts: []corev1.VolumeMount{
 					{
 						Name:      "nginx-configuration",
 						MountPath: "/etc/nginx/nginx.conf",
@@ -54,12 +54,12 @@ func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 				},
 			},
 		},
-		Volumes: []v1.Volume{
+		Volumes: []corev1.Volume{
 			{
 				Name: "nginx-configuration",
-				VolumeSource: v1.VolumeSource{
-					ConfigMap: &v1.ConfigMapVolumeSource{
-						LocalObjectReference: v1.LocalObjectReference{
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
 							Name: "nginx-configuration",
 						},
 					},
@@ -83,7 +83,7 @@ func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 					"type": "nginx-resolver",
 				},
 			},
-			Template: v1.PodTemplateSpec{
+			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app":  deploymentName,
@@ -166,7 +166,7 @@ func UpdateNginxResolverService(clientset *kubernetes.Clientset, deploymentVersi
 		serviceInformer := factory.Core().V1().Services().Informer()
 		serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			UpdateFunc: func(oldObj, obj interface{}) {
-				service := obj.(*v1.Service)
+				service := obj.(*corev1.Service)
 				if service.GetLabels()["name"] == "nginx-resolver" && service.Spec.Selector["app"] == deploymentVersionName {
 					fmt.Println("nginx-resolver service updated correctly")
 					close(doneCh)
@@ -295,7 +295,7 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 			}
 		`)
 
-		configMap := v1.ConfigMap{
+		configMap := corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "nginx-configuration",
 			},

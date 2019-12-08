@@ -33,18 +33,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	//
-	// Uncomment to load all auth plugins
-	// _ "k8s.io/client-go/plugin/pkg/client/auth"
-	//
-	// Or uncomment to load specific auth plugins
-	// _ "k8s.io/client-go/plugin/pkg/client/auth/azure"
-	// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	// _ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
-	// _ "k8s.io/client-go/plugin/pkg/client/auth/openstack"
 )
 
-func getConfig() *rest.Config {
+func getK8sConfig() *rest.Config {
 	// creates the in-cluster config
 	var config *rest.Config
 	if os.Getenv("DEVELOPMENT") != "" {
@@ -68,9 +59,9 @@ func getConfig() *rest.Config {
 	return config
 }
 
-// k8sClient returns kubernetes client using getConfig for its config
+// k8sClient returns kubernetes client using getK8sConfig for its config
 func k8sClient() (*kubernetes.Clientset, error) {
-	return kubernetes.NewForConfig(getConfig())
+	return kubernetes.NewForConfig(getK8sConfig())
 }
 
 // appsV1API encapsulates the appsv1 kubernetes interface to ensure all
