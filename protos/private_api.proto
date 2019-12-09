@@ -34,6 +34,8 @@ service PrivateAPI {
     // Tenant Operations
     rpc TenantAdd (TenantAddRequest) returns (TenantAddResponse) {
     }
+    rpc TenantDelete (TenantDeleteRequest) returns (Empty){
+    }
     // Tenant Bucket Operations
     rpc TenantBucketAdd (TenantBucketAddRequest) returns (TenantBucketAddResponse) {
     }
@@ -92,6 +94,10 @@ message TenantAddRequest {
     string short_name = 2;
     string user_name = 3;
     string user_email = 4;
+}
+
+message TenantDeleteRequest {
+    string short_name = 1;
 }
 
 message TenantAddResponse {
