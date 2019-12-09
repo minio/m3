@@ -50,3 +50,34 @@ func (ps *privateServer) TenantAdd(ctx context.Context, in *pb.TenantAddRequest)
 	}
 	return &pb.TenantAddResponse{}, nil
 }
+
+// TenantDelete deletes all tenant's related data
+func (ps *privateServer) TenantDelete(ctx context.Context, in *pb.TenantDeleteRequest) (*pb.Empty, error) {
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	shortName := in.GetShortName()
+	if shortName == "" {
+		return nil, status.New(codes.InvalidArgument, "a short name is needed").Err()
+	}
+
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+	}()
+
+	err = cluster.DeleteTenant(appCtx, shortName)
+	if err != nil {
+		return nil, err
+	}
+
+	// if we reach here, all is good, commit
+	if err := appCtx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &pb.Empty{}, nil
+}
