@@ -18,8 +18,12 @@ package api
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
+	"github.com/minio/m3/api/authentication"
 	"github.com/minio/m3/cluster"
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -64,6 +68,67 @@ func (ps *privateServer) Login(ctx context.Context, in *pb.CLILoginRequest) (*pb
 		RefreshToken:        session.RefreshToken,
 		Expires:             session.ExpiresAt.Unix(),
 		RefreshTokenExpires: session.RefreshExpiresAt.Unix(),
+	}
+	return res, nil
+}
+
+// Login rpc to generate a session for an admin
+func (ps *privateServer) LoginWithIdp(ctx context.Context, in *pb.CLILoginWithIdpRequest) (*pb.CLILoginResponse, error) {
+	// start app context
+	appCtx, err := cluster.NewEmptyContext()
+	admin := &cluster.Admin{}
+	//We ask the idp if user is authorized to access the app based on the retrieved code
+	profile, err := authentication.VerifyIdentity(in.CallbackAddress)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	name := profile["name"].(string)
+	email := profile["name"].(string)
+	// Look for the user on the database by email
+	admin, err = cluster.GetAdminByEmail(appCtx, email)
+	if admin == nil {
+		admin = &cluster.Admin{
+			ID:       uuid.NewV4(),
+			Name:     name,
+			Email:    email,
+			Password: cluster.RandomCharString(64),
+		}
+		err = cluster.InsertAdmin(appCtx, admin)
+	}
+	// Add the session within a transaction in case anything goes wrong during the adding process
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+		// if no error happened to this point commit transaction
+		err = appCtx.Commit()
+	}()
+	// Everything looks good, create session
+	session, err := cluster.CreateAdminSession(appCtx, &admin.ID)
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	// Return session in Token Response
+	res := &pb.CLILoginResponse{
+		Token:               session.ID,
+		RefreshToken:        session.RefreshToken,
+		Expires:             session.ExpiresAt.Unix(),
+		RefreshTokenExpires: session.RefreshExpiresAt.Unix(),
+	}
+	return res, nil
+}
+
+func (ps *privateServer) GetIdpConfiguration(ctx context.Context, in *pb.AdminEmpty) (*pb.CLIGetIdpConfigurationResponse, error) {
+	state := cluster.RandomCharString(32)
+	authenticator, err := authentication.NewAuthenticator()
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+	res := &pb.CLIGetIdpConfigurationResponse{
+		Url: strings.TrimSpace(authenticator.Config.AuthCodeURL(state)),
 	}
 	return res, nil
 }
