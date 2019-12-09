@@ -15,7 +15,7 @@ docker pull quay.io/coreos/etcd:v3.4.0
 kind load docker-image minio/minio:RELEASE.2019-10-12T01-39-57Z --name m3cluster
 kind load docker-image postgres:12 --name m3cluster
 kind load docker-image quay.io/coreos/etcd-operator:v0.9.4 --name m3cluster
-kind load docker-image quay.io/coreos/etcd:v3.2.13 --name m3cluster
+kind load docker-image quay.io/coreos/etcd:v3.4.0 --name m3cluster
 
 echo "done"
 
