@@ -61,9 +61,9 @@ service PrivateAPI {
     }
     rpc Login (CLILoginRequest) returns (CLILoginResponse) {
     }
-    rpc LoginWithIdp (CLILoginWithIdpRequest) returns (CLILoginResponse) {
+    rpc LoginWithIdp (LoginWithIdpRequest) returns (CLILoginResponse) {
     }
-    rpc GetIdpConfiguration (AdminEmpty) returns (CLIGetIdpConfigurationResponse) {
+    rpc GetLoginConfiguration (AdminEmpty) returns (GetLoginConfigurationResponse) {
     }
     // Session related
     rpc ValidateSession (AdminEmpty) returns (AdminEmpty) {
@@ -176,10 +176,10 @@ message CLILoginResponse {
     string refresh_token = 3;
     int64 refresh_token_expires = 4;
 }
-message CLILoginWithIdpRequest {
+message LoginWithIdpRequest {
     string callbackAddress = 1;
 }
-message CLIGetIdpConfigurationResponse {
+message GetLoginConfigurationResponse {
     string url = 1;
 }
 

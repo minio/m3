@@ -18,7 +18,7 @@ package api
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"strings"
 
 	"github.com/minio/m3/api/authentication"
@@ -72,30 +72,10 @@ func (ps *privateServer) Login(ctx context.Context, in *pb.CLILoginRequest) (*pb
 	return res, nil
 }
 
-// Login rpc to generate a session for an admin
-func (ps *privateServer) LoginWithIdp(ctx context.Context, in *pb.CLILoginWithIdpRequest) (*pb.CLILoginResponse, error) {
+// Login rpc to validate account against a configured idp and generate an admin session
+func (ps *privateServer) LoginWithIdp(ctx context.Context, in *pb.LoginWithIdpRequest) (*pb.CLILoginResponse, error) {
 	// start app context
 	appCtx, err := cluster.NewEmptyContext()
-	admin := &cluster.Admin{}
-	//We ask the idp if user is authorized to access the app based on the retrieved code
-	profile, err := authentication.VerifyIdentity(in.CallbackAddress)
-	if err != nil {
-		fmt.Println(err)
-		return nil, err
-	}
-	name := profile["name"].(string)
-	email := profile["name"].(string)
-	// Look for the user on the database by email
-	admin, err = cluster.GetAdminByEmail(appCtx, email)
-	if admin == nil {
-		admin = &cluster.Admin{
-			ID:       uuid.NewV4(),
-			Name:     name,
-			Email:    email,
-			Password: cluster.RandomCharString(64),
-		}
-		err = cluster.InsertAdmin(appCtx, admin)
-	}
 	// Add the session within a transaction in case anything goes wrong during the adding process
 	defer func() {
 		if err != nil {
@@ -105,6 +85,34 @@ func (ps *privateServer) LoginWithIdp(ctx context.Context, in *pb.CLILoginWithId
 		// if no error happened to this point commit transaction
 		err = appCtx.Commit()
 	}()
+	admin := &cluster.Admin{}
+	//We ask the idp if user is authorized to access the app based on the retrieved code
+	profile, err := authentication.VerifyIdentity(in.CallbackAddress)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	name := profile["name"].(string)
+	email := profile["name"].(string)
+	// Look for the user on the database by email
+	admin, err = cluster.GetAdminByEmail(appCtx, email)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	if admin == nil {
+		admin = &cluster.Admin{
+			ID:       uuid.NewV4(),
+			Name:     name,
+			Email:    email,
+			Password: cluster.RandomCharString(64),
+		}
+		err = cluster.InsertAdmin(appCtx, admin)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+	}
 	// Everything looks good, create session
 	session, err := cluster.CreateAdminSession(appCtx, &admin.ID)
 	if err != nil {
@@ -120,14 +128,14 @@ func (ps *privateServer) LoginWithIdp(ctx context.Context, in *pb.CLILoginWithId
 	return res, nil
 }
 
-func (ps *privateServer) GetIdpConfiguration(ctx context.Context, in *pb.AdminEmpty) (*pb.CLIGetIdpConfigurationResponse, error) {
+func (ps *privateServer) GetLoginConfiguration(ctx context.Context, in *pb.AdminEmpty) (*pb.GetLoginConfigurationResponse, error) {
 	state := cluster.RandomCharString(32)
 	authenticator, err := authentication.NewAuthenticator()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return nil, err
 	}
-	res := &pb.CLIGetIdpConfigurationResponse{
+	res := &pb.GetLoginConfigurationResponse{
 		Url: strings.TrimSpace(authenticator.Config.AuthCodeURL(state)),
 	}
 	return res, nil

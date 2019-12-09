@@ -44,7 +44,7 @@ func login(_ *cli.Context) error {
 		return err
 	}
 	defer cnxs.Conn.Close()
-	idpConfigResp, _ := cnxs.Client.GetIdpConfiguration(cnxs.Context, &pb.AdminEmpty{})
+	idpConfigResp, _ := cnxs.Client.GetLoginConfiguration(cnxs.Context, &pb.AdminEmpty{})
 
 	if idpConfigResp != nil {
 		// Authenticate via idp, ie: auth0
@@ -61,7 +61,7 @@ func login(_ *cli.Context) error {
 			fmt.Println(err)
 			return err
 		}
-		resp, err = cnxs.Client.LoginWithIdp(cnxs.Context, &pb.CLILoginWithIdpRequest{
+		resp, err = cnxs.Client.LoginWithIdp(cnxs.Context, &pb.LoginWithIdpRequest{
 			CallbackAddress: callbackAddress,
 		})
 		if err != nil {

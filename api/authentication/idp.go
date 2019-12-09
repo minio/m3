@@ -51,11 +51,6 @@ func VerifyIdentity(address string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	//urlAddressState := strings.TrimSpace(urlAddress.Query().Get("state"))
-	//state = strings.TrimSpace(state)
-	//if urlAddressState != state {
-	//	return nil, errors.New("invalid state parameter")
-	//}
 	authenticator, err := NewAuthenticator()
 	if err != nil {
 		return nil, err
