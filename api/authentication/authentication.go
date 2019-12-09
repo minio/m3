@@ -33,7 +33,9 @@ import (
 // AdminAuthInterceptor validates the token provided via authorization metadata on all incoming grpc calls
 func AdminAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	// exempted calls from the validation
-	if info.FullMethod == "/m3.PrivateAPI/Login" ||
+	if info.FullMethod == "/m3.PrivateAPI/LoginWithIdp" ||
+		info.FullMethod == "/m3.PrivateAPI/GetIdpConfiguration" ||
+		info.FullMethod == "/m3.PrivateAPI/Login" ||
 		info.FullMethod == "/m3.PrivateAPI/SetPassword" ||
 		info.FullMethod == "/m3.PrivateAPI/ValidateToken" {
 		// log this call

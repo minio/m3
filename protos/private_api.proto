@@ -63,6 +63,10 @@ service PrivateAPI {
     }
     rpc Login (CLILoginRequest) returns (CLILoginResponse) {
     }
+    rpc LoginWithIdp (LoginWithIdpRequest) returns (CLILoginResponse) {
+    }
+    rpc GetLoginConfiguration (AdminEmpty) returns (GetLoginConfigurationResponse) {
+    }
     // Session related
     rpc ValidateSession (AdminEmpty) returns (AdminEmpty) {
     }
@@ -177,6 +181,12 @@ message CLILoginResponse {
     int64 expires = 2;
     string refresh_token = 3;
     int64 refresh_token_expires = 4;
+}
+message LoginWithIdpRequest {
+    string callbackAddress = 1;
+}
+message GetLoginConfigurationResponse {
+    string url = 1;
 }
 
 message StorageGroupAddRequest {

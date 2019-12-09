@@ -37,46 +37,68 @@ var loginCmd = cli.Command{
 }
 
 func login(_ *cli.Context) error {
-	// read from environment
-	email := os.Getenv(OperatorEmailEnv)
-	password := os.Getenv(OperatorPasswordEnv)
-
-	// if no credentials prompt
-	if email == "" || password == "" {
-		fmt.Print("Enter Email: ")
-		reader := bufio.NewReader(os.Stdin)
-		var err error
-		email, err = reader.ReadString('\n')
-		if err != nil {
-			return err
-		}
-		email = strings.TrimSpace(email)
-		fmt.Print("Password: ")
-		passwordBytes, err := terminal.ReadPassword(int(syscall.Stdin))
-		if err != nil {
-			return err
-		}
-		fmt.Print("\n")
-		password = string(passwordBytes)
-	}
-	// login
-	// perform the action
-	// get grpc Channel/Client
+	resp := &pb.CLILoginResponse{}
 	cnxs, err := GetGRPCChannel()
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 	defer cnxs.Conn.Close()
-	resp, err := cnxs.Client.Login(cnxs.Context, &pb.CLILoginRequest{
-		Email:    email,
-		Password: password,
-	})
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
+	idpConfigResp, _ := cnxs.Client.GetLoginConfiguration(cnxs.Context, &pb.AdminEmpty{})
 
+	if idpConfigResp != nil {
+		// Authenticate via idp, ie: auth0
+		fmt.Println("\nAn idp is configured to work with this tool, please go to the following URL and authenticate")
+
+		fmt.Print("\n")
+		fmt.Println(idpConfigResp.Url)
+		fmt.Print("\n")
+		fmt.Println("After successful login you will be redirected to a another page in your browser, copy the whole address of the page and paste it here")
+		fmt.Print("Enter Address: ")
+		reader := bufio.NewReader(os.Stdin)
+		callbackAddress, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+		resp, err = cnxs.Client.LoginWithIdp(cnxs.Context, &pb.LoginWithIdpRequest{
+			CallbackAddress: callbackAddress,
+		})
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+	} else {
+		// read from environment
+		email := os.Getenv(OperatorEmailEnv)
+		password := os.Getenv(OperatorPasswordEnv)
+		// if no credentials prompt
+		if email == "" || password == "" {
+			fmt.Print("Enter Email: ")
+			reader := bufio.NewReader(os.Stdin)
+			var err error
+			email, err = reader.ReadString('\n')
+			if err != nil {
+				return err
+			}
+			email = strings.TrimSpace(email)
+			fmt.Print("Password: ")
+			passwordBytes, err := terminal.ReadPassword(int(syscall.Stdin))
+			if err != nil {
+				return err
+			}
+			fmt.Print("\n")
+			password = string(passwordBytes)
+		}
+		resp, err = cnxs.Client.Login(cnxs.Context, &pb.CLILoginRequest{
+			Email:    email,
+			Password: password,
+		})
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+	}
 	// store token and refresh token in ~/.op8r/token
 	opToken := OperatorTokens{
 		Token:               resp.Token,
@@ -89,7 +111,6 @@ func login(_ *cli.Context) error {
 		fmt.Println(err)
 		return err
 	}
-
 	fmt.Println("login success", opToken.Token, opToken.RefreshToken, opToken.Expires)
 
 	return nil
