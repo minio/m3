@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/minio/minio-go/v6"
 	"github.com/minio/minio/pkg/madmin"
@@ -169,6 +170,71 @@ func setMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *Ten
 	return nil
 }
 
+// unsetMinioConfigPostgresNotification configures Minio for Postgres notification
+func unsetMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *TenantConfiguration) error {
+	// get an admin with operator keys
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	if pErr != nil {
+		return pErr.Cause
+	}
+
+	// Call get config API
+	configBytes, err := adminClient.GetConfig()
+	if err != nil {
+		return tagErrorAsMinio(err)
+	}
+
+	cfg := map[string]interface{}{}
+	// Check if read data is in json format
+	if err = json.Unmarshal(configBytes, &cfg); err != nil {
+		return errors.New("Invalid JSON format: " + err.Error())
+	}
+	postgresConfig := map[string]map[string]interface{}{
+		"1": {
+			"enable":           false,
+			"format":           "",
+			"connectionString": "",
+			"table":            "",
+			"host":             "",
+			"port":             "",
+			"user":             "",
+			"password":         "",
+			"database":         "",
+		},
+	}
+	// modify configuration
+	for k, v := range cfg {
+		switch t := v.(type) {
+		case map[string]interface{}:
+			if k == "notify" {
+				v.(map[string]interface{})["postgresql"] = postgresConfig
+			}
+		case string:
+		case int:
+		default:
+			log.Println("configuration type: ", t)
+		}
+	}
+
+	// convert json to bytes again
+	b, err := json.Marshal(cfg)
+	if err != nil {
+		return tagErrorAsMinio(err)
+	}
+	// creat Reader
+	r := bytes.NewReader(b)
+	err = adminClient.SetConfig(r)
+	if err != nil {
+		return tagErrorAsMinio(err)
+	}
+	// restart minio after setting configuration
+	err = adminClient.ServiceRestart()
+	if err != nil {
+		return tagErrorAsMinio(err)
+	}
+	return nil
+}
+
 // getPostgresNotificationMinioConfig creates minio postgres notification configuration
 func getPostgresNotificationMinioConfig() map[string]map[string]interface{} {
 	// Get the Database configuration
@@ -236,4 +302,26 @@ func minioIsReady(ctx *Context) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// isMinioReadyRetry tries maxReadinessTries times and returns if is ready after retries
+func isMinioReadyRetry(ctx *Context) bool {
+	currentTries := 0
+	for {
+		ready, err := minioIsReady(ctx)
+		if err != nil {
+			// we'll tolerate errors here, probably minio not responding
+			log.Println(err)
+		}
+		if ready {
+			return true
+		}
+		log.Println("MinIO not ready, sleeping 2 seconds.")
+		time.Sleep(time.Second * 2)
+		currentTries++
+		if currentTries > maxReadinessTries {
+			return false
+		}
+	}
+	return false
 }

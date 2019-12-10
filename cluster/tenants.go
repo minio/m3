@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/minio/minio-go/pkg/policy"
@@ -124,24 +123,7 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 	// if the first admin name and email was provided send them an invitation
 	if userName != "" && userEmail != "" {
 		// wait for MinIO to be ready before creating the first user
-		currentTries := 0
-		ready := false
-		for {
-			ready, err = minioIsReady(ctx)
-			if err != nil {
-				// we'll tolerate errors here, probably minio not responding
-				log.Println(err)
-			}
-			if ready {
-				break
-			}
-			log.Println("MinIO not ready, sleeping 2 seconds.")
-			time.Sleep(time.Second * 2)
-			currentTries++
-			if currentTries > maxReadinessTries {
-				break
-			}
-		}
+		ready := isMinioReadyRetry(ctx)
 		if !ready {
 			return errors.New("MinIO was never ready. Unable to complete configuration of tenant")
 		}

@@ -305,6 +305,26 @@ func DeprovisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGr
 			ch <- sgTenantResult.Error
 			return
 		}
+		ctx.Tenant = sgTenantResult.StorageGroupTenant.Tenant
+		// Get the credentials for a tenant
+		tenantConf, err := GetTenantConfig(tenant)
+		if err != nil {
+			ch <- err
+			return
+		}
+		// Unset Postgres notification before deleting tenant
+		err = unsetMinioConfigPostgresNotification(sgTenantResult.StorageGroupTenant, tenantConf)
+		if err != nil {
+			log.Println(err)
+			ch <- err
+			return
+		}
+		// Wait after minios restart
+		ready := isMinioReadyRetry(ctx)
+		if !ready {
+			ch <- errors.New("MinIO was never ready. Unable to complete configuration of tenant")
+			return
+		}
 		// start the jobs that create the tenant folder on each disk on each node of the storage group
 		var jobChs []chan error
 		// get a list of nodes on the cluster
