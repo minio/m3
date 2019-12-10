@@ -37,6 +37,7 @@ type Tenant struct {
 	ID        uuid.UUID
 	Name      string
 	ShortName string
+	Enabled   bool
 }
 
 type AddTenantResult struct {
@@ -558,7 +559,7 @@ func createTenantNamespace(tenantShortName string) chan error {
 func GetTenantWithCtx(ctx *Context, tenantName string) (tenant Tenant, err error) {
 	query :=
 		`SELECT 
-				t1.id, t1.name, t1.short_name
+				t1.id, t1.name, t1.short_name, t1.enabled
 			FROM 
 				tenants t1
 			WHERE short_name=$1`
@@ -577,7 +578,7 @@ func GetTenantWithCtx(ctx *Context, tenantName string) (tenant Tenant, err error
 	}
 
 	// Save the resulted query on the User struct
-	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName)
+	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled)
 	if err != nil {
 		return tenant, err
 	}
@@ -594,7 +595,7 @@ func GetTenantByID(tenantID *uuid.UUID) (tenant Tenant, err error) {
 func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (tenant Tenant, err error) {
 	query :=
 		`SELECT 
-				t1.id, t1.name, t1.short_name
+				t1.id, t1.name, t1.short_name, t1.enabled
 			FROM 
 				tenants t1
 			WHERE t1.id=$1`
@@ -613,7 +614,7 @@ func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (tenant Tenant, err
 	}
 
 	// Save the resulted query on the User struct
-	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName)
+	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled)
 	if err != nil {
 		return tenant, err
 	}
