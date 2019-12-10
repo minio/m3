@@ -18,6 +18,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"strings"
 
@@ -98,7 +99,7 @@ func (ps *privateServer) LoginWithIdp(ctx context.Context, in *pb.LoginWithIdpRe
 	admin, err = cluster.GetAdminByEmail(appCtx, email)
 	if err != nil {
 		// if it's not a no rows in result set, cancel this
-		if !strings.Contains(err.Error(), "no rows in result set") {
+		if err == sql.ErrNoRows {
 			log.Println(err)
 			return nil, status.New(codes.Internal, "Internal Error").Err()
 		}
