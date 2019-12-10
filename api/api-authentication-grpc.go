@@ -146,6 +146,12 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 		return nil, status.New(codes.Unauthenticated, "Wrong tenant, email and/or password").Err()
 	}
 
+	//validate user is enabled
+	if !user.Enabled {
+		log.Printf("User `%s` attempted to login but it's disabled. \n", user.Email)
+		return nil, status.New(codes.Unauthenticated, "Account disabled").Err()
+	}
+
 	// Comparing the password with the hash
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(in.Password)); err != nil {
 		return nil, status.New(codes.Unauthenticated, "Wrong tenant, email and/or password").Err()
