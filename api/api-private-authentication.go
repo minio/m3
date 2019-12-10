@@ -90,15 +90,18 @@ func (ps *privateServer) LoginWithIdp(ctx context.Context, in *pb.LoginWithIdpRe
 	profile, err := authentication.VerifyIdentity(in.CallbackAddress)
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return nil, status.New(codes.Unauthenticated, "Invalid Identity").Err()
 	}
 	name := profile["name"].(string)
 	email := profile["name"].(string)
 	// Look for the user on the database by email
 	admin, err = cluster.GetAdminByEmail(appCtx, email)
 	if err != nil {
-		log.Println(err)
-		return nil, err
+		// if it's not a no rows in result set, cancel this
+		if !strings.Contains(err.Error(), "no rows in result set") {
+			log.Println(err)
+			return nil, status.New(codes.Internal, "Internal Error").Err()
+		}
 	}
 	if admin == nil {
 		admin = &cluster.Admin{
@@ -110,13 +113,14 @@ func (ps *privateServer) LoginWithIdp(ctx context.Context, in *pb.LoginWithIdpRe
 		err = cluster.InsertAdmin(appCtx, admin)
 		if err != nil {
 			log.Println(err)
-			return nil, err
+			return nil, status.New(codes.Internal, "Internal Error").Err()
 		}
 	}
 	// Everything looks good, create session
 	session, err := cluster.CreateAdminSession(appCtx, &admin.ID)
 	if err != nil {
-		return nil, status.New(codes.Internal, err.Error()).Err()
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal Error").Err()
 	}
 	// Return session in Token Response
 	res := &pb.CLILoginResponse{
