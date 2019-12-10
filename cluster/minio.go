@@ -323,5 +323,4 @@ func isMinioReadyRetry(ctx *Context) bool {
 			return false
 		}
 	}
-	return false
 }
