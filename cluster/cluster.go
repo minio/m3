@@ -19,6 +19,7 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -289,6 +290,71 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 	return err
 }
 
+// DeprovisionTenantOnStorageGroup deletes the tenant from the storage group and deletes all tenant's data from disks
+func DeprovisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		if tenant == nil || sg == nil {
+			ch <- errors.New("nil Tenant or StorageGroup passed")
+			return
+		}
+
+		sgTenantResult := <-GetTenantStorageGroupByShortName(ctx, tenant.ShortName)
+		if sgTenantResult.Error != nil {
+			ch <- sgTenantResult.Error
+			return
+		}
+		// start the jobs that create the tenant folder on each disk on each node of the storage group
+		var jobChs []chan error
+		// get a list of nodes on the cluster
+		nodes, err := GetNodesForStorageGroup(ctx, &sg.ID)
+		if err != nil {
+			ch <- err
+			return
+		}
+		if len(nodes) == 0 {
+			ch <- errors.New("Nodes not found to deprovision the tenant")
+			return
+		}
+		for _, sgNode := range nodes {
+			jobCh := DeleteTenantFolderInDisk(tenant, sg, sgNode)
+			jobChs = append(jobChs, jobCh)
+		}
+		// wait for all the jobs to complete
+		for chi := range jobChs {
+			err := <-jobChs[chi]
+			if err != nil {
+				ch <- err
+				return
+			}
+		}
+
+		//delete service
+		err = <-DeleteTenantServiceInStorageGroup(sgTenantResult.StorageGroupTenant)
+		if err != nil {
+			ch <- err
+			return
+		}
+
+		// delete database records
+		err = <-DeleteTenantRecord(ctx, tenant.ShortName)
+		if err != nil {
+			ch <- err
+			return
+		}
+
+		// call for the storage group to refresh
+		err = <-ReDeployStorageGroup(ctx, sgTenantResult.StorageGroupTenant)
+		if err != nil {
+			ch <- err
+			return
+		}
+
+	}()
+	return ch
+}
+
 // spins up the tenant on the target storage group, waits for it to start, then shuts it down
 func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) chan *StorageGroupTenantResult {
 	ch := make(chan *StorageGroupTenantResult)
@@ -316,6 +382,13 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGrou
 			ch <- &StorageGroupTenantResult{
 				Error: err,
 			}
+			return
+		}
+		if len(nodes) == 0 {
+			ch <- &StorageGroupTenantResult{
+				Error: errors.New("Nodes not found to provision the tenant"),
+			}
+			return
 		}
 		for _, sgNode := range nodes {
 			jobCh := CreateTenantFolderInDiskAndWait(tenant, sg, sgNode)
@@ -346,6 +419,105 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGrou
 	return ch
 }
 
+// DeleteTenantFolderInDisk Deletes the tenant folder in disk, this will delete all tenant's related data
+func DeleteTenantFolderInDisk(tenant *Tenant, sg *StorageGroup, sgNode *StorageGroupNode) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		// create the tenant folder on each node via job
+		clientset, err := k8sClient()
+		if err != nil {
+			ch <- err
+			return
+		}
+
+		if len(sgNode.Node.Volumes) == 0 {
+			ch <- errors.New("No nodes provided to delete folders in disk")
+			return
+		}
+		var backoff int32 = 0
+		var ttlJob int32 = 60
+
+		jobName := fmt.Sprintf("deprovision-sg-%d-host-%d-%s-job", sg.Num, sgNode.Num, tenant.ShortName)
+		job := batchv1.Job{
+			TypeMeta: metav1.TypeMeta{
+				Kind: "Job",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: jobName,
+			},
+			Spec: batchv1.JobSpec{
+				TTLSecondsAfterFinished: &ttlJob,
+				BackoffLimit:            &backoff,
+				Template: v1.PodTemplateSpec{
+					Spec: v1.PodSpec{
+						Volumes:       nil,
+						Containers:    nil,
+						RestartPolicy: "Never",
+						NodeSelector: map[string]string{
+							"kubernetes.io/hostname": sgNode.Node.K8sLabel,
+						},
+					},
+				},
+			},
+		}
+
+		jobContainer := v1.Container{
+			Name:  jobName,
+			Image: "ubuntu",
+			Command: []string{
+				"/bin/sh",
+				"-c",
+			},
+
+			ImagePullPolicy: "IfNotPresent",
+		}
+
+		var commands []string
+		//volumes that will be used by this tenant
+		for _, vol := range sgNode.Node.Volumes {
+			commands = append(commands, fmt.Sprintf(`rm -rf %s/%s`, vol.MountPath, tenant.ShortName))
+		}
+		finalMkdirCommand := strings.Join(commands, " && ")
+		// jobContainer.Args = []string{finalMkdirCommand, fmt.Sprintf(` && unset $(printenv | grep -i "%s")`, tenant.ShortName)}
+		jobContainer.Args = []string{finalMkdirCommand}
+
+		job.Spec.Template.Spec.Containers = append(job.Spec.Template.Spec.Containers, jobContainer)
+
+		_, err = clientset.BatchV1().Jobs("default").Create(&job)
+		if err != nil {
+			ch <- err
+			return
+		}
+		//now sit and wait for the job to complete before returning
+		currentTries := 0
+		for {
+			status, err := clientset.BatchV1().Jobs("default").Get(jobName, metav1.GetOptions{})
+			if err != nil {
+				panic(err)
+			}
+			// if completitions above 1 job is complete
+			if *status.Spec.Completions > 0 {
+				// we are done here
+				//return
+				break
+			}
+			time.Sleep(time.Second * 2)
+			currentTries++
+			if currentTries > maxReadinessTries {
+				break
+			}
+		}
+		// job cleanup
+		err = clientset.BatchV1().Jobs("default").Delete(jobName, nil)
+		if err != nil {
+			ch <- err
+			return
+		}
+	}()
+	return ch
+}
+
 func CreateTenantFolderInDiskAndWait(tenant *Tenant, sg *StorageGroup, sgNode *StorageGroupNode) chan error {
 	ch := make(chan error)
 	go func() {
@@ -354,6 +526,11 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sg *StorageGroup, sgNode *S
 		clientset, err := k8sClient()
 		if err != nil {
 			ch <- err
+			return
+		}
+
+		if len(sgNode.Node.Volumes) == 0 {
+			ch <- errors.New("No nodes provided to create folders in disk")
 			return
 		}
 		var backoff int32 = 0
@@ -500,7 +677,9 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 				// Determine the list of desired containers and volumes
 				var tenantContainers []v1.Container
 				var tenantVolumes []v1.Volume
+				log.Println("Creating Minio tenants containers")
 				for _, sgTenant := range tenants {
+					log.Println("tenant: ", sgTenant.Tenant.Name)
 					tenantContainer, tenantVolume := mkTenantMinioContainer(sgTenant, sgNode)
 					tenantContainers = append(tenantContainers, tenantContainer)
 					tenantVolumes = append(tenantVolumes, tenantVolume...)
@@ -560,7 +739,9 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 				// Set deployment with the updated pod spec
 				deployment.Spec.Template.Spec = currPodSpec
 				// if the deployment ends up being empty (0 containers) delete it
+				log.Println("Checking deployments to delete")
 				if len(currPodSpec.Containers) == 0 {
+					log.Println("deleting: ", deployment.ObjectMeta.Name)
 					//TODO: Set an informer and don't continue until this is complete
 					if err = clientset.AppsV1().Deployments("default").Delete(deployment.ObjectMeta.Name, nil); err != nil {
 						ch <- err

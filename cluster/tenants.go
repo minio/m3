@@ -639,10 +639,13 @@ func DeleteTenant(ctx *Context, tenantShortName string) error {
 		return errors.New("tenant not found in database")
 	}
 
-	// delete database records
-	recordsCh := DeleteTenantRecord(ctx, tenantShortName)
-	// delete tenant schema
+	// Deprovision tenant and delete tenant info from disks
+	err := <-DeprovisionTenantOnStorageGroup(ctx, sgt.Tenant, sgt.StorageGroup)
+	if err != nil {
+		return errors.New("Error deprovisioning tenant")
+	}
 
+	// delete tenant schema
 	schemaCh := DeleteTenantDB(tenantShortName)
 
 	// purge connection from pool
@@ -652,27 +655,8 @@ func DeleteTenant(ctx *Context, tenantShortName string) error {
 	//delete namesapce
 	nsDeleteCh := deleteTenantNamespace(tenantShortName)
 
-	//delete service
-
-	svcCh := DeleteTenantServiceInStorageGroup(sgt.StorageGroupTenant)
-
-	// wait for record deletion
-	err := <-recordsCh
-	if err != nil {
-		fmt.Println("Error deleting database records", err)
-	}
-
 	// announce the tenant on the router
 	nginxCh := UpdateNginxConfiguration(ctx)
-
-	// redeploy sg
-	sgRefreshCh := ReDeployStorageGroup(ctx, sgt.StorageGroupTenant)
-
-	// wait for deployment refresh
-	err = <-sgRefreshCh
-	if err != nil {
-		fmt.Println("Error updating deployments", err)
-	}
 
 	//delete secret
 
@@ -688,12 +672,6 @@ func DeleteTenant(ctx *Context, tenantShortName string) error {
 	err = <-nsDeleteCh
 	if err != nil {
 		fmt.Println("Error deleting namespace", err)
-	}
-
-	// wait for service deletion
-	err = <-svcCh
-	if err != nil {
-		fmt.Println("Error deleting service", err)
 	}
 
 	// wait for secret deletion
