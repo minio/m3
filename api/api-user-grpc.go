@@ -263,7 +263,9 @@ func (s *server) EnableUser(ctx context.Context, in *pb.UserActionRequest) (*pb.
 
 	err = cluster.SetUserEnabled(appCtx, reqUserID, true)
 	if err != nil {
+		appCtx.Rollback()
 		return nil, status.New(codes.Internal, "Error enabling user").Err()
 	}
+	appCtx.Commit()
 	return &pb.UserActionResponse{Status: "true"}, nil
 }
