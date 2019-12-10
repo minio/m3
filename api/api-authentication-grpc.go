@@ -131,6 +131,11 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	if err != nil {
 		return nil, status.New(codes.InvalidArgument, "Tenant not valid").Err()
 	}
+	// validate tenant being active
+	if !tenant.Enabled {
+		log.Printf("Attempted login for disabled tenant `%s` by `%s`", tenant.ShortName, in.Email)
+		return nil, status.New(codes.Unauthenticated, "Account disabled, contact support").Err()
+	}
 	// start app context
 	appCtx, err := cluster.NewEmptyContext()
 	if err != nil {
@@ -144,6 +149,12 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	user, err := cluster.GetUserByEmail(appCtx, email)
 	if err != nil {
 		return nil, status.New(codes.Unauthenticated, "Wrong tenant, email and/or password").Err()
+	}
+
+	//validate user is enabled
+	if !user.Enabled {
+		log.Printf("User `%s` attempted to login but it's disabled. \n", user.Email)
+		return nil, status.New(codes.Unauthenticated, "User Account disabled").Err()
 	}
 
 	// Comparing the password with the hash

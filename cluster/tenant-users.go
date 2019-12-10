@@ -121,7 +121,7 @@ func GetUserByEmail(ctx *Context, email string) (user User, err error) {
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
-				t1.id, t1.full_name, t1.email, t1.password
+				t1.id, t1.full_name, t1.email, t1.password, t1.enabled
 			FROM 
 				users t1
 			WHERE email=$1 LIMIT 1`
@@ -129,7 +129,7 @@ func GetUserByEmail(ctx *Context, email string) (user User, err error) {
 	row := ctx.TenantDB().QueryRow(queryUser, email)
 
 	// Save the resulted query on the User struct
-	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password)
+	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Enabled)
 	if err != nil {
 		return user, err
 	}
@@ -143,7 +143,7 @@ func GetUserByID(ctx *Context, id uuid.UUID) (user User, err error) {
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
-				t1.id, t1.full_name, t1.email, t1.password
+				t1.id, t1.full_name, t1.email, t1.password, t1.enabled
 			FROM 
 				users t1
 			WHERE id=$1 LIMIT 1`
@@ -151,7 +151,7 @@ func GetUserByID(ctx *Context, id uuid.UUID) (user User, err error) {
 	row := ctx.TenantDB().QueryRow(queryUser, id)
 
 	// Save the resulted query on the User struct
-	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password)
+	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Enabled)
 	if err != nil {
 		return user, err
 	}
