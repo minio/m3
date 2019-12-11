@@ -20,6 +20,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -376,50 +377,54 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) 
 	ch := make(chan *StorageGroupTenantResult)
 	go func() {
 		defer close(ch)
-
-		serviceName := fmt.Sprintf("%s-sg-%d", tenant.ShortName, sg.Num)
-
-		// assign a port by counting tenants in this storage group
-		totalTenantsCountQuery := `
-		SELECT 
-		       COUNT(*) 
-		FROM 
-		     tenants_storage_groups
-		WHERE 
-		      storage_group_id=$1`
-
 		tx, err := ctx.MainTx()
 		if err != nil {
 			return
 		}
-		var totalTenantsCount int32
-		row := tx.QueryRow(totalTenantsCountQuery, sg.ID)
-		err = row.Scan(&totalTenantsCount)
-		if err != nil {
-			ch <- &StorageGroupTenantResult{
-				Error: err,
+		serviceName := fmt.Sprintf("%s-sg-%d", tenant.Name, sg.Num)
+		var port int32 = 9001
+
+		// Search for available port for tenant on storage group
+		for port <= 9016 {
+			queryUser := `
+				SELECT EXISTS(
+					SELECT *
+						FROM provisioning.tenants_storage_groups tsg
+					WHERE tsg.storage_group_id=$1 AND tsg.port=$2)`
+
+			row := tx.QueryRow(queryUser, sg.ID, port)
+			// Whether the port is already assigned to the storage group
+			var exists bool
+			err := row.Scan(&exists)
+			if err != nil {
+				ch <- &StorageGroupTenantResult{Error: err}
+				return
 			}
-			return
+
+			if exists {
+				log.Println(fmt.Sprintf("Port:%d already assigned to storage_group_id=%s, trying next port available", port, sg.ID))
+			} else {
+				log.Println(fmt.Sprintf("Port:%d available for storage_group_id=%s", port, sg.ID))
+				break
+			}
+			port++
 		}
-		// assign a port for this tenant
-		port := 9000 + totalTenantsCount + 1
 
 		// insert a new Storage Group with the optional name
 		query :=
 			`INSERT INTO
 				tenants_storage_groups (
-				                                          "tenant_id",
-				                                          "storage_group_id",
-				                                          "port",
-				                                          "service_name",
-				                                          "sys_created_by")
+				                "tenant_id",
+				                "storage_group_id",
+				                "port",
+				                "service_name",
+				                "sys_created_by")
 			  VALUES
 				($1,$2,$3,$4,$5)`
 		_, err = tx.Exec(query, tenant.ID, sg.ID, port, serviceName, ctx.WhoAmI)
+		// if an error occurs try to see an available port
 		if err != nil {
-			ch <- &StorageGroupTenantResult{
-				Error: err,
-			}
+			ch <- &StorageGroupTenantResult{Error: err}
 			return
 		}
 		// return result via channel
