@@ -17,14 +17,11 @@
 package cluster
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/minio/minio-go/v6"
+	"github.com/minio/minio/pkg/env"
 	"github.com/minio/minio/pkg/madmin"
 )
 
@@ -123,45 +120,11 @@ func setMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *Ten
 		return pErr.Cause
 	}
 
-	// Call get config API
-	configBytes, err := adminClient.GetConfig()
+	err := adminClient.SetConfigKV(getPostgresNotificationMinioConfigKV())
 	if err != nil {
 		return tagErrorAsMinio(err)
 	}
-
-	cfg := map[string]interface{}{}
-	// Check if read data is in json format
-	if err = json.Unmarshal(configBytes, &cfg); err != nil {
-		return errors.New("Invalid JSON format: " + err.Error())
-	}
-
-	postgresConfig := getPostgresNotificationMinioConfig()
-	// modify configuration
-	for k, v := range cfg {
-		switch t := v.(type) {
-		case map[string]interface{}:
-			if k == "notify" {
-				v.(map[string]interface{})["postgresql"] = postgresConfig
-			}
-		case string:
-		case int:
-		default:
-			log.Println("configuration type: ", t)
-		}
-	}
-
-	// convert json to bytes again
-	b, err := json.Marshal(cfg)
-	if err != nil {
-		return tagErrorAsMinio(err)
-	}
-	// creat Reader
-	r := bytes.NewReader(b)
-	err = adminClient.SetConfig(r)
-	if err != nil {
-		return tagErrorAsMinio(err)
-	}
-	// restart minio after setting configuration
+	// Restart minios after setting configuration
 	err = adminClient.ServiceRestart()
 	if err != nil {
 		return tagErrorAsMinio(err)
@@ -169,8 +132,7 @@ func setMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *Ten
 	return nil
 }
 
-// getPostgresNotificationMinioConfig creates minio postgres notification configuration
-func getPostgresNotificationMinioConfig() map[string]map[string]interface{} {
+func getPostgresNotificationMinioConfigKV() (config string) {
 	// Get the Database configuration
 	dbConfg := GetM3DbConfig()
 	// Build the database URL connection
@@ -178,29 +140,24 @@ func getPostgresNotificationMinioConfig() map[string]map[string]interface{} {
 	if dbConfg.Ssl {
 		dbConfigSSLMode = "enable"
 	}
-	postgresTable := "bucketevents"
-	if os.Getenv("MINIO_POSTGRES_NOTIFICATION_TABLE") != "" {
-		postgresTable = os.Getenv("MINIO_POSTGRES_NOTIFICATION_TABLE")
-	}
-	postgresJSONConfig := map[string]map[string]interface{}{
-		"1": {
-			"enable":           true,
-			"format":           "access",
-			"connectionString": fmt.Sprintf("sslmode=%s", dbConfigSSLMode),
-			"table":            postgresTable,
-			"host":             dbConfg.Host,
-			"port":             dbConfg.Port,
-			"user":             dbConfg.User,
-			"password":         dbConfg.Pwd,
-			"database":         dbConfg.Name,
-		},
-	}
-	return postgresJSONConfig
+	postgresTable := env.Get("M3_POSTGRES_NOTIFICATION_TABLE", "bucketevents")
+
+	config = fmt.Sprintf(`notify_postgres:%s format=access connection_string="sslmode=%s" table=%s host=%s port=%s username=%s password=%s database=%s`,
+		postgresTable,
+		dbConfigSSLMode,
+		postgresTable,
+		dbConfg.Host,
+		dbConfg.Port,
+		dbConfg.User,
+		dbConfg.Pwd,
+		dbConfg.Name)
+	return config
 }
 
 // addMinioBucketNotification
 func addMinioBucketNotification(minioClient *minio.Client, bucketName, region string) error {
-	queueArn := minio.NewArn("minio", "sqs", region, "1", "postgresql")
+	postgresTable := env.Get("M3_POSTGRES_NOTIFICATION_TABLE", "bucketevents")
+	queueArn := minio.NewArn("minio", "sqs", region, postgresTable, "postgresql")
 	queueConfig := minio.NewNotificationConfig(queueArn)
 	queueConfig.AddEvents(minio.ObjectCreatedAll, minio.ObjectRemovedAll)
 
@@ -231,7 +188,6 @@ func minioIsReady(ctx *Context) (bool, error) {
 	// Check if it exist, we expect it to say no, or fail if MinIO is not ready
 	_, err = minioClient.BucketExists(randBucket)
 	if err != nil {
-		log.Println("error during bucket exists")
 		return false, tagErrorAsMinio(err)
 	}
 
