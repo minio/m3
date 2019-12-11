@@ -377,7 +377,7 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) 
 	go func() {
 		defer close(ch)
 
-		serviceName := fmt.Sprintf("%s-sg-%d", tenant.Name, sg.Num)
+		serviceName := fmt.Sprintf("%s-sg-%d", tenant.ShortName, sg.Num)
 
 		// assign a port by counting tenants in this storage group
 		totalTenantsCountQuery := `
