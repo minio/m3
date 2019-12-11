@@ -570,7 +570,7 @@ func GetTenantWithCtx(ctx *Context, tenantName string) (tenant Tenant, err error
 		if err != nil {
 			return tenant, err
 		}
-		row = tx.QueryRow(query, ctx.Tenant.Name)
+		row = tx.QueryRow(query, ctx.Tenant.ShortName)
 	} else {
 		// no context? straight to db
 		row = GetInstance().Db.QueryRow(query, tenantName)
