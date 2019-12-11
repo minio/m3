@@ -229,7 +229,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 
 	tenant, err := GetTenantWithCtx(ctx, ctx.Tenant.ShortName)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Tenant: %s", err.Error()))
+		return fmt.Errorf("tenant: %s", err.Error())
 	}
 
 	// for now, let's hardcode the url, subsequent PRs will introduce system configs
@@ -252,7 +252,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 	// Get the mailing template for inviting users
 	body, err := GetTemplate(emailTemplate, templateData)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Template: %s", err.Error()))
+		return fmt.Errorf("template: %s", err.Error())
 	}
 
 	// send the email
