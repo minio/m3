@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Acme Storage",
+  "name": "Cloud Storage",
   "icons": [
     {
       "src": "favicon.ico",
