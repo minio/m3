@@ -65,17 +65,17 @@ spec:
             - name: IDENTITY_PROVIDER_CALLBACK
               value: ""
             - name: ADMIN_NAME
-              value: ""
+              value: "<ADMIN_NAME>"
             - name: ADMIN_EMAIL
-              value: ""
+              value: "<ADMIN_EMAIL>"
             - name: DB_HOSTNAME
               value: postgres.m3
             - name: MAIL_ACCOUNT
-              value: ""
+              value: "<DEV_EMAIL_ACCOUNT>"
             - name: MAIL_SERVER
-              value: ""
+              value: "<DEV_EMAIL_SERVER>"
             - name: MAIL_PASSWORD
-              value: ""
+              value: "<DEV_EMAIL_PASSWORD>"
             - name: APP_URL
               value: localhost:3000
           ports:
