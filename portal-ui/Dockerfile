@@ -11,4 +11,5 @@ RUN yarn run build
 FROM nginx:latest
 
 COPY --from=build-stage /app/build/ /usr/share/nginx/html
+COPY --from=build-stage /app/k8s/mime.types /etc/nginx/mime.types
 COPY --from=build-stage /app/k8s/nginx.conf /etc/nginx/nginx.conf
