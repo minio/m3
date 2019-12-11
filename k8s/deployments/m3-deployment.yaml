@@ -57,17 +57,17 @@ spec:
             - service
           env:
             - name: ADMIN_NAME
-              value: cesnietor
+              value: ""
             - name: ADMIN_EMAIL
-              value: cesar@min.io
+              value: ""
             - name: DB_HOSTNAME
               value: postgres.m3
             - name: MAIL_ACCOUNT
-              value: "mkube.minio@gmail.com"
+              value: ""
             - name: MAIL_SERVER
-              value: "smtp.gmail.com:465"
+              value: ""
             - name: MAIL_PASSWORD
-              value: "m3g4s3cur3p4ssw0rd"
+              value: ""
             - name: APP_URL
               value: localhost:3000
           ports:
