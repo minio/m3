@@ -57,17 +57,17 @@ spec:
             - service
           env:
             - name: ADMIN_NAME
-              value: ""
+              value: <DEV_NAME>
             - name: ADMIN_EMAIL
-              value: ""
+              value: <DEV_EMAIL>
             - name: DB_HOSTNAME
               value: postgres.m3
             - name: MAIL_ACCOUNT
-              value: ""
+              value: <ACCOUNT>
             - name: MAIL_SERVER
-              value: ""
+              value: <SERVER>
             - name: MAIL_PASSWORD
-              value: ""
+              value: <PASSWORD>
             - name: APP_URL
               value: localhost:3000
           ports:
