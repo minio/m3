@@ -140,12 +140,10 @@ func getPostgresNotificationMinioConfigKV() (config string) {
 	if dbConfg.Ssl {
 		dbConfigSSLMode = "enable"
 	}
-	postgresTable := "bucketevents"
-	if os.Getenv("MINIO_POSTGRES_NOTIFICATION_TABLE") != "" {
-		postgresTable = os.Getenv("MINIO_POSTGRES_NOTIFICATION_TABLE")
-	}
+	postgresTable := env.Get("M3_POSTGRES_NOTIFICATION_TABLE", "bucketevents")
 
-	config = fmt.Sprintf(`notify_postgres format=access connection_string=sslmode=%s table=%s host=%s port=%s username=%s password=%s database=%s`,
+	config = fmt.Sprintf(`notify_postgres:%s format=access connection_string="sslmode=%s" table=%s host=%s port=%s username=%s password=%s database=%s`,
+		postgresTable,
 		dbConfigSSLMode,
 		postgresTable,
 		dbConfg.Host,
@@ -158,7 +156,8 @@ func getPostgresNotificationMinioConfigKV() (config string) {
 
 // addMinioBucketNotification
 func addMinioBucketNotification(minioClient *minio.Client, bucketName, region string) error {
-	queueArn := minio.NewArn("minio", "sqs", region, "_", "postgresql")
+	postgresTable := env.Get("M3_POSTGRES_NOTIFICATION_TABLE", "bucketevents")
+	queueArn := minio.NewArn("minio", "sqs", region, postgresTable, "postgresql")
 	queueConfig := minio.NewNotificationConfig(queueArn)
 	queueConfig.AddEvents(minio.ObjectCreatedAll, minio.ObjectRemovedAll)
 
