@@ -75,7 +75,11 @@ func createUserWithCredentials(ctx *Context, tenantShortName string, userdID uui
 	if err != nil {
 		return err
 	}
-
+	// create minio postgres configuration for bucket notification
+	err = setMinioConfigPostgresNotification(sgt.StorageGroupTenant, tenantConf)
+	if err != nil {
+		return err
+	}
 	// Now insert the credentials into the DB
 	query := `
 		INSERT INTO
