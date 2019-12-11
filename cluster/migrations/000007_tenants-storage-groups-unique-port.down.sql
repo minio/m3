@@ -14,7 +14,4 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-ALTER TABLE tenants
-    DROP COLUMN enabled;
-
-DROP INDEX IF EXISTS tenant_shortname_uindex;
+DROP INDEX IF EXISTS tenants_storage_groups_storage_group_id_port;

@@ -19,7 +19,6 @@ package cluster
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -305,6 +304,7 @@ func DeprovisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGr
 			ch <- sgTenantResult.Error
 			return
 		}
+
 		// start the jobs that create the tenant folder on each disk on each node of the storage group
 		var jobChs []chan error
 		// get a list of nodes on the cluster
@@ -461,7 +461,7 @@ func DeleteTenantFolderInDisk(tenant *Tenant, sg *StorageGroup, sgNode *StorageG
 				},
 			},
 		}
-
+		volumeMounts := []v1.VolumeMount{}
 		jobContainer := v1.Container{
 			Name:  jobName,
 			Image: "ubuntu",
@@ -474,14 +474,27 @@ func DeleteTenantFolderInDisk(tenant *Tenant, sg *StorageGroup, sgNode *StorageG
 		}
 
 		var commands []string
+		randSringForDeletion := RandomCharString(4)
 		//volumes that will be used by this tenant
 		for _, vol := range sgNode.Node.Volumes {
-			commands = append(commands, fmt.Sprintf(`rm -rf %s/%s`, vol.MountPath, tenant.ShortName))
+			vName := fmt.Sprintf("%s-pv-%d", tenant.ShortName, vol.Num)
+			volumeSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: vol.MountPath}}
+			hostPathVolume := v1.Volume{Name: vName, VolumeSource: volumeSource}
+			job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, hostPathVolume)
+
+			newFolderForDeletion := fmt.Sprintf("%s/%s-to-delete-%s", vol.MountPath, tenant.ShortName, randSringForDeletion)
+			// move current tenant path for one to be deleted and delete if afterwards
+			commands = append(commands, fmt.Sprintf(`mv -v %s/%s %s && rm -rv %s`, vol.MountPath, tenant.ShortName, newFolderForDeletion, newFolderForDeletion))
+			mount := v1.VolumeMount{
+				Name:      vName,
+				MountPath: vol.MountPath,
+			}
+			volumeMounts = append(volumeMounts, mount)
 		}
 		finalMkdirCommand := strings.Join(commands, " && ")
 		// jobContainer.Args = []string{finalMkdirCommand, fmt.Sprintf(` && unset $(printenv | grep -i "%s")`, tenant.ShortName)}
 		jobContainer.Args = []string{finalMkdirCommand}
-
+		jobContainer.VolumeMounts = volumeMounts
 		job.Spec.Template.Spec.Containers = append(job.Spec.Template.Spec.Containers, jobContainer)
 
 		_, err = clientset.BatchV1().Jobs("default").Create(&job)
@@ -490,7 +503,6 @@ func DeleteTenantFolderInDisk(tenant *Tenant, sg *StorageGroup, sgNode *StorageG
 			return
 		}
 		//now sit and wait for the job to complete before returning
-		currentTries := 0
 		for {
 			status, err := clientset.BatchV1().Jobs("default").Get(jobName, metav1.GetOptions{})
 			if err != nil {
@@ -502,11 +514,7 @@ func DeleteTenantFolderInDisk(tenant *Tenant, sg *StorageGroup, sgNode *StorageG
 				//return
 				break
 			}
-			time.Sleep(time.Second * 2)
-			currentTries++
-			if currentTries > maxReadinessTries {
-				break
-			}
+			time.Sleep(300 * time.Millisecond)
 		}
 		// job cleanup
 		err = clientset.BatchV1().Jobs("default").Delete(jobName, nil)
@@ -677,9 +685,7 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 				// Determine the list of desired containers and volumes
 				var tenantContainers []v1.Container
 				var tenantVolumes []v1.Volume
-				log.Println("Creating Minio tenants containers")
 				for _, sgTenant := range tenants {
-					log.Println("tenant: ", sgTenant.Tenant.Name)
 					tenantContainer, tenantVolume := mkTenantMinioContainer(sgTenant, sgNode)
 					tenantContainers = append(tenantContainers, tenantContainer)
 					tenantVolumes = append(tenantVolumes, tenantVolume...)
@@ -739,9 +745,7 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 				// Set deployment with the updated pod spec
 				deployment.Spec.Template.Spec = currPodSpec
 				// if the deployment ends up being empty (0 containers) delete it
-				log.Println("Checking deployments to delete")
 				if len(currPodSpec.Containers) == 0 {
-					log.Println("deleting: ", deployment.ObjectMeta.Name)
 					//TODO: Set an informer and don't continue until this is complete
 					if err = clientset.AppsV1().Deployments("default").Delete(deployment.ObjectMeta.Name, nil); err != nil {
 						ch <- err

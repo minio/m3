@@ -37,5 +37,5 @@ const (
 	SessionIDKey            key = iota
 	WhoAmIKey               key = iota
 	sessionValid                = "valid"
-	maxReadinessTries           = 60 // This should allow for 2 minutes of attempts
+	maxReadinessTries           = 120 // This should allow for 4 minutes of attempts
 )

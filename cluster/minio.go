@@ -19,6 +19,7 @@ package cluster
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/minio/minio-go/v6"
 	"github.com/minio/minio/pkg/env"
@@ -132,6 +133,20 @@ func setMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *Ten
 	return nil
 }
 
+func stopMinioTenantServers(sgt *StorageGroupTenant, tenantConf *TenantConfiguration) error {
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	if pErr != nil {
+		return pErr.Cause
+	}
+	// Restart minios after setting configuration
+	err := adminClient.ServiceStop()
+	if err != nil {
+		return tagErrorAsMinio(err)
+	}
+	return nil
+}
+
+// getPostgresNotificationMinioConfigKV creates minio postgres notification configuration
 func getPostgresNotificationMinioConfigKV() (config string) {
 	// Get the Database configuration
 	dbConfg := GetM3DbConfig()
@@ -192,4 +207,25 @@ func minioIsReady(ctx *Context) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// isMinioReadyRetry tries maxReadinessTries times and returns if is ready after retries
+func isMinioReadyRetry(ctx *Context) bool {
+	currentTries := 0
+	for {
+		ready, err := minioIsReady(ctx)
+		if err != nil {
+			// we'll tolerate errors here, probably minio not responding
+			log.Println(err)
+		}
+		if ready {
+			return true
+		}
+		log.Println("MinIO not ready, sleeping 2 seconds.")
+		time.Sleep(time.Second * 2)
+		currentTries++
+		if currentTries > maxReadinessTries {
+			return false
+		}
+	}
 }
