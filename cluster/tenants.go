@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/minio/minio-go/pkg/policy"
@@ -124,39 +123,29 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 	// if the first admin name and email was provided send them an invitation
 	if userName != "" && userEmail != "" {
 		// wait for MinIO to be ready before creating the first user
-		currentTries := 0
-		ready := false
-		for {
-			ready, err = minioIsReady(ctx)
-			if err != nil {
-				// we'll tolerate errors here, probably minio not responding
-				log.Println(err)
-			}
-			if ready {
-				break
-			}
-			time.Sleep(time.Second * 2)
-			currentTries++
-			if currentTries > maxReadinessTries {
-				break
-			}
-		}
+		ready := isMinioReadyRetry(ctx)
 		if !ready {
 			return errors.New("MinIO was never ready. Unable to complete configuration of tenant")
 		}
-
-		// create minio postgres configuration for bucket notification
-		err = setMinioConfigPostgresNotification(sgTenantResult.StorageGroupTenant, &tenantConfig)
-		if err != nil {
-			return err
-		}
-
+		// TODO: bug here we still have to wait until minios ready
+		// time.Sleep(5000 * time.Millisecond)
 		// insert user to DB with random password
 		newUser := User{Name: userName, Email: userEmail}
 		err := AddUser(ctx, &newUser)
 		if err != nil {
 			return err
 		}
+		// Get the credentials for a tenant
+		tenantConf, err := GetTenantConfig(tenantResult.Tenant)
+		if err != nil {
+			return err
+		}
+		// create minio postgres configuration for bucket notification
+		err = setMinioConfigPostgresNotification(sgTenantResult.StorageGroupTenant, tenantConf)
+		if err != nil {
+			return err
+		}
+
 		// Invite it's first admin
 		err = InviteUserByEmail(ctx, TokenSignupEmail, &newUser)
 		if err != nil {
@@ -627,7 +616,6 @@ func GetTenant(tenantName string) (tenant Tenant, err error) {
 // DeleteTenant runs all the logic to remove a tenant from the cluster.
 // It will delete everything, from schema, to the secrets, all data of that tenant will be lost, except the data on the
 // disk.
-// TODO: Remove the tenant data from the disk
 func DeleteTenant(ctx *Context, tenantShortName string) error {
 	sgt := <-GetTenantStorageGroupByShortName(nil, tenantShortName)
 	if sgt.Error != nil {
@@ -638,12 +626,24 @@ func DeleteTenant(ctx *Context, tenantShortName string) error {
 		return errors.New("tenant not found in database")
 	}
 
-	// delete database records
-	recordsCh := DeleteTenantRecord(ctx, tenantShortName)
+	// StopTenantServers before deprovisioning them.
+	err := StopTenantServers(sgt)
+	if err != nil {
+		return errors.New("Error stopping tenant servers")
+	}
+
+	// Deprovision tenant and delete tenant info from disks
+	err = <-DeprovisionTenantOnStorageGroup(ctx, sgt.Tenant, sgt.StorageGroup)
+	if err != nil {
+		return errors.New("Error deprovisioning tenant")
+	}
+
 	// delete tenant schema
-
-	schemaCh := DeleteTenantDB(tenantShortName)
-
+	// wait for schema deletion
+	err = <-DeleteTenantDB(tenantShortName)
+	if err != nil {
+		log.Println("Error deleting schema: ", err)
+	}
 	// purge connection from pool
 
 	GetInstance().RemoveCnx(tenantShortName)
@@ -651,48 +651,17 @@ func DeleteTenant(ctx *Context, tenantShortName string) error {
 	//delete namesapce
 	nsDeleteCh := deleteTenantNamespace(tenantShortName)
 
-	//delete service
-
-	svcCh := DeleteTenantServiceInStorageGroup(sgt.StorageGroupTenant)
-
-	// wait for record deletion
-	err := <-recordsCh
-	if err != nil {
-		fmt.Println("Error deleting database records", err)
-	}
-
 	// announce the tenant on the router
 	nginxCh := UpdateNginxConfiguration(ctx)
-
-	// redeploy sg
-	sgRefreshCh := ReDeployStorageGroup(ctx, sgt.StorageGroupTenant)
-
-	// wait for deployment refresh
-	err = <-sgRefreshCh
-	if err != nil {
-		fmt.Println("Error updating deployments", err)
-	}
 
 	//delete secret
 
 	secretCh := DeleteTenantSecrets(tenantShortName)
 
-	// wait for schema deletion
-	err = <-schemaCh
-	if err != nil {
-		fmt.Println("Error deleting schema", err)
-	}
-
 	// wait for namespace deletion
 	err = <-nsDeleteCh
 	if err != nil {
 		fmt.Println("Error deleting namespace", err)
-	}
-
-	// wait for service deletion
-	err = <-svcCh
-	if err != nil {
-		fmt.Println("Error deleting service", err)
 	}
 
 	// wait for secret deletion
@@ -836,4 +805,19 @@ func GetStreamOfTenants(ctx *Context, maxChanSize int) chan TenantResult {
 
 	}()
 	return ch
+}
+
+// StopTenantServers stops MinIO servers for a particular tenant
+func StopTenantServers(sgt *StorageGroupTenantResult) error {
+	// Get the credentials for a tenant
+	tenantConf, err := GetTenantConfig(sgt.StorageGroupTenant.Tenant)
+	if err != nil {
+		return err
+	}
+	// Delete MinIO's user
+	err = stopMinioTenantServers(sgt.StorageGroupTenant, tenantConf)
+	if err != nil {
+		return err
+	}
+	return nil
 }

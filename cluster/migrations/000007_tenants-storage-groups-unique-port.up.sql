@@ -14,7 +14,6 @@
 -- You should have received a copy of the GNU Affero General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-ALTER TABLE tenants
-    DROP COLUMN enabled;
-
-DROP INDEX IF EXISTS tenant_shortname_uindex;
+-- avoid assigning same port to more than one tenant within the same storage group
+CREATE UNIQUE INDEX tenants_storage_groups_storage_group_id_port
+    ON tenants_storage_groups (storage_group_id, port);
