@@ -70,7 +70,7 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 	sg := <-SelectSGWithSpace(ctx)
 	if sg.Error != nil {
 		log.Println("Error no storage group available: ", sg.Error)
-		return errors.New("Error no storage group available.")
+		return errors.New("Error no storage group available")
 	}
 
 	// register the tenant
