@@ -114,7 +114,7 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteReques
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
-	resp := &pb.ValidateEmailInviteResponse{Email: user.Email, Company: tenant.Name}
+	resp := &pb.ValidateEmailInviteResponse{Email: user.Email, Company: tenant.ShortName}
 	return resp, nil
 }
 

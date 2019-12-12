@@ -235,10 +235,10 @@ func validTenantShortName(ctx *Context, tenantShortName string) error {
 }
 
 // CreateTenantSchema creates a db schema for the tenant
-func CreateTenantSchema(tenantName string) error {
+func CreateTenantSchema(tenantShortName string) error {
 
 	// get the DB connection for the tenant
-	db := GetInstance().GetTenantDB(tenantName)
+	db := GetInstance().GetTenantDB(tenantShortName)
 
 	// Since we cannot parametrize the tenant name into create schema
 	// we are going to validate the tenant name
@@ -246,12 +246,12 @@ func CreateTenantSchema(tenantName string) error {
 	if err != nil {
 		return err
 	}
-	if !r.MatchString(tenantName) {
+	if !r.MatchString(tenantShortName) {
 		return errors.New("not a valid tenant name")
 	}
 
 	// format in the tenant name assuming it's safe
-	query := fmt.Sprintf(`CREATE SCHEMA %s`, tenantName)
+	query := fmt.Sprintf(`CREATE SCHEMA "%s"`, tenantShortName)
 
 	_, err = db.Exec(query)
 	if err != nil {
@@ -287,17 +287,17 @@ func DestroyTenantSchema(tenantName string) error {
 }
 
 // ProvisionTenantDB runs the tenant migrations for the provided tenant
-func ProvisionTenantDB(tenantName string) chan error {
+func ProvisionTenantDB(tenantShortName string) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
 		// first provision the schema
-		err := CreateTenantSchema(tenantName)
+		err := CreateTenantSchema(tenantShortName)
 		if err != nil {
 			ch <- err
 		}
 		// second run the migrations
-		err = <-MigrateTenantDB(tenantName)
+		err = <-MigrateTenantDB(tenantShortName)
 		if err != nil {
 			ch <- err
 		}
