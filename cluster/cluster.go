@@ -492,7 +492,6 @@ func DeleteTenantFolderInDisk(tenant *Tenant, sg *StorageGroup, sgNode *StorageG
 			volumeMounts = append(volumeMounts, mount)
 		}
 		finalMkdirCommand := strings.Join(commands, " && ")
-		// jobContainer.Args = []string{finalMkdirCommand, fmt.Sprintf(` && unset $(printenv | grep -i "%s")`, tenant.ShortName)}
 		jobContainer.Args = []string{finalMkdirCommand}
 		jobContainer.VolumeMounts = volumeMounts
 		job.Spec.Template.Spec.Containers = append(job.Spec.Template.Spec.Containers, jobContainer)

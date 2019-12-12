@@ -109,6 +109,7 @@ func addTenant(ctx *cli.Context) error {
 	}
 	defer cnxs.Conn.Close()
 	// perform RPC
+	fmt.Println(fmt.Sprintf("Adding tenant: %s ...", tenantName))
 	_, err = cnxs.Client.TenantAdd(cnxs.Context, &pb.TenantAddRequest{
 		Name:      tenantName,
 		ShortName: tenantShortName,
