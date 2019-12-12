@@ -26,6 +26,7 @@ const (
 	accessKey            = "ACCESS_KEY"
 	secretKey            = "SECRET_KEY"
 	maxTenantChannelSize = "MAX_TENANT_CHANNEL_SIZE"
+	s3Domain             = "S3_DOMAIN"
 	// constants
 	TokenSignupEmail            = "signup-email"
 	TokenResetPasswordEmail     = "reset-password-email"
@@ -37,4 +38,7 @@ const (
 	SessionIDKey            key = iota
 	WhoAmIKey               key = iota
 	maxReadinessTries           = 120 // This should allow for 4 minutes of attempts
+
+	// configurations
+	cfgCoreGlobalBuckets = "core.global_buckets"
 )

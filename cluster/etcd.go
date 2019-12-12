@@ -17,10 +17,16 @@
 package cluster
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
 	"log"
 	"strings"
 	"time"
 
+	"github.com/coreos/etcd/mvcc/mvccpb"
+
+	"github.com/coreos/etcd/clientv3"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 
@@ -63,7 +69,7 @@ func SetupEtcCluster() chan error {
 		}
 		// install etcd operator
 		etcOperator := getEtcdDeployment()
-		if _, err = clientset.AppsV1().Deployments("default").Create(etcOperator); err != nil {
+		if _, err = clientset.AppsV1().Deployments(defNS).Create(etcOperator); err != nil {
 			ch <- err
 			return
 		}
@@ -110,10 +116,11 @@ func SetupEtcCluster() chan error {
 		// the etcd-operator-controller
 		numberOfTries := 0
 		for {
-			if _, err := dynamicClient.Resource(etcdclustersResource).Namespace("default").Create(crt, metav1.CreateOptions{}); err != nil {
+			if _, err := dynamicClient.Resource(etcdclustersResource).Namespace(defNS).Create(crt, metav1.CreateOptions{}); err != nil {
 				log.Println(err)
-				// This should break the loop after 3s0 attempts
-				if numberOfTries > 30 {
+				// This should break the loop after 150 attempts, or 5 minutes, this is to account the time it takes
+				// to pull the etcd-operator image from quay.io (it's slow)
+				if numberOfTries > 150 {
 					log.Println("Failed to create CRD etcdcluster")
 					ch <- err
 					return
@@ -185,7 +192,7 @@ func getEtcdRbacClusterRoleBinding() *v1beta1.ClusterRoleBinding {
 			{
 				Kind:      "ServiceAccount",
 				Name:      "default",
-				Namespace: "default",
+				Namespace: defNS,
 			},
 		},
 	}
@@ -259,4 +266,138 @@ func getEtcdCRDDeployment(clusterName string) *unstructured.Unstructured {
 		},
 	}
 
+}
+
+// WatcEtcdBucketCreation watches a key prefix on etcd for new buckets being created
+func WatcEtcdBucketCreation() {
+	globalBuckets, err := GetConfig(nil, cfgCoreGlobalBuckets, false)
+	if err != nil {
+		return
+	}
+	if globalBuckets.ValBool() {
+		log.Println("Global buckets is ON")
+	} else {
+		log.Println("Global buckets is OFF")
+		return
+	}
+
+	etcdHost := "m3-etcd-cluster-client:2379"
+	etcdWatchKey := "/skydns"
+
+	var etcd *clientv3.Client
+	tries := 0
+	for {
+		etcd, err = clientv3.New(clientv3.Config{
+			Endpoints:   []string{"http://" + etcdHost},
+			DialTimeout: 5 * time.Second,
+		})
+		if err != nil {
+			log.Println(err)
+			// wait 5 seconds, then try again
+			time.Sleep(time.Second * 5)
+			tries++
+		} else {
+			break
+		}
+		if tries > 100 {
+			// cancel the attempt to listen
+			log.Println("Could not listen to etcd, therefore no global bucket consolidation is possible")
+			return
+		}
+	}
+
+	defer etcd.Close()
+
+	watchChan := etcd.Watch(context.Background(), etcdWatchKey, clientv3.WithPrefix())
+
+	for watchResp := range watchChan {
+		for _, event := range watchResp.Events {
+			log.Println("got message", event)
+			go func(event *clientv3.Event) {
+				ctx, err := NewEmptyContext()
+				if err != nil {
+					return
+				}
+				err = processMessage(ctx, event)
+				if err != nil {
+					log.Println("error processing event", err)
+					ctx.Rollback()
+					return
+				}
+				ctx.Commit()
+				// announce the bucket on the router
+				<-UpdateNginxConfiguration(ctx)
+			}(event)
+		}
+	}
+}
+
+// EventBucketTenant stores structure parsed from etc event key.
+type EventBucketTenant struct {
+	TenantShortName string
+	BucketName      string
+}
+
+func processEtcdKey(event *clientv3.Event) (*EventBucketTenant, error) {
+	// key looks like `/skydns/m3/tenantShortName/bucketName/Pod.IP.bla.bla`
+	// so we want the 4th item for tenant short name and  the 5th
+	// for the new bucket name
+	keyParts := strings.Split(string(event.Kv.Key), "/")
+	if len(keyParts) < 5 {
+		return nil, errors.New("etcd: Invalid key")
+	}
+	bucketName := keyParts[4]
+
+	var eventValue map[string]interface{}
+	err := json.Unmarshal(event.Kv.Value, &eventValue)
+	if err != nil {
+		return nil, err
+	}
+	var tenantShortName string
+	if val, ok := eventValue["host"]; ok {
+		//do something here
+		tenantShortName = val.(string)
+	}
+	return &EventBucketTenant{TenantShortName: tenantShortName, BucketName: bucketName}, nil
+}
+
+// processMessage takes an etcd Event
+func processMessage(ctx *Context, event *clientv3.Event) error {
+	log.Println(event.Kv.Key, "-", event.Kv.Value)
+	switch event.Type {
+	case mvccpb.PUT:
+		// process the key from the etcd event
+		keyParts, err := processEtcdKey(event)
+		log.Println(keyParts.TenantShortName, "/", keyParts.BucketName)
+		if err != nil {
+			return err
+		}
+		tenant, err := GetTenantWithCtxByServiceName(nil, keyParts.TenantShortName)
+		if err != nil {
+			return err
+		}
+		err = registerBucketForTenant(ctx, keyParts.BucketName, &tenant.ID)
+		if err != nil {
+			return err
+		}
+
+	case mvccpb.DELETE:
+		// process the key from the etcd event
+		keyParts, err := processEtcdKey(event)
+		log.Println(keyParts.TenantShortName, "/", keyParts.BucketName)
+		if err != nil {
+			return err
+		}
+
+		tenant, err := GetTenantWithCtxByServiceName(nil, keyParts.TenantShortName)
+		if err != nil {
+			return err
+		}
+		err = unregisterBucketForTenant(ctx, keyParts.BucketName, &tenant.ID)
+		if err != nil {
+			return err
+		}
+
+	}
+	return nil
 }

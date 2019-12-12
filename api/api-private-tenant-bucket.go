@@ -37,6 +37,7 @@ func (ps *privateServer) TenantBucketAdd(ctx context.Context, in *pb.TenantBucke
 	if in.BucketName == "" {
 		return nil, status.New(codes.InvalidArgument, "A bucket name is needed").Err()
 	}
+
 	err := cluster.MakeBucket(in.Tenant, in.BucketName, cluster.BucketPrivate)
 	if err != nil {
 		fmt.Println("Error creating bucket:", err.Error())

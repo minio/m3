@@ -8,7 +8,7 @@
 
 ./m3 cluster nodes assign --storage_cluster my-dc-rack-1 --node node-1
 ./m3 cluster nodes assign --storage_cluster my-dc-rack-1 --node node-2
-./m3 cluster nodes assign --storage_cluster my-dc-rack-1 --node node-3Da
+./m3 cluster nodes assign --storage_cluster my-dc-rack-1 --node node-3
 ./m3 cluster nodes assign --storage_cluster my-dc-rack-1 --node node-4
 
 ./m3 cluster sc sg add --storage_cluster my-dc-rack-1 --name group-1
