@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -271,11 +272,15 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 					}
 				}
 		`)
+		appDomain := "s3.localhost"
+		if os.Getenv("APP_DOMAIN") != "" {
+			appDomain = os.Getenv("APP_DOMAIN")
+		}
 		for index := 0; index < len(tenantRoutes); index++ {
 			tenantRoute := tenantRoutes[index]
 			serverBlock := fmt.Sprintf(`
 				server {
-					server_name %s.s3.localhost;
+					server_name %s.%s;
 					ignore_invalid_headers off;
 					client_max_body_size 0;
 					proxy_buffering off;
@@ -288,7 +293,7 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 					}
 				}
 
-			`, tenantRoute.ShortName, tenantRoute.ServiceName, tenantRoute.Port)
+			`, tenantRoute.ShortName, appDomain, tenantRoute.ServiceName, tenantRoute.Port)
 			nginxConfiguration.WriteString(serverBlock)
 		}
 		nginxConfiguration.WriteString(`
