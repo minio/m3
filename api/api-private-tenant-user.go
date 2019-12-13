@@ -50,6 +50,7 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 
 	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	tenant, err := cluster.GetTenant(in.Tenant)
@@ -61,6 +62,7 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 	// perform the action
 	err = cluster.AddUser(appCtx, &user)
 	if err != nil {
+		log.Println(err)
 		appCtx.Rollback()
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
@@ -69,6 +71,7 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 	if in.Invite {
 		err = cluster.InviteUserByEmail(appCtx, cluster.TokenSignupEmail, &user)
 		if err != nil {
+			log.Println(err)
 			appCtx.Rollback()
 			return nil, status.New(codes.Internal, "Error inviting user:"+err.Error()).Err()
 		}
@@ -76,6 +79,7 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 	// commit anything pending
 	err = appCtx.Commit()
 	if err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Internal, "Error creating user:"+err.Error()).Err()
 	}
 	return &pb.TenantUserAddResponse{}, nil

@@ -18,6 +18,8 @@ package api
 
 import (
 	"context"
+	"database/sql"
+	"log"
 
 	uuid "github.com/satori/go.uuid"
 
@@ -82,7 +84,7 @@ func (s *server) UserAddInvite(ctx context.Context, in *pb.InviteRequest) (*pb.E
 		_, ok := err.(*pq.Error)
 		if ok {
 			if err.(*pq.Error).Code.Name() == uniqueViolationError {
-				return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()
+				return nil, status.New(codes.InvalidArgument, "email and/or name already exist").Err()
 			}
 		}
 		return nil, status.New(codes.Internal, err.Error()).Err()
@@ -117,7 +119,7 @@ func (s *server) UserResetPasswordInvite(ctx context.Context, in *pb.InviteReque
 
 	user, err := cluster.GetUserByEmail(appCtx, reqEmail)
 	if err != nil {
-		return nil, status.New(codes.Internal, "User Not Found").Err()
+		return nil, status.New(codes.Internal, "user Not Found").Err()
 	}
 
 	// Send email invitation with token
@@ -145,7 +147,7 @@ func (s *server) AddUser(ctx context.Context, in *pb.AddUserRequest) (*pb.User, 
 		_, ok := err.(*pq.Error)
 		if ok {
 			if err.(*pq.Error).Code.Name() == uniqueViolationError {
-				return nil, status.New(codes.InvalidArgument, "Email and/or Name already exist").Err()
+				return nil, status.New(codes.InvalidArgument, "email and/or name already exist").Err()
 			}
 		}
 		return nil, status.New(codes.Internal, err.Error()).Err()
@@ -171,7 +173,7 @@ func (s *server) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*pb.Li
 	// Get list of users set maximum 25 per page
 	users, err := cluster.GetUsersForTenant(appCtx, reqOffset, reqLimit)
 	if err != nil {
-		return nil, status.New(codes.Internal, "Error getting Users").Err()
+		return nil, status.New(codes.Internal, "error getting Users").Err()
 	}
 
 	var respUsers []*pb.User
@@ -192,11 +194,11 @@ func (s *server) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*pb.Li
 func (s *server) ChangePassword(ctx context.Context, in *pb.ChangePasswordRequest) (res *pb.Empty, err error) {
 	newPassword := in.GetNewPassword()
 	if newPassword == "" {
-		return nil, status.New(codes.InvalidArgument, "Empty New Password").Err()
+		return nil, status.New(codes.InvalidArgument, "empty New Password").Err()
 	}
 	oldPassword := in.GetOldPassword()
 	if oldPassword == "" {
-		return nil, status.New(codes.InvalidArgument, "Empty Old Password").Err()
+		return nil, status.New(codes.InvalidArgument, "empty Old Password").Err()
 	}
 
 	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
@@ -222,7 +224,7 @@ func (s *server) ChangePassword(ctx context.Context, in *pb.ChangePasswordReques
 	}
 	// Comparing the old password with the hash stored password
 	if err = bcrypt.CompareHashAndPassword([]byte(userObj.Password), []byte(in.OldPassword)); err != nil {
-		return nil, status.New(codes.Unauthenticated, "Wrong credentials").Err()
+		return nil, status.New(codes.Unauthenticated, "wrong credentials").Err()
 	}
 	// Hash the new password and update the it
 	err = cluster.SetUserPassword(appCtx, &userObj.ID, newPassword)
@@ -231,41 +233,109 @@ func (s *server) ChangePassword(ctx context.Context, in *pb.ChangePasswordReques
 	}
 	// get session ID from context
 	sessionRowID := ctx.Value(cluster.SessionIDKey).(string)
-	// Invalidate Session
-	err = cluster.UpdateSessionStatus(appCtx, sessionRowID, "invalid")
+	// Invalidate current Session
+	err = cluster.UpdateSessionStatus(appCtx, sessionRowID, cluster.SessionInvalid)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
+	// Invalidate all user's sessions
+	sessions, err := cluster.GetUserSessionsFromDB(appCtx, &userObj, cluster.SessionValid)
+	if err != nil {
+		log.Println("Error getting user sessions from db: ", err)
+		return nil, status.New(codes.Internal, "error disabling user").Err()
+	}
+	err = cluster.UpdateBulkSessionStatusOnDB(appCtx, sessions, cluster.SessionInvalid)
+	if err != nil {
+		log.Println("Error updating sessions on db: ", err)
+		return nil, status.New(codes.Internal, "error disabling user").Err()
+	}
+
 	return &pb.Empty{}, err
 }
 
 func (s *server) DisableUser(ctx context.Context, in *pb.UserActionRequest) (*pb.UserActionResponse, error) {
 	reqUserID := in.GetId()
+	userID, err := uuid.FromString(reqUserID)
+	if err != nil {
+		log.Println("id not valid: ", err)
+		return nil, status.New(codes.InvalidArgument, "id not valid").Err()
+	}
 	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
+		log.Println("error getting user by id: ", err)
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
-	err = cluster.SetUserEnabled(appCtx, reqUserID, false)
+
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+		// if no error happened to this point commit transaction
+		err = appCtx.Commit()
+	}()
+
+	// Get user row from db
+	userObj, err := cluster.GetUserByID(appCtx, userID)
 	if err != nil {
-		appCtx.Rollback()
-		return nil, status.New(codes.Internal, "Error disabling user").Err()
+		log.Println("error getting user by id: ", err)
+		if err == sql.ErrNoRows {
+			return nil, status.New(codes.NotFound, "user not found").Err()
+		}
+		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
-	appCtx.Commit()
+	err = cluster.SetUserEnabledOnDB(appCtx, userObj.ID, false)
+	if err != nil {
+		log.Println("error disabling user on db: ", err)
+		return nil, status.New(codes.Internal, "error disabling user").Err()
+	}
+	sessions, err := cluster.GetUserSessionsFromDB(appCtx, &userObj, cluster.SessionValid)
+	if err != nil {
+		log.Println("Error getting user sessions from db: ", err)
+		return nil, status.New(codes.Internal, "error disabling user").Err()
+	}
+	err = cluster.UpdateBulkSessionStatusOnDB(appCtx, sessions, cluster.SessionInvalid)
+	if err != nil {
+		log.Println("Error updating sessions on db: ", err)
+		return nil, status.New(codes.Internal, "error disabling user").Err()
+	}
 	return &pb.UserActionResponse{Status: "false"}, nil
 }
 
 func (s *server) EnableUser(ctx context.Context, in *pb.UserActionRequest) (*pb.UserActionResponse, error) {
 	reqUserID := in.GetId()
-	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	userID, err := uuid.FromString(reqUserID)
 	if err != nil {
-		return nil, status.New(codes.Internal, err.Error()).Err()
+		log.Println("id not valid: ", err)
+		return nil, status.New(codes.InvalidArgument, "id not valid").Err()
 	}
 
-	err = cluster.SetUserEnabled(appCtx, reqUserID, true)
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
-		appCtx.Rollback()
-		return nil, status.New(codes.Internal, "Error enabling user").Err()
+		log.Println(err)
+		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
-	appCtx.Commit()
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+		// if no error happened to this point commit transaction
+		err = appCtx.Commit()
+	}()
+	// Get user row from db
+	userObj, err := cluster.GetUserByID(appCtx, userID)
+	if err != nil {
+		log.Println("error getting user by id: ", err)
+		if err == sql.ErrNoRows {
+			return nil, status.New(codes.NotFound, "user not found").Err()
+		}
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	err = cluster.SetUserEnabledOnDB(appCtx, userObj.ID, true)
+	if err != nil {
+		log.Println("error enabling user on db: ", err)
+		return nil, status.New(codes.Internal, "error enabling user").Err()
+	}
 	return &pb.UserActionResponse{Status: "true"}, nil
 }

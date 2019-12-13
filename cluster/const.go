@@ -36,6 +36,5 @@ const (
 	TenantShortNameKey      key = iota
 	SessionIDKey            key = iota
 	WhoAmIKey               key = iota
-	sessionValid                = "valid"
 	maxReadinessTries           = 120 // This should allow for 4 minutes of attempts
 )

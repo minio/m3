@@ -28,6 +28,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/lib/pq"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -38,10 +39,19 @@ type Session struct {
 	OcurredAt time.Time
 	LastEvent time.Time
 	ExpiresAt time.Time
-	Status    string
+	Status    SessionStatus
 }
 
-func CreateSession(ctx *Context, userID uuid.UUID, tenantID uuid.UUID) (*Session, error) {
+// SessionStatus - account status.
+type SessionStatus string
+
+// Session status per mkube User.
+const (
+	SessionValid   SessionStatus = "valid"
+	SessionInvalid SessionStatus = "invalid"
+)
+
+func CreateSession(ctx *Context, user *User, tenant *Tenant) (*Session, error) {
 	// Set query parameters
 	// Insert a new session with random string as id
 	sessionID, err := GetRandString(32, "sha256")
@@ -60,9 +70,9 @@ func CreateSession(ctx *Context, userID uuid.UUID, tenantID uuid.UUID) (*Session
 	}
 	newSession := &Session{
 		ID:       sessionID,
-		UserID:   userID,
-		TenantID: tenantID,
-		Status:   "valid",
+		UserID:   user.ID,
+		TenantID: tenant.ID,
+		Status:   SessionValid,
 	}
 	// Execute Query
 	_, err = tx.Exec(query, newSession.ID, newSession.UserID, newSession.TenantID, newSession.Status)
@@ -72,19 +82,19 @@ func CreateSession(ctx *Context, userID uuid.UUID, tenantID uuid.UUID) (*Session
 	return newSession, nil
 }
 
-func UpdateSessionStatus(ctx *Context, sessionID string, status string) error {
+func UpdateSessionStatus(ctx *Context, sessionID string, status SessionStatus) error {
 	// Set query parameters
 	query :=
 		`UPDATE sessions 
-			SET status = $1
-		WHERE id=$2`
+			SET status = $2
+		WHERE id=$1`
 	tx, err := ctx.MainTx()
 	if err != nil {
 		return err
 	}
 
 	// Execute Query
-	_, err = tx.Exec(query, status, sessionID)
+	_, err = tx.Exec(query, sessionID, status)
 	if err != nil {
 		return err
 	}
@@ -120,7 +130,7 @@ func GetValidSession(sessionID string) (*Session, error) {
 	getTenantShortnameQ := `SELECT s.tenant_id, s.user_id
                             FROM sessions AS s 
                             WHERE s.id=$1 AND s.status=$2 AND NOW() < s.expires_at`
-	tenantRow := db.QueryRow(getTenantShortnameQ, sessionID, sessionValid)
+	tenantRow := db.QueryRow(getTenantShortnameQ, sessionID, SessionValid)
 
 	err := tenantRow.Scan(&session.TenantID, &session.UserID)
 	if err == sql.ErrNoRows {
@@ -131,4 +141,73 @@ func GetValidSession(sessionID string) (*Session, error) {
 	}
 
 	return &session, nil
+}
+
+// GetUserSessionsFromDB get all sessions for a particular user
+func GetUserSessionsFromDB(ctx *Context, user *User, status SessionStatus) (sessions []*Session, err error) {
+	query := `SELECT s.id, s.tenant_id, s.user_id, s.occurred_at, s.last_event, s.expires_at, s.status
+				FROM sessions AS s
+				WHERE s.user_id=$1 AND s.status=$2`
+
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := tx.Query(query, user.ID, status)
+	defer rows.Close()
+	for rows.Next() {
+		sRes := &Session{}
+		err := rows.Scan(&sRes.ID,
+			&sRes.TenantID,
+			&sRes.UserID,
+			&sRes.OcurredAt,
+			&sRes.LastEvent,
+			&sRes.ExpiresAt,
+			&sRes.Status)
+		if err != nil {
+			return nil, err
+		}
+		sessions = append(sessions, sRes)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return sessions, nil
+}
+
+// UpdateBulkSessionStatusOnDB update multiple session status on the DB
+func UpdateBulkSessionStatusOnDB(ctx *Context, sessions []*Session, status SessionStatus) error {
+	var sessionIDs []string
+	for _, s := range sessions {
+		sessionIDs = append(sessionIDs, s.ID)
+	}
+	query := `UPDATE sessions 
+				SET status = $2
+				WHERE id = ANY($1)
+			`
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return err
+	}
+	// Execute query
+	_, err = tx.Exec(query, pq.Array(sessionIDs), status)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetSessionStatusFromString converts string type to SessionStatus
+// and throws error if string not is not a valid type
+func GetSessionStatusFromString(status string) (sessionStatus SessionStatus, err error) {
+	switch status {
+	case "valid":
+		return SessionValid, nil
+	case "invalid":
+		return SessionInvalid, nil
+	default:
+		return "", fmt.Errorf("error Invalid session status: %s", status)
+	}
+
 }

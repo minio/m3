@@ -33,10 +33,10 @@ func (s *server) SetPassword(ctx context.Context, in *pb.SetPasswordRequest) (*p
 	reqURLToken := in.GetUrlToken()
 	reqPassword := in.GetPassword()
 	if reqURLToken == "" {
-		return nil, status.New(codes.InvalidArgument, "Empty UrlToken").Err()
+		return nil, status.New(codes.InvalidArgument, "empty UrlToken").Err()
 	}
 	if reqPassword == "" {
-		return nil, status.New(codes.InvalidArgument, "Empty Password").Err()
+		return nil, status.New(codes.InvalidArgument, "empty Password").Err()
 	}
 
 	parsedJwtToken, err := cluster.ParseAndValidateJwtToken(reqURLToken)
@@ -52,7 +52,7 @@ func (s *server) SetPassword(ctx context.Context, in *pb.SetPasswordRequest) (*p
 	tenant, err := cluster.GetTenantByID(&parsedJwtToken.TenantID)
 	if err != nil {
 		log.Println(err)
-		return nil, status.New(codes.Unauthenticated, "Invalid URL Token").Err()
+		return nil, status.New(codes.Unauthenticated, "invalid URL Token").Err()
 	}
 	appCtx.Tenant = &tenant
 
@@ -65,7 +65,7 @@ func (s *server) SetPassword(ctx context.Context, in *pb.SetPasswordRequest) (*p
 	err = cluster.ValidateURLToken(urlToken)
 	if err != nil {
 		log.Println(err)
-		return nil, status.New(codes.Unauthenticated, "Invalid URL Token").Err()
+		return nil, status.New(codes.Unauthenticated, "invalid URL Token").Err()
 	}
 
 	err = cluster.CompleteSignup(appCtx, urlToken, reqPassword)
@@ -87,7 +87,7 @@ func (s *server) SetPassword(ctx context.Context, in *pb.SetPasswordRequest) (*p
 func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteRequest) (res *pb.ValidateEmailInviteResponse, err error) {
 	reqURLToken := in.GetUrlToken()
 	if reqURLToken == "" {
-		return nil, status.New(codes.InvalidArgument, "Empty UrlToken").Err()
+		return nil, status.New(codes.InvalidArgument, "empty UrlToken").Err()
 	}
 	parsedJwtToken, err := cluster.ParseAndValidateJwtToken(reqURLToken)
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteReques
 
 	tenant, err := cluster.GetTenantByID(&parsedJwtToken.TenantID)
 	if err != nil {
-		return nil, status.New(codes.Unauthenticated, "Invalid token").Err()
+		return nil, status.New(codes.Unauthenticated, "invalid token").Err()
 	}
 	appCtx := cluster.NewCtxWithTenant(&tenant)
 
@@ -107,7 +107,7 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteReques
 
 	err = cluster.ValidateURLToken(urlToken)
 	if err != nil {
-		return nil, status.New(codes.Unauthenticated, "Invalid URL Token").Err()
+		return nil, status.New(codes.Unauthenticated, "invalid URL Token").Err()
 	}
 	user, err := cluster.GetUserByID(appCtx, urlToken.UserID)
 	if err != nil {
@@ -129,18 +129,18 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	// Search for the tenant on the database
 	tenant, err := cluster.GetTenant(tenantName)
 	if err != nil {
-		return nil, status.New(codes.InvalidArgument, "Tenant not valid").Err()
+		return nil, status.New(codes.InvalidArgument, "tenant not valid").Err()
 	}
 	// validate tenant being active
 	if !tenant.Enabled {
 		log.Printf("Attempted login for disabled tenant `%s` by `%s`", tenant.ShortName, in.Email)
-		return nil, status.New(codes.Unauthenticated, "Account disabled, contact support").Err()
+		return nil, status.New(codes.Unauthenticated, "user account disabled, contact support").Err()
 	}
 	// start app context
 	appCtx, err := cluster.NewEmptyContext()
 	if err != nil {
 		log.Println(err)
-		return nil, status.New(codes.Internal, "Internal Error").Err()
+		return nil, status.New(codes.Internal, "internal Error").Err()
 	}
 	appCtx.Tenant = &tenant
 
@@ -148,18 +148,18 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	// Look for the user on the database by email
 	user, err := cluster.GetUserByEmail(appCtx, email)
 	if err != nil {
-		return nil, status.New(codes.Unauthenticated, "Wrong tenant, email and/or password").Err()
+		return nil, status.New(codes.Unauthenticated, "wrong tenant, email and/or password").Err()
 	}
 
 	//validate user is enabled
 	if !user.Enabled {
-		log.Printf("User `%s` attempted to login but it's disabled. \n", user.Email)
-		return nil, status.New(codes.Unauthenticated, "User Account disabled").Err()
+		log.Printf("user `%s` attempted to login but it's disabled. \n", user.Email)
+		return nil, status.New(codes.Unauthenticated, "user account disabled").Err()
 	}
 
 	// Comparing the password with the hash
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(in.Password)); err != nil {
-		return nil, status.New(codes.Unauthenticated, "Wrong tenant, email and/or password").Err()
+		return nil, status.New(codes.Unauthenticated, "wrong tenant, email and/or password").Err()
 	}
 
 	// Add the session within a transaction in case anything goes wrong during the adding process
@@ -172,7 +172,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 		err = appCtx.Commit()
 	}()
 	// Everything looks good, create session
-	session, err := cluster.CreateSession(appCtx, user.ID, tenant.ID)
+	session, err := cluster.CreateSession(appCtx, &user, &tenant)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -193,11 +193,11 @@ func (s *server) Logout(ctx context.Context, in *pb.Empty) (*pb.Empty, error) {
 	appCtx, err = cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
 		log.Println(err)
-		return nil, status.New(codes.Internal, "Internal error").Err()
+		return nil, status.New(codes.Internal, "internal error").Err()
 	}
 	// get session from context
 	sessionRowID = ctx.Value(cluster.SessionIDKey).(string)
-	err = cluster.UpdateSessionStatus(appCtx, sessionRowID, "invalid")
+	err = cluster.UpdateSessionStatus(appCtx, sessionRowID, cluster.SessionInvalid)
 	if err != nil {
 		appCtx.Rollback()
 		return nil, status.New(codes.InvalidArgument, err.Error()).Err()
