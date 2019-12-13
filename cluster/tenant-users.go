@@ -37,14 +37,14 @@ type User struct {
 func AddUser(ctx *Context, newUser *User) error {
 	// validate user Name
 	if newUser.Name == "" {
-		return errors.New("a valid user name is needed")
+		return errors.New("A valid user name is needed")
 	}
 
 	// validate user Email
 	// TODO: improve regex
 	var re = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
 	if !re.MatchString(newUser.Email) {
-		return errors.New("a valid email is needed")
+		return errors.New("A valid email is needed")
 	}
 
 	// validate user Password
@@ -52,7 +52,7 @@ func AddUser(ctx *Context, newUser *User) error {
 		// TODO: improve regex or use Go validator
 		var re = regexp.MustCompile(`^[a-zA-Z0-9!@#\$%\^&\*]{8,16}$`)
 		if !re.MatchString(newUser.Password) {
-			return errors.New("a valid password is needed, minimum 8 characters")
+			return errors.New("A valid password is needed, minimum 8 characters")
 		}
 	}
 	// if the user has no password, randomize it
