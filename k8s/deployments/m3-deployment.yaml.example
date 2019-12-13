@@ -56,18 +56,26 @@ spec:
             - /m3
             - service
           env:
+            - name: IDENTITY_PROVIDER_URL
+              value: ""
+            - name: IDENTITY_PROVIDER_CLIENT_ID
+              value: ""
+            - name: IDENTITY_PROVIDER_SECRET
+              value: ""
+            - name: IDENTITY_PROVIDER_CALLBACK
+              value: ""
             - name: ADMIN_NAME
-              value: <DEV_NAME>
+              value: "<ADMIN_NAME>"
             - name: ADMIN_EMAIL
-              value: <DEV_EMAIL>
+              value: "<ADMIN_EMAIL>"
             - name: DB_HOSTNAME
               value: postgres.m3
             - name: MAIL_ACCOUNT
-              value: <ACCOUNT>
+              value: "<DEV_EMAIL_ACCOUNT>"
             - name: MAIL_SERVER
-              value: <SERVER>
+              value: "<DEV_EMAIL_SERVER>"
             - name: MAIL_PASSWORD
-              value: <PASSWORD>
+              value: "<DEV_EMAIL_PASSWORD>"
             - name: APP_URL
               value: localhost:3000
           ports:

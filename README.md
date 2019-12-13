@@ -69,7 +69,7 @@ make m3
 ```
 make k8sdev
 ```
-
+- Copy the template located at `./k8s/deployments/m3-deployment.yaml.example` into `./k8s/deployments/m3-deployment.yaml`
 - Modify `./k8s/deployments/m3-deployment.yaml`
 
 Replace all the <TOKENS> with their corresponding values, for example <DEV_EMAIL> with your personal email.

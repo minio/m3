@@ -381,7 +381,7 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) 
 		if err != nil {
 			return
 		}
-		serviceName := fmt.Sprintf("%s-sg-%d", tenant.Name, sg.Num)
+		serviceName := fmt.Sprintf("%s-sg-%d", tenant.ShortName, sg.Num)
 		var port int32 = 9001
 
 		// Search for available port for tenant on storage group
