@@ -200,7 +200,11 @@ func (s *Singleton) RemoveCnx(tenantName string) {
 
 // AppURL returns the main application url
 func (s *Singleton) AppURL() string {
-	appURL := "http://s3.localhost"
+	appDomain := "s3.localhost"
+	if os.Getenv("APP_DOMAIN") != "" {
+		appDomain = os.Getenv("APP_DOMAIN")
+	}
+	appURL := fmt.Sprintf("http://%s", appDomain)
 	if os.Getenv("APP_URL") != "" {
 		appURL = os.Getenv("APP_URL")
 	}
