@@ -18,6 +18,7 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -99,7 +100,8 @@ func MarkTokenConsumed(ctx *Context, urlTokenID *uuid.UUID) error {
 	return nil
 }
 
-// CompleteSignup takes a urlToken and a password and changes the user password and then marks the token as used
+// CompleteSignup takes a urlToken and a password and changes the user's password,
+// invalids all current active user's sessions and then marks the urlToken as used
 func CompleteSignup(ctx *Context, urlToken *URLToken, password string) error {
 	if urlToken.Consumed {
 		return errors.New("url token has already been consumed")
@@ -107,6 +109,23 @@ func CompleteSignup(ctx *Context, urlToken *URLToken, password string) error {
 	// update the user password
 	err := SetUserPassword(ctx, &urlToken.UserID, password)
 	if err != nil {
+		return err
+	}
+
+	// Get User obj and invalidate all active sessions
+	userObj, err := GetUserByID(ctx, urlToken.UserID)
+	if err != nil {
+		log.Println("error getting user by id: ", err)
+		return err
+	}
+	sessions, err := GetUserSessionsFromDB(ctx, &userObj, SessionValid)
+	if err != nil {
+		log.Println("error getting user sessions from db: ", err)
+		return err
+	}
+	err = UpdateBulkSessionStatusOnDB(ctx, sessions, SessionInvalid)
+	if err != nil {
+		log.Println("error updating sessions on db: ", err)
 		return err
 	}
 

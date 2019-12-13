@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/minio/minio-go/pkg/policy"
@@ -135,8 +134,6 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 		if !ready {
 			return errors.New("MinIO was never ready. Unable to complete configuration of tenant")
 		}
-		time.Sleep(5000 * time.Millisecond)
-
 		// insert user to DB with random password
 		newUser := User{Name: userName, Email: userEmail}
 		err := AddUser(ctx, &newUser)
@@ -749,7 +746,6 @@ func deleteTenantNamespace(tenantShortName string) chan error {
 }
 
 func TenantShortNameAvailable(ctx *Context, tenantShortName string) (bool, error) {
-
 	// Checks if a tenant short name is in use
 	queryUser := `SELECT EXISTS(SELECT 1 FROM tenants WHERE short_name=$1 LIMIT 1)`
 

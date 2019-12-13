@@ -93,7 +93,7 @@ func AddUser(ctx *Context, newUser *User) error {
 // SetUserEnabled updates user's `enabled` column to the desired status
 // 	True = Enabled
 // 	False = Disabled
-func SetUserEnabled(ctx *Context, userID string, status bool) error {
+func SetUserEnabledOnDB(ctx *Context, userID uuid.UUID, status bool) error {
 	// prepare query
 	query := `UPDATE 
 				users
