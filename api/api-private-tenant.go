@@ -36,12 +36,11 @@ func (ps *privateServer) TenantAdd(ctx context.Context, in *pb.TenantAddRequest)
 	}
 	err = cluster.TenantAddAction(appCtx, in.Name, in.ShortName, in.UserName, in.UserEmail)
 	if err != nil {
-		log.Println(err)
-		if err = appCtx.Rollback(); err != nil {
-			log.Println(err)
+		if errRollback := appCtx.Rollback(); errRollback != nil {
+			log.Println(errRollback)
 			return nil, status.New(codes.Internal, "Internal error").Err()
 		}
-		return nil, status.New(codes.Internal, "Internal Error").Err()
+		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 	// if no error happened to this point
 	if err = appCtx.Commit(); err != nil {
@@ -57,8 +56,8 @@ func (ps *privateServer) TenantDelete(ctx context.Context, in *pb.TenantDeleteRe
 	if err != nil {
 		return nil, err
 	}
-	shortName := in.GetShortName()
-	if shortName == "" {
+	tenantShortName := in.GetShortName()
+	if tenantShortName == "" {
 		return nil, status.New(codes.InvalidArgument, "a short name is needed").Err()
 	}
 
@@ -69,14 +68,27 @@ func (ps *privateServer) TenantDelete(ctx context.Context, in *pb.TenantDeleteRe
 		}
 	}()
 
-	err = cluster.DeleteTenant(appCtx, shortName)
+	sgt := <-cluster.GetTenantStorageGroupByShortName(nil, tenantShortName)
+	if sgt.Error != nil {
+		return nil, status.New(codes.NotFound, "storage group not found for tenant").Err()
+	}
+	if sgt.StorageGroupTenant == nil {
+		return nil, status.New(codes.NotFound, "tenant not found in database").Err()
+	}
+
+	if sgt.StorageGroupTenant.Tenant.Enabled {
+		return nil, status.New(codes.Canceled, "tenant needs to be disabled for deletion").Err()
+	}
+
+	err = cluster.DeleteTenant(appCtx, sgt)
 	if err != nil {
-		return nil, err
+		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
 	// if we reach here, all is good, commit
 	if err := appCtx.Commit(); err != nil {
-		return nil, err
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
 	return &pb.Empty{}, nil

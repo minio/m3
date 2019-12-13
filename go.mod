@@ -15,7 +15,7 @@ require (
 	github.com/lib/pq v1.0.0
 	github.com/minio/cli v1.22.0
 	github.com/minio/mc v0.0.0-20191012041914-735aa139b19c
-	github.com/minio/minio v0.0.0-20191206215351-476111968a3f
+	github.com/minio/minio v0.0.0-20191211223748-db3f41fcb405
 	github.com/minio/minio-go v0.0.0-20190327203652-5325257a208f
 	github.com/minio/minio-go/v6 v6.0.39
 	github.com/pelletier/go-toml v1.6.0

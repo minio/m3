@@ -452,7 +452,7 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 		}
 		query := `
 			SELECT 
-			       t1.tenant_id, t1.port, t1.service_name, t2.name, t2.short_name, t1.storage_group_id, t3.name, t3.num
+			       t1.tenant_id, t1.port, t1.service_name, t2.name, t2.short_name, t2.enabled, t1.storage_group_id, t3.name, t3.num
 			FROM 
 			     tenants_storage_groups t1
 			LEFT JOIN tenants t2
@@ -481,6 +481,7 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 		var storageGroupID uuid.UUID
 		var tenantName string
 		var tenantShortName string
+		var tenantEnabled bool
 		var port int32
 		var sgNum int32
 		var sgName string
@@ -491,6 +492,7 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 			&serviceName,
 			&tenantName,
 			&tenantShortName,
+			&tenantEnabled,
 			&storageGroupID,
 			&sgName,
 			&sgNum)
@@ -504,6 +506,7 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 				ID:        tenantID,
 				Name:      tenantName,
 				ShortName: tenantShortName,
+				Enabled:   tenantEnabled,
 			},
 			Port:        port,
 			ServiceName: serviceName,
