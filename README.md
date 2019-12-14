@@ -72,7 +72,7 @@ make k8sdev
 - Copy the template located at `./k8s/deployments/m3-deployment.yaml.example` into `./k8s/deployments/m3-deployment.yaml`
 - Modify `./k8s/deployments/m3-deployment.yaml`
 
-Replace all the <TOKENS> with their corresponding values, for example <DEV_EMAIL> with your personal email.
+Replace all the `<TOKENS>` with their corresponding values, for example `<DEV_EMAIL>` with your personal email.
 A valid `smtp` account is needed, if you don't have one we recommend you create a gmail account and enable [Less Secure Apps access](https://support.google.com/accounts/answer/6010255?hl=en)
 
 - Install the m3 deployment on kubernetes
