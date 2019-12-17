@@ -99,7 +99,7 @@ func (ps *privateServer) LoginWithIdp(ctx context.Context, in *pb.LoginWithIdpRe
 	admin, err = cluster.GetAdminByEmail(appCtx, email)
 	if err != nil {
 		// if it's not a no rows in result set, cancel this
-		if err == sql.ErrNoRows {
+		if err != sql.ErrNoRows {
 			log.Println(err)
 			return nil, status.New(codes.Internal, "Internal Error").Err()
 		}
