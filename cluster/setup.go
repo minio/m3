@@ -43,6 +43,7 @@ import (
 
 const (
 	m3SystemNamespace = "m3"
+	defNS             = "default"
 )
 
 // Setups m3 on the kubernetes deployment that we are installed to
@@ -156,7 +157,19 @@ func SetupM3() error {
 		log.Println(err)
 	}
 
-	// wait for all other services
+	// Check wether we are being setup as global bucket, or bucket namespace per tenant
+	if os.Getenv("SETUP_USE_GLOBAL_BUCKETS") == "true" {
+		err := SetConfigWithLock(nil, cfgCoreGlobalBuckets, "true", "bool", true)
+		if err != nil {
+			log.Println("Could not store global bucket configuration.", err)
+		}
+	} else {
+		err := SetConfigWithLock(nil, cfgCoreGlobalBuckets, "false", "bool", true)
+		if err != nil {
+			log.Println("Could not store global bucket configuration.", err)
+		}
+	}
+	// wait for all other servicess
 	<-waitJwtCh
 	err = <-waitEtcdCh
 	if err != nil {

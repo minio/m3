@@ -15,22 +15,3 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 package cluster
-
-import "os"
-
-// hostConfig configuration of a host.
-type hostConfigV9 struct {
-	URL       string `json:"url"`
-	AccessKey string `json:"accessKey"`
-	SecretKey string `json:"secretKey"`
-	API       string `json:"api"`
-	Lookup    string `json:"lookup"`
-}
-
-func getS3Domain() string {
-	appDomain := "s3.localhost"
-	if os.Getenv(s3Domain) != "" {
-		appDomain = os.Getenv(s3Domain)
-	}
-	return appDomain
-}

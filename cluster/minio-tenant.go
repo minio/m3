@@ -68,6 +68,14 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 					LocalObjectReference: v1.LocalObjectReference{Name: envName},
 				},
 			},
+			// Loads configuration environment variables from a tenant configMap
+			{
+				ConfigMapRef: &v1.ConfigMapEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: fmt.Sprintf("%s-configuration", sgTenant.Tenant.ShortName),
+					},
+				},
+			},
 		},
 		LivenessProbe: &v1.Probe{
 			Handler: v1.Handler{

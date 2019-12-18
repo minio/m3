@@ -218,7 +218,7 @@ func SelectSGWithSpace(ctx *Context) chan *StorageGroupResult {
 					 LEFT JOIN storage_cluster_nodes scn ON scn.node_id=nv.node_id
 			WHERE scn.storage_cluster_id=$1
 			GROUP BY nv.node_id
-			LIMIT 1) as ct`
+			LIMIT 1) AS ct`
 		// non-transactional query as there cannot be a storage group insert along with a read
 		if err := GetInstance().Db.QueryRow(queryVolumes, storageClusterID).Scan(&totalVolumes); err != nil {
 			ch <- &StorageGroupResult{Error: err}
@@ -517,6 +517,56 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 			}}
 
 		ch <- &StorageGroupTenantResult{StorageGroupTenant: tenant}
+	}()
+	return ch
+}
+
+// Wraps a Tenant result with a possible error
+type TenantServiceResult struct {
+	Tenant  *Tenant
+	Service string
+	Port    int32
+	Error   error
+}
+
+// streamTenantService returns a channel that returns all tenants and all services on the cluster
+func streamTenantService(maxChanSize int) chan TenantServiceResult {
+	ch := make(chan TenantServiceResult, maxChanSize)
+	go func() {
+		defer close(ch)
+		query :=
+			`SELECT 
+				t.id, t.name, t.short_name, tsg.service_name, tsg.port
+			FROM 
+				tenants t LEFT JOIN tenants_storage_groups tsg ON t.id = tsg.tenant_id`
+
+		// no context? straight to db
+		rows, err := GetInstance().Db.Query(query)
+		if err != nil {
+			ch <- TenantServiceResult{Error: err}
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			// Save the resulted query on the Tenant and TenantResult result
+			tenant := Tenant{}
+			tRes := TenantServiceResult{}
+			err = rows.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tRes.Service, &tRes.Port)
+			if err != nil {
+				ch <- TenantServiceResult{Error: err}
+				return
+			}
+			tRes.Tenant = &tenant
+			ch <- tRes
+		}
+
+		err = rows.Err()
+		if err != nil {
+			ch <- TenantServiceResult{Error: err}
+			return
+		}
+
 	}()
 	return ch
 }

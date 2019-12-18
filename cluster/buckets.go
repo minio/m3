@@ -17,6 +17,7 @@
 package cluster
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
@@ -25,9 +26,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/minio/minio-go/pkg/policy"
 	"github.com/minio/minio-go/v6"
+	"github.com/minio/minio-go/v6/pkg/policy"
 	"github.com/minio/minio/pkg/madmin"
+	uuid "github.com/satori/go.uuid"
 )
 
 type BucketAccess int32
@@ -37,6 +39,45 @@ const (
 	BucketPublic
 	BucketCustom
 )
+
+// MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
+// TODO: allow to spcify the user performing the action (like in the API/gRPC case)
+func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) error {
+	// validate bucket name
+	if bucketName != "" {
+		var re = regexp.MustCompile(`^[a-z0-9-]{3,}$`)
+		if !re.MatchString(bucketName) {
+			return errors.New("a valid bucket name is needed")
+		}
+	}
+
+	// Get tenant specific MinIO client
+	minioClient, err := newTenantMinioClient(nil, tenantShortname)
+	if err != nil {
+		return err
+	}
+
+	// make it so this timeouts after only 2 seconds
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+	// Create Bucket on tenant's MinIO
+	if err = minioClient.MakeBucketWithContext(timeoutCtx, bucketName, "us-east-1"); err != nil {
+		log.Println(err)
+		return tagErrorAsMinio(err)
+	}
+
+	if err = addMinioBucketNotification(minioClient, bucketName, "us-east-1"); err != nil {
+		log.Println(err)
+		return tagErrorAsMinio(err)
+	}
+
+	return SetBucketAccess(minioClient, bucketName, accessType)
+}
+
+type TenantBucketInfo struct {
+	Name   string
+	Access BucketAccess
+}
 
 func SetBucketAccess(minioClient *minio.Client, bucketName string, accessType BucketAccess) (err error) {
 	// Prepare policyJSON corresponding to the access type
@@ -67,41 +108,6 @@ func ChangeBucketAccess(tenantShortname, bucketName string, accessType BucketAcc
 	}
 
 	return SetBucketAccess(minioClient, bucketName, accessType)
-}
-
-// MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
-// TODO: allow to spcify the user performing the action (like in the API/gRPC case)
-func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) error {
-	// validate bucket name
-	if bucketName != "" {
-		var re = regexp.MustCompile(`^[a-z0-9-]{3,}$`)
-		if !re.MatchString(bucketName) {
-			return errors.New("a valid bucket name is needed")
-		}
-	}
-
-	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
-	if err != nil {
-		return err
-	}
-
-	// Create Bucket on tenant's MinIO
-	if err = minioClient.MakeBucket(bucketName, "us-east-1"); err != nil {
-		return err
-	}
-
-	if err = addMinioBucketNotification(minioClient, bucketName, "us-east-1"); err != nil {
-		log.Println(err)
-		return err
-	}
-
-	return SetBucketAccess(minioClient, bucketName, accessType)
-}
-
-type TenantBucketInfo struct {
-	Name   string
-	Access BucketAccess
 }
 
 // GetBucketAccess returns the access type for the given bucket name
@@ -143,10 +149,13 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 		return []TenantBucketInfo{}, err
 	}
 
+	tCtx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+
 	var buckets []minio.BucketInfo
-	buckets, err = minioClient.ListBuckets()
+	buckets, err = minioClient.ListBucketsWithContext(tCtx)
 	if err != nil {
-		return []TenantBucketInfo{}, err
+		return []TenantBucketInfo{}, tagErrorAsMinio(err)
 	}
 
 	var (
@@ -156,12 +165,12 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 	for _, bucket := range buckets {
 		accessType, err = GetBucketAccess(minioClient, bucket.Name)
 		if err != nil {
-			return []TenantBucketInfo{}, err
+			return []TenantBucketInfo{}, tagErrorAsMinio(err)
 		}
 		bucketInfos = append(bucketInfos, TenantBucketInfo{Name: bucket.Name, Access: accessType})
 	}
 
-	return bucketInfos, err
+	return bucketInfos, nil
 }
 
 // Deletes a bucket in the given tenant's MinIO
@@ -173,6 +182,99 @@ func DeleteBucket(tenantShortname, bucket string) error {
 	}
 
 	return minioClient.RemoveBucket(bucket)
+}
+
+func registerBucketForTenant(ctx *Context, bucketName string, tenantID *uuid.UUID) error {
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return err
+	}
+	// create the bucket registry
+	query :=
+		`INSERT INTO
+			buckets ("name","tenant_id")
+		VALUES
+			($1, $2)
+		ON CONFLICT DO NOTHING`
+
+	if _, err = tx.Exec(query, bucketName, tenantID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func unregisterBucketForTenant(ctx *Context, bucketName string, tenantID *uuid.UUID) error {
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return err
+	}
+	// delete the bucket registry
+	query :=
+		`DELETE FROM
+			buckets 
+		WHERE name=$1 AND tenant_id=$2`
+
+	if _, err = tx.Exec(query, bucketName, tenantID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type BucketToService struct {
+	Bucket      string
+	Service     string
+	ServicePort int32
+}
+
+type BucketToServiceResult struct {
+	BucketToService *BucketToService
+	Error           error
+}
+
+// streamBucketToTenantServices returns a channel that will receive a list of buckets and the domain tenant service
+// they resolve to.
+// This function uses a channel because there may be hundreds of thousands of buckets and we don't want to pre-alloc
+// all that information on memory.
+func streamBucketToTenantServices() chan *BucketToServiceResult {
+	ch := make(chan *BucketToServiceResult)
+	go func() {
+		defer close(ch)
+		query :=
+			`SELECT 
+				b.name, tsg.service_name, tsg.port
+			FROM 
+				buckets b 
+				LEFT JOIN tenants_storage_groups tsg ON b.tenant_id = tsg.tenant_id
+			ORDER BY b.name ASC`
+
+		// no context? straight to db
+		rows, err := GetInstance().Db.Query(query)
+		if err != nil {
+			ch <- &BucketToServiceResult{Error: err}
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			// Save the resulted query on the User struct
+			b2s := BucketToService{}
+			err = rows.Scan(&b2s.Bucket, &b2s.Service, &b2s.ServicePort)
+			if err != nil {
+				ch <- &BucketToServiceResult{Error: err}
+				return
+			}
+			ch <- &BucketToServiceResult{BucketToService: &b2s}
+		}
+
+		err = rows.Err()
+		if err != nil {
+			ch <- &BucketToServiceResult{Error: err}
+			return
+		}
+	}()
+	return ch
 }
 
 // GetBucketUsageMetrics Gets latest DataUsage info from Tenant's MinIO servers
@@ -209,7 +311,7 @@ func GetBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric, error)
 					a.year,
 					a.month,
 					a.day,
-					greatest(0, (total_usage_average - previous_total_usage_average)) as daily_average_usage
+					greatest(0, (total_usage_average - previous_total_usage_average)) AS daily_average_usage
 				FROM(
 					SELECT 
 						a.year,

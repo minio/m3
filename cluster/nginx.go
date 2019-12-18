@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -105,7 +104,7 @@ func ReDeployNginxResolver(ctx *Context) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
-		DeployNginxResolver()
+		<-DeployNginxResolver()
 	}()
 	return ch
 }
@@ -116,10 +115,11 @@ func DeleteNginxLBDeployments(clientset *kubernetes.Clientset, deploymentName st
 	doneCh := make(chan struct{})
 	go func() {
 		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"type": "nginx-resolver"}}
-		deployments, err := appsV1API(clientset).Deployments("default").List(metav1.ListOptions{
+		deployments, err := appsV1API(clientset).Deployments(defNS).List(metav1.ListOptions{
 			LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 		})
 		if err != nil {
+			log.Println(err)
 			close(doneCh)
 		}
 		for _, deployment := range deployments.Items {
@@ -154,6 +154,7 @@ func CreateNginxResolverDeployment(clientset *kubernetes.Clientset, deploymentNa
 		nginxLBDeployment := getNewNginxDeployment(deploymentName)
 		_, err := appsV1API(clientset).Deployments("default").Create(&nginxLBDeployment)
 		if err != nil {
+			log.Println(err)
 			close(doneCh)
 		}
 	}()
@@ -228,15 +229,57 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
-		tenantRoutes := <-GetAllTenantRoutes(ctx)
+
 		// creates the clientset
 		clientset, err := k8sClient()
 		if err != nil {
 			ch <- err
 			return
 		}
-		var nginxConfiguration bytes.Buffer
-		nginxConfiguration.WriteString(`
+
+		var nginxConfiguration string
+		// check whether global buckets are enabled
+		globalBuckets, err := GetConfig(nil, cfgCoreGlobalBuckets, false)
+		if err != nil {
+			ch <- err
+			return
+		}
+		if globalBuckets.ValBool() {
+			nginxConfiguration = getGlobalBucketNamespaceConfiguration()
+		} else {
+			nginxConfiguration = getLocalBucketNamespaceConfiguration(ctx)
+		}
+
+		configMap := corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "nginx-configuration",
+			},
+			Data: map[string]string{
+				"nginx.conf": nginxConfiguration,
+			},
+		}
+		_, err = clientset.CoreV1().ConfigMaps("default").Update(&configMap)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		err = <-ReDeployNginxResolver(ctx)
+		if err != nil {
+			log.Println(err)
+			ch <- err
+			return
+		}
+		log.Println("done")
+
+	}()
+	return ch
+}
+
+// getLocalBucketNamespaceConfiguration build the configuration for each tenant having their own bucket namespace
+func getLocalBucketNamespaceConfiguration(ctx *Context) string {
+
+	var nginxConfiguration bytes.Buffer
+	nginxConfiguration.WriteString(`
 			user nginx;
 			worker_processes auto;
 			error_log /dev/stdout debug;
@@ -254,7 +297,7 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 					location / {
 						 proxy_set_header Upgrade $http_upgrade;
 						 proxy_set_header Connection "upgrade";
-						 client_max_body_size 50M;
+						 client_max_body_size 0;
 						 proxy_set_header Host $http_host;
 						 proxy_set_header X-Real-IP $remote_addr;
 						 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -272,13 +315,11 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 					}
 				}
 		`)
-		appDomain := "s3.localhost"
-		if os.Getenv("APP_DOMAIN") != "" {
-			appDomain = os.Getenv("APP_DOMAIN")
-		}
-		for index := 0; index < len(tenantRoutes); index++ {
-			tenantRoute := tenantRoutes[index]
-			serverBlock := fmt.Sprintf(`
+	appDomain := getS3Domain()
+	tenantRoutes := <-GetAllTenantRoutes(ctx)
+	for index := 0; index < len(tenantRoutes); index++ {
+		tenantRoute := tenantRoutes[index]
+		serverBlock := fmt.Sprintf(`
 				server {
 					server_name %s.%s;
 					ignore_invalid_headers off;
@@ -294,31 +335,154 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 				}
 
 			`, tenantRoute.ShortName, appDomain, tenantRoute.ServiceName, tenantRoute.Port)
-			nginxConfiguration.WriteString(serverBlock)
-		}
-		nginxConfiguration.WriteString(`
+		nginxConfiguration.WriteString(serverBlock)
+	}
+	nginxConfiguration.WriteString(`
 			}
 		`)
+	return nginxConfiguration.String()
+}
 
-		configMap := corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "nginx-configuration",
-			},
-			Data: map[string]string{
-				"nginx.conf": nginxConfiguration.String(),
-			},
-		}
-		_, err = clientset.CoreV1().ConfigMaps("default").Update(&configMap)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		err = <-ReDeployNginxResolver(ctx)
-		if err != nil {
-			ch <- err
-			return
+// getGlobalBucketNamespaceConfiguration build the nginx configuration for global bucket name space
+func getGlobalBucketNamespaceConfiguration() string {
+	// build a list of upstreams for each tenant
+	var tenantUpstreams bytes.Buffer
+	tenantsStream := streamTenantService(10)
+	for tenantRes := range tenantsStream {
+		if tenantRes.Error != nil {
+			log.Println(tenantRes.Error)
+			continue
 		}
 
-	}()
-	return ch
+		tUps := `
+			upstream %s {
+				server %s:%d;
+			}
+`
+		tenantUpstreams.WriteString(fmt.Sprintf(tUps, tenantRes.Tenant.ShortName, tenantRes.Service, tenantRes.Port))
+	}
+
+	// build a mapping of access keys to upstreams (by tenant short name)
+	var destinationMapping bytes.Buffer
+	accessTenantStream := streamAccessKeyToTenantServices()
+	for accessTenantResult := range accessTenantStream {
+		if accessTenantResult.Error != nil {
+			log.Println(accessTenantResult.Error)
+			continue
+		}
+		accessTenant := accessTenantResult.AccessKeyToTenantShortName
+
+		mapLine := `			"%s" "%s";
+`
+		destinationMapping.WriteString(fmt.Sprintf(mapLine, accessTenant.AccessKey, accessTenant.TenantShortName))
+	}
+
+	var nginxConfiguration bytes.Buffer
+	nginxConfiguration.WriteString(`
+			user nginx;
+			worker_processes auto;
+			error_log /dev/stdout debug;
+			pid /var/run/nginx.pid;
+
+			events {
+				worker_connections  1024;
+			}`)
+
+	nginxConfiguration.WriteString(fmt.Sprintf(`
+			http {
+			upstream portalproxy {
+				server portal-proxy:80;
+			}
+			upstream tenancy {
+				server portal-proxy:80;
+			}
+
+			%s
+		
+			map $http_authorization $access_destination {
+			default               "";
+				"~*Credential=(?<access_key>.*?)\/" "$access_key";
+			}
+		
+			# map to different upstream backends based on header
+			map $access_destination $pool {
+				"" "portalproxy";
+`, tenantUpstreams.String()))
+
+	nginxConfiguration.WriteString(destinationMapping.String())
+	appDomain := getS3Domain()
+	nginxConfiguration.WriteString(fmt.Sprintf(`
+			}
+
+
+			log_format  main  '$http_host - $remote_addr - $remote_user [$time_local] "$request" '
+																		'$status $body_bytes_sent "$http_referer" '
+																		'"$http_user_agent" "$http_x_forwarded_for"';
+				server {
+					access_log /var/log/nginx/access.log main;
+					location / {
+						 proxy_set_header Upgrade $http_upgrade;
+						 proxy_set_header Connection "upgrade";
+						 client_max_body_size 0;
+						 proxy_set_header Host $http_host;
+						 proxy_set_header X-Real-IP $remote_addr;
+						 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+						 proxy_set_header X-Forwarded-Proto $scheme;
+						 proxy_set_header X-Frame-Options SAMEORIGIN;
+						 proxy_buffers 256 16k;
+						 proxy_buffer_size 16k;
+						 client_body_timeout 60;
+						 send_timeout 300;
+						 lingering_timeout 5;
+						 proxy_connect_timeout 90;
+						 proxy_send_timeout 300;
+						 proxy_read_timeout 90s;
+						 proxy_pass http://portal-proxy:80;
+					}
+				}
+
+				server {
+					server_name %s;
+					ignore_invalid_headers off;
+					client_max_body_size 0;
+					proxy_buffering off;
+					location / {
+						proxy_http_version 1.1;
+						proxy_set_header Host $http_host;
+						proxy_read_timeout 15m;
+						proxy_request_buffering off;
+						proxy_pass http://$pool;
+					}
+				}
+		`, appDomain))
+
+	bucketRoutes := streamBucketToTenantServices()
+	for bucketRouteResult := range bucketRoutes {
+		if bucketRouteResult.Error != nil {
+			log.Println(bucketRouteResult.Error)
+			continue
+		}
+		bucketRoute := bucketRouteResult.BucketToService
+		serverBlock := fmt.Sprintf(`
+				server {
+					server_name %s.%s;
+					ignore_invalid_headers off;
+					client_max_body_size 0;
+					proxy_buffering off;
+					location / {
+						proxy_http_version 1.1;
+						proxy_set_header Host $http_host;
+						proxy_read_timeout 15m;
+						proxy_request_buffering off;
+						proxy_pass http://%s:%d;
+					}
+				}
+
+			`, bucketRoute.Bucket, appDomain, bucketRoute.Service, bucketRoute.ServicePort)
+		nginxConfiguration.WriteString(serverBlock)
+	}
+	nginxConfiguration.WriteString(`
+			}
+		`)
+	return nginxConfiguration.String()
 }

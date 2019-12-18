@@ -74,6 +74,9 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
+	// update nginx
+	<-cluster.UpdateNginxConfiguration(appCtx)
+
 	return &pb.CreateServiceAccountResponse{
 		ServiceAccount: &pb.ServiceAccount{
 			Id:        serviceAccount.ID.String(),
