@@ -101,7 +101,7 @@ func DeleteUser(ctx *Context, userID uuid.UUID) error {
 		return err
 	}
 
-	err = deleteUsersSecrets(userID)
+	err = deleteUsersSecrets(userID, ctx.Tenant.ShortName)
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func deleteUserFromDB(ctx *Context, userID uuid.UUID) error {
 func getUserAccessKey(ctx *Context, userID uuid.UUID) (accessKey string, err error) {
 	query := `SELECT
 				c.access_key
-			  FROM credentials
+			  FROM credentials c
 			  WHERE user_id=$1`
 	// Execute query
 	row := ctx.TenantDB().QueryRow(query, userID)
@@ -156,7 +156,7 @@ func getUserAccessKey(ctx *Context, userID uuid.UUID) (accessKey string, err err
 }
 
 // deleteUsersSecrets removes the user's main secret
-func deleteUsersSecrets(userID uuid.UUID) error {
+func deleteUsersSecrets(userID uuid.UUID, tenantShortName string) error {
 	// creates the clientset
 	clientset, err := k8sClient()
 	if err != nil {
@@ -164,7 +164,7 @@ func deleteUsersSecrets(userID uuid.UUID) error {
 	}
 	// Delete users's MinIO credentials saved as a Kubernetes secret
 	secretsName := fmt.Sprintf("ui-%s", userID.String())
-	err = clientset.CoreV1().Secrets("default").Delete(secretsName, nil)
+	err = clientset.CoreV1().Secrets(tenantShortName).Delete(secretsName, nil)
 	if err != nil {
 		return err
 	}

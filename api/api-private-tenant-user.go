@@ -100,6 +100,14 @@ func (ps *privateServer) TenantUserDelete(ctx context.Context, in *pb.TenantUser
 		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+		// if no error happened to this point commit transaction
+		err = appCtx.Commit()
+	}()
 
 	tenant, err := cluster.GetTenant(tenantReq)
 	if err != nil {
