@@ -48,12 +48,15 @@ func startAPIServiceCmd(ctx *cli.Context) error {
 	log.Println("Starting m3 services...")
 	publicCh := api.InitPublicAPIServiceGRPCServer()
 	privateCh := api.InitPrivateAPIServiceGRPCServer()
+	metricsCh := cluster.RecurrentTenantMetricsCalculation()
 
 	select {
 	case <-publicCh:
 		log.Println("Public server exited")
 	case <-privateCh:
 		log.Println("Private server exited")
+	case <-metricsCh:
+		log.Println("Stopped calculating metrics go routine")
 	}
 
 	return nil

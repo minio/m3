@@ -75,11 +75,6 @@ func createUserWithCredentials(ctx *Context, tenantShortName string, userdID uui
 		return err
 	}
 
-	err = getMinioDataUsageInfo(sgt.StorageGroupTenant, tenantConf)
-	if err != nil {
-		return err
-	}
-
 	// Now insert the credentials into the DB
 	query := `
 		INSERT INTO
