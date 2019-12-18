@@ -52,11 +52,6 @@ func addMinioCannedPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfi
 	if err != nil {
 		return tagErrorAsMinio(err)
 	}
-
-	err = adminClient.ServiceRestart()
-	if err != nil {
-		return tagErrorAsMinio(err)
-	}
 	return nil
 }
 
