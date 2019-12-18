@@ -257,12 +257,6 @@ func streamBucketToTenantServices() chan *BucketToServiceResult {
 		}
 		defer rows.Close()
 
-		err = rows.Err()
-		if err != nil {
-			ch <- &BucketToServiceResult{Error: err}
-			return
-		}
-
 		for rows.Next() {
 			// Save the resulted query on the User struct
 			b2s := BucketToService{}
@@ -272,6 +266,12 @@ func streamBucketToTenantServices() chan *BucketToServiceResult {
 				return
 			}
 			ch <- &BucketToServiceResult{BucketToService: &b2s}
+		}
+
+		err = rows.Err()
+		if err != nil {
+			ch <- &BucketToServiceResult{Error: err}
+			return
 		}
 	}()
 	return ch
