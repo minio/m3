@@ -85,6 +85,7 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 	return &pb.TenantUserAddResponse{}, nil
 }
 
+// TenantUserDelete deletes all Tenant's user related data, from database to k8s secrets and also removes the MinIO user
 func (ps *privateServer) TenantUserDelete(ctx context.Context, in *pb.TenantUserDeleteRequest) (*pb.Empty, error) {
 	emailReq := in.GetEmail()
 	tenantReq := in.GetTenant()
