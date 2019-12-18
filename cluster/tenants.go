@@ -18,14 +18,12 @@ package cluster
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"regexp"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/minio/minio-go/pkg/policy"
 	"github.com/minio/minio-go/v6"
 	uuid "github.com/satori/go.uuid"
 	v1 "k8s.io/api/core/v1"
@@ -43,14 +41,6 @@ type AddTenantResult struct {
 	*Tenant
 	Error error
 }
-
-type BucketAccess int32
-
-const (
-	BucketPrivate BucketAccess = iota
-	BucketPublic
-	BucketCustom
-)
 
 // TenantAddAction adds a tenant to the cluster, if an admin name and email are provided, the user is created and invited
 // via email.
@@ -387,143 +377,6 @@ func newTenantMinioClient(ctx *Context, tenantShortname string) (*minio.Client, 
 	}
 
 	return minioClient, nil
-}
-
-func SetBucketAccess(minioClient *minio.Client, bucketName string, accessType BucketAccess) (err error) {
-	// Prepare policyJSON corresponding to the access type
-	var bucketPolicy policy.BucketPolicy
-	switch accessType {
-	case BucketPublic:
-		bucketPolicy = policy.BucketPolicyReadWrite
-	case BucketPrivate:
-		bucketPolicy = policy.BucketPolicyNone
-	}
-
-	bucketAccessPolicy := policy.BucketAccessPolicy{Version: "2012-10-17"}
-	bucketAccessPolicy.Statements = policy.SetPolicy(bucketAccessPolicy.Statements, policy.BucketPolicy(bucketPolicy), bucketName, "")
-	var policyJSON []byte
-	if policyJSON, err = json.Marshal(bucketAccessPolicy); err != nil {
-		return err
-	}
-
-	return minioClient.SetBucketPolicy(bucketName, string(policyJSON))
-}
-
-// ChangeBucketAccess changes access type assigned to the given bucket
-func ChangeBucketAccess(tenantShortname, bucketName string, accessType BucketAccess) error {
-	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
-	if err != nil {
-		return err
-	}
-
-	return SetBucketAccess(minioClient, bucketName, accessType)
-}
-
-// MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
-// TODO: allow to spcify the user performing the action (like in the API/gRPC case)
-func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) error {
-	// validate bucket name
-	if bucketName != "" {
-		var re = regexp.MustCompile(`^[a-z0-9-]{3,}$`)
-		if !re.MatchString(bucketName) {
-			return errors.New("a valid bucket name is needed")
-		}
-	}
-
-	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
-	if err != nil {
-		return err
-	}
-
-	// Create Bucket on tenant's MinIO
-	if err = minioClient.MakeBucket(bucketName, "us-east-1"); err != nil {
-		return err
-	}
-
-	if err = addMinioBucketNotification(minioClient, bucketName, "us-east-1"); err != nil {
-		log.Println(err)
-		return err
-	}
-
-	return SetBucketAccess(minioClient, bucketName, accessType)
-}
-
-type TenantBucketInfo struct {
-	Name   string
-	Access BucketAccess
-}
-
-// GetBucketAccess returns the access type for the given bucket name
-func GetBucketAccess(minioClient *minio.Client, bucketName string) (BucketAccess, error) {
-	policyJSON, err := minioClient.GetBucketPolicy(bucketName)
-	if err != nil {
-		return BucketCustom, err
-	}
-
-	// If no policy is set on the bucket, it is private by default
-	if len(policyJSON) == 0 {
-		return BucketPrivate, nil
-	}
-
-	var bucketPolicy policy.BucketAccessPolicy
-	err = json.Unmarshal([]byte(policyJSON), &bucketPolicy)
-	if err != nil {
-		return BucketCustom, err
-	}
-
-	var bucketAccess BucketAccess
-	switch policy.GetPolicy(bucketPolicy.Statements, bucketName, "") {
-	case policy.BucketPolicyNone:
-		bucketAccess = BucketPrivate
-	case policy.BucketPolicyReadWrite:
-		bucketAccess = BucketPublic
-	default:
-		bucketAccess = BucketCustom
-	}
-
-	return bucketAccess, nil
-}
-
-// ListBuckets for the given tenant's short name
-func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
-	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
-	if err != nil {
-		return []TenantBucketInfo{}, err
-	}
-
-	var buckets []minio.BucketInfo
-	buckets, err = minioClient.ListBuckets()
-	if err != nil {
-		return []TenantBucketInfo{}, err
-	}
-
-	var (
-		accessType  BucketAccess
-		bucketInfos []TenantBucketInfo
-	)
-	for _, bucket := range buckets {
-		accessType, err = GetBucketAccess(minioClient, bucket.Name)
-		if err != nil {
-			return []TenantBucketInfo{}, err
-		}
-		bucketInfos = append(bucketInfos, TenantBucketInfo{Name: bucket.Name, Access: accessType})
-	}
-
-	return bucketInfos, err
-}
-
-// Deletes a bucket in the given tenant's MinIO
-func DeleteBucket(tenantShortname, bucket string) error {
-	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
-	if err != nil {
-		return err
-	}
-
-	return minioClient.RemoveBucket(bucket)
 }
 
 // createTenantNamespace creates a tenant namespace on k8s, returns a channel that will close

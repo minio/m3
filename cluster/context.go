@@ -85,6 +85,7 @@ func (c *Context) Commit() error {
 		}
 		// restart the txn
 		c.tenantTx = nil
+		c.tenantDB = nil
 	}
 	// commit main schema tx
 	if c.mainTx != nil {

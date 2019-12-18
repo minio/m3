@@ -12,16 +12,16 @@ require (
 	github.com/gosimple/slug v1.9.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/grpc-gateway v1.12.1
-	github.com/lib/pq v1.0.0
+	github.com/lib/pq v1.1.1
 	github.com/minio/cli v1.22.0
 	github.com/minio/mc v0.0.0-20191012041914-735aa139b19c
-	github.com/minio/minio v0.0.0-20191211223748-db3f41fcb405
+	github.com/minio/minio v0.0.0-20191213205711-c3d4c1f58435
 	github.com/minio/minio-go v0.0.0-20190327203652-5325257a208f
 	github.com/minio/minio-go/v6 v6.0.39
 	github.com/pelletier/go-toml v1.6.0
 	github.com/rs/cors v1.6.0
 	github.com/satori/go.uuid v1.2.0
-	golang.org/x/crypto v0.0.0-20190923035154-9ee001bba392
+	golang.org/x/crypto v0.0.0-20191117063200-497ca9f6d64f
 	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
 	golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 	golang.org/x/sys v0.0.0-20191029155521-f43be2a4598c // indirect
