@@ -229,3 +229,18 @@ func isMinioReadyRetry(ctx *Context) bool {
 		}
 	}
 }
+
+// Returns data usage of the current tenant
+func getMinioDataUsageInfo(sgt *StorageGroupTenant, tenantConf *TenantConfiguration) (*madmin.DataUsageInfo, error) {
+	// get an admin with operator keys
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	if pErr != nil {
+		return nil, pErr.Cause
+	}
+
+	dataUsageInfo, err := adminClient.DataUsageInfo()
+	if err != nil {
+		return nil, err
+	}
+	return &dataUsageInfo, nil
+}

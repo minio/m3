@@ -209,25 +209,32 @@ message ValidateEmailInviteResponse {
 
 // A request for metrics on the authenticated tenant
 message MetricsRequest {
+    string query = 1;
 }
+
+// Usage per day 
+message MetricsDayUsage{
+    string time = 1;
+    uint64 usage = 2;
+}
+
 // Capacity related metrics
-message UsageMetrics {
-    // number of buckets on the account
-    int32 buckets = 1;
+message MetricsResponse {
+    // total number of buckets on the account
+    uint64 total_buckets = 1;
     // A number of bytes representing the total usage on the account
-    int64 total_data = 2;
+    uint64 total_usage = 2;
+    // Cost per usage
+    int32 total_cost = 3;
+    // daily usage
+    repeated MetricsDayUsage daily_usage = 4;
+
 }
 
 // Networking related metrics
 message NetworkMetrics {
     // Current period amount of egress
     int64 current_egress = 1;
-}
-
-// Information to build a basic dashboard
-message MetricsResponse {
-    UsageMetrics usage = 1;
-    NetworkMetrics network = 2;
 }
 
 // Request what buckets the current tenant user can see
