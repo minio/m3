@@ -204,28 +204,46 @@ type BucketMetric struct {
 // GetBucketUsageFromDB get total average bucket usage metrics per day on one month
 func GetBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric, error) {
 	// Select query doing total_usage average grouping by year, month and day
-	query := `SELECT 
-					DISTINCT s.year, s.month, s.day,
-					AVG (DISTINCT s.total_usage) AS average_amount
-				FROM (
-					SELECT
-					    EXTRACT (YEAR FROM s.last_update) AS YEAR,
-					    EXTRACT (MONTH FROM s.last_update) AS MONTH,
-					    EXTRACT (DAY FROM s.last_update) AS DAY,
-						s.total_objects,
-						s.total_buckets,
-						s.total_usage,
-						s.total_cost
-					 FROM (
-					 	SELECT 
-							s.last_update, s.total_objects, s.total_buckets, s.total_usage, s.total_cost
-						FROM 
-							chelis.bucket_metrics s
-						WHERE s.last_update >= $1 AND s.last_update <= $2
-						) s
-					) s
-				GROUP BY
-					s.year, s.month, s.day`
+	// Use difference to get the daily average usage
+	query := `SELECT
+					a.year,
+					a.month,
+					a.day,
+					greatest(0, (total_usage_average - previous_total_usage_average)) as daily_average_usage
+				FROM(
+					SELECT 
+						a.year,
+						a.month,
+						a.day,
+						a.total_usage_average,
+						LAG(total_usage_average,1, 0.0) OVER (
+						      ORDER BY day
+						   ) previous_total_usage_average
+					FROM(
+						SELECT 
+							DISTINCT s.year, s.month, s.day,
+							AVG (DISTINCT s.total_usage) AS total_usage_average
+						FROM (
+							SELECT
+							    EXTRACT (YEAR FROM s.last_update) AS YEAR,
+							    EXTRACT (MONTH FROM s.last_update) AS MONTH,
+							    EXTRACT (DAY FROM s.last_update) AS DAY,
+								s.total_objects,
+								s.total_buckets,
+								s.total_usage,
+								s.total_cost
+							 FROM (
+							 	SELECT 
+									s.last_update, s.total_objects, s.total_buckets, s.total_usage, s.total_cost
+								FROM 
+									chelis.bucket_metrics s
+								WHERE s.last_update >= $1 AND s.last_update <= $2
+								) s
+							) s
+						GROUP BY
+							s.year, s.month, s.day
+						) a
+					) a`
 
 	tx, err := ctx.TenantTx()
 	if err != nil {
@@ -243,13 +261,13 @@ func GetBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric, error)
 		var year int
 		var month time.Month
 		var day int
-		var averageUsage float64
-		err := rows.Scan(&year, &month, &day, &averageUsage)
+		var dailyAverageUsage float64
+		err := rows.Scan(&year, &month, &day, &dailyAverageUsage)
 		if err != nil {
 			return nil, err
 		}
 		bm.Date = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
-		bm.AverageUsage = averageUsage
+		bm.AverageUsage = dailyAverageUsage
 		bucketMetrics = append(bucketMetrics, &bm)
 	}
 	err = rows.Close()
@@ -263,7 +281,7 @@ func GetBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric, error)
 // RecurrentTenantMetricsCalculation loop that calculates bucket usage metrics for all tenants and saves them on the db
 func RecurrentTenantMetricsCalculation() chan error {
 	// How often will this function run
-	ticker := time.NewTicker(12 * time.Hour)
+	ticker := time.NewTicker(30 * time.Second)
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
