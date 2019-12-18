@@ -257,6 +257,12 @@ func streamBucketToTenantServices() chan *BucketToServiceResult {
 		}
 		defer rows.Close()
 
+		err = rows.Err()
+		if err != nil {
+			ch <- &BucketToServiceResult{Error: err}
+			return
+		}
+
 		for rows.Next() {
 			// Save the resulted query on the User struct
 			b2s := BucketToService{}
@@ -305,7 +311,7 @@ func GetBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric, error)
 					a.year,
 					a.month,
 					a.day,
-					greatest(0, (total_usage_average - previous_total_usage_average)) as daily_average_usage
+					greatest(0, (total_usage_average - previous_total_usage_average)) AS daily_average_usage
 				FROM(
 					SELECT 
 						a.year,

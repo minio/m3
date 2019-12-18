@@ -695,6 +695,11 @@ func streamAccessKeyToTenantServices() chan *AccessKeyToTenantShortNameResult {
 				return
 			}
 			defer rows.Close()
+			err = rows.Err()
+			if err != nil {
+				ch <- &AccessKeyToTenantShortNameResult{Error: err}
+				return
+			}
 
 			for rows.Next() {
 				// Save the resulted query on the User struct
