@@ -281,7 +281,7 @@ func GetBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric, error)
 // RecurrentTenantMetricsCalculation loop that calculates bucket usage metrics for all tenants and saves them on the db
 func RecurrentTenantMetricsCalculation() chan error {
 	// How often will this function run
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(6 * time.Hour)
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
