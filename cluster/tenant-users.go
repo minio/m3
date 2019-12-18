@@ -90,6 +90,87 @@ func AddUser(ctx *Context, newUser *User) error {
 	return nil
 }
 
+// DeleteUser removes a user from the tenant's database with the user's secrets and it's MinIO related user
+func DeleteUser(ctx *Context, userID uuid.UUID) error {
+	userAccessKey, err := getUserAccessKey(ctx, userID)
+	if err != nil {
+		return err
+	}
+	err = deleteUserFromDB(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	err = deleteUsersSecrets(userID, ctx.Tenant.ShortName)
+	if err != nil {
+		return err
+	}
+
+	// Get in which SG is the tenant located
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
+	if sgt.Error != nil {
+		return sgt.Error
+	}
+	// Get the credentials for a tenant
+	tenantConf, err := GetTenantConfig(ctx.Tenant)
+	if err != nil {
+		return err
+	}
+	// Delete MinIO's user
+	err = removeMinioUser(sgt.StorageGroupTenant, tenantConf, userAccessKey)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// deleteUserFromDB deletes a tenant's user from the db and it's secrets
+func deleteUserFromDB(ctx *Context, userID uuid.UUID) error {
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	query := `DELETE FROM users 
+			WHERE id=$1 `
+	// Execute query
+	_, err = tx.Exec(query, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// getUserAccessKey gets the access key for a user
+func getUserAccessKey(ctx *Context, userID uuid.UUID) (accessKey string, err error) {
+	query := `SELECT
+				c.access_key
+			  FROM credentials c
+			  WHERE user_id=$1`
+	// Execute query
+	row := ctx.TenantDB().QueryRow(query, userID)
+	err = row.Scan(&accessKey)
+	if err != nil {
+		return "", err
+	}
+	return accessKey, nil
+}
+
+// deleteUsersSecrets removes the user's main secret
+func deleteUsersSecrets(userID uuid.UUID, tenantShortName string) error {
+	// creates the clientset
+	clientset, err := k8sClient()
+	if err != nil {
+		return err
+	}
+	// Delete users's MinIO credentials saved as a Kubernetes secret
+	secretsName := fmt.Sprintf("ui-%s", userID.String())
+	err = clientset.CoreV1().Secrets(tenantShortName).Delete(secretsName, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // SetUserEnabled updates user's `enabled` column to the desired status
 // 	True = Enabled
 // 	False = Disabled
@@ -127,7 +208,6 @@ func GetUserByEmail(ctx *Context, email string) (user User, err error) {
 			WHERE email=$1 LIMIT 1`
 
 	row := ctx.TenantDB().QueryRow(queryUser, email)
-
 	// Save the resulted query on the User struct
 	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Enabled)
 	if err != nil {
@@ -285,7 +365,6 @@ func SetUserPassword(ctx *Context, userID *uuid.UUID, password string) error {
 	if err != nil {
 		return err
 	}
-	// TODO: invalid session after resetting password
 	// Execute query
 	_, err = tx.Exec(query, hashedPassword, userID)
 	if err != nil {

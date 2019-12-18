@@ -54,6 +54,8 @@ service PrivateAPI {
     // Tenant User Operations
     rpc TenantUserAdd (TenantUserAddRequest) returns (TenantUserAddResponse) {
     }
+    rpc TenantUserDelete (TenantUserDeleteRequest) returns (Empty){
+    }
     rpc TenantUserForgotPassword (TenantUserForgotPasswordRequest) returns (TenantUserForgotPasswordResponse) {
     }
     // Admin Operations
@@ -151,6 +153,10 @@ message TenantUserAddRequest {
     string email = 3;
     string password = 4;
     bool invite = 5;
+}
+message TenantUserDeleteRequest{
+    string tenant = 1;
+    string email = 2;
 }
 
 message TenantUserAddResponse {

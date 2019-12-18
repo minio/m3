@@ -85,6 +85,51 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 	return &pb.TenantUserAddResponse{}, nil
 }
 
+// TenantUserDelete deletes all Tenant's user related data, from database to k8s secrets and also removes the MinIO user
+func (ps *privateServer) TenantUserDelete(ctx context.Context, in *pb.TenantUserDeleteRequest) (*pb.Empty, error) {
+	emailReq := in.GetEmail()
+	tenantReq := in.GetTenant()
+	if emailReq == "" {
+		return nil, status.New(codes.InvalidArgument, "User email is needed").Err()
+	}
+	if tenantReq == "" {
+		return nil, status.New(codes.InvalidArgument, "Tenant short name is needed").Err()
+	}
+
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+		// if no error happened to this point commit transaction
+		err = appCtx.Commit()
+	}()
+
+	tenant, err := cluster.GetTenant(tenantReq)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.NotFound, "Tenant not found").Err()
+	}
+	appCtx.Tenant = &tenant
+	user, err := cluster.GetUserByEmail(appCtx, in.Email)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.NotFound, "User not found").Err()
+	}
+	err = cluster.DeleteUser(appCtx, user.ID)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Error deleting user").Err()
+	}
+
+	return &pb.Empty{}, nil
+}
+
 // TenantUserForgotPassword starts the forgot password flow for the given user
 func (ps *privateServer) TenantUserForgotPassword(ctx context.Context, in *pb.TenantUserForgotPasswordRequest) (*pb.TenantUserForgotPasswordResponse, error) {
 	if in.Tenant == "" {
