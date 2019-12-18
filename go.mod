@@ -3,8 +3,11 @@ module github.com/minio/m3
 go 1.13
 
 require (
+	github.com/coreos/etcd v3.3.12+incompatible
 	github.com/coreos/go-oidc v2.0.0+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
+	github.com/elazarl/goproxy v0.0.0-20191011121108-aa519ddbe484 // indirect
 	github.com/fatih/color v1.7.0
 	github.com/golang-migrate/migrate/v4 v4.7.0
 	github.com/golang/protobuf v1.3.2
@@ -16,8 +19,7 @@ require (
 	github.com/minio/cli v1.22.0
 	github.com/minio/mc v0.0.0-20191012041914-735aa139b19c
 	github.com/minio/minio v0.0.0-20191213205711-c3d4c1f58435
-	github.com/minio/minio-go v0.0.0-20190327203652-5325257a208f
-	github.com/minio/minio-go/v6 v6.0.39
+	github.com/minio/minio-go/v6 v6.0.44
 	github.com/pelletier/go-toml v1.6.0
 	github.com/rs/cors v1.6.0
 	github.com/satori/go.uuid v1.2.0

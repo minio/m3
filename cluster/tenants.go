@@ -26,6 +26,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/minio/minio-go/v6"
 	uuid "github.com/satori/go.uuid"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -675,4 +676,77 @@ func StopTenantServers(sgt *StorageGroupTenantResult) error {
 		return err
 	}
 	return nil
+}
+
+// createTenantConfigMap creates a ConfigMap that will hold the tenant environment configuration variables.
+// This is so we don't have to update all the deployments individually just to reconfigure the MinIO instance.
+func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
+	tenant := sgTenant.Tenant
+
+	// Configuration to store
+	tenantConfig := make(map[string]string)
+
+	// if global bucket is enabled, configure the etcd
+	globalBuckets, err := GetConfig(nil, cfgCoreGlobalBuckets, false)
+	if err != nil {
+		return err
+	}
+	if globalBuckets.ValBool() {
+		// The instance the MinIO instance identifies as
+		tenantConfig["MINIO_PUBLIC_IPS"] = sgTenant.ServiceName
+		// Domain under all MinIO instances check for
+		tenantConfig["MINIO_DOMAIN"] = fmt.Sprintf("domain.m3,%s.s3", sgTenant.Tenant.ShortName)
+		tenantConfig["MINIO_ETCD_ENDPOINTS"] = "http://m3-etcd-cluster-client:2379"
+		tenantConfig["MINIO_ETCD_PATH_PREFIX"] = fmt.Sprintf("%s/", sgTenant.Tenant.ShortName)
+	}
+	// Build the config map
+	configMap := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-configuration", tenant.ShortName),
+		},
+		Data: tenantConfig,
+	}
+
+	clientSet, err := k8sClient()
+	if err != nil {
+		return err
+	}
+
+	_, err = clientSet.CoreV1().ConfigMaps("default").Create(&configMap)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetTenantWithCtxByServiceName gets the Tenant if it exists on the m3.provisining.tenants table
+// search is done by tenant service name
+func GetTenantWithCtxByServiceName(ctx *Context, serviceName string) (tenant Tenant, err error) {
+	query :=
+		`SELECT 
+				t1.id, t1.name, t1.short_name, t1.enabled
+			FROM 
+				tenants t1 LEFT JOIN tenants_storage_groups tsg ON t1.id = tsg.tenant_id
+			WHERE tsg.service_name=$1`
+	// non-transactional query
+	var row *sql.Row
+	// did we got a context? query inside of it
+	if ctx != nil {
+		tx, err := ctx.MainTx()
+		if err != nil {
+			return tenant, err
+		}
+		row = tx.QueryRow(query, serviceName)
+	} else {
+		// no context? straight to db
+		row = GetInstance().Db.QueryRow(query, serviceName)
+	}
+
+	// Save the resulted query on the User struct
+	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled)
+	if err != nil {
+		return tenant, err
+	}
+	return tenant, nil
 }

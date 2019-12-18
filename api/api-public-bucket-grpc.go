@@ -18,6 +18,7 @@ package api
 
 import (
 	"context"
+	"log"
 
 	pb "github.com/minio/m3/api/stubs"
 	"github.com/minio/m3/cluster"
@@ -84,6 +85,7 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 	var bucketInfos []cluster.TenantBucketInfo
 	bucketInfos, err := cluster.ListBuckets(tenantShortName)
 	if err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Internal, "Failed to list buckets").Err()
 	}
 

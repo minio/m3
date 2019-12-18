@@ -50,6 +50,10 @@ func startAPIServiceCmd(ctx *cli.Context) error {
 	privateCh := api.InitPrivateAPIServiceGRPCServer()
 	metricsCh := cluster.RecurrentTenantMetricsCalculation()
 
+	go func() {
+		cluster.WatcEtcdBucketCreation()
+	}()
+
 	select {
 	case <-publicCh:
 		log.Println("Public server exited")

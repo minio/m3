@@ -163,7 +163,7 @@ message RegisterAccountRequest {
     string password = 5;
 }
 
-// Response on wether the account was created or not
+// Response on whether the account was created or not
 message RegisterAccountResponse {
     string error = 1;
     string jwt_token = 2;

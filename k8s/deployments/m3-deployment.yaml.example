@@ -56,14 +56,15 @@ spec:
             - /m3
             - service
           env:
-            - name: IDENTITY_PROVIDER_URL
-              value: ""
-            - name: IDENTITY_PROVIDER_CLIENT_ID
-              value: ""
-            - name: IDENTITY_PROVIDER_SECRET
-              value: ""
-            - name: IDENTITY_PROVIDER_CALLBACK
-              value: ""
+          # Uncomment these to enable IDP for Admin Login
+#            - name: IDENTITY_PROVIDER_URL
+#              value: ""
+#            - name: IDENTITY_PROVIDER_CLIENT_ID
+#              value: ""
+#            - name: IDENTITY_PROVIDER_SECRET
+#              value: ""
+#            - name: IDENTITY_PROVIDER_CALLBACK
+#              value: ""
             - name: ADMIN_NAME
               value: "<ADMIN_NAME>"
             - name: ADMIN_EMAIL
@@ -77,7 +78,11 @@ spec:
             - name: MAIL_PASSWORD
               value: "<DEV_EMAIL_PASSWORD>"
             - name: APP_URL
-              value: localhost:3000
+              value: <APP_ADDRESS>
+            - name: S3_DOMAIN
+              value: <YOUR_DOMAIN>
+            - name: SETUP_USE_GLOBAL_BUCKETS
+              value: "true"
           ports:
             - containerPort: 50051
               name: public-grpc

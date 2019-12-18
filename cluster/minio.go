@@ -17,6 +17,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -178,8 +179,10 @@ func addMinioBucketNotification(minioClient *minio.Client, bucketName, region st
 
 	bucketNotification := minio.BucketNotification{}
 	bucketNotification.AddQueue(queueConfig)
-
-	err := minioClient.SetBucketNotification(bucketName, bucketNotification)
+	// make it so this timeouts after only 2 seconds
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+	err := minioClient.SetBucketNotificationWithContext(timeoutCtx, bucketName, bucketNotification)
 	if err != nil {
 		return tagErrorAsMinio(err)
 	}
