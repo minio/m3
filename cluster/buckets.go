@@ -338,7 +338,7 @@ func GetBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric, error)
 							 	SELECT 
 									s.last_update, s.total_objects, s.total_buckets, s.total_usage, s.total_cost
 								FROM 
-									chelis.bucket_metrics s
+									bucket_metrics s
 								WHERE s.last_update >= $1 AND s.last_update <= $2
 								) s
 							) s
