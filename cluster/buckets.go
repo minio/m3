@@ -303,8 +303,69 @@ type BucketMetric struct {
 	AverageUsage float64
 }
 
-// GetBucketUsageFromDB get total average bucket usage metrics per day on one month
-func GetBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric, error) {
+// GetTenantUsageCostMultiplier gets tenant's cost multiplier used for charging
+func GetTenantUsageCostMultiplier(ctx *Context) (cost float32, err error) {
+	// Select query doing MAX total_usage grouping by year and month
+	query := `SELECT 
+				t.cost_multiplier
+			  FROM tenants t
+			  WHERE t.short_name=$1`
+
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return 0, err
+	}
+	// Execute query search one Month after `date`
+	row := tx.QueryRow(query, ctx.Tenant.ShortName)
+	if err != nil {
+		return 0, err
+	}
+	err = row.Scan(&cost)
+	if err != nil {
+		return 0, err
+	}
+	return cost, nil
+}
+
+// GetTotalMonthBucketUsageFromDB get max total bucket usage of the month
+func GetTotalMonthBucketUsageFromDB(ctx *Context, date time.Time) (monthUsage uint64, err error) {
+	// Select query doing MAX total_usage grouping by year and month
+	query := `SELECT 
+					MAX(s.total_usage) as total_monthly_usage
+				FROM (
+					SELECT
+					    EXTRACT (YEAR FROM s.last_update) AS YEAR,
+					    EXTRACT (MONTH FROM s.last_update) AS MONTH,
+						s.total_usage
+					 FROM (
+					 	SELECT 
+							s.last_update, s.total_usage
+						FROM 
+							bucket_metrics s
+						WHERE s.last_update >= $1 AND s.last_update <= $2
+						) s
+					) s
+				GROUP BY
+					s.year, s.month`
+
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return 0, err
+	}
+	// Execute query search one Month after `date`
+	row := tx.QueryRow(query, date, date.AddDate(0, 1, 0))
+	if err != nil {
+		return 0, err
+	}
+	err = row.Scan(&monthUsage)
+	if err != nil {
+		return 0, err
+	}
+	return monthUsage, nil
+}
+
+// GetDailyAvgBucketUsageFromDB get total average bucket usage metrics per day on one month
+func GetDailyAvgBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric, error) {
 	// Select query doing total_usage average grouping by year, month and day
 	// Use difference to get the daily average usage
 	query := `SELECT
