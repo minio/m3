@@ -156,7 +156,7 @@ func (m *RegisterAccountRequest) GetPassword() string {
 	return ""
 }
 
-// Response on wether the account was created or not
+// Response on whether the account was created or not
 type RegisterAccountResponse struct {
 	Error                string   `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
 	JwtToken             string   `protobuf:"bytes,2,opt,name=jwt_token,json=jwtToken,proto3" json:"jwt_token,omitempty"`
