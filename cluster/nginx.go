@@ -353,6 +353,10 @@ func getGlobalBucketNamespaceConfiguration() string {
 			log.Println(tenantRes.Error)
 			continue
 		}
+		// Don't deploy disabled tenants
+		if !tenantRes.Tenant.Enabled {
+			continue
+		}
 
 		tUps := `
 			upstream %s {

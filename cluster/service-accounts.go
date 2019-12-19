@@ -680,6 +680,10 @@ func streamAccessKeyToTenantServices() chan *AccessKeyToTenantShortNameResult {
 				log.Println("Error fetching tenant", tenantRes.Error)
 				continue
 			}
+			// Don't return disabled tenants access keys
+			if !tenantRes.Tenant.Enabled {
+				continue
+			}
 			//we need a context for this tenant
 			tCtx := NewCtxWithTenant(tenantRes.Tenant)
 
