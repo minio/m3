@@ -303,6 +303,30 @@ type BucketMetric struct {
 	AverageUsage float64
 }
 
+// GetTenantUsageCostMultiplier gets tenant's cost multiplier used for charging
+func GetTenantUsageCostMultiplier(ctx *Context) (cost float32, err error) {
+	// Select query doing MAX total_usage grouping by year and month
+	query := `SELECT 
+				t.cost_multiplier
+			  FROM tenants t
+			  WHERE t.short_name=$1`
+
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return 0, err
+	}
+	// Execute query search one Month after `date`
+	row := tx.QueryRow(query, ctx.Tenant.ShortName)
+	if err != nil {
+		return 0, err
+	}
+	err = row.Scan(&cost)
+	if err != nil {
+		return 0, err
+	}
+	return cost, nil
+}
+
 // GetTotalMonthBucketUsageFromDB get max total bucket usage of the month
 func GetTotalMonthBucketUsageFromDB(ctx *Context, date time.Time) (monthUsage uint64, err error) {
 	// Select query doing MAX total_usage grouping by year and month

@@ -58,6 +58,11 @@ func (s *server) Metrics(ctx context.Context, in *pb.MetricsRequest) (res *pb.Me
 		return nil, err
 	}
 
+	costMultiplier, err := cluster.GetTenantUsageCostMultiplier(appCtx)
+	if err != nil {
+		log.Println("error getting cost multiplier:", err)
+		return nil, err
+	}
 	var dailyMetricts []*pb.MetricsDayUsage
 	for _, bm := range bucketMetrics {
 		metric := &pb.MetricsDayUsage{
@@ -69,7 +74,7 @@ func (s *server) Metrics(ctx context.Context, in *pb.MetricsRequest) (res *pb.Me
 	response := &pb.MetricsResponse{
 		TotalBuckets: dataUsageInfo.BucketsCount,
 		TotalUsage:   totalMonthUsage,
-		TotalCost:    6000,
+		TotalCost:    int32(float32(totalMonthUsage) * costMultiplier),
 		DailyUsage:   dailyMetricts,
 	}
 
