@@ -291,18 +291,17 @@ func UpdateMinioPolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, t
 				// map the action
 				switch act.ActionType {
 				case Write:
+					aSet.Add(minioIAMPolicy.ListBucketMultipartUploadsAction)
+					aSet.Add(minioIAMPolicy.AbortMultipartUploadAction)
+					aSet.Add(minioIAMPolicy.DeleteObjectAction)
+					aSet.Add(minioIAMPolicy.ListMultipartUploadPartsAction)
 					aSet.Add(minioIAMPolicy.PutObjectAction)
 				case Read:
 					aSet.Add(minioIAMPolicy.GetObjectAction)
 					aSet.Add(minioIAMPolicy.ListBucketAction)
-					aSet.Add(minioIAMPolicy.GetBucketLocationAction)
 				case Readwrite:
-					aSet.Add(minioIAMPolicy.PutObjectAction)
-					aSet.Add(minioIAMPolicy.ListBucketAction)
-					aSet.Add(minioIAMPolicy.GetBucketLocationAction)
-					aSet.Add(minioIAMPolicy.GetObjectAction)
+					aSet.Add(minioIAMPolicy.AllActions)
 				}
-
 			}
 			statement.Actions = aSet
 
