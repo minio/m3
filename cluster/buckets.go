@@ -318,8 +318,8 @@ func GetBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric, error)
 						a.month,
 						a.day,
 						a.total_usage_average,
-						LAG(total_usage_average,1, 0.0) OVER (
-						      ORDER BY day
+						LAG(total_usage_average, 1, 0.0) OVER (
+						      ORDER BY year, month, day
 						   ) previous_total_usage_average
 					FROM(
 						SELECT 
