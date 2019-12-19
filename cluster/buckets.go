@@ -305,8 +305,7 @@ type BucketMetric struct {
 
 // GetTotalMonthBucketUsageFromDB get max total bucket usage of the month
 func GetTotalMonthBucketUsageFromDB(ctx *Context, date time.Time) (monthUsage uint64, err error) {
-	// Select query doing total_usage average grouping by year, month and day
-	// Use difference to get the daily average usage
+	// Select query doing MAX total_usage grouping by year and month
 	query := `SELECT 
 					MAX(s.total_usage) as total_monthly_usage
 				FROM (
