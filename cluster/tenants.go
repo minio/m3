@@ -56,102 +56,167 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 		return errors.New("Error tenant's shortname not available")
 	}
 
-	// first find a cluster where to allocate the tenant
-	sg := <-SelectSGWithSpace(ctx)
-	if sg.Error != nil {
-		log.Println("Error no storage group available: ", sg.Error)
-		return errors.New("Error no storage group available")
-	}
+	//create kes-policy-tenant-X.hcl:
+	//
+	//path "kv/app-key-tenant-X" {
+	//	capabilities = [ "create", "read", "delete" ]
+	//}
+	//
+	//Create role based on policy:
+	//
+	//./vault policy write kes-policy-tenant-X ./kes-policy-tenant-X.hcl
+	//./vault write auth/approle/role/kes-role-tenant-X policies=kes-policy-tenant-X
+	//./vault write auth/approle/role/kes-role-tenant-X token_num_uses=0 secret_id_num_uses=0 period=5m
+	//
+	//./vault write auth/approle/role/kes-role-tenant-X policies=kes-policy
+	//./vault read auth/approle/role/kes-role-tenant-X/role-id
+	//./vault write -f auth/approle/role/kes-role-tenant-X/secret-id
 
-	// register the tenant
-	tenantResult := <-InsertTenant(ctx, name, shortName)
-	if tenantResult.Error != nil {
-		log.Println("Error adding the tenant to the db: ", tenantResult.Error)
-		return errors.New("Error adding the tenant to the db")
-	}
-	ctx.Tenant = tenantResult.Tenant
-	log.Println(fmt.Sprintf("Registered as tenant %s\n", tenantResult.Tenant.ID.String()))
+	if GetInstance().KmsClient != nil {
+		kms := GetInstance().KmsClient
+		policyName := fmt.Sprintf("kes-policy-for-%s", shortName)
 
-	// Create tenant namespace
-	namespaceCh := createTenantNamespace(shortName)
+		existingPolicy, _ := kms.Sys().GetPolicy(policyName)
 
-	// provision the tenant schema and run the migrations
-	tenantSchemaCh := ProvisionTenantDB(shortName)
-
-	// Generate the Tenant's Access/Secret key and operator
-	tenantConfig := TenantConfiguration{
-		AccessKey: RandomCharString(16),
-		SecretKey: RandomCharString(32)}
-
-	// Create a store for the tenant's configuration
-	err = CreateTenantSecrets(tenantResult.Tenant, &tenantConfig)
-	if err != nil {
-		log.Println("Error creating tenant's secrets: ", err)
-		return errors.New("Error creating tenant's secrets")
-	}
-
-	// provision the tenant on that cluster
-	sgTenantResult := <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sg.StorageGroup)
-	if sgTenantResult.Error != nil {
-		log.Println("Error provisioning tenant into storage group: ", sgTenantResult.Error)
-		return errors.New("Error provisioning tenant into storage group")
-	}
-
-	// announce the tenant on the router
-	nginxCh := UpdateNginxConfiguration(ctx)
-	// check if we were able to provision the schema and be done running the migrations
-	err = <-tenantSchemaCh
-	if err != nil {
-		log.Println("Error creating tenant's db schema: ", err)
-		return errors.New("Error creating tenant's db schema")
-	}
-	// wait for router
-	err = <-nginxCh
-	if err != nil {
-		log.Println("Error updating nginx configuration: ", err)
-		return errors.New("Error updating nginx configuration")
-	}
-
-	// wait for the tenant namespace to finish creating
-	err = <-namespaceCh
-	if err != nil {
-		log.Println("Error creating tenant's namespace: ", err)
-		return errors.New("Error creating tenant's namespace")
-	}
-	// if the first admin name and email was provided send them an invitation
-	if userName != "" && userEmail != "" {
-		// wait for MinIO to be ready before creating the first user
-		ready := isMinioReadyRetry(ctx)
-		if !ready {
-			return errors.New("MinIO was never ready. Unable to complete configuration of tenant")
+		if existingPolicy != "" {
+			log.Println("Error creating policy on external kms because the policy already exists ", policyName, existingPolicy)
+			return errors.New("Error adding the tenant to the db")
 		}
-		// insert user to DB with random password
-		newUser := User{Name: userName, Email: userEmail}
-		err := AddUser(ctx, &newUser)
+
+		policyRules := fmt.Sprintf(`
+path "kv/%s/*" {
+		capabilities = [ "create", "read", "delete" ]
+}
+		`, shortName)
+
+		err := kms.Sys().PutPolicy(policyName, policyRules)
 		if err != nil {
-			log.Println("Error adding first tenant's admin user: ", err)
-			return errors.New("Error adding first tenant's admin user")
+			log.Println("Error creating policy on external kms: ", err)
+			return errors.New("Error adding the tenant to the db")
 		}
-		// Get the credentials for a tenant
-		tenantConf, err := GetTenantConfig(tenantResult.Tenant)
+		data := map[string]interface{}{
+			"policy":             policyName,
+			"token_num_uses":     0,
+			"secret_id_num_uses": 0,
+			"period":             "5m",
+		}
+		_, err = kms.Logical().Write(fmt.Sprintf("auth/approle/role/kes-role-%s", shortName), data)
 		if err != nil {
-			log.Println("Error getting tenants config", err)
-			return errors.New("Error getting tenants config")
+			log.Println("Error creating new role on external kms: ", shortName, data, err)
+			return errors.New("Error adding the tenant to the db")
 		}
-		// create minio postgres configuration for bucket notification
-		err = setMinioConfigPostgresNotification(sgTenantResult.StorageGroupTenant, tenantConf)
+		role, err := kms.Logical().Read(fmt.Sprintf("auth/approle/role/kes-role-%s/role-id", shortName))
 		if err != nil {
-			log.Println("Error setting tenant's minio postgres configuration", err)
-			return errors.New("Error setting tenant's minio postgres configuration")
+			log.Println("Error reading role_id from external kms: ", shortName, err)
+			return errors.New("Error adding the tenant to the db")
 		}
+		log.Println("role_id", role.Data["role_id"])
+		roleSecret, err := kms.Logical().Write(fmt.Sprintf("auth/approle/role/kes-role-%s/secret-id", shortName), map[string]interface{}{})
+		if err != nil {
+			log.Println("Error reading role_secret_id from external kms: ", shortName)
+			return errors.New("Error adding the tenant to the db")
+		}
+		log.Println("secret_id", roleSecret.Data["secret_id"])
 
-		// Invite it's first admin
-		err = InviteUserByEmail(ctx, TokenSignupEmail, &newUser)
-		if err != nil {
-			log.Println("Error inviting user by email: ", err.Error())
-			return errors.New("Error inviting user by email")
-		}
+		//create kubernetes secret with role_id and secret_id
 	}
+
+	//// first find a cluster where to allocate the tenant
+	//sg := <-SelectSGWithSpace(ctx)
+	//if sg.Error != nil {
+	//	log.Println("Error no storage group available: ", sg.Error)
+	//	return errors.New("Error no storage group available")
+	//}
+	//
+	//// register the tenant
+	//tenantResult := <-InsertTenant(ctx, name, shortName)
+	//if tenantResult.Error != nil {
+	//	log.Println("Error adding the tenant to the db: ", tenantResult.Error)
+	//	return errors.New("Error adding the tenant to the db")
+	//}
+	//ctx.Tenant = tenantResult.Tenant
+	//log.Println(fmt.Sprintf("Registered as tenant %s\n", tenantResult.Tenant.ID.String()))
+	//
+	//// Create tenant namespace
+	//namespaceCh := createTenantNamespace(shortName)
+	//
+	//// provision the tenant schema and run the migrations
+	//tenantSchemaCh := ProvisionTenantDB(shortName)
+	//
+	//// Generate the Tenant's Access/Secret key and operator
+	//tenantConfig := TenantConfiguration{
+	//	AccessKey: RandomCharString(16),
+	//	SecretKey: RandomCharString(32)}
+	//
+	//// Create a store for the tenant's configuration
+	//err = CreateTenantSecrets(tenantResult.Tenant, &tenantConfig)
+	//if err != nil {
+	//	log.Println("Error creating tenant's secrets: ", err)
+	//	return errors.New("Error creating tenant's secrets")
+	//}
+	//
+	//// provision the tenant on that cluster
+	//sgTenantResult := <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sg.StorageGroup)
+	//if sgTenantResult.Error != nil {
+	//	log.Println("Error provisioning tenant into storage group: ", sgTenantResult.Error)
+	//	return errors.New("Error provisioning tenant into storage group")
+	//}
+	//
+	//// announce the tenant on the router
+	//nginxCh := UpdateNginxConfiguration(ctx)
+	//// check if we were able to provision the schema and be done running the migrations
+	//err = <-tenantSchemaCh
+	//if err != nil {
+	//	log.Println("Error creating tenant's db schema: ", err)
+	//	return errors.New("Error creating tenant's db schema")
+	//}
+	//// wait for router
+	//err = <-nginxCh
+	//if err != nil {
+	//	log.Println("Error updating nginx configuration: ", err)
+	//	return errors.New("Error updating nginx configuration")
+	//}
+	//
+	//// wait for the tenant namespace to finish creating
+	//err = <-namespaceCh
+	//if err != nil {
+	//	log.Println("Error creating tenant's namespace: ", err)
+	//	return errors.New("Error creating tenant's namespace")
+	//}
+	//// if the first admin name and email was provided send them an invitation
+	//if userName != "" && userEmail != "" {
+	//	// wait for MinIO to be ready before creating the first user
+	//	ready := isMinioReadyRetry(ctx)
+	//	if !ready {
+	//		return errors.New("MinIO was never ready. Unable to complete configuration of tenant")
+	//	}
+	//	// insert user to DB with random password
+	//	newUser := User{Name: userName, Email: userEmail}
+	//	err := AddUser(ctx, &newUser)
+	//	if err != nil {
+	//		log.Println("Error adding first tenant's admin user: ", err)
+	//		return errors.New("Error adding first tenant's admin user")
+	//	}
+	//	// Get the credentials for a tenant
+	//	tenantConf, err := GetTenantConfig(tenantResult.Tenant)
+	//	if err != nil {
+	//		log.Println("Error getting tenants config", err)
+	//		return errors.New("Error getting tenants config")
+	//	}
+	//	// create minio postgres configuration for bucket notification
+	//	err = setMinioConfigPostgresNotification(sgTenantResult.StorageGroupTenant, tenantConf)
+	//	if err != nil {
+	//		log.Println("Error setting tenant's minio postgres configuration", err)
+	//		return errors.New("Error setting tenant's minio postgres configuration")
+	//	}
+	//
+	//	// Invite it's first admin
+	//	err = InviteUserByEmail(ctx, TokenSignupEmail, &newUser)
+	//	if err != nil {
+	//		log.Println("Error inviting user by email: ", err.Error())
+	//		return errors.New("Error inviting user by email")
+	//	}
+	//}
 	return err
 }
 
