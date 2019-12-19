@@ -45,10 +45,16 @@ func (s *server) Metrics(ctx context.Context, in *pb.MetricsRequest) (res *pb.Me
 		log.Println("error getting bucket usage metrics:", err)
 		return nil, err
 	}
-	// Get Bucket usage of one month
-	bucketMetrics, err := cluster.GetBucketUsageFromDB(appCtx, dateFormatted)
+	// Get Daily Average Bucket usage of one month
+	bucketMetrics, err := cluster.GetDailyAvgBucketUsageFromDB(appCtx, dateFormatted)
 	if err != nil {
 		log.Println("error getting bucket average metrics:", err)
+		return nil, err
+	}
+	// Get total usage for the month
+	totalMonthUsage, err := cluster.GetTotalMonthBucketUsageFromDB(appCtx, dateFormatted)
+	if err != nil {
+		log.Println("error getting month total bucket usage:", err)
 		return nil, err
 	}
 
@@ -62,7 +68,7 @@ func (s *server) Metrics(ctx context.Context, in *pb.MetricsRequest) (res *pb.Me
 	}
 	response := &pb.MetricsResponse{
 		TotalBuckets: dataUsageInfo.BucketsCount,
-		TotalUsage:   dataUsageInfo.ObjectsTotalSize,
+		TotalUsage:   totalMonthUsage,
 		TotalCost:    6000,
 		DailyUsage:   dailyMetricts,
 	}
