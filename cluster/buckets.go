@@ -318,7 +318,7 @@ func GetTotalMonthBucketUsageFromDB(ctx *Context, date time.Time) (monthUsage ui
 					 	SELECT 
 							s.last_update, s.total_usage
 						FROM 
-							acme.bucket_metrics s
+							bucket_metrics s
 						WHERE s.last_update >= $1 AND s.last_update <= $2
 						) s
 					) s
