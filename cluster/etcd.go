@@ -368,10 +368,10 @@ func processMessage(ctx *Context, event *clientv3.Event) error {
 	case mvccpb.PUT:
 		// process the key from the etcd event
 		keyParts, err := processEtcdKey(event)
-		log.Println(keyParts.TenantShortName, "/", keyParts.BucketName)
 		if err != nil {
 			return err
 		}
+		log.Println(keyParts.TenantShortName, "/", keyParts.BucketName)
 		tenant, err := GetTenantWithCtxByServiceName(nil, keyParts.TenantShortName)
 		if err != nil {
 			return err
@@ -384,10 +384,10 @@ func processMessage(ctx *Context, event *clientv3.Event) error {
 	case mvccpb.DELETE:
 		// process the key from the etcd event
 		keyParts, err := processEtcdKey(event)
-		log.Println(keyParts.TenantShortName, "/", keyParts.BucketName)
 		if err != nil {
 			return err
 		}
+		log.Println(keyParts.TenantShortName, "/", keyParts.BucketName)
 
 		tenant, err := GetTenantWithCtxByServiceName(nil, keyParts.TenantShortName)
 		if err != nil {

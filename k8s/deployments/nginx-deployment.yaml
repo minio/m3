@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nginx-user
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  namespace: default
+  name: k8s-nginx-cm-view-role
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: k8s-nginx-cm-svc-account
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: nginx-user
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: k8s-nginx-cm-view-role
+  apiGroup: rbac.authorization.k8s.io
+---
