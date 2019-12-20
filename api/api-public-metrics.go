@@ -23,6 +23,8 @@ import (
 
 	pb "github.com/minio/m3/api/stubs"
 	"github.com/minio/m3/cluster"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // Metrics gets bucket usage metrics for the tenant
@@ -32,50 +34,53 @@ func (s *server) Metrics(ctx context.Context, in *pb.MetricsRequest) (res *pb.Me
 	layout := "2006-01-02"
 	dateFormatted, err := time.Parse(layout, date)
 	if err != nil {
-		return nil, err
+		log.Println("Wrong date format:", err)
+		return nil, status.New(codes.InvalidArgument, "wrong date format").Err()
 	}
 
 	// start app context
 	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
-		return nil, err
+		log.Println(err)
+		return nil, status.New(codes.Internal, "internal error").Err()
 	}
-	dataUsageInfo, err := cluster.GetBucketUsageMetrics(appCtx, appCtx.Tenant.ShortName)
+	totalBucketsCount, err := cluster.GetLatestTotalBuckets(appCtx, dateFormatted)
 	if err != nil {
-		log.Println("error getting bucket usage metrics:", err)
-		return nil, err
+		log.Println("error getting latest total number of buckets:", err)
+		return nil, status.New(codes.Internal, "error getting latest total number of buckets").Err()
 	}
 	// Get Daily Average Bucket usage of one month
-	bucketMetrics, err := cluster.GetDailyAvgBucketUsageFromDB(appCtx, dateFormatted)
+	bucketDailyMetrics, err := cluster.GetDailyAvgBucketUsageFromDB(appCtx, dateFormatted)
 	if err != nil {
-		log.Println("error getting bucket average metrics:", err)
-		return nil, err
+		log.Println("error getting daily bucket average metrics:", err)
+		return nil, status.New(codes.Internal, "error getting daily bucket average metrics").Err()
 	}
 	// Get total usage for the month
 	totalMonthUsage, err := cluster.GetTotalMonthBucketUsageFromDB(appCtx, dateFormatted)
 	if err != nil {
-		log.Println("error getting month total bucket usage:", err)
-		return nil, err
-	}
+		log.Println("error getting total bucket usage:", err)
+		return nil, status.New(codes.Internal, "error getting total bucket usage").Err()
 
+	}
+	// Get cost multiplier
 	costMultiplier, err := cluster.GetTenantUsageCostMultiplier(appCtx)
 	if err != nil {
 		log.Println("error getting cost multiplier:", err)
-		return nil, err
+		return nil, status.New(codes.Internal, "error calculating cost").Err()
 	}
-	var dailyMetricts []*pb.MetricsDayUsage
-	for _, bm := range bucketMetrics {
+	var dailyMetrics []*pb.MetricsDayUsage
+	for _, bm := range bucketDailyMetrics {
 		metric := &pb.MetricsDayUsage{
 			Time:  bm.Date.String(),
 			Usage: uint64(bm.AverageUsage),
 		}
-		dailyMetricts = append(dailyMetricts, metric)
+		dailyMetrics = append(dailyMetrics, metric)
 	}
 	response := &pb.MetricsResponse{
-		TotalBuckets: dataUsageInfo.BucketsCount,
+		TotalBuckets: totalBucketsCount,
 		TotalUsage:   totalMonthUsage,
 		TotalCost:    int32(float32(totalMonthUsage) * costMultiplier),
-		DailyUsage:   dailyMetricts,
+		DailyUsage:   dailyMetrics,
 	}
 
 	return response, nil

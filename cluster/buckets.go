@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"log"
@@ -327,6 +328,35 @@ func GetTenantUsageCostMultiplier(ctx *Context) (cost float32, err error) {
 	return cost, nil
 }
 
+// GetLatestTotalBuckets get the latest total number of buckets during a month period
+func GetLatestTotalBuckets(ctx *Context, date time.Time) (totalBuckets uint64, err error) {
+	query := `SELECT
+					MAX(total_buckets) max_buckets
+				FROM bucket_metrics s
+				WHERE last_update >= $1 AND last_update <= $2
+				GROUP BY last_update
+				ORDER BY last_update DESC`
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return 0, err
+	}
+	// Get first result of the query which contains the latest number of
+	// buckets during the selected period one Month
+	row := tx.QueryRow(query, date, date.AddDate(0, 1, 0))
+	if err != nil {
+		return 0, err
+	}
+	err = row.Scan(&totalBuckets)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
+		log.Println("error getting latest total number of buckets:", err)
+		return 0, err
+	}
+	return totalBuckets, nil
+}
+
 // GetTotalMonthBucketUsageFromDB get max total bucket usage of the month
 func GetTotalMonthBucketUsageFromDB(ctx *Context, date time.Time) (monthUsage uint64, err error) {
 	// Select query doing MAX total_usage grouping by year and month
@@ -359,6 +389,10 @@ func GetTotalMonthBucketUsageFromDB(ctx *Context, date time.Time) (monthUsage ui
 	}
 	err = row.Scan(&monthUsage)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
+		log.Println("error getting latest total number of buckets:", err)
 		return 0, err
 	}
 	return monthUsage, nil
