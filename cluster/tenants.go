@@ -699,6 +699,8 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 		tenantConfig["MINIO_ETCD_ENDPOINTS"] = "http://m3-etcd-cluster-client:2379"
 		tenantConfig["MINIO_ETCD_PATH_PREFIX"] = fmt.Sprintf("%s/", sgTenant.Tenant.ShortName)
 	}
+	// Env variable to tell MinIO that it is running on a replica set deployment
+	tenantConfig["KUBERNETES_REPLICA_SET"] = "1"
 	// Build the config map
 	configMap := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

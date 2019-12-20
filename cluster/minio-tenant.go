@@ -51,9 +51,8 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 	}
 
 	tenantContainer := v1.Container{
-		Name:  fmt.Sprintf("%s-minio-%d", sgTenant.Tenant.ShortName, sgNode.Num),
-		Image: "minio/minio:RELEASE.2019-12-17T23-16-33Z",
-		//Image:           "minio/minio:latest",
+		Name:            fmt.Sprintf("%s-minio-%d", sgTenant.Tenant.ShortName, sgNode.Num),
+		Image:           "minio/minio:RELEASE.2019-12-19T22-52-26Z",
 		ImagePullPolicy: "Always",
 		Args:            minioConfigCmd,
 		Ports: []v1.ContainerPort{
