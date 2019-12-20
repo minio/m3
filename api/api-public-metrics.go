@@ -66,7 +66,7 @@ func (s *server) Metrics(ctx context.Context, in *pb.MetricsRequest) (res *pb.Me
 	costMultiplier, err := cluster.GetTenantUsageCostMultiplier(appCtx)
 	if err != nil {
 		log.Println("error getting cost multiplier:", err)
-		return nil, status.New(codes.Internal, "error getting calculating cost").Err()
+		return nil, status.New(codes.Internal, "error calculating cost").Err()
 	}
 	var dailyMetrics []*pb.MetricsDayUsage
 	for _, bm := range bucketDailyMetrics {
