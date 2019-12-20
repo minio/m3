@@ -76,11 +76,17 @@ func (s *server) Metrics(ctx context.Context, in *pb.MetricsRequest) (res *pb.Me
 		}
 		dailyMetrics = append(dailyMetrics, metric)
 	}
+	// Only show cost on UI if the cost Multiplier is greater than 0.0
+	var showCost bool = false
+	if costMultiplier > 0.0 {
+		showCost = true
+	}
 	response := &pb.MetricsResponse{
 		TotalBuckets: totalBucketsCount,
 		TotalUsage:   totalMonthUsage,
 		TotalCost:    int32(float32(totalMonthUsage) * costMultiplier),
 		DailyUsage:   dailyMetrics,
+		ShowCost:     showCost,
 	}
 
 	return response, nil
