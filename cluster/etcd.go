@@ -312,7 +312,6 @@ func WatcEtcdBucketCreation() {
 
 	for watchResp := range watchChan {
 		for _, event := range watchResp.Events {
-			log.Println("got message", event)
 			go func(event *clientv3.Event) {
 				ctx, err := NewEmptyContext()
 				if err != nil {
@@ -368,7 +367,6 @@ func processMessage(ctx *Context, event *clientv3.Event) error {
 	case mvccpb.PUT:
 		// process the key from the etcd event
 		keyParts, err := processEtcdKey(event)
-		log.Println(keyParts.TenantShortName, "/", keyParts.BucketName)
 		if err != nil {
 			return err
 		}
@@ -384,7 +382,6 @@ func processMessage(ctx *Context, event *clientv3.Event) error {
 	case mvccpb.DELETE:
 		// process the key from the etcd event
 		keyParts, err := processEtcdKey(event)
-		log.Println(keyParts.TenantShortName, "/", keyParts.BucketName)
 		if err != nil {
 			return err
 		}

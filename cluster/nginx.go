@@ -20,7 +20,8 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"strings"
+
+	v1 "k8s.io/api/rbac/v1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -34,10 +35,11 @@ import (
 func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 	nginxLBReplicas := int32(1)
 	nginxLBPodSpec := corev1.PodSpec{
+		ServiceAccountName: "nginx-user",
 		Containers: []corev1.Container{
 			{
 				Name:            "nginx-resolver",
-				Image:           "nginx",
+				Image:           "minio/m3-nginx:edge",
 				ImagePullPolicy: "IfNotPresent",
 				Ports: []corev1.ContainerPort{
 					{
@@ -207,19 +209,11 @@ func DeployNginxResolver() chan error {
 		if err != nil {
 			ch <- err
 		}
-		nginxResolverVersion := fmt.Sprintf(`nginx-resolver-%s`, strings.ToLower(RandomCharString(6)))
+		nginxResolverVersion := "nginx-resolver"
 		waitCreateCh := CreateNginxResolverDeployment(clientset, nginxResolverVersion)
+		log.Println("Wait create nginx deployment")
 		<-waitCreateCh
-		waitUpdateCh := UpdateNginxResolverService(clientset, nginxResolverVersion)
-		<-waitUpdateCh
-		// Delete nginx-resolver deployment and wait until all its pods
-		// are deleted too. This is to ensure that the creation of the
-		// deployment results in new set of pods that have read the
-		// updated rules
-		waitDeleteCh := DeleteNginxLBDeployments(clientset, nginxResolverVersion)
-		// waiting for the delete of the nginx-resolver deployment to complete
-		<-waitDeleteCh
-		fmt.Println("done creating nginx-resolver deployment")
+		log.Println("done creating nginx-resolver deployment")
 	}()
 	return ch
 }
@@ -262,15 +256,7 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 		if err != nil {
 			panic(err.Error())
 		}
-
-		err = <-ReDeployNginxResolver(ctx)
-		if err != nil {
-			log.Println(err)
-			ch <- err
-			return
-		}
-		log.Println("done")
-
+		log.Println("done nginx update")
 	}()
 	return ch
 }
@@ -489,4 +475,181 @@ func getGlobalBucketNamespaceConfiguration() string {
 			}
 		`)
 	return nginxConfiguration.String()
+}
+
+// SetupNginxLoadBalancer setups the loadbalancer/reverse proxy used to resolve the tenants subdomains
+func SetupNginxLoadBalancer(clientset *kubernetes.Clientset) <-chan struct{} {
+	doneCh := make(chan struct{})
+	nginxServiceName := "nginx-resolver"
+
+	go func() {
+		_, nginxServiceExists := clientset.CoreV1().Services("default").Get(nginxServiceName, metav1.GetOptions{})
+		if nginxServiceExists == nil {
+			log.Println("nginx service already exists... skip create")
+			close(doneCh)
+		} else {
+			factory := informers.NewSharedInformerFactory(clientset, 0)
+			serviceInformer := factory.Core().V1().Services().Informer()
+			serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
+					service := obj.(*corev1.Service)
+					if service.Name == nginxServiceName {
+						log.Println("nginx service created correctly")
+						close(doneCh)
+					}
+				},
+			})
+
+			go serviceInformer.Run(doneCh)
+
+			nginxService := corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: nginxServiceName,
+					Labels: map[string]string{
+						"name": nginxServiceName,
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{
+							Name: "http",
+							Port: 80,
+						},
+					},
+					Selector: map[string]string{
+						"app": nginxServiceName,
+					},
+				},
+			}
+			_, err := clientset.CoreV1().Services("default").Create(&nginxService)
+			if err != nil {
+				log.Println(err)
+				close(doneCh)
+			}
+		}
+	}()
+	return doneCh
+}
+
+func SetupNginxConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
+	doneCh := make(chan struct{})
+	nginxConfigMapName := "nginx-configuration"
+
+	go func() {
+		_, nginxConfigMapExists := clientset.CoreV1().ConfigMaps("default").Get(nginxConfigMapName, metav1.GetOptions{})
+		if nginxConfigMapExists == nil {
+			log.Println("nginx configmap already exists... skip create")
+			close(doneCh)
+		} else {
+			factory := informers.NewSharedInformerFactory(clientset, 0)
+			configMapInformer := factory.Core().V1().ConfigMaps().Informer()
+			configMapInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+				AddFunc: func(obj interface{}) {
+					configMap := obj.(*corev1.ConfigMap)
+					if configMap.Name == nginxConfigMapName {
+						log.Println("nginx configmap created correctly")
+						close(doneCh)
+					}
+				},
+			})
+
+			go configMapInformer.Run(doneCh)
+
+			configMap := corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: nginxConfigMapName,
+				},
+				Data: map[string]string{
+					"nginx.conf": `
+user nginx;
+worker_processes auto;
+error_log /dev/stdout debug;
+pid /var/run/nginx.pid;
+
+events {
+	worker_connections  1024;
+}
+			`,
+				},
+			}
+			_, err := clientset.CoreV1().ConfigMaps("default").Create(&configMap)
+			if err != nil {
+				log.Println(err)
+				close(doneCh)
+			}
+		}
+	}()
+	return doneCh
+}
+
+func setupNginxServiceAccount() chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		clientSet, err := k8sClient()
+		if err != nil {
+			ch <- err
+			return
+		}
+		// Service Account
+		nginxSa := corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "nginx-user",
+				Namespace: defNS,
+			},
+		}
+		// create nginx SA
+		_, err = clientSet.CoreV1().ServiceAccounts(defNS).Create(&nginxSa)
+		if err != nil {
+			ch <- err
+			return
+		}
+		// Cluster Role
+		nginxCR := v1.ClusterRole{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "k8s-nginx-cm-view-role",
+				Namespace: defNS,
+			},
+			Rules: []v1.PolicyRule{
+				{
+					Verbs:     []string{"get", "list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"configmaps"},
+				},
+			},
+		}
+		// create it
+		_, err = clientSet.RbacV1().ClusterRoles().Create(&nginxCR)
+		if err != nil {
+			ch <- err
+			return
+		}
+		// Cluster Role Binding
+		nginxCRB := v1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "k8s-nginx-cm-svc-account",
+				Namespace: defNS,
+			},
+			Subjects: []v1.Subject{
+				{
+					Kind:      "ServiceAccount",
+					Name:      "nginx-user",
+					Namespace: defNS,
+				},
+			},
+			RoleRef: v1.RoleRef{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "ClusterRole",
+				Name:     "k8s-nginx-cm-view-role",
+			},
+		}
+		// create it
+		_, err = clientSet.RbacV1().ClusterRoleBindings().Create(&nginxCRB)
+		if err != nil {
+			ch <- err
+			return
+		}
+	}()
+	return ch
 }
