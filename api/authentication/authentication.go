@@ -52,7 +52,7 @@ func AdminAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 	// validate admin session Token
 	adminToken, err := cluster.GetAdminSessionDetails(nil, &token)
 	if err != nil {
-		return nil, grpc.Errorf(codes.Unauthenticated, "invalid token")
+		return nil, status.Errorf(codes.Unauthenticated, "invalid token")
 	}
 
 	// attach the details of the session to the context
@@ -80,7 +80,7 @@ func PublicAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unar
 	validSession, err := validateSessionID(ctx)
 	if err != nil || validSession == nil {
 		log.Println("Invalid session.", err)
-		return nil, grpc.Errorf(codes.Unauthenticated, "invalid token.")
+		return nil, status.Errorf(codes.Unauthenticated, "invalid token.")
 	}
 	// attempt to identify the user for the context
 	appCtx, err := cluster.NewEmptyContext()
