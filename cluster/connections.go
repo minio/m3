@@ -19,13 +19,11 @@ package cluster
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 	"os"
 	"sync"
 
-	vapi "github.com/hashicorp/vault/api"
 	// postgres driver for database/sql
 	_ "github.com/lib/pq"
 )
@@ -33,7 +31,6 @@ import (
 type Singleton struct {
 	Db         *sql.DB
 	tenantsCnx map[string]*sql.DB
-	KmsClient  *vapi.Client
 }
 
 var instance *Singleton
@@ -52,17 +49,9 @@ func GetInstance() *Singleton {
 		//build connections cache
 		cnxCache := make(map[string]*sql.DB)
 
-		// Check if a connection to an external kms is available
-		kmsResult := <-connectToKms()
-		if kmsResult.Error != nil {
-			log.Println("M3 could not connect to an external kms")
-			log.Println(kmsResult.Error)
-		}
-
 		instance = &Singleton{
 			Db:         cnxResult.Cnx,
 			tenantsCnx: cnxCache,
-			KmsClient:  kmsResult.Cnx,
 		}
 	})
 	return instance
@@ -226,54 +215,4 @@ func (s *Singleton) CliCommand() string {
 		cliCommand = os.Getenv("CLI_COMMAND")
 	}
 	return cliCommand
-}
-
-type kmsCnxResult struct {
-	Cnx   *vapi.Client
-	Error error
-}
-
-func connectToKms() chan kmsCnxResult {
-	ch := make(chan kmsCnxResult)
-	go func() {
-		defer close(ch)
-		kmsAddress := os.Getenv("KMS_ADDRESS")
-		if kmsAddress == "" {
-			ch <- kmsCnxResult{Error: errors.New("missing kms address")}
-			return
-		}
-		kmsToken := os.Getenv("KMS_TOKEN")
-		if kmsToken == "" {
-			ch <- kmsCnxResult{Error: errors.New("missing kms token")}
-			return
-		}
-
-		client, err := vapi.NewClient(&vapi.Config{Address: kmsAddress})
-		if err != nil {
-			ch <- kmsCnxResult{Error: err}
-			return
-		}
-
-		client.SetToken(kmsToken)
-
-		health, err := client.Sys().Health()
-
-		if err != nil {
-			ch <- kmsCnxResult{Error: err}
-			return
-		}
-
-		if !health.Initialized {
-			ch <- kmsCnxResult{Error: errors.New("kms is not initialized")}
-			return
-		}
-
-		if health.Sealed {
-			ch <- kmsCnxResult{Error: errors.New("kms is sealed")}
-			return
-		}
-
-		ch <- kmsCnxResult{Cnx: client}
-	}()
-	return ch
 }
