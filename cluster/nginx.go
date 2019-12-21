@@ -37,9 +37,8 @@ func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 		ServiceAccountName: "m3-user",
 		Containers: []corev1.Container{
 			{
-				Name: "nginx-resolver",
-				//Image:           "nginx",
-				Image:           "dvaldivia/kubenginx",
+				Name:            "nginx-resolver",
+				Image:           "minio/m3-nginx:edge",
 				ImagePullPolicy: "IfNotPresent",
 				Ports: []corev1.ContainerPort{
 					{
