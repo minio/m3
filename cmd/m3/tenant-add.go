@@ -18,8 +18,10 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
+	"syscall"
 
 	"github.com/minio/cli"
 	pb "github.com/minio/m3/api/stubs"
@@ -108,18 +110,32 @@ func addTenant(ctx *cli.Context) error {
 		return err
 	}
 	defer cnxs.Conn.Close()
-	// perform RPC
-	fmt.Println(fmt.Sprintf("Adding tenant: %s ...", tenantName))
-	_, err = cnxs.Client.TenantAdd(cnxs.Context, &pb.TenantAddRequest{
-		Name:      tenantName,
-		ShortName: tenantShortName,
-		UserName:  userName,
-		UserEmail: userEmail,
-	})
 
-	if err != nil {
-		fmt.Println(err)
+	trapCh := signalTrap(os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
+	select {
+	case <-trapCh:
+		fmt.Println(fmt.Sprintf("Canceling adding tenant: %s", tenantName))
+		_, err = cnxs.Client.TenantDelete(cnxs.Context, &pb.TenantDeleteRequest{
+			ShortName: tenantShortName,
+		})
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
 		return nil
+	default:
+		// perform RPC
+		fmt.Println(fmt.Sprintf("Adding tenant: %s ...", tenantName))
+		_, err = cnxs.Client.TenantAdd(cnxs.Context, &pb.TenantAddRequest{
+			Name:      tenantName,
+			ShortName: tenantShortName,
+			UserName:  userName,
+			UserEmail: userEmail,
+		})
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
 	}
 
 	fmt.Println("Done adding tenant!")

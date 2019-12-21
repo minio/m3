@@ -214,23 +214,19 @@ func minioIsReady(ctx *Context) (bool, error) {
 
 // isMinioReadyRetry tries maxReadinessTries times and returns if is ready after retries
 func isMinioReadyRetry(ctx *Context) bool {
-	currentTries := 0
-	for {
-		ready, err := minioIsReady(ctx)
+	var err error
+	var ready bool
+	for !ready {
+		ready, err = minioIsReady(ctx)
 		if err != nil {
 			// we'll tolerate errors here, probably minio not responding
 			log.Println(err)
 		}
-		if ready {
-			return true
-		}
 		log.Println("MinIO not ready, sleeping 2 seconds.")
 		time.Sleep(time.Second * 2)
-		currentTries++
-		if currentTries > maxReadinessTries {
-			return false
-		}
 	}
+
+	return true
 }
 
 // Returns data usage of the current tenant
