@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"log"
 
+	v1 "k8s.io/api/rbac/v1"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,8 +35,7 @@ import (
 func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 	nginxLBReplicas := int32(1)
 	nginxLBPodSpec := corev1.PodSpec{
-		//TODO: Change this to nginx-user
-		ServiceAccountName: "m3-user",
+		ServiceAccountName: "nginx-user",
 		Containers: []corev1.Container{
 			{
 				Name:            "nginx-resolver",
@@ -208,21 +209,10 @@ func DeployNginxResolver() chan error {
 		if err != nil {
 			ch <- err
 		}
-		//nginxResolverVersion := fmt.Sprintf(`nginx-resolver-%s`, strings.ToLower(RandomCharString(6)))
 		nginxResolverVersion := "nginx-resolver"
 		waitCreateCh := CreateNginxResolverDeployment(clientset, nginxResolverVersion)
 		log.Println("Wait create nginx deployment")
 		<-waitCreateCh
-		//waitUpdateCh := UpdateNginxResolverService(clientset, nginxResolverVersion)
-		//log.Println("Wait update nginx service")
-		//<-waitUpdateCh
-		// Delete nginx-resolver deployment and wait until all its pods
-		// are deleted too. This is to ensure that the creation of the
-		// deployment results in new set of pods that have read the
-		// updated rules
-		//waitDeleteCh := DeleteNginxLBDeployments(clientset, nginxResolverVersion)
-		//// waiting for the delete of the nginx-resolver deployment to complete
-		//<-waitDeleteCh
 		log.Println("done creating nginx-resolver deployment")
 	}()
 	return ch
@@ -266,15 +256,7 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 		if err != nil {
 			panic(err.Error())
 		}
-
-		//err = <-ReDeployNginxResolver(ctx)
-		//if err != nil {
-		//	log.Println(err)
-		//	ch <- err
-		//	return
-		//}
-		log.Println("done")
-
+		log.Println("done nginx update")
 	}()
 	return ch
 }
@@ -598,4 +580,76 @@ events {
 		}
 	}()
 	return doneCh
+}
+
+func setupNginxServiceAccount() chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		clientSet, err := k8sClient()
+		if err != nil {
+			ch <- err
+			return
+		}
+		// Service Account
+		nginxSa := corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "nginx-user",
+				Namespace: defNS,
+			},
+		}
+		// create nginx SA
+		_, err = clientSet.CoreV1().ServiceAccounts(defNS).Create(&nginxSa)
+		if err != nil {
+			ch <- err
+			return
+		}
+		// Cluster Role
+		nginxCR := v1.ClusterRole{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "k8s-nginx-cm-view-role",
+				Namespace: defNS,
+			},
+			Rules: []v1.PolicyRule{
+				{
+					Verbs:     []string{"get", "list", "watch"},
+					APIGroups: []string{""},
+					Resources: []string{"configmaps"},
+				},
+			},
+		}
+		// create it
+		_, err = clientSet.RbacV1().ClusterRoles().Create(&nginxCR)
+		if err != nil {
+			ch <- err
+			return
+		}
+		// Cluster Role Binding
+		nginxCRB := v1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "k8s-nginx-cm-svc-account",
+				Namespace: defNS,
+			},
+			Subjects: []v1.Subject{
+				{
+					Kind:      "ServiceAccount",
+					Name:      "nginx-user",
+					Namespace: defNS,
+				},
+			},
+			RoleRef: v1.RoleRef{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "ClusterRole",
+				Name:     "k8s-nginx-cm-view-role",
+			},
+		}
+		// create it
+		_, err = clientSet.RbacV1().ClusterRoleBindings().Create(&nginxCRB)
+		if err != nil {
+			ch <- err
+			return
+		}
+	}()
+	return ch
 }

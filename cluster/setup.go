@@ -62,9 +62,11 @@ func SetupM3() error {
 	waitEtcdCh := SetupEtcCluster()
 
 	// setup nginx router
-	log.Println("setting up nginx configmap")
+	log.Println("setting up nginx configmap and service account")
 	waitCh := SetupNginxConfigMap(clientset)
+	nginxSACh := setupNginxServiceAccount()
 	<-waitCh
+	<-nginxSACh
 	//// Setup Jwt Secret
 	log.Println("Setting up jwt secret")
 	waitJwtCh := SetupJwtSecrets(clientset)

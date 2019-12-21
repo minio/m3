@@ -312,7 +312,6 @@ func WatcEtcdBucketCreation() {
 
 	for watchResp := range watchChan {
 		for _, event := range watchResp.Events {
-			log.Println("got message", event)
 			go func(event *clientv3.Event) {
 				ctx, err := NewEmptyContext()
 				if err != nil {
@@ -371,7 +370,6 @@ func processMessage(ctx *Context, event *clientv3.Event) error {
 		if err != nil {
 			return err
 		}
-		log.Println(keyParts.TenantShortName, "/", keyParts.BucketName)
 		tenant, err := GetTenantWithCtxByServiceName(nil, keyParts.TenantShortName)
 		if err != nil {
 			return err
@@ -387,7 +385,6 @@ func processMessage(ctx *Context, event *clientv3.Event) error {
 		if err != nil {
 			return err
 		}
-		log.Println(keyParts.TenantShortName, "/", keyParts.BucketName)
 
 		tenant, err := GetTenantWithCtxByServiceName(nil, keyParts.TenantShortName)
 		if err != nil {
