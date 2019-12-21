@@ -27,7 +27,7 @@ import (
 )
 
 // MakeBucket makes a bucket after validating the sessionId in the grpc headers in the appropriate tenant's MinIO
-func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (res *pb.Bucket, err error) {
+func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (*pb.Bucket, error) {
 	// Make bucket in the tenant's MinIO
 	bucket := in.GetName()
 	accessType := cluster.BucketPrivate
@@ -35,10 +35,16 @@ func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (res 
 		accessType = cluster.BucketPublic
 	}
 
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal Error").Err()
+	}
+
 	// get tenant short name from context
 	tenantShortName := ctx.Value(cluster.TenantShortNameKey).(string)
 	// TODO: Update to use context
-	err = cluster.MakeBucket(tenantShortName, bucket, accessType)
+	err = cluster.MakeBucket(appCtx, tenantShortName, bucket, accessType)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
 	}

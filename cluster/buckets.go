@@ -43,7 +43,7 @@ const (
 
 // MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
 // TODO: allow to spcify the user performing the action (like in the API/gRPC case)
-func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) error {
+func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType BucketAccess) error {
 	// validate bucket name
 	if bucketName != "" {
 		var re = regexp.MustCompile(`^[a-z0-9-]{3,}$`)
@@ -72,7 +72,14 @@ func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) err
 		return tagErrorAsMinio(err)
 	}
 
-	return SetBucketAccess(minioClient, bucketName, accessType)
+	err = SetBucketAccess(minioClient, bucketName, accessType)
+	if err != nil {
+		log.Println(err)
+		return tagErrorAsMinio(err)
+	}
+	// announce the bucket on the router
+	<-UpdateNginxConfiguration(ctx)
+	return nil
 }
 
 type TenantBucketInfo struct {
@@ -361,7 +368,7 @@ func GetLatestTotalBuckets(ctx *Context, date time.Time) (totalBuckets uint64, e
 func GetTotalMonthBucketUsageFromDB(ctx *Context, date time.Time) (monthUsage uint64, err error) {
 	// Select query doing MAX total_usage grouping by year and month
 	query := `SELECT 
-					MAX(s.total_usage) as total_monthly_usage
+					MAX(s.total_usage) AS total_monthly_usage
 				FROM (
 					SELECT
 					    EXTRACT (YEAR FROM s.last_update) AS YEAR,

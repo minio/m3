@@ -62,9 +62,11 @@ func SetupM3() error {
 	waitEtcdCh := SetupEtcCluster()
 
 	// setup nginx router
-	log.Println("setting up nginx configmap")
+	log.Println("setting up nginx configmap and service account")
 	waitCh := SetupNginxConfigMap(clientset)
+	nginxSACh := setupNginxServiceAccount()
 	<-waitCh
+	<-nginxSACh
 	//// Setup Jwt Secret
 	log.Println("Setting up jwt secret")
 	waitJwtCh := SetupJwtSecrets(clientset)
@@ -170,12 +172,15 @@ func SetupM3() error {
 		}
 	}
 	// wait for all other servicess
+	log.Println("Waiting on JWT")
 	<-waitJwtCh
+	log.Println("Waiting on etcd cluster")
 	err = <-waitEtcdCh
 	if err != nil {
 		log.Println(err)
 	}
 	// wait on nginx resolver and check if there were any errors
+	log.Println("Waiting on nginx resolver")
 	err = <-waitNginxResolverCh
 	if err != nil {
 		log.Println(err)
@@ -329,8 +334,8 @@ func setupPostgresDeployment(clientset *kubernetes.Clientset) <-chan struct{} {
 				Containers: []v1.Container{
 					{
 						Name:            "postgres",
-						Image:           "postgres:12.0",
-						ImagePullPolicy: "Always",
+						Image:           "postgres:12",
+						ImagePullPolicy: "IfNotPresent",
 						Ports: []v1.ContainerPort{
 							{
 								Name:          "http",
@@ -425,111 +430,6 @@ func setupPostgresService(clientset *kubernetes.Clientset) <-chan struct{} {
 				},
 			}
 			_, err := clientset.CoreV1().Services(m3SystemNamespace).Create(&pgSvc)
-			if err != nil {
-				log.Println(err)
-				close(doneCh)
-			}
-		}
-	}()
-	return doneCh
-}
-
-func SetupNginxConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
-	doneCh := make(chan struct{})
-	nginxConfigMapName := "nginx-configuration"
-
-	go func() {
-		_, nginxConfigMapExists := clientset.CoreV1().ConfigMaps("default").Get(nginxConfigMapName, metav1.GetOptions{})
-		if nginxConfigMapExists == nil {
-			log.Println("nginx configmap already exists... skip create")
-			close(doneCh)
-		} else {
-			factory := informers.NewSharedInformerFactory(clientset, 0)
-			configMapInformer := factory.Core().V1().ConfigMaps().Informer()
-			configMapInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {
-					configMap := obj.(*v1.ConfigMap)
-					if configMap.Name == nginxConfigMapName {
-						log.Println("nginx configmap created correctly")
-						close(doneCh)
-					}
-				},
-			})
-
-			go configMapInformer.Run(doneCh)
-
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nginxConfigMapName,
-				},
-				Data: map[string]string{
-					"nginx.conf": `
-user nginx;
-worker_processes auto;
-error_log /dev/stdout debug;
-pid /var/run/nginx.pid;
-
-events {
-	worker_connections  1024;
-}
-			`,
-				},
-			}
-			_, err := clientset.CoreV1().ConfigMaps("default").Create(&configMap)
-			if err != nil {
-				log.Println(err)
-				close(doneCh)
-			}
-		}
-	}()
-	return doneCh
-}
-
-// SetupNginxLoadBalancer setups the loadbalancer/reverse proxy used to resolve the tenants subdomains
-func SetupNginxLoadBalancer(clientset *kubernetes.Clientset) <-chan struct{} {
-	doneCh := make(chan struct{})
-	nginxServiceName := "nginx-resolver"
-
-	go func() {
-		_, nginxServiceExists := clientset.CoreV1().Services("default").Get(nginxServiceName, metav1.GetOptions{})
-		if nginxServiceExists == nil {
-			log.Println("nginx service already exists... skip create")
-			close(doneCh)
-		} else {
-			factory := informers.NewSharedInformerFactory(clientset, 0)
-			serviceInformer := factory.Core().V1().Services().Informer()
-			serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {
-					service := obj.(*v1.Service)
-					if service.Name == nginxServiceName {
-						log.Println("nginx service created correctly")
-						close(doneCh)
-					}
-				},
-			})
-
-			go serviceInformer.Run(doneCh)
-
-			nginxService := v1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nginxServiceName,
-					Labels: map[string]string{
-						"name": nginxServiceName,
-					},
-				},
-				Spec: v1.ServiceSpec{
-					Ports: []v1.ServicePort{
-						{
-							Name: "http",
-							Port: 80,
-						},
-					},
-					Selector: map[string]string{
-						"app": nginxServiceName,
-					},
-				},
-			}
-			_, err := clientset.CoreV1().Services("default").Create(&nginxService)
 			if err != nil {
 				log.Println(err)
 				close(doneCh)
