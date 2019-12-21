@@ -116,13 +116,14 @@ func ReDeployNginxResolver(ctx *Context) chan error {
 func DeleteNginxLBDeployments(clientset *kubernetes.Clientset, deploymentName string) <-chan struct{} {
 	doneCh := make(chan struct{})
 	go func() {
+		defer close(doneCh)
+
 		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"type": "nginx-resolver"}}
 		deployments, err := appsV1API(clientset).Deployments(defNS).List(metav1.ListOptions{
 			LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 		})
 		if err != nil {
 			log.Println(err)
-			close(doneCh)
 		}
 		for _, deployment := range deployments.Items {
 			if deployment.Name != deploymentName {
@@ -130,7 +131,6 @@ func DeleteNginxLBDeployments(clientset *kubernetes.Clientset, deploymentName st
 			}
 		}
 		fmt.Println("Old nginx-resolver deployments deleted correctly")
-		close(doneCh)
 	}()
 	return doneCh
 }
@@ -138,6 +138,8 @@ func DeleteNginxLBDeployments(clientset *kubernetes.Clientset, deploymentName st
 func CreateNginxResolverDeployment(clientset *kubernetes.Clientset, deploymentName string) <-chan struct{} {
 	doneCh := make(chan struct{})
 	go func() {
+		defer close(doneCh)
+
 		factory := informers.NewSharedInformerFactory(clientset, 0)
 		deploymentInformer := factory.Apps().V1().Deployments().Informer()
 		deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -145,7 +147,8 @@ func CreateNginxResolverDeployment(clientset *kubernetes.Clientset, deploymentNa
 				deployment := newObj.(*appsv1.Deployment)
 				if deployment.Name == deploymentName && len(deployment.Status.Conditions) > 0 && deployment.Status.Conditions[0].Status == "True" {
 					fmt.Println("nginx-resolver deployment created correctly")
-					close(doneCh)
+					// signal caller to proceed.
+					doneCh <- struct{}{}
 				}
 			},
 		})
@@ -157,7 +160,6 @@ func CreateNginxResolverDeployment(clientset *kubernetes.Clientset, deploymentNa
 		_, err := appsV1API(clientset).Deployments("default").Create(&nginxLBDeployment)
 		if err != nil {
 			log.Println(err)
-			close(doneCh)
 		}
 	}()
 	return doneCh
@@ -166,6 +168,8 @@ func CreateNginxResolverDeployment(clientset *kubernetes.Clientset, deploymentNa
 func UpdateNginxResolverService(clientset *kubernetes.Clientset, deploymentVersionName string) <-chan struct{} {
 	doneCh := make(chan struct{})
 	go func() {
+		defer close(doneCh)
+
 		factory := informers.NewSharedInformerFactory(clientset, 0)
 		serviceInformer := factory.Core().V1().Services().Informer()
 		serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -173,7 +177,8 @@ func UpdateNginxResolverService(clientset *kubernetes.Clientset, deploymentVersi
 				service := obj.(*corev1.Service)
 				if service.GetLabels()["name"] == "nginx-resolver" && service.Spec.Selector["app"] == deploymentVersionName {
 					fmt.Println("nginx-resolver service updated correctly")
-					close(doneCh)
+					// signal caller to proceed.
+					doneCh <- struct{}{}
 				}
 			},
 		})
@@ -189,7 +194,6 @@ func UpdateNginxResolverService(clientset *kubernetes.Clientset, deploymentVersi
 		_, err = clientset.CoreV1().Services("default").Update(nginxService)
 		if err != nil {
 			log.Println(err)
-			close(doneCh)
 		}
 	}()
 	return doneCh
