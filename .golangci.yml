@@ -15,6 +15,3 @@ linters:
     - deadcode
     - unparam
     - structcheck
-
-service:
-  golangci-lint-version: 1.20.0 # use the fixed version to not introduce new linters unexpectedly
