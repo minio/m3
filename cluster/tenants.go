@@ -126,6 +126,9 @@ func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) err
 	if err = claimTenant(ctx, tenant, name, domain); err != nil {
 		return err
 	}
+	// update the context tenant
+	ctx.Tenant.Name = name
+	ctx.Tenant.Domain = domain
 	sgt := <-GetTenantStorageGroupByShortName(ctx, tenant.ShortName)
 	if sgt.Error != nil {
 		return sgt.Error
@@ -449,7 +452,7 @@ func GetTenantByDomainWithCtx(ctx *Context, tenantDomain string) (tenant Tenant,
 		if err != nil {
 			return tenant, err
 		}
-		row = tx.QueryRow(query, ctx.Tenant.ShortName)
+		row = tx.QueryRow(query, ctx.Tenant.Domain)
 	} else {
 		// no context? straight to db
 		row = GetInstance().Db.QueryRow(query, tenantDomain)
