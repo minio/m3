@@ -18,6 +18,7 @@ kind load docker-image quay.io/coreos/etcd-operator:v0.9.4 --name m3cluster
 kind load docker-image quay.io/coreos/etcd:v3.4.0 --name m3cluster
 
 make --directory="../portal-ui" k8sdev
+make --directory="../nginx" k8sdev
 kubectl apply -f deployments/m3-portal-backend-deployment.yaml
 kubectl apply -f deployments/m3-portal-frontend-deployment.yaml
 kubectl apply -f deployments/portal-proxy-deployment.yaml

@@ -31,6 +31,7 @@ const (
 	TokenSignupEmail            = "signup-email"
 	TokenResetPasswordEmail     = "reset-password-email"
 	AdminTokenSetPassword       = "admin-set-password"
+	NginxConfiguration          = "nginx-configuration"
 	AdminIDKey              key = iota
 	UserIDKey               key = iota
 	TenantIDKey             key = iota
