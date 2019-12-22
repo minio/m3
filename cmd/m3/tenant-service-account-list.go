@@ -57,11 +57,11 @@ var tenantServiceAccountListCmd = cli.Command{
 //     m3 tenant service-account list acme --offset 20 --limit 10
 func tenantServiceAccountList(ctx *cli.Context) error {
 	fmt.Println("Tenant Service Accounts.")
-	tenantShortName := ctx.String("tenant")
+	tenantDomain := ctx.String("tenant")
 	offset := ctx.Int("offset")
 	limit := ctx.Int("limit")
-	if tenantShortName == "" && ctx.Args().Get(0) != "" {
-		tenantShortName = ctx.Args().Get(0)
+	if tenantDomain == "" && ctx.Args().Get(0) != "" {
+		tenantDomain = ctx.Args().Get(0)
 	}
 	if offset == 0 && ctx.Args().Get(1) != "" {
 		var err error
@@ -79,12 +79,12 @@ func tenantServiceAccountList(ctx *cli.Context) error {
 			return err
 		}
 	}
-	if tenantShortName == "" {
+	if tenantDomain == "" {
 		fmt.Println("You must provide tenant name")
 		return errMissingArguments
 	}
 	//validate tenant
-	tenant, err := cluster.GetTenantByDomain(tenantShortName)
+	tenant, err := cluster.GetTenantByDomain(tenantDomain)
 	if err != nil {
 		fmt.Println("Invalid tenant")
 		return err
@@ -121,7 +121,7 @@ func tenantServiceAccountList(ctx *cli.Context) error {
 
 	if total > offset+limit {
 		fmt.Println("For the next page, please run command:")
-		fmt.Printf("\tm3 tenant service-account list %s --offset %d --limit %d\n", tenantShortName, offset+limit, limit)
+		fmt.Printf("\tm3 tenant service-account list %s --offset %d --limit %d\n", tenantDomain, offset+limit, limit)
 	}
 
 	return nil
