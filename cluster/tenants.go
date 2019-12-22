@@ -105,15 +105,15 @@ func ProvisionTenant(ctx *Context, shortName string, sg *StorageGroup) error {
 
 // TenantAddAction adds a tenant to the cluster, if an admin name and email are provided, the user is created and invited
 // via email.
-func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) error {
+func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) error {
 	// check if tenant name is available
-	available, err := TenantShortNameAvailable(ctx, shortName)
+	available, err := TenantShortNameAvailable(ctx, domain)
 	if err != nil {
 		log.Println(err)
-		return errors.New("Error tenant's shortname not available")
+		return errors.New("Error validating domain")
 	}
 	if !available {
-		return errors.New("Error tenant's shortname not available.")
+		return errors.New("Error tenant's shortname not available")
 	}
 
 	// Find an available tenant
@@ -123,7 +123,7 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 	}
 	// now that we have a tenant, designate it as the tenant to be used in context
 	ctx.Tenant = tenant
-	if err = claimTenant(ctx, tenant, name, shortName); err != nil {
+	if err = claimTenant(ctx, tenant, name, domain); err != nil {
 		return err
 	}
 	sgt := <-GetTenantStorageGroupByShortName(ctx, tenant.ShortName)
@@ -794,7 +794,7 @@ func ProvisionTenantTask(task *Task) error {
 		return err
 	}
 	// get the storage group where the tenant will be placed
-	sg, err := GetStorageGroupById(ctx, &taskData.StorageGroupID)
+	sg, err := GetStorageGroupByID(ctx, &taskData.StorageGroupID)
 	if err != nil {
 		return err
 	}

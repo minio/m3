@@ -260,7 +260,7 @@ func RunTask(id int64) error {
 }
 
 func ScheduleTask(ctx *Context, name string, data interface{}) error {
-	dataJson, err := json.Marshal(data)
+	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
@@ -275,7 +275,7 @@ func ScheduleTask(ctx *Context, name string, data interface{}) error {
 		return err
 	}
 	// Execute query
-	_, err = tx.Exec(query, name, string(dataJson))
+	_, err = tx.Exec(query, name, string(dataJSON))
 	if err != nil {
 		return err
 	}

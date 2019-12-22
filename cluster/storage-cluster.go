@@ -130,8 +130,8 @@ func AddStorageGroup(ctx *Context, storageClusterID *uuid.UUID, sgName string) c
 	return ch
 }
 
-// GetStorageGroupById returns a storage group by name
-func GetStorageGroupById(ctx *Context, id *uuid.UUID) (*StorageGroup, error) {
+// GetStorageGroupByID returns a storage group by name
+func GetStorageGroupByID(ctx *Context, id *uuid.UUID) (*StorageGroup, error) {
 	sg := StorageGroup{}
 	// For now, let's select a storage group at random
 	query := `
