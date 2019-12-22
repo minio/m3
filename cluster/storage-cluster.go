@@ -295,7 +295,7 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*Sto
 	return ch
 }
 
-// GetAllTenantRoutes returns a list of all tenants that currently exists on the cluster
+// GetAllTenantRoutes returns a list of all enabled tenants that currently exists on the cluster
 // their subdomain, service name and port.
 func GetAllTenantRoutes(ctx *Context) chan []*TenantRoute {
 	ch := make(chan []*TenantRoute)
@@ -308,6 +308,7 @@ func GetAllTenantRoutes(ctx *Context) chan []*TenantRoute {
 			tenants_storage_groups t1
 			LEFT JOIN tenants t2
 			ON t1.tenant_id = t2.id
+			WHERE t2.enabled = TRUE
 		`
 		// Transactional query tenants may be query as a new one is being inserted
 		tx, err := ctx.MainTx()

@@ -27,7 +27,7 @@ import (
 )
 
 // MakeBucket makes a bucket after validating the sessionId in the grpc headers in the appropriate tenant's MinIO
-func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (res *pb.Bucket, err error) {
+func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (*pb.Bucket, error) {
 	// Make bucket in the tenant's MinIO
 	bucket := in.GetName()
 	accessType := cluster.BucketPrivate
@@ -35,10 +35,16 @@ func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (res 
 		accessType = cluster.BucketPublic
 	}
 
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal Error").Err()
+	}
+
 	// get tenant short name from context
 	tenantShortName := ctx.Value(cluster.TenantShortNameKey).(string)
 	// TODO: Update to use context
-	err = cluster.MakeBucket(tenantShortName, bucket, accessType)
+	err = cluster.MakeBucket(appCtx, tenantShortName, bucket, accessType)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
 	}
@@ -76,24 +82,37 @@ func getBucketAccess(accessType pb.Access) cluster.BucketAccess {
 
 // ListBuckets lists buckets in the tenant's MinIO after validating the sessionId in the grpc headers
 func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*pb.ListBucketsResponse, error) {
-	// get tenant short name from context
-	tenantShortName := ctx.Value(cluster.TenantShortNameKey).(string)
-	// TODO: Update to use context
+	// start app context
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO: Update List bucket to use context so the tenant is read automatically
 	// List buckets in the tenant's MinIO
 	var bucketInfos []cluster.TenantBucketInfo
-	bucketInfos, err := cluster.ListBuckets(tenantShortName)
+	bucketInfos, err = cluster.ListBuckets(appCtx.Tenant.ShortName)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.Internal, "Failed to list buckets").Err()
 	}
 
+	dataUsageInfo, err := cluster.GetBucketUsageMetrics(appCtx, appCtx.Tenant.ShortName)
+	if err != nil {
+		log.Println("error getting bucket usage metrics:", err)
+	}
+
 	var buckets []*pb.Bucket
 	for _, bucketInfo := range bucketInfos {
+		size, ok := dataUsageInfo.BucketsSizes[bucketInfo.Name]
+		if !ok {
+			// if !ok size is 0 by default
+			log.Println("size not available for bucket: ", bucketInfo.Name)
+		}
 		buckets = append(buckets, &pb.Bucket{
 			Name:   bucketInfo.Name,
 			Access: getAccessType(bucketInfo.Access),
+			Size:   int64(size),
 		})
 	}
 	return &pb.ListBucketsResponse{

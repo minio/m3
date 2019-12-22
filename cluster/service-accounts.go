@@ -680,6 +680,10 @@ func streamAccessKeyToTenantServices() chan *AccessKeyToTenantShortNameResult {
 				log.Println("Error fetching tenant", tenantRes.Error)
 				continue
 			}
+			// Don't return disabled tenants access keys
+			if !tenantRes.Tenant.Enabled {
+				continue
+			}
 			//we need a context for this tenant
 			tCtx := NewCtxWithTenant(tenantRes.Tenant)
 
@@ -693,7 +697,6 @@ func streamAccessKeyToTenantServices() chan *AccessKeyToTenantShortNameResult {
 				ch <- &AccessKeyToTenantShortNameResult{Error: err}
 				return
 			}
-			defer rows.Close()
 
 			for rows.Next() {
 				// Save the resulted query on the User struct
@@ -703,6 +706,7 @@ func streamAccessKeyToTenantServices() chan *AccessKeyToTenantShortNameResult {
 				err = rows.Scan(&ak2s.AccessKey)
 				if err != nil {
 					ch <- &AccessKeyToTenantShortNameResult{Error: err}
+					rows.Close()
 					return
 				}
 				ch <- &AccessKeyToTenantShortNameResult{AccessKeyToTenantShortName: &ak2s}
@@ -711,9 +715,11 @@ func streamAccessKeyToTenantServices() chan *AccessKeyToTenantShortNameResult {
 			err = rows.Err()
 			if err != nil {
 				ch <- &AccessKeyToTenantShortNameResult{Error: err}
+				rows.Close()
 				return
 			}
 
+			rows.Close()
 		}
 	}()
 	return ch

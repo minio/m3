@@ -228,7 +228,8 @@ message MetricsResponse {
     int32 total_cost = 3;
     // daily usage
     repeated MetricsDayUsage daily_usage = 4;
-
+    // flag to decide to show cost or not on UI
+    bool show_cost = 5;
 }
 
 // Networking related metrics
