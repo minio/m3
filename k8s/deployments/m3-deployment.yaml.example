@@ -33,6 +33,26 @@ spec:
   selector:
     app: m3
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: m3-env
+data:
+  ADMIN_NAME: <ADMIN_NAME>
+  ADMIN_EMAIL: <ADMIN_EMAIL>
+  DB_HOSTNAME: "postgres.m3"
+  MAIL_ACCOUNT: <MAIL_ACCOUNT>
+  MAIL_SERVER: <MAIL_SERVER>
+  MAIL_PASSWORD: <MAIL_PASSWORD>
+  APP_URL: <APP_URL>
+  S3_DOMAIN: <S3_DOMAIN>
+  SETUP_USE_GLOBAL_BUCKETS: "true"
+  # Uncomment these to enable IDP for Admin Login
+  #IDENTITY_PROVIDER_URL: ""
+  #IDENTITY_PROVIDER_CLIENT_ID: ""
+  #IDENTITY_PROVIDER_SECRET: ""
+  #IDENTITY_PROVIDER_CALLBACK: ""
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -55,36 +75,37 @@ spec:
           args:
             - /m3
             - service
-          env:
-          # Uncomment these to enable IDP for Admin Login
-#            - name: IDENTITY_PROVIDER_URL
-#              value: ""
-#            - name: IDENTITY_PROVIDER_CLIENT_ID
-#              value: ""
-#            - name: IDENTITY_PROVIDER_SECRET
-#              value: ""
-#            - name: IDENTITY_PROVIDER_CALLBACK
-#              value: ""
-            - name: ADMIN_NAME
-              value: "<ADMIN_NAME>"
-            - name: ADMIN_EMAIL
-              value: "<ADMIN_EMAIL>"
-            - name: DB_HOSTNAME
-              value: postgres.m3
-            - name: MAIL_ACCOUNT
-              value: "<DEV_EMAIL_ACCOUNT>"
-            - name: MAIL_SERVER
-              value: "<DEV_EMAIL_SERVER>"
-            - name: MAIL_PASSWORD
-              value: "<DEV_EMAIL_PASSWORD>"
-            - name: APP_URL
-              value: <APP_ADDRESS>
-            - name: S3_DOMAIN
-              value: <YOUR_DOMAIN>
-            - name: SETUP_USE_GLOBAL_BUCKETS
-              value: "true"
+          envFrom:
+              - configMapRef:
+                  name: m3-env
           ports:
             - containerPort: 50051
               name: public-grpc
             - containerPort: 50052
               name: private-grpc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: m3-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: m3-scheduler
+  template:
+    metadata:
+      labels:
+        app: m3-scheduler
+    spec:
+      serviceAccountName: m3-user
+      containers:
+        - name: m3
+          image: minio/m3:dev
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - /m3
+            - scheduler
+          envFrom:
+            - configMapRef:
+                name: m3-env
