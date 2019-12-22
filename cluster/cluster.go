@@ -19,6 +19,7 @@ package cluster
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -765,16 +766,16 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 
 			}
 
-			// TODO: wait for the deployment to come online before replacing the next deployment
-			// to know when the past deployment is online, we will expect at least 1 tenant to reply with it's
+			// wait for the deployment to come online before replacing the next deployment
+			// to know when the past deployment is online, we will expect the deployed tenant to reply with it's
 			// liveliness probe
-			//if len(tenants) > 0 {
-			//	err = <-waitDeploymentLive(sgHostName, tenants[0].Port)
-			//	if err != nil {
-			//		ch <- err
-			//		return
-			//	}
-			//}
+			if len(tenants) > 0 {
+				err = <-waitDeploymentLive(sgHostName, sgTenant.Port)
+				if err != nil {
+					ch <- err
+					return
+				}
+			}
 		}
 	}()
 	return ch
@@ -819,6 +820,27 @@ func DeleteTenantSecrets(tenantShortName string) chan error {
 		err = clientset.CoreV1().Secrets("default").Delete(secretsName, nil)
 		if err != nil {
 			ch <- err
+		}
+	}()
+	return ch
+}
+
+func waitDeploymentLive(scHostName string, port int32) chan error {
+	ch := make(chan error)
+	go func() {
+		defer close(ch)
+		targetURL := fmt.Sprintf("http://%s:%d/minio/health/live", scHostName, port)
+		for {
+			resp, err := http.Get(targetURL)
+			if err != nil {
+				// TODO: Return error if it's not a "not found" error
+				fmt.Println(err)
+			}
+			if resp != nil && resp.StatusCode == http.StatusOK {
+				fmt.Println("host available")
+				return
+			}
+			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 	return ch

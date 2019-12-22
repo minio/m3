@@ -306,8 +306,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 	}
 
 	// send email with the invite
-
-	tenant, err := GetTenantByDomainWithCtx(ctx, ctx.Tenant.ShortName)
+	tenant, err := GetTenantByDomainWithCtx(ctx, ctx.Tenant.Domain)
 	if err != nil {
 		return fmt.Errorf("tenant: %s", err.Error())
 	}
@@ -377,7 +376,7 @@ func SetUserPassword(ctx *Context, userID *uuid.UUID, password string) error {
 
 // MarkInvitationAccepted sets the invitation accepted for a users a true
 func MarkInvitationAccepted(ctx *Context, userID *uuid.UUID) error {
-	query := `UPDATE users SET accepted_invitation=true WHERE id=$1`
+	query := `UPDATE users SET accepted_invitation=TRUE WHERE id=$1`
 	tx, err := ctx.TenantTx()
 	if err != nil {
 		return err
