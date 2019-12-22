@@ -13,4 +13,4 @@
 
 ./m3 cluster sc sg add --storage_cluster my-dc-rack-1 --name group-1
 
-./m3 tenant add "Acme Inc." --short_name acme --admin_name="Your Name" --admin_email="your@mail.com"
+#./m3 tenant add "Acme Inc." --short_name acme --admin_name="Your Name" --admin_email="your@mail.com"

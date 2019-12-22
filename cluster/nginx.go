@@ -47,25 +47,6 @@ func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 						ContainerPort: 80,
 					},
 				},
-				VolumeMounts: []corev1.VolumeMount{
-					{
-						Name:      NginxConfiguration,
-						MountPath: "/etc/nginx/nginx.conf",
-						SubPath:   "nginx.conf",
-					},
-				},
-			},
-		},
-		Volumes: []corev1.Volume{
-			{
-				Name: NginxConfiguration,
-				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: NginxConfiguration,
-						},
-					},
-				},
 			},
 		},
 	}
@@ -324,7 +305,7 @@ func getLocalBucketNamespaceConfiguration(ctx *Context) string {
 					}
 				}
 
-			`, tenantRoute.ShortName, appDomain, tenantRoute.ServiceName, tenantRoute.Port)
+			`, tenantRoute.Domain, appDomain, tenantRoute.ServiceName, tenantRoute.Port)
 		nginxConfiguration.WriteString(serverBlock)
 	}
 	nginxConfiguration.WriteString(`

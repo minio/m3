@@ -53,7 +53,7 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
-	tenant, err := cluster.GetTenant(in.Tenant)
+	tenant, err := cluster.GetTenantByDomain(in.Tenant)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.NotFound, "Tenant not found").Err()
@@ -110,7 +110,7 @@ func (ps *privateServer) TenantUserDelete(ctx context.Context, in *pb.TenantUser
 		err = appCtx.Commit()
 	}()
 
-	tenant, err := cluster.GetTenant(tenantReq)
+	tenant, err := cluster.GetTenantByDomain(tenantReq)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.NotFound, "Tenant not found").Err()
@@ -139,7 +139,7 @@ func (ps *privateServer) TenantUserForgotPassword(ctx context.Context, in *pb.Te
 		return nil, status.New(codes.InvalidArgument, "User email is needed").Err()
 	}
 	// validate tenant
-	tenant, err := cluster.GetTenant(in.Tenant)
+	tenant, err := cluster.GetTenantByDomain(in.Tenant)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.InvalidArgument, "Invalid tenant").Err()

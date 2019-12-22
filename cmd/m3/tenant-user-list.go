@@ -84,7 +84,7 @@ func tenantUserList(ctx *cli.Context) error {
 		return errMissingArguments
 	}
 	//validate tenant
-	tenant, err := cluster.GetTenant(tenantShortName)
+	tenant, err := cluster.GetTenantByDomain(tenantShortName)
 	if err != nil {
 		return err
 	}

@@ -119,5 +119,15 @@ func (ps *privateServer) ClusterStorageGroupAdd(ctx context.Context, in *pb.Stor
 		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
+	// we can tolerate this call failing
+	if err = cluster.SchedulePreProvisionTenantInStorageGroup(appCtx, storageGroupResult.StorageGroup); err != nil {
+		log.Println("Warning:", err)
+	}
+	// Second commit, if the schedule worked fine
+	if err = appCtx.Commit(); err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
 	return &pb.StorageGroupAddResponse{}, nil
 }

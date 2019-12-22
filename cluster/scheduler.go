@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -41,8 +42,9 @@ const (
 )
 
 const (
-	failTask  = "fail"
-	emptyTask = "empty"
+	failTask            = "fail"
+	emptyTask           = "empty"
+	TaskProvisionTenant = "provision-tenant"
 )
 
 type Task struct {
@@ -65,7 +67,7 @@ func StartScheduler() {
 		// if we got a task, schedule it
 		if task != nil {
 			log.Printf("Schedule task %d\n", task.ID)
-			if err := scheduleTask(task); err != nil {
+			if err := scheduleTaskJob(task); err != nil {
 				log.Println(err)
 				if err = markTask(task, ErrorSchedulingTaskStatus); err != nil {
 					log.Println(err)
@@ -122,8 +124,8 @@ func markTask(task *Task, newStatus TaskStatus) error {
 	return nil
 }
 
-// scheduleTask creates the kubernetes job for the passed task and if successful, it marks the task as scheduled
-func scheduleTask(task *Task) error {
+// scheduleTaskJob creates the kubernetes job for the passed task and if successful, it marks the task as scheduled
+func scheduleTaskJob(task *Task) error {
 	// create job
 	err := startJob(task)
 	if err != nil {
@@ -144,6 +146,7 @@ func scheduleTask(task *Task) error {
 func startJob(task *Task) error {
 	var backoff int32 = 0
 	var ttlJob int32 = 60
+	log.Println("Scheduling job:", fmt.Sprintf("task-%d-%s-job", task.ID, task.Name))
 	job := batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Job",
@@ -156,7 +159,7 @@ func startJob(task *Task) error {
 			BackoffLimit:            &backoff,
 			Template: v1.PodTemplateSpec{
 				Spec: v1.PodSpec{
-					Volumes: nil,
+					ServiceAccountName: "m3-user",
 					Containers: []v1.Container{
 						{
 							Name:  "task",
@@ -238,6 +241,10 @@ func RunTask(id int64) error {
 		panic("Intentional Task Failure")
 	case emptyTask:
 		log.Println("Empty Task")
+	case TaskProvisionTenant:
+		if err := ProvisionTenantTask(task); err != nil {
+			panic(err)
+		}
 	default:
 		log.Printf("Unknown task name: %s\n", task.Name)
 		if err := markTask(task, UnknownTaskStatus); err != nil {
@@ -250,4 +257,28 @@ func RunTask(id int64) error {
 	}
 	os.Exit(0)
 	return nil
+}
+
+func ScheduleTask(ctx *Context, name string, data interface{}) error {
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	// Now insert the credentials into the DB
+	query := `
+		INSERT INTO
+				tasks ("name", "data")
+			  VALUES
+				($1, $2)`
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return err
+	}
+	// Execute query
+	_, err = tx.Exec(query, name, string(dataJSON))
+	if err != nil {
+		return err
+	}
+	return nil
+
 }

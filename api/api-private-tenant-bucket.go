@@ -45,7 +45,7 @@ func (ps *privateServer) TenantBucketAdd(ctx context.Context, in *pb.TenantBucke
 		return nil, status.New(codes.Internal, "Internal Error").Err()
 	}
 	// validate tenant
-	tenant, err := cluster.GetTenant(in.Tenant)
+	tenant, err := cluster.GetTenantByDomain(in.Tenant)
 	if err != nil {
 		log.Println(err)
 		return nil, err

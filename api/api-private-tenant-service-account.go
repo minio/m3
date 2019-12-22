@@ -89,7 +89,7 @@ func (ps *privateServer) TenantServiceAccountAssign(ctx context.Context, in *pb.
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	// validate Tenant
-	tenant, err := cluster.GetTenant(in.Tenant)
+	tenant, err := cluster.GetTenantByDomain(in.Tenant)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
