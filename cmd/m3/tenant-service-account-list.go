@@ -84,7 +84,7 @@ func tenantServiceAccountList(ctx *cli.Context) error {
 		return errMissingArguments
 	}
 	//validate tenant
-	tenant, err := cluster.GetTenant(tenantShortName)
+	tenant, err := cluster.GetTenantByDomain(tenantShortName)
 	if err != nil {
 		fmt.Println("Invalid tenant")
 		return err

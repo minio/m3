@@ -40,6 +40,7 @@ const (
 	SessionIDKey            key = iota
 	WhoAmIKey               key = iota
 	maxReadinessTries           = 120 // This should allow for 4 minutes of attempts
+	maxNumberOfTenantsPerSg     = 16
 
 	// configurations
 	cfgCoreGlobalBuckets = "core.global_buckets"

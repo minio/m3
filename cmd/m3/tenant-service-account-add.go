@@ -79,7 +79,7 @@ func tenantServiceAccountAdd(ctx *cli.Context) error {
 		desc = &description
 	}
 	//validate tenant
-	tenant, err := cluster.GetTenant(tenantShortName)
+	tenant, err := cluster.GetTenantByDomain(tenantShortName)
 	if err != nil {
 		return err
 	}

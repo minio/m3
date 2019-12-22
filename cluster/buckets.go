@@ -547,7 +547,7 @@ func CalculateTenantsMetrics() error {
 
 func getTenantMetrics(ctx *Context, tenantShortName string) error {
 	// validate Tenant
-	tenant, err := GetTenant(tenantShortName)
+	tenant, err := GetTenantByDomain(tenantShortName)
 	if err != nil {
 		return err
 	}
