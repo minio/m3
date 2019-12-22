@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"log"
@@ -42,7 +43,7 @@ const (
 
 // MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
 // TODO: allow to spcify the user performing the action (like in the API/gRPC case)
-func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) error {
+func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType BucketAccess) error {
 	// validate bucket name
 	if bucketName != "" {
 		var re = regexp.MustCompile(`^[a-z0-9-]{3,}$`)
@@ -71,7 +72,14 @@ func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) err
 		return tagErrorAsMinio(err)
 	}
 
-	return SetBucketAccess(minioClient, bucketName, accessType)
+	err = SetBucketAccess(minioClient, bucketName, accessType)
+	if err != nil {
+		log.Println(err)
+		return tagErrorAsMinio(err)
+	}
+	// announce the bucket on the router
+	<-UpdateNginxConfiguration(ctx)
+	return nil
 }
 
 type TenantBucketInfo struct {
@@ -303,8 +311,102 @@ type BucketMetric struct {
 	AverageUsage float64
 }
 
-// GetBucketUsageFromDB get total average bucket usage metrics per day on one month
-func GetBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric, error) {
+// GetTenantUsageCostMultiplier gets tenant's cost multiplier used for charging
+func GetTenantUsageCostMultiplier(ctx *Context) (cost float32, err error) {
+	// Select query doing MAX total_usage grouping by year and month
+	query := `SELECT 
+				t.cost_multiplier
+			  FROM tenants t
+			  WHERE t.short_name=$1`
+
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return 0, err
+	}
+	// Execute query search one Month after `date`
+	row := tx.QueryRow(query, ctx.Tenant.ShortName)
+	if err != nil {
+		return 0, err
+	}
+	err = row.Scan(&cost)
+	if err != nil {
+		return 0, err
+	}
+	return cost, nil
+}
+
+// GetLatestTotalBuckets get the latest total number of buckets during a month period
+func GetLatestTotalBuckets(ctx *Context, date time.Time) (totalBuckets uint64, err error) {
+	query := `SELECT
+					MAX(total_buckets) max_buckets
+				FROM bucket_metrics s
+				WHERE last_update >= $1 AND last_update <= $2
+				GROUP BY last_update
+				ORDER BY last_update DESC`
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return 0, err
+	}
+	// Get first result of the query which contains the latest number of
+	// buckets during the selected period one Month
+	row := tx.QueryRow(query, date, date.AddDate(0, 1, 0))
+	if err != nil {
+		return 0, err
+	}
+	err = row.Scan(&totalBuckets)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
+		log.Println("error getting latest total number of buckets:", err)
+		return 0, err
+	}
+	return totalBuckets, nil
+}
+
+// GetTotalMonthBucketUsageFromDB get max total bucket usage of the month
+func GetTotalMonthBucketUsageFromDB(ctx *Context, date time.Time) (monthUsage uint64, err error) {
+	// Select query doing MAX total_usage grouping by year and month
+	query := `SELECT 
+					MAX(s.total_usage) AS total_monthly_usage
+				FROM (
+					SELECT
+					    EXTRACT (YEAR FROM s.last_update) AS YEAR,
+					    EXTRACT (MONTH FROM s.last_update) AS MONTH,
+						s.total_usage
+					 FROM (
+					 	SELECT 
+							s.last_update, s.total_usage
+						FROM 
+							bucket_metrics s
+						WHERE s.last_update >= $1 AND s.last_update <= $2
+						) s
+					) s
+				GROUP BY
+					s.year, s.month`
+
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return 0, err
+	}
+	// Execute query search one Month after `date`
+	row := tx.QueryRow(query, date, date.AddDate(0, 1, 0))
+	if err != nil {
+		return 0, err
+	}
+	err = row.Scan(&monthUsage)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
+		log.Println("error getting latest total number of buckets:", err)
+		return 0, err
+	}
+	return monthUsage, nil
+}
+
+// GetDailyAvgBucketUsageFromDB get total average bucket usage metrics per day on one month
+func GetDailyAvgBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric, error) {
 	// Select query doing total_usage average grouping by year, month and day
 	// Use difference to get the daily average usage
 	query := `SELECT

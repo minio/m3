@@ -19,6 +19,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -38,7 +39,20 @@ func (ps *privateServer) TenantBucketAdd(ctx context.Context, in *pb.TenantBucke
 		return nil, status.New(codes.InvalidArgument, "A bucket name is needed").Err()
 	}
 
-	err := cluster.MakeBucket(in.Tenant, in.BucketName, cluster.BucketPrivate)
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal Error").Err()
+	}
+	// validate tenant
+	tenant, err := cluster.GetTenant(in.Tenant)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	appCtx.Tenant = &tenant
+
+	err = cluster.MakeBucket(appCtx, in.Tenant, in.BucketName, cluster.BucketPrivate)
 	if err != nil {
 		fmt.Println("Error creating bucket:", err.Error())
 		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
