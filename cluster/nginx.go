@@ -49,7 +49,7 @@ func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 				},
 				VolumeMounts: []corev1.VolumeMount{
 					{
-						Name:      "nginx-configuration",
+						Name:      NginxConfiguration,
 						MountPath: "/etc/nginx/nginx.conf",
 						SubPath:   "nginx.conf",
 					},
@@ -58,11 +58,11 @@ func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 		},
 		Volumes: []corev1.Volume{
 			{
-				Name: "nginx-configuration",
+				Name: NginxConfiguration,
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: "nginx-configuration",
+							Name: NginxConfiguration,
 						},
 					},
 				},
@@ -250,7 +250,7 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 
 		configMap := corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "nginx-configuration",
+				Name: NginxConfiguration,
 			},
 			Data: map[string]string{
 				"nginx.conf": nginxConfiguration,
@@ -537,7 +537,7 @@ func SetupNginxLoadBalancer(clientset *kubernetes.Clientset) <-chan struct{} {
 
 func SetupNginxConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
 	doneCh := make(chan struct{})
-	nginxConfigMapName := "nginx-configuration"
+	nginxConfigMapName := NginxConfiguration
 
 	go func() {
 		_, nginxConfigMapExists := clientset.CoreV1().ConfigMaps("default").Get(nginxConfigMapName, metav1.GetOptions{})
