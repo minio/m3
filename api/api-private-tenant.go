@@ -115,7 +115,7 @@ func (ps *privateServer) TenantCostSet(ctx context.Context, in *pb.TenantCostReq
 		}
 	}()
 
-	tenant, err := cluster.GetTenant(tenantShortName)
+	tenant, err := cluster.GetTenantByDomain(tenantShortName)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.NotFound, "Tenant not found").Err()
