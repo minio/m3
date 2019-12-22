@@ -27,6 +27,7 @@ const (
 	secretKey            = "SECRET_KEY"
 	maxTenantChannelSize = "MAX_TENANT_CHANNEL_SIZE"
 	s3Domain             = "S3_DOMAIN"
+	m3Image              = "M3_IMAGE"
 	// constants
 	TokenSignupEmail            = "signup-email"
 	TokenResetPasswordEmail     = "reset-password-email"
