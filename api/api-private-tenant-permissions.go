@@ -50,7 +50,7 @@ func (ps *privateServer) TenantPermissionAdd(ctx context.Context, in *pb.TenantP
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	// validate Tenant
-	tenant, err := cluster.GetTenant(in.Tenant)
+	tenant, err := cluster.GetTenantByDomain(in.Tenant)
 	if err != nil {
 		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
 	}
@@ -74,7 +74,7 @@ func (ps *privateServer) TenantPermissionList(ctx context.Context, in *pb.Tenant
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	// validate Tenant
-	tenant, err := cluster.GetTenant(in.Tenant)
+	tenant, err := cluster.GetTenantByDomain(in.Tenant)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
@@ -128,7 +128,7 @@ func (ps *privateServer) TenantPermissionAssign(ctx context.Context, in *pb.Tena
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	// validate Tenant
-	tenant, err := cluster.GetTenant(in.Tenant)
+	tenant, err := cluster.GetTenantByDomain(in.Tenant)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()

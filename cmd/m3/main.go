@@ -59,6 +59,8 @@ var appCmds = []cli.Command{
 	devCmd,
 	portalCmd,
 	emailTemplateCmd,
+	schedulerCmd,
+	runTaskCmd,
 }
 
 func main() {

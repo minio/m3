@@ -38,7 +38,7 @@ var assignPermissionCmd = cli.Command{
 		cli.StringFlag{
 			Name:  "permission",
 			Value: "",
-			Usage: "Id of the permission",
+			Usage: "ID of the permission",
 		},
 		cli.StringFlag{
 			Name:  "service-accounts",

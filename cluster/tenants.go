@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -36,6 +37,7 @@ type Tenant struct {
 	ID        uuid.UUID
 	Name      string
 	ShortName string
+	Domain    string
 	Enabled   bool
 }
 
@@ -44,19 +46,18 @@ type AddTenantResult struct {
 	Error error
 }
 
-// TenantAddAction adds a tenant to the cluster, if an admin name and email are provided, the user is created and invited
-// via email.
-func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) error {
-	// check if tenant name is available
-	available, err := TenantShortNameAvailable(ctx, shortName)
-	if err != nil {
-		log.Println(err)
-		return errors.New("Error tenant's shortname not available")
-	}
-	if !available {
-		return errors.New("Error tenant's shortname not available")
-	}
+type ProvisionTenantTaskData struct {
+	TenantShortName string
+	StorageGroupID  uuid.UUID
+}
 
+const (
+	TenantDisabled  = false
+	TenantAvailable = true
+)
+
+func ProvisionTenant(ctx *Context, shortName string, sg *StorageGroup) error {
+	// Enable kes service for handling minio encryption
 	if os.Getenv("KMS_ADDRESS") != "" {
 		err := <-StartNewKes(shortName)
 		if err != nil {
@@ -67,16 +68,8 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 	} else {
 		log.Println("Encryption will be disabled for tenant")
 	}
-
-	// first find a cluster where to allocate the tenant
-	sg := <-SelectSGWithSpace(ctx)
-	if sg.Error != nil {
-		log.Println("Error no storage group available: ", sg.Error)
-		return errors.New("Error no storage group available")
-	}
-
 	// register the tenant
-	tenantResult := <-InsertTenant(ctx, name, shortName)
+	tenantResult := <-InsertTenant(ctx, shortName, shortName)
 	if tenantResult.Error != nil {
 		log.Println("Error adding the tenant to the db: ", tenantResult.Error)
 		return errors.New("Error adding the tenant to the db")
@@ -96,27 +89,64 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 		SecretKey: RandomCharString(32)}
 
 	// Create a store for the tenant's configuration
-	err = CreateTenantSecrets(tenantResult.Tenant, &tenantConfig)
-	if err != nil {
+	if err := CreateTenantSecrets(tenantResult.Tenant, &tenantConfig); err != nil {
 		log.Println("Error creating tenant's secrets: ", err)
 		return errors.New("Error creating tenant's secrets")
 	}
 
 	// provision the tenant on that cluster
-	sgTenantResult := <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sg.StorageGroup)
+	sgTenantResult := <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sg)
 	if sgTenantResult.Error != nil {
 		log.Println("Error provisioning tenant into storage group: ", sgTenantResult.Error)
 		return errors.New("Error provisioning tenant into storage group")
+	}
+	// wait for db provisioning
+	if err := <-tenantSchemaCh; err != nil {
+		log.Println("Error creating tenant's db schema: ", err)
+		return errors.New("Error creating tenant's db schema")
+	}
+
+	// wait for the tenant namespace to finish creating
+	if err := <-namespaceCh; err != nil {
+		log.Println("Error creating tenant's namespace: ", err)
+		return errors.New("Error creating tenant's namespace")
+	}
+	log.Println("Done Provisioning Tenant")
+	return nil
+}
+
+// TenantAddAction adds a tenant to the cluster, if an admin name and email are provided, the user is created and invited
+// via email.
+func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) error {
+	// check if tenant name is available
+	available, err := TenantShortNameAvailable(ctx, domain)
+	if err != nil {
+		log.Println(err)
+		return errors.New("Error validating domain")
+	}
+	if !available {
+		return errors.New("Error tenant's shortname not available")
+	}
+
+	// Find an available tenant
+	tenant, err := grabAvailableTenant(ctx)
+	if err != nil {
+		return errors.New("No space available")
+	}
+	// now that we have a tenant, designate it as the tenant to be used in context
+	ctx.Tenant = tenant
+	if err = claimTenant(ctx, tenant, name, domain); err != nil {
+		return err
+	}
+	sgt := <-GetTenantStorageGroupByShortName(ctx, tenant.ShortName)
+	if sgt.Error != nil {
+		return sgt.Error
 	}
 
 	// announce the tenant on the router
 	nginxCh := UpdateNginxConfiguration(ctx)
 	// check if we were able to provision the schema and be done running the migrations
-	err = <-tenantSchemaCh
-	if err != nil {
-		log.Println("Error creating tenant's db schema: ", err)
-		return errors.New("Error creating tenant's db schema")
-	}
+
 	// wait for router
 	err = <-nginxCh
 	if err != nil {
@@ -124,12 +154,6 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 		return errors.New("Error updating nginx configuration")
 	}
 
-	// wait for the tenant namespace to finish creating
-	err = <-namespaceCh
-	if err != nil {
-		log.Println("Error creating tenant's namespace: ", err)
-		return errors.New("Error creating tenant's namespace")
-	}
 	// if the first admin name and email was provided send them an invitation
 	if userName != "" && userEmail != "" {
 		// wait for MinIO to be ready before creating the first user
@@ -145,13 +169,13 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 			return errors.New("Error adding first tenant's admin user")
 		}
 		// Get the credentials for a tenant
-		tenantConf, err := GetTenantConfig(tenantResult.Tenant)
+		tenantConf, err := GetTenantConfig(tenant)
 		if err != nil {
 			log.Println("Error getting tenants config", err)
 			return errors.New("Error getting tenants config")
 		}
 		// create minio postgres configuration for bucket notification
-		err = setMinioConfigPostgresNotification(sgTenantResult.StorageGroupTenant, tenantConf)
+		err = setMinioConfigPostgresNotification(sgt.StorageGroupTenant, tenantConf)
 		if err != nil {
 			log.Println("Error setting tenant's minio postgres configuration", err)
 			return errors.New("Error setting tenant's minio postgres configuration")
@@ -163,6 +187,10 @@ func TenantAddAction(ctx *Context, name, shortName, userName, userEmail string) 
 			log.Println("Error inviting user by email: ", err.Error())
 			return errors.New("Error inviting user by email")
 		}
+	}
+	// take one, provision one, tolerate failure of this call
+	if err = SchedulePreProvisionTenantInStorageGroup(ctx, sgt.StorageGroup); err != nil {
+		log.Println("Warning:", err)
 	}
 	return err
 }
@@ -181,15 +209,15 @@ func InsertTenant(ctx *Context, tenantName string, tenantShortName string) chan 
 
 		query :=
 			`INSERT INTO
-				tenants ("id", "name", "short_name", "sys_created_by")
+				tenants ("id", "name", "short_name","enabled", "available", "domain", "sys_created_by")
 			  VALUES
-				($1, $2, $3, $4)`
+				($1, $2, $3, $4, $5, $6, $7)`
 		tx, err := ctx.MainTx()
 		if err != nil {
 			ch <- AddTenantResult{Error: err}
 			return
 		}
-		_, err = tx.Exec(query, tenantID, tenantName, tenantShortName, ctx.WhoAmI)
+		_, err = tx.Exec(query, tenantID, tenantName, tenantShortName, TenantDisabled, TenantAvailable, tenantShortName, ctx.WhoAmI)
 		if err != nil {
 			ch <- AddTenantResult{Error: err}
 			return
@@ -416,15 +444,15 @@ func createTenantNamespace(tenantShortName string) chan error {
 	return ch
 }
 
-// GetTenantWithCtx gets the Tenant if it exists on the m3.provisining.tenants table
+// GetTenantByDomainWithCtx gets the Tenant if it exists on the m3.provisining.tenants table
 // search is done by tenant name
-func GetTenantWithCtx(ctx *Context, tenantName string) (tenant Tenant, err error) {
+func GetTenantByDomainWithCtx(ctx *Context, tenantDomain string) (tenant Tenant, err error) {
 	query :=
 		`SELECT 
-				t1.id, t1.name, t1.short_name, t1.enabled
+				t1.id, t1.name, t1.short_name, t1.enabled, t1.domain
 			FROM 
 				tenants t1
-			WHERE short_name=$1`
+			WHERE domain=$1`
 	// non-transactional query
 	var row *sql.Row
 	// did we got a context? query inside of it
@@ -436,11 +464,11 @@ func GetTenantWithCtx(ctx *Context, tenantName string) (tenant Tenant, err error
 		row = tx.QueryRow(query, ctx.Tenant.ShortName)
 	} else {
 		// no context? straight to db
-		row = GetInstance().Db.QueryRow(query, tenantName)
+		row = GetInstance().Db.QueryRow(query, tenantDomain)
 	}
 
 	// Save the resulted query on the User struct
-	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled)
+	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain)
 	if err != nil {
 		return tenant, err
 	}
@@ -457,7 +485,7 @@ func GetTenantByID(tenantID *uuid.UUID) (tenant Tenant, err error) {
 func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (tenant Tenant, err error) {
 	query :=
 		`SELECT 
-				t1.id, t1.name, t1.short_name, t1.enabled
+				t1.id, t1.name, t1.short_name, t1.enabled, t1.domain
 			FROM 
 				tenants t1
 			WHERE t1.id=$1`
@@ -476,15 +504,15 @@ func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (tenant Tenant, err
 	}
 
 	// Save the resulted query on the User struct
-	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled)
+	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain)
 	if err != nil {
 		return tenant, err
 	}
 	return tenant, nil
 }
 
-func GetTenant(tenantName string) (tenant Tenant, err error) {
-	return GetTenantWithCtx(nil, tenantName)
+func GetTenantByDomain(tenantDomain string) (tenant Tenant, err error) {
+	return GetTenantByDomainWithCtx(nil, tenantDomain)
 }
 
 // DeleteTenant runs all the logic to remove a tenant from the cluster.
@@ -739,7 +767,7 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 func GetTenantWithCtxByServiceName(ctx *Context, serviceName string) (tenant Tenant, err error) {
 	query :=
 		`SELECT 
-				t1.id, t1.name, t1.short_name, t1.enabled
+				t1.id, t1.name, t1.short_name, t1.enabled, t1.domain
 			FROM 
 				tenants t1 LEFT JOIN tenants_storage_groups tsg ON t1.id = tsg.tenant_id
 			WHERE tsg.service_name=$1`
@@ -758,9 +786,83 @@ func GetTenantWithCtxByServiceName(ctx *Context, serviceName string) (tenant Ten
 	}
 
 	// Save the resulted query on the User struct
-	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled)
+	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain)
 	if err != nil {
 		return tenant, err
 	}
 	return tenant, nil
+}
+
+// ProvisionTenantTask takes a task for provisioning of a tenant and executes it
+func ProvisionTenantTask(task *Task) error {
+	ctx, err := NewEmptyContext()
+	if err != nil {
+		return err
+	}
+	// hydrate the data from the task
+	var taskData ProvisionTenantTaskData
+	err = json.Unmarshal(task.Data, &taskData)
+	if err != nil {
+		return err
+	}
+	// get the storage group where the tenant will be placed
+	sg, err := GetStorageGroupByID(ctx, &taskData.StorageGroupID)
+	if err != nil {
+		return err
+	}
+	// Provision the tenant
+	err = ProvisionTenant(ctx, taskData.TenantShortName, sg)
+	if err != nil {
+		return err
+	}
+	// if all good, commit to DB
+	if err := ctx.Commit(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// grabAvailableTenant will select an available tenant and mark it for update so it cannot be grabbed by a different
+// process.
+func grabAvailableTenant(ctx *Context) (*Tenant, error) {
+	query :=
+		`SELECT 
+				t1.id, t1.name, t1.short_name, t1.enabled, t1.domain
+			FROM 
+				tenants t1
+			WHERE t1.available=TRUE
+			LIMIT 1
+			FOR UPDATE`
+	// transactional query
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return nil, err
+	}
+	row := tx.QueryRow(query)
+	// Save the resulted query on the User struct
+	tenant := Tenant{}
+	if err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain); err != nil {
+		return nil, err
+	}
+	return &tenant, nil
+}
+
+// claimTenant claims a tenant to a new account, marks it as not available and enables it for the router
+func claimTenant(ctx *Context, tenant *Tenant, name, domain string) error {
+	// build the query
+	query :=
+		`UPDATE tenants 
+					SET name = $1, domain = $2, available=FALSE, enabled=TRUE
+				WHERE id=$3`
+
+	// Execute Query
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(query, name, domain, tenant.ID)
+	if err != nil {
+		return err
+	}
+	return nil
 }

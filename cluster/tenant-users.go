@@ -307,7 +307,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 
 	// send email with the invite
 
-	tenant, err := GetTenantWithCtx(ctx, ctx.Tenant.ShortName)
+	tenant, err := GetTenantByDomainWithCtx(ctx, ctx.Tenant.ShortName)
 	if err != nil {
 		return fmt.Errorf("tenant: %s", err.Error())
 	}

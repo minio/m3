@@ -14,31 +14,35 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cluster
+package main
 
-import "os"
+import (
+	"log"
+	"time"
 
-// hostConfig configuration of a host.
-type hostConfigV9 struct {
-	URL       string `json:"url"`
-	AccessKey string `json:"accessKey"`
-	SecretKey string `json:"secretKey"`
-	API       string `json:"api"`
-	Lookup    string `json:"lookup"`
+	"github.com/minio/m3/cluster"
+
+	"github.com/minio/cli"
+)
+
+// start the binary as a scheduler
+var schedulerCmd = cli.Command{
+	Name:   "scheduler",
+	Usage:  "starts m3 scheduler which starts async jobs",
+	Action: startSchedulerCmd,
 }
 
-func getS3Domain() string {
-	appDomain := "s3.localhost"
-	if os.Getenv(s3Domain) != "" {
-		appDomain = os.Getenv(s3Domain)
+func startSchedulerCmd(ctx *cli.Context) error {
+	setupComplete, err := cluster.IsSetupComplete()
+	if err != nil {
+		log.Println("problem checking on the setup of m3")
 	}
-	return appDomain
-}
-
-func getM3ContainerImage() string {
-	concreteM3Image := "minio/m3:dev"
-	if os.Getenv(m3Image) != "" {
-		concreteM3Image = os.Getenv(m3Image)
+	if !setupComplete {
+		log.Println("m3 is not setup yet, will sleep and then crash peacefully")
+		time.Sleep(time.Second * 30)
+		panic("Good bye")
 	}
-	return concreteM3Image
+	log.Println("Starting m3 scheduler...")
+	cluster.StartScheduler()
+	return nil
 }
