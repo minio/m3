@@ -36,9 +36,9 @@ func getS3Domain() string {
 }
 
 func getM3ContainerImage() string {
-	m3Image := "minio/m3:dev"
+	concreteM3Image := "minio/m3:dev"
 	if os.Getenv(m3Image) != "" {
-		m3Image = os.Getenv(m3Image)
+		concreteM3Image = os.Getenv(m3Image)
 	}
-	return m3Image
+	return concreteM3Image
 }

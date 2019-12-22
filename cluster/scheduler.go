@@ -194,8 +194,8 @@ func startJob(task *Task) error {
 	return nil
 }
 
-// getTaskById returns a task by id
-func getTaskById(id int64) (*Task, error) {
+// getTaskByID returns a task by id
+func getTaskByID(id int64) (*Task, error) {
 	query :=
 		`SELECT 
 				t.id, t.name, t.data, t.status
@@ -217,7 +217,7 @@ func getTaskById(id int64) (*Task, error) {
 // RunTask runs a task by id and records the result of if on the task record.
 // attempts to recover from a panic in case there's one within the task and also marks it on the db.
 func RunTask(id int64) error {
-	task, err := getTaskById(id)
+	task, err := getTaskByID(id)
 	if err != nil {
 		return err
 	}
