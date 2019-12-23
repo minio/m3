@@ -20,11 +20,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
+	"net"
 
 	"google.golang.org/grpc/metadata"
 
 	pb "github.com/minio/m3/api/stubs"
+	"github.com/minio/minio/pkg/env"
 	"google.golang.org/grpc"
 )
 
@@ -36,16 +37,9 @@ type GrpcClientConn struct {
 
 // returns a properly configured grpc channel
 func GetGRPCChannel() (*GrpcClientConn, error) {
-	url := "localhost"
-	if os.Getenv(OperatorURLEnv) != "" {
-		url = os.Getenv(OperatorURLEnv)
-	}
-	port := "50052"
-	if os.Getenv(OperatorPrivatePortEnv) != "" {
-		port = os.Getenv(OperatorPrivatePortEnv)
-	}
-
-	address := fmt.Sprintf("%s:%s", url, port)
+	host := env.Get(OperatorHostEnv, "localhost")
+	port := env.Get(OperatorPrivatePortEnv, "50052")
+	address := net.JoinHostPort(host, port)
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {

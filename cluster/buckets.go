@@ -22,13 +22,13 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
-	"os"
 	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/minio/minio-go/v6"
 	"github.com/minio/minio-go/v6/pkg/policy"
+	"github.com/minio/minio/pkg/env"
 	"github.com/minio/minio/pkg/madmin"
 	uuid "github.com/satori/go.uuid"
 )
@@ -515,14 +515,14 @@ func CalculateTenantsMetrics() error {
 
 	// restrict how many tenants will be placed in the channel at any given time, this is to avoid massive
 	// concurrent processing
-	maxChannelSize := 10
-	if os.Getenv(maxTenantChannelSize) != "" {
-		mtcs, err := strconv.Atoi(os.Getenv(maxTenantChannelSize))
+	var maxChannelSize int
+	if v := env.Get(maxTenantChannelSize, "10"); v != "" {
+		mtcs, err := strconv.Atoi(v)
 		if err != nil {
 			log.Println("Invalid MAX_TENANT_CHANNEL_SIZE value:", err)
-		} else {
-			maxChannelSize = mtcs
+			return err
 		}
+		maxChannelSize = mtcs
 	}
 
 	// get a list of tenants and run the migrations for each tenant

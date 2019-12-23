@@ -26,6 +26,7 @@ import (
 
 	"github.com/minio/cli"
 	pb "github.com/minio/m3/api/stubs"
+	"github.com/minio/minio/pkg/env"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -70,8 +71,8 @@ func login(_ *cli.Context) error {
 		}
 	} else {
 		// read from environment
-		email := os.Getenv(OperatorEmailEnv)
-		password := os.Getenv(OperatorPasswordEnv)
+		email := env.Get(OperatorEmailEnv, "")
+		password := env.Get(OperatorPasswordEnv, "")
 		// if no credentials prompt
 		if email == "" || password == "" {
 			fmt.Print("Enter Email: ")

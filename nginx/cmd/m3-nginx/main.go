@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/minio/minio/pkg/env"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
@@ -22,7 +23,7 @@ import (
 func getK8sConfig() *rest.Config {
 	// creates the in-cluster config
 	var config *rest.Config
-	if os.Getenv("DEVELOPMENT") != "" {
+	if env.Get("DEVELOPMENT", "") != "" {
 		//when doing local development, mount k8s api via `kubectl proxy`
 		config = &rest.Config{
 			Host:            "http://localhost:8001",
