@@ -154,9 +154,9 @@ func creatNewPolicyOnExternalKMS(KmsClient *vapi.Client, tenant string) <-chan p
 			return
 		}
 
-		roleId := role.Data["role_id"].(string)
-		roleSecretId := roleSecret.Data["secret_id"].(string)
-		doneCh <- policyResult{Policy: rolePolicy{roleID: roleId, roleSecretID: roleSecretId}}
+		roleID := role.Data["role_id"].(string)
+		roleSecretID := roleSecret.Data["secret_id"].(string)
+		doneCh <- policyResult{Policy: rolePolicy{roleID: roleID, roleSecretID: roleSecretID}}
 	}()
 	return doneCh
 }
@@ -426,7 +426,7 @@ func generateKeyPairAndStoreInSecret(name string) *KeyPair {
 	return kesKeyPair
 }
 
-func createKesConfigurations(KmsClient *vapi.Client, tenant string, roleId string, roleSecretId string) map[string]string {
+func createKesConfigurations(KmsClient *vapi.Client, tenant string, roleID string, roleSecretID string) map[string]string {
 	kms := KmsClient
 	kesAppKeyPairSecretName := fmt.Sprintf("%s-kes-app-keypair", tenant)
 	kesServerKeyPairSecretName := fmt.Sprintf("%s-kes-server-keypair", tenant)
@@ -453,7 +453,7 @@ func createKesConfigurations(KmsClient *vapi.Client, tenant string, roleId strin
 			retry  = "15s"
 			[keystore.vault.status]
 			ping = "10s"
-		`, appKeys.certIdentity, kms.Address(), roleId, roleSecretId)
+		`, appKeys.certIdentity, kms.Address(), roleID, roleSecretID)
 
 	kesServerConfigSecretName := fmt.Sprintf("%s-kes-server-config", tenant)
 	<-storeKeyPairInSecret(kesServerConfigSecretName, map[string]string{
