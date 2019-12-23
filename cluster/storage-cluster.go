@@ -624,7 +624,7 @@ func SchedulePreProvisionTenantInStorageGroup(ctx *Context, sg *StorageGroup) er
 	}
 
 	// pre-provision the first tenant of this storage group
-	provTenantName := strings.ToLower(RandomCharString(16))
+	provTenantName := fmt.Sprintf("z%s", strings.ToLower(RandomCharString(15)))
 	// check if tenant name is available
 	for {
 		available, err := TenantShortNameAvailable(ctx, provTenantName)
