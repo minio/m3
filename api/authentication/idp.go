@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/coreos/go-oidc"
+	"github.com/minio/minio/pkg/env"
 	"golang.org/x/oauth2"
 )
 
@@ -18,19 +18,20 @@ type Authenticator struct {
 }
 
 func NewAuthenticator() (*Authenticator, error) {
-	if os.Getenv("IDENTITY_PROVIDER_URL") == "" {
+	v := env.Get("IDENTITY_PROVIDER_URL", "")
+	if v == "" {
 		return nil, errors.New("missing identity provider url configuration")
 	}
 	ctx := context.Background()
-	provider, err := oidc.NewProvider(ctx, os.Getenv("IDENTITY_PROVIDER_URL"))
+	provider, err := oidc.NewProvider(ctx, v)
 	if err != nil {
 		return nil, err
 	}
 
 	conf := oauth2.Config{
-		ClientID:     os.Getenv("IDENTITY_PROVIDER_CLIENT_ID"),
-		ClientSecret: os.Getenv("IDENTITY_PROVIDER_SECRET"),
-		RedirectURL:  os.Getenv("IDENTITY_PROVIDER_CALLBACK"),
+		ClientID:     env.Get("IDENTITY_PROVIDER_CLIENT_ID", ""),
+		ClientSecret: env.Get("IDENTITY_PROVIDER_SECRET", ""),
+		RedirectURL:  env.Get("IDENTITY_PROVIDER_CALLBACK", ""),
 		Endpoint:     provider.Endpoint(),
 		Scopes:       []string{oidc.ScopeOpenID, "profile"},
 	}
@@ -64,7 +65,7 @@ func VerifyIdentity(address string) (map[string]interface{}, error) {
 		return nil, errors.New("no id_token field in oauth2 token")
 	}
 	oidcConfig := &oidc.Config{
-		ClientID: os.Getenv("IDENTITY_PROVIDER_CLIENT_ID"),
+		ClientID: env.Get("IDENTITY_PROVIDER_CLIENT_ID", ""),
 	}
 
 	idToken, err := authenticator.Provider.Verifier(oidcConfig).Verify(context.TODO(), rawIDToken)

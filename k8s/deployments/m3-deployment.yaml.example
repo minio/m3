@@ -70,7 +70,7 @@ spec:
       serviceAccountName: m3-user
       containers:
         - name: m3
-          image: minio/m3:dev
+          image: minio/m3:edge
           imagePullPolicy: "IfNotPresent"
           args:
             - /m3
@@ -101,7 +101,7 @@ spec:
       serviceAccountName: m3-user
       containers:
         - name: m3
-          image: minio/m3:dev
+          image: minio/m3:edge
           imagePullPolicy: "IfNotPresent"
           args:
             - /m3

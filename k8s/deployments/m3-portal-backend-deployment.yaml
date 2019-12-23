@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: m3-portal-backend
-          image: minio/m3:dev
+          image: minio/m3:edge
           imagePullPolicy: "IfNotPresent"
           args:
             - /m3

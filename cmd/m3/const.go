@@ -17,7 +17,7 @@
 package main
 
 const (
-	OperatorURLEnv         = "OPERATOR_URL"
+	OperatorHostEnv        = "OPERATOR_HOST"
 	OperatorPrivatePortEnv = "OPERATOR_PRIVATE_PORT"
 	OperatorEmailEnv       = "OPERATOR_EMAIL"
 	OperatorPasswordEnv    = "OPERATOR_PASSWORD"

@@ -20,10 +20,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/minio/minio/pkg/env"
 	v12 "k8s.io/client-go/kubernetes/typed/apps/v1"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -39,7 +39,7 @@ import (
 func getK8sConfig() *rest.Config {
 	// creates the in-cluster config
 	var config *rest.Config
-	if os.Getenv("DEVELOPMENT") != "" {
+	if env.Get("DEVELOPMENT", "") != "" {
 		//when doing local development, mount k8s api via `kubectl proxy`
 		config = &rest.Config{
 			Host:            "http://localhost:8001",
