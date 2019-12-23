@@ -68,7 +68,7 @@ func getPublishNotReadyAddress() bool {
 }
 
 func getMinIOImage() string {
-	concreteMinIOImage := "minio/minio:RELEASE.2019-09-26T19-42-35Z"
+	concreteMinIOImage := "minio/minio:RELEASE.2019-12-19T22-52-26Z"
 	if os.Getenv(minIOImage) != "" {
 		concreteMinIOImage = os.Getenv(minIOImage)
 	}
