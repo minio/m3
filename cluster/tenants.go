@@ -877,3 +877,24 @@ func UpdateTenantCost(ctx *Context, tenantID *uuid.UUID, costMultiplier float32)
 	}
 	return nil
 }
+
+// UpdateTenantEnabledStatus changes the tenant's enabled column on the db
+func UpdateTenantEnabledStatus(ctx *Context, tenantID *uuid.UUID, enabled bool) error {
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return err
+	}
+	// create the bucket registry
+	query :=
+		`UPDATE 
+			tenants
+		SET
+			enabled=$2
+		WHERE 
+			id=$1`
+
+	if _, err = tx.Exec(query, tenantID, enabled); err != nil {
+		return err
+	}
+	return nil
+}

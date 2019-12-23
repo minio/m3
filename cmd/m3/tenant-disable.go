@@ -18,47 +18,37 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/minio/cli"
 	pb "github.com/minio/m3/api/stubs"
 )
 
-// list files and folders.
-var tenantDeleteCmd = cli.Command{
-	Name:   "delete",
-	Usage:  "delete a tenant",
-	Action: tenantDelete,
+var tenantDisableCmd = cli.Command{
+	Name:   "disable",
+	Usage:  "disables a tenant",
+	Action: disableTenant,
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:  "short-name",
+			Name:  "short_name",
 			Value: "",
-			Usage: "short Name of the tenant",
-		},
-		cli.BoolFlag{
-			Name:  "confirm",
-			Usage: "Confirm you want to delete the tenant",
+			Usage: "Short tenant name. this is the official string identifier of the tenant.",
 		},
 	},
 }
 
-// Command to delete a tenant and all tenant's related data, it has a mandatory parameter for the tenant name and confirm flag
-//     m3 tenant delete tenant-1 --confirm
-//     m3 tenant delete --short-name tenant-1 --confirm
-func tenantDelete(ctx *cli.Context) error {
-	shortName := ctx.String("short-name")
-	confirm := ctx.Bool("confirm")
-	if shortName == "" && ctx.Args().Get(0) != "" {
-		shortName = ctx.Args().Get(0)
+/// Command to disable a tenant
+//     m3 tenant disable tenant-1
+//     m3 tenant disable --short_name tenant-1
+func disableTenant(ctx *cli.Context) error {
+	tenantShortName := ctx.String("short_name")
+	if tenantShortName == "" && ctx.Args().Get(0) != "" {
+		tenantShortName = ctx.Args().Get(0)
 	}
-	if shortName == "" {
+	if tenantShortName == "" {
 		fmt.Println("You must provide short tenant name")
 		return nil
 	}
-	if !confirm {
-		fmt.Println("You must pass the confirm flag")
-		return nil
-	}
-	fmt.Println("Deleting tenant:", shortName)
 
 	cnxs, err := GetGRPCChannel()
 	if err != nil {
@@ -66,15 +56,16 @@ func tenantDelete(ctx *cli.Context) error {
 		return err
 	}
 	defer cnxs.Conn.Close()
-	// perform RPC
-	_, err = cnxs.Client.TenantDelete(cnxs.Context, &pb.TenantSingleRequest{
-		ShortName: shortName,
-	})
-	if err != nil {
-		fmt.Println(err)
-		return nil
+
+	reqMsg := pb.TenantSingleRequest{
+		ShortName: tenantShortName,
 	}
 
-	fmt.Println("Done deleting tenant!")
+	_, err = cnxs.Client.TenantDisable(cnxs.Context, &reqMsg)
+	if err != nil {
+		log.Fatalf("could not delete tenant: %v", err)
+	}
+
+	fmt.Println("Done disabling tenant")
 	return nil
 }
