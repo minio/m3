@@ -93,3 +93,45 @@ func (ps *privateServer) TenantDelete(ctx context.Context, in *pb.TenantDeleteRe
 
 	return &pb.Empty{}, nil
 }
+
+// TenantCostSet set cost multiplier for the tenant used for billing
+func (ps *privateServer) TenantCostSet(ctx context.Context, in *pb.TenantCostRequest) (*pb.Empty, error) {
+	tenantShortName := in.GetShortName()
+	if tenantShortName == "" {
+		return nil, status.New(codes.InvalidArgument, "a short name is needed").Err()
+	}
+	tenantCostMultiplier := in.GetCostMultiplier()
+
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+	}()
+
+	tenant, err := cluster.GetTenantByDomain(tenantShortName)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.NotFound, "Tenant not found").Err()
+	}
+	appCtx.Tenant = &tenant
+
+	err = cluster.UpdateTenantCost(appCtx, &appCtx.Tenant.ID, tenantCostMultiplier)
+	if err != nil {
+		log.Println("error setting tenant's cost multiplier:", err)
+		return nil, status.New(codes.Internal, "error setting tenant's cost multiplier").Err()
+	}
+	// if we reach here, all is good, commit
+	if err := appCtx.Commit(); err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
+	return &pb.Empty{}, nil
+}
