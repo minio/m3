@@ -532,7 +532,7 @@ func CalculateTenantsMetrics() error {
 		if tenantResult.Error != nil {
 			return tenantResult.Error
 		}
-		err := getTenantMetrics(appCtx, tenantResult.Tenant.ShortName)
+		err := getTenantMetrics(appCtx, tenantResult.Tenant)
 		if err != nil {
 			appCtx.Rollback()
 			return err
@@ -545,15 +545,10 @@ func CalculateTenantsMetrics() error {
 	return nil
 }
 
-func getTenantMetrics(ctx *Context, tenantShortName string) error {
-	// validate Tenant
-	tenant, err := GetTenantByDomain(tenantShortName)
-	if err != nil {
-		return err
-	}
-	ctx.Tenant = &tenant
+func getTenantMetrics(ctx *Context, tenant *Tenant) error {
+	ctx.Tenant = tenant
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortName)
+	sgt := <-GetTenantStorageGroupByShortName(ctx, tenant.ShortName)
 	if sgt.Error != nil {
 		return sgt.Error
 	}

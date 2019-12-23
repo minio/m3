@@ -52,11 +52,11 @@ var tenantServiceAccountAddCmd = cli.Command{
 //     m3 tenant service-account add tenant-1 sa-name
 //     m3 tenant service-account add --tenant tenant-1 --name sa-name --description "optional description"
 func tenantServiceAccountAdd(ctx *cli.Context) error {
-	tenantShortName := ctx.String("tenant")
+	tenantDomain := ctx.String("tenant")
 	name := ctx.String("name")
 	description := ctx.String("description")
-	if tenantShortName == "" && ctx.Args().Get(0) != "" {
-		tenantShortName = ctx.Args().Get(0)
+	if tenantDomain == "" && ctx.Args().Get(0) != "" {
+		tenantDomain = ctx.Args().Get(0)
 	}
 	if name == "" && ctx.Args().Get(1) != "" {
 		name = ctx.Args().Get(1)
@@ -64,7 +64,7 @@ func tenantServiceAccountAdd(ctx *cli.Context) error {
 	if description == "" && ctx.Args().Get(2) != "" {
 		description = ctx.Args().Get(2)
 	}
-	if tenantShortName == "" {
+	if tenantDomain == "" {
 		fmt.Println("You must provide tenant name")
 		return errMissingArguments
 	}
@@ -79,7 +79,7 @@ func tenantServiceAccountAdd(ctx *cli.Context) error {
 		desc = &description
 	}
 	//validate tenant
-	tenant, err := cluster.GetTenantByDomain(tenantShortName)
+	tenant, err := cluster.GetTenantByDomain(tenantDomain)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func tenantServiceAccountAdd(ctx *cli.Context) error {
 	appCtx := cluster.NewCtxWithTenant(&tenant)
 
 	// perform the action
-	_, saCred, err := cluster.AddServiceAccount(appCtx, tenantShortName, name, desc)
+	_, saCred, err := cluster.AddServiceAccount(appCtx, tenantDomain, name, desc)
 	if err != nil {
 		fmt.Println("Error adding service-account:", err.Error())
 		return err
