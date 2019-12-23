@@ -34,7 +34,11 @@ service PrivateAPI {
     // Tenant Operations
     rpc TenantAdd (TenantAddRequest) returns (TenantAddResponse) {
     }
-    rpc TenantDelete (TenantDeleteRequest) returns (Empty){
+    rpc TenantDelete (TenantSingleRequest) returns (Empty){
+    }
+    rpc TenantEnable (TenantSingleRequest) returns (Empty){
+    }
+    rpc TenantDisable (TenantSingleRequest) returns (Empty){
     }
     // Set tenant cost multiplier
     rpc TenantCostSet(TenantCostRequest) returns (Empty){
@@ -105,7 +109,7 @@ message TenantAddRequest {
     string user_email = 4;
 }
 
-message TenantDeleteRequest {
+message TenantSingleRequest {
     string short_name = 1;
 }
 

@@ -31,6 +31,8 @@ var tenantCmd = cli.Command{
 		tenantBucketCmd,
 		tenantUserCmd,
 		tenantDeleteCmd,
+		tenantEnableCmd,
+		tenantDisableCmd,
 		tenantServiceAccountCmd,
 		tenantPermissionCmd,
 	},
