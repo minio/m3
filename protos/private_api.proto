@@ -36,6 +36,9 @@ service PrivateAPI {
     }
     rpc TenantDelete (TenantDeleteRequest) returns (Empty){
     }
+    // Set tenant cost multiplier
+    rpc TenantCostSet(TenantCostRequest) returns (Empty){
+    }
     // Tenant Bucket Operations
     rpc TenantBucketAdd (TenantBucketAddRequest) returns (TenantBucketAddResponse) {
     }
@@ -107,6 +110,11 @@ message TenantDeleteRequest {
 }
 
 message TenantAddResponse {
+}
+
+message TenantCostRequest{
+    string short_name = 1;
+    float cost_multiplier = 2;
 }
 
 message TenantBucketAddRequest {
