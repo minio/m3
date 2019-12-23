@@ -42,8 +42,8 @@ import (
 )
 
 type rolePolicy struct {
-	roleId       string
-	roleSecretId string
+	roleID       string
+	roleSecretID string
 }
 
 type policyResult struct {
@@ -156,7 +156,7 @@ func creatNewPolicyOnExternalKMS(KmsClient *vapi.Client, tenant string) <-chan p
 
 		roleId := role.Data["role_id"].(string)
 		roleSecretId := roleSecret.Data["secret_id"].(string)
-		doneCh <- policyResult{Policy: rolePolicy{roleId: roleId, roleSecretId: roleSecretId}}
+		doneCh <- policyResult{Policy: rolePolicy{roleID: roleId, roleSecretID: roleSecretId}}
 	}()
 	return doneCh
 }
@@ -489,7 +489,7 @@ func StartNewKes(shortName string) chan error {
 			doneCh <- policy.Error
 			return
 		}
-		kesSecretsNames := createKesConfigurations(kmsResult.Cnx, shortName, policy.Policy.roleId, policy.Policy.roleSecretId)
+		kesSecretsNames := createKesConfigurations(kmsResult.Cnx, shortName, policy.Policy.roleID, policy.Policy.roleSecretID)
 
 		tenantKesName := fmt.Sprintf("%s-kes", shortName)
 		<-createNewKesDeployment(clientset, tenantKesName, kesSecretsNames)
