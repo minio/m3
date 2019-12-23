@@ -16,7 +16,10 @@
 
 package cluster
 
-import "os"
+import (
+	"os"
+	"strconv"
+)
 
 // hostConfig configuration of a host.
 type hostConfigV9 struct {
@@ -41,4 +44,16 @@ func getM3ContainerImage() string {
 		concreteM3Image = os.Getenv(m3Image)
 	}
 	return concreteM3Image
+}
+
+func getLivenessMaxInitialDelaySeconds() int32 {
+	var maxSeconds int32 = 120
+	if os.Getenv(maxLivenessInitialSecondsDelay) != "" {
+		maxSecondsInt, err := strconv.Atoi(os.Getenv(maxLivenessInitialSecondsDelay))
+		if err != nil {
+			return 120
+		}
+		maxSeconds = int32(maxSecondsInt)
+	}
+	return maxSeconds
 }

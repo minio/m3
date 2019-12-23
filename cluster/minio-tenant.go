@@ -85,7 +85,7 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 					},
 				},
 			},
-			InitialDelaySeconds: 120,
+			InitialDelaySeconds: getLivenessMaxInitialDelaySeconds(),
 			PeriodSeconds:       20,
 		},
 	}
