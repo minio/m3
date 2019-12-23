@@ -744,6 +744,17 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 	}
 	// Env variable to tell MinIO that it is running on a replica set deployment
 	tenantConfig["KUBERNETES_REPLICA_SET"] = "1"
+
+	if os.Getenv("KMS_ADDRESS") != "" {
+		kesServiceName := fmt.Sprintf("%s-kes", sgTenant.ShortName)
+		kesServiceAddress := fmt.Sprintf("https://%s:7373", kesServiceName)
+		tenantConfig["MINIO_KMS_KES_ENDPOINT"] = kesServiceAddress
+		tenantConfig["MINIO_KMS_KES_KEY_FILE"] = fmt.Sprintf("/kes-config/%s/app/key", sgTenant.ShortName)
+		tenantConfig["MINIO_KMS_KES_CERT_FILE"] = fmt.Sprintf("/kes-config/%s/app/cert", sgTenant.ShortName)
+		tenantConfig["MINIO_KMS_KES_CA_PATH"] = fmt.Sprintf("/kes-config/%s/server/cert", sgTenant.ShortName)
+		tenantConfig["MINIO_KMS_KES_KEY_NAME"] = "app-key"
+	}
+
 	// Build the config map
 	configMap := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

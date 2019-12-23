@@ -111,32 +111,8 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 		clientset, _ := k8sClient()
 		if clientset != nil {
 			kesServiceName := fmt.Sprintf("%s-kes", sgTenant.ShortName)
-			kesServiceAddress := fmt.Sprintf("https://%s:7373", kesServiceName)
 			_, kesServiceExists := clientset.CoreV1().Services("default").Get(kesServiceName, metav1.GetOptions{})
 			if kesServiceExists == nil {
-
-				tenantContainer.Env = []v1.EnvVar{
-					{
-						Name:  "MINIO_KMS_KES_ENDPOINT",
-						Value: kesServiceAddress,
-					},
-					{
-						Name:  "MINIO_KMS_KES_KEY_FILE",
-						Value: "/kes-config/app/key",
-					},
-					{
-						Name:  "MINIO_KMS_KES_CERT_FILE",
-						Value: "/kes-config/app/cert",
-					},
-					{
-						Name:  "MINIO_KMS_KES_CA_PATH",
-						Value: "/kes-config/server/cert",
-					},
-					{
-						Name:  "MINIO_KMS_KES_KEY_NAME",
-						Value: "app-key",
-					},
-				}
 
 				volumenSource := v1.VolumeSource{
 					Secret: &v1.SecretVolumeSource{
@@ -156,12 +132,12 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 
 				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
 					Name:      "app-keypair",
-					MountPath: "/kes-config/app",
+					MountPath: fmt.Sprintf("/kes-config/%s/app", sgTenant.ShortName),
 					ReadOnly:  true,
 				})
 				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
 					Name:      "server-keypair",
-					MountPath: "/kes-config/server",
+					MountPath: fmt.Sprintf("/kes-config/%s/server", sgTenant.ShortName),
 					ReadOnly:  true,
 				})
 			}
