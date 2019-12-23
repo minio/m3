@@ -21,13 +21,14 @@ type key int
 const (
 	Version = `0.1.0`
 	// Environment variables
-	minioAccessKey       = "MINIO_ACCESS_KEY"
-	minioSecretKey       = "MINIO_SECRET_KEY"
-	accessKey            = "ACCESS_KEY"
-	secretKey            = "SECRET_KEY"
-	maxTenantChannelSize = "MAX_TENANT_CHANNEL_SIZE"
-	s3Domain             = "S3_DOMAIN"
-	m3Image              = "M3_IMAGE"
+	minioAccessKey                 = "MINIO_ACCESS_KEY"
+	minioSecretKey                 = "MINIO_SECRET_KEY"
+	accessKey                      = "ACCESS_KEY"
+	secretKey                      = "SECRET_KEY"
+	maxTenantChannelSize           = "MAX_TENANT_CHANNEL_SIZE"
+	s3Domain                       = "S3_DOMAIN"
+	m3Image                        = "M3_IMAGE"
+	maxLivenessInitialSecondsDelay = "LIVENESS_MAX_INITIAL_SECONDS_DELAY"
 	// constants
 	TokenSignupEmail            = "signup-email"
 	TokenResetPasswordEmail     = "reset-password-email"

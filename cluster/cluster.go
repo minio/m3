@@ -157,7 +157,7 @@ func CreateSGHostService(sg *StorageGroup, sgNode *StorageGroupNode) error {
 				"app": serviceName,
 			},
 			ClusterIP:                "None",
-			PublishNotReadyAddresses: false,
+			PublishNotReadyAddresses: true,
 		},
 	}
 
@@ -768,8 +768,8 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 
 			// wait for the deployment to come online before replacing the next deployment
 			// to know when the past deployment is online, we will expect the deployed tenant to reply with it's
-			// liveliness probe
-			if len(tenants) > 0 {
+			// liveliness probe. If the storage group had no tenants prior to this one, don't wait.
+			if len(tenants) > 0 && sgTenant.StorageGroup.TotalTenants > 0 {
 				err = <-waitDeploymentLive(sgHostName, sgTenant.Port)
 				if err != nil {
 					ch <- err
