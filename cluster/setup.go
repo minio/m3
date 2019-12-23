@@ -514,10 +514,16 @@ func AddM3Admin(name, email string) error {
 	}
 	_, err = AddAdminAction(apptCtx, name, email)
 	if err != nil {
+		if err = apptCtx.Rollback(); err != nil {
+			log.Println(err)
+		}
 		log.Println("Error adding user:", err.Error())
 		return err
 	}
-	apptCtx.Commit()
+	// if no error, commit
+	if err = apptCtx.Commit(); err != nil {
+		log.Println(err)
+	}
 	log.Println("Admin was added")
 	return nil
 }
