@@ -29,6 +29,7 @@ const (
 	s3Domain                       = "S3_DOMAIN"
 	m3Image                        = "M3_IMAGE"
 	maxLivenessInitialSecondsDelay = "LIVENESS_MAX_INITIAL_SECONDS_DELAY"
+	pubNotReadyAddress             = "PUBLISH_NOT_READY_ADDRESS"
 	// constants
 	TokenSignupEmail            = "signup-email"
 	TokenResetPasswordEmail     = "reset-password-email"

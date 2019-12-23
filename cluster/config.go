@@ -19,6 +19,7 @@ package cluster
 import (
 	"os"
 	"strconv"
+	"strings"
 )
 
 // hostConfig configuration of a host.
@@ -56,4 +57,12 @@ func getLivenessMaxInitialDelaySeconds() int32 {
 		maxSeconds = int32(maxSecondsInt)
 	}
 	return maxSeconds
+}
+
+func getPublishNotReadyAddress() bool {
+	pubNotReady := false
+	if os.Getenv(pubNotReadyAddress) != "" && strings.ToLower(os.Getenv(pubNotReadyAddress)) == "true" {
+		pubNotReady = true
+	}
+	return pubNotReady
 }
