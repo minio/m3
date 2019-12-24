@@ -21,11 +21,11 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 
 	// postgres driver for database/sql
 	_ "github.com/lib/pq"
+	"github.com/minio/minio/pkg/env"
 )
 
 type Singleton struct {
@@ -78,49 +78,14 @@ type DbConfig struct {
 // GetM3DbConfig returns a `DbConfig` object with the values for the database by either reading them from the environment or
 // defaulting them to a known value.
 func GetM3DbConfig() *DbConfig {
-	dbHost := "localhost"
-	if os.Getenv("DB_HOSTNAME") != "" {
-		dbHost = os.Getenv("DB_HOSTNAME")
-	}
-
-	dbPort := "5432"
-	if os.Getenv("DB_PORT") != "" {
-		dbPort = os.Getenv("DB_PORT")
-	}
-
-	dbUser := "postgres"
-	if os.Getenv("DB_USER") != "" {
-		dbUser = os.Getenv("DB_USER")
-	}
-
-	dbPass := "postgres"
-	if os.Getenv("DB_PASSWORD") != "" {
-		dbPass = os.Getenv("DB_PASSWORD")
-	}
-	dbSsl := false
-	if os.Getenv("DB_SSL") != "" {
-		if os.Getenv("DB_SSL") == "true" {
-			dbSsl = true
-		}
-	}
-
-	dbName := "m3"
-	if os.Getenv("DB_NAME") != "" {
-		dbName = os.Getenv("DB_NAME")
-	}
-
-	dbSchema := "provisioning"
-	if os.Getenv("DB_SCHEMA") != "" {
-		dbSchema = os.Getenv("DB_SCHEMA")
-	}
 	return &DbConfig{
-		Host:       dbHost,
-		Port:       dbPort,
-		User:       dbUser,
-		Pwd:        dbPass,
-		Name:       dbName,
-		Ssl:        dbSsl,
-		SchemaName: dbSchema,
+		Host:       env.Get("DB_HOSTNAME", "localhost"),
+		Port:       env.Get("DB_PORT", "5432"),
+		User:       env.Get("DB_USER", "postgres"),
+		Pwd:        env.Get("DB_PASSWORD", "postgres"),
+		Name:       env.Get("DB_NAME", "m3"),
+		Ssl:        env.Get("DB_SSL", "false") == "true",
+		SchemaName: env.Get("DB_SCHEMA", "provisioning"),
 	}
 }
 
@@ -201,18 +166,10 @@ func (s *Singleton) RemoveCnx(tenantName string) {
 // AppURL returns the main application url
 func (s *Singleton) AppURL() string {
 	appDomain := getS3Domain()
-	appURL := fmt.Sprintf("http://%s", appDomain)
-	if os.Getenv("APP_URL") != "" {
-		appURL = os.Getenv("APP_URL")
-	}
-	return appURL
+	return env.Get("APP_URL", fmt.Sprintf("http://%s", appDomain))
 }
 
 // CliCommand returns the command used for the cli
 func (s *Singleton) CliCommand() string {
-	cliCommand := "m3"
-	if os.Getenv("CLI_COMMAND") != "" {
-		cliCommand = os.Getenv("CLI_COMMAND")
-	}
-	return cliCommand
+	return env.Get("CLI_COMMAND", "m3")
 }

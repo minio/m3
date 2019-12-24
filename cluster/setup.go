@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -31,6 +30,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/minio/minio/pkg/env"
+
 	// the postgres driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 
@@ -157,20 +158,16 @@ func SetupM3() error {
 	err = SetupDBAction()
 	if err != nil {
 		log.Println(err)
+		return err
 	}
 
 	// Check wether we are being setup as global bucket, or bucket namespace per tenant
-	if os.Getenv("SETUP_USE_GLOBAL_BUCKETS") == "true" {
-		err := SetConfigWithLock(nil, cfgCoreGlobalBuckets, "true", "bool", true)
-		if err != nil {
-			log.Println("Could not store global bucket configuration.", err)
-		}
-	} else {
-		err := SetConfigWithLock(nil, cfgCoreGlobalBuckets, "false", "bool", true)
-		if err != nil {
-			log.Println("Could not store global bucket configuration.", err)
-		}
+	useGlobalBuckets := env.Get("SETUP_USE_GLOBAL_BUCKETS", "false")
+	if err = SetConfigWithLock(nil, cfgCoreGlobalBuckets, useGlobalBuckets, "bool", true); err != nil {
+		log.Println("Could not store global bucket configuration.", err)
+		return err
 	}
+
 	// wait for all other servicess
 	log.Println("Waiting on JWT")
 	<-waitJwtCh
@@ -211,13 +208,13 @@ func SetupDBAction() error {
 		log.Println(err)
 	}
 
-	//we'll try to re-add the first admin, if it fails we can tolerate it
-	adminName := os.Getenv("ADMIN_NAME")
-	adminEmail := os.Getenv("ADMIN_EMAIL")
+	// we'll try to re-add the first admin, if it fails we can tolerate it
+	adminName := env.Get("ADMIN_NAME", "")
+	adminEmail := env.Get("ADMIN_EMAIL", "")
 	err = AddM3Admin(adminName, adminEmail)
 	if err != nil {
 		log.Println("admin m3 error")
-		//we can tolerate this failure
+		// we can tolerate this failure
 		log.Println(err)
 	}
 
@@ -594,14 +591,14 @@ func SetupMigrateAction() error {
 
 	// restrict how many tenants will be placed in the channel at any given time, this is to avoid massive
 	// concurrent processing
-	maxChannelSize := 10
-	if os.Getenv(maxTenantChannelSize) != "" {
-		mtcs, err := strconv.Atoi(os.Getenv(maxTenantChannelSize))
+	var maxChannelSize int
+	if v := env.Get(maxTenantChannelSize, "10"); v != "" {
+		mtcs, err := strconv.Atoi(v)
 		if err != nil {
 			log.Println("Invalid MAX_TENANT_CHANNEL_SIZE value:", err)
-		} else {
-			maxChannelSize = mtcs
+			return err
 		}
+		maxChannelSize = mtcs
 	}
 
 	// get a list of tenants and run the migrations for each tenant

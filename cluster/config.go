@@ -16,7 +16,12 @@
 
 package cluster
 
-import "os"
+import (
+	"strconv"
+	"strings"
+
+	"github.com/minio/minio/pkg/env"
+)
 
 // hostConfig configuration of a host.
 type hostConfigV9 struct {
@@ -28,17 +33,29 @@ type hostConfigV9 struct {
 }
 
 func getS3Domain() string {
-	appDomain := "s3.localhost"
-	if os.Getenv(s3Domain) != "" {
-		appDomain = os.Getenv(s3Domain)
-	}
-	return appDomain
+	return env.Get(s3Domain, "s3.localhost")
 }
 
 func getM3ContainerImage() string {
-	concreteM3Image := "minio/m3:dev"
-	if os.Getenv(m3Image) != "" {
-		concreteM3Image = os.Getenv(m3Image)
+	return env.Get(m3Image, "minio/m3:edge")
+}
+
+func getLivenessMaxInitialDelaySeconds() int32 {
+	var maxSeconds int32
+	if v := env.Get(maxLivenessInitialSecondsDelay, "120"); v != "" {
+		maxSecondsInt, err := strconv.Atoi(v)
+		if err != nil {
+			return 120
+		}
+		maxSeconds = int32(maxSecondsInt)
 	}
-	return concreteM3Image
+	return maxSeconds
+}
+
+func getPublishNotReadyAddress() bool {
+	return strings.ToLower(env.Get(pubNotReadyAddress, "false")) == "true"
+}
+
+func getMinIOImage() string {
+	return env.Get(minIOImage, "minio/minio:RELEASE.2019-12-19T22-52-26Z")
 }

@@ -20,10 +20,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/minio/minio/pkg/env"
 	v12 "k8s.io/client-go/kubernetes/typed/apps/v1"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -39,7 +39,7 @@ import (
 func getK8sConfig() *rest.Config {
 	// creates the in-cluster config
 	var config *rest.Config
-	if os.Getenv("DEVELOPMENT") != "" {
+	if env.Get("DEVELOPMENT", "") != "" {
 		//when doing local development, mount k8s api via `kubectl proxy`
 		config = &rest.Config{
 			Host:            "http://localhost:8001",
@@ -157,7 +157,7 @@ func CreateSGHostService(sg *StorageGroup, sgNode *StorageGroupNode) error {
 				"app": serviceName,
 			},
 			ClusterIP:                "None",
-			PublishNotReadyAddresses: false,
+			PublishNotReadyAddresses: getPublishNotReadyAddress(),
 		},
 	}
 
@@ -768,8 +768,8 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 
 			// wait for the deployment to come online before replacing the next deployment
 			// to know when the past deployment is online, we will expect the deployed tenant to reply with it's
-			// liveliness probe
-			if len(tenants) > 0 {
+			// liveliness probe. If the storage group had no tenants prior to this one, don't wait.
+			if len(tenants) > 0 && sgTenant.StorageGroup.TotalTenants > 0 {
 				err = <-waitDeploymentLive(sgHostName, sgTenant.Port)
 				if err != nil {
 					ch <- err

@@ -80,6 +80,7 @@ type StorageGroup struct {
 	Name             string
 	TotalNodes       int32
 	TotalVolumes     int32
+	TotalTenants     int32
 }
 
 // Struct returned by goroutines via channels that bundles a possible error.
@@ -165,6 +166,16 @@ func GetStorageGroupByID(ctx *Context, id *uuid.UUID) (*StorageGroup, error) {
 			LIMIT 1) AS ct`
 	// non-transactional query as there cannot be a storage group insert along with a read
 	if err := GetInstance().Db.QueryRow(queryVolumes, sg.StorageClusterID).Scan(&sg.TotalVolumes); err != nil {
+		return nil, err
+	}
+
+	queryTenants := `
+			SELECT 
+			       COUNT(*) AS total_tenants 
+			FROM tenants_storage_groups tsg 
+			WHERE tsg.storage_group_id=$1`
+	// non-transactional query as there cannot be a storage group insert along with a read
+	if err := GetInstance().Db.QueryRow(queryTenants, sg.ID).Scan(&sg.TotalTenants); err != nil {
 		return nil, err
 	}
 
