@@ -31,6 +31,9 @@ const (
 	minIOImage                     = "MINIO_IMAGE"
 	maxLivenessInitialSecondsDelay = "LIVENESS_MAX_INITIAL_SECONDS_DELAY"
 	pubNotReadyAddress             = "PUBLISH_NOT_READY_ADDRESS"
+	kmsAddress                     = "KMS_ADDRESS"
+	kmsToken                       = "KMS_TOKEN"
+
 	// constants
 	TokenSignupEmail            = "signup-email"
 	TokenResetPasswordEmail     = "reset-password-email"

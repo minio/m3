@@ -28,7 +28,6 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"os"
 	"time"
 
 	vapi "github.com/hashicorp/vault/api"
@@ -60,12 +59,12 @@ func connectToKms() chan kmsCnxResult {
 	ch := make(chan kmsCnxResult)
 	go func() {
 		defer close(ch)
-		kmsAddress := os.Getenv("KMS_ADDRESS")
+		kmsAddress := getKmsAddress()
 		if kmsAddress == "" {
 			ch <- kmsCnxResult{Error: errors.New("missing kms address")}
 			return
 		}
-		kmsToken := os.Getenv("KMS_TOKEN")
+		kmsToken := getKmsToken()
 		if kmsToken == "" {
 			ch <- kmsCnxResult{Error: errors.New("missing kms token")}
 			return

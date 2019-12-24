@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"fmt"
-	"os"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -107,7 +106,7 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 	}
 	tenantContainer.VolumeMounts = volumeMounts
 
-	if os.Getenv("KMS_ADDRESS") != "" {
+	if getKmsAddress() != "" {
 		clientset, _ := k8sClient()
 		if clientset != nil {
 			kesServiceName := fmt.Sprintf("%s-kes", sgTenant.ShortName)

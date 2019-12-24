@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"regexp"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -58,7 +57,7 @@ const (
 
 func ProvisionTenant(ctx *Context, shortName string, sg *StorageGroup) error {
 	// Enable kes service for handling minio encryption
-	if os.Getenv("KMS_ADDRESS") != "" {
+	if getKmsAddress() != "" {
 		err := <-StartNewKes(shortName)
 		if err != nil {
 			log.Println(err)
@@ -745,7 +744,7 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 	// Env variable to tell MinIO that it is running on a replica set deployment
 	tenantConfig["KUBERNETES_REPLICA_SET"] = "1"
 
-	if os.Getenv("KMS_ADDRESS") != "" {
+	if getKmsAddress() != "" {
 		kesServiceName := fmt.Sprintf("%s-kes", sgTenant.ShortName)
 		kesServiceAddress := fmt.Sprintf("https://%s:7373", kesServiceName)
 		tenantConfig["MINIO_KMS_KES_ENDPOINT"] = kesServiceAddress
