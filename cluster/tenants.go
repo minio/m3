@@ -513,12 +513,14 @@ func DeleteTenant(ctx *Context, sgt *StorageGroupTenantResult) error {
 	// StopTenantServers before deprovisioning them.
 	err := StopTenantServers(sgt)
 	if err != nil {
+		log.Println("Error stopping tenant servers:", err)
 		return errors.New("Error stopping tenant servers")
 	}
 	tenantShortName := sgt.StorageGroupTenant.Tenant.ShortName
 	// Deprovision tenant and delete tenant info from disks
 	err = <-DeprovisionTenantOnStorageGroup(ctx, sgt.Tenant, sgt.StorageGroup)
 	if err != nil {
+		log.Println("Error deprovisioning tenant:", err)
 		return errors.New("Error deprovisioning tenant")
 	}
 

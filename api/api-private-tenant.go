@@ -159,7 +159,13 @@ func (ps *privateServer) TenantDelete(ctx context.Context, in *pb.TenantSingleRe
 		}
 	}()
 
-	sgt := <-cluster.GetTenantStorageGroupByShortName(nil, tenantShortName)
+	tenant, err := cluster.GetTenantByDomain(tenantShortName)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.NotFound, "Tenant not found").Err()
+	}
+
+	sgt := <-cluster.GetTenantStorageGroupByShortName(nil, tenant.ShortName)
 	if sgt.Error != nil {
 		return nil, status.New(codes.NotFound, "storage group not found for tenant").Err()
 	}
