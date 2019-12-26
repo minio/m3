@@ -40,6 +40,11 @@ func getM3ContainerImage() string {
 	return env.Get(m3Image, "minio/m3:edge")
 }
 
+func getM3ImagePullPolicy() string {
+	//TODO: Change to `IfNotPresent` when we move out of edge
+	return env.Get(m3ImagePullPolicy, "Always")
+}
+
 func getLivenessMaxInitialDelaySeconds() int32 {
 	var maxSeconds int32
 	if v := env.Get(maxLivenessInitialSecondsDelay, "120"); v != "" {
@@ -66,4 +71,8 @@ func getKmsAddress() string {
 
 func getKmsToken() string {
 	return env.Get(kmsToken, "")
+}
+
+func getMinIOImagePullPolicy() string {
+	return env.Get(minIOImagePullPolicy, "IfNotPresent")
 }

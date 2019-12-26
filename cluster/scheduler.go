@@ -169,7 +169,7 @@ func startJob(task *Task) error {
 								"run-task",
 								fmt.Sprintf("%d", task.ID),
 							},
-							ImagePullPolicy: "IfNotPresent",
+							ImagePullPolicy: v1.PullPolicy(getM3ImagePullPolicy()),
 							EnvFrom: []v1.EnvFromSource{
 								{
 									ConfigMapRef: &v1.ConfigMapEnvSource{
