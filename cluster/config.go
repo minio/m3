@@ -76,3 +76,7 @@ func getKmsAddress() string {
 func getKmsToken() string {
 	return env.Get(kmsToken, "")
 }
+
+func getDevUseEmptyDir() bool {
+	return strings.ToLower(env.Get(devUseEmptyDir, "false")) == "true"
+}

@@ -52,4 +52,7 @@ const (
 
 	// configurations
 	cfgCoreGlobalBuckets = "core.global_buckets"
+
+	// Development Flags
+	devUseEmptyDir = "DEV_EMPTY_DIR"
 )
