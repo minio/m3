@@ -28,7 +28,9 @@ const (
 	maxTenantChannelSize           = "MAX_TENANT_CHANNEL_SIZE"
 	s3Domain                       = "S3_DOMAIN"
 	m3Image                        = "M3_IMAGE"
+	m3ImagePullPolicy              = "M3_IMAGE_PULL_POLICY"
 	minIOImage                     = "MINIO_IMAGE"
+	minIOImagePullPolicy           = "MINIO_IMAGE_PULL_POLICY"
 	maxLivenessInitialSecondsDelay = "LIVENESS_MAX_INITIAL_SECONDS_DELAY"
 	pubNotReadyAddress             = "PUBLISH_NOT_READY_ADDRESS"
 	// constants

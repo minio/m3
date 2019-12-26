@@ -53,7 +53,7 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 	tenantContainer := v1.Container{
 		Name:            fmt.Sprintf("%s-minio-%d", sgTenant.Tenant.ShortName, sgNode.Num),
 		Image:           getMinIOImage(),
-		ImagePullPolicy: "IfNotPresent",
+		ImagePullPolicy: v1.PullPolicy(getMinIOImagePullPolicy()),
 		Args:            minioConfigCmd,
 		Ports: []v1.ContainerPort{
 			{
