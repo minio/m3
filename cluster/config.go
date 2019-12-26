@@ -62,7 +62,11 @@ func getPublishNotReadyAddress() bool {
 }
 
 func getMinIOImage() string {
-	return env.Get(minIOImage, "minio/minio:RELEASE.2019-12-19T22-52-26Z")
+	return env.Get(minIOImage, "minio/minio:RELEASE.2019-12-24T23-04-45Z")
+}
+
+func getMinIOImagePullPolicy() string {
+	return env.Get(minIOImagePullPolicy, "IfNotPresent")
 }
 
 func getKmsAddress() string {
@@ -71,8 +75,4 @@ func getKmsAddress() string {
 
 func getKmsToken() string {
 	return env.Get(kmsToken, "")
-}
-
-func getMinIOImagePullPolicy() string {
-	return env.Get(minIOImagePullPolicy, "IfNotPresent")
 }
