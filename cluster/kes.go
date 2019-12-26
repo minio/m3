@@ -166,7 +166,7 @@ func getNewKesDeployment(deploymentName string, kesSecretsNames map[string]strin
 		Containers: []corev1.Container{
 			{
 				Name:            deploymentName,
-				Image:           "minio/kes:latest",
+				Image:           getKesContainerImage(),
 				ImagePullPolicy: "IfNotPresent",
 				Command:         []string{"kes"},
 				Args:            []string{"server", "--config=kes-config/server-config.toml", "--mtls-auth=ignore"},

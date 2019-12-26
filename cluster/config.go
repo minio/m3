@@ -40,6 +40,10 @@ func getM3ContainerImage() string {
 	return env.Get(m3Image, "minio/m3:edge")
 }
 
+func getKesContainerImage() string {
+	return env.Get(kesImage, "minio/kes:latest")
+}
+
 func getM3ImagePullPolicy() string {
 	//TODO: Change to `IfNotPresent` when we move out of edge
 	return env.Get(m3ImagePullPolicy, "Always")
