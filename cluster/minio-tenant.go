@@ -94,6 +94,10 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 	for _, vol := range sgNode.Node.Volumes {
 		vname := fmt.Sprintf("%s-pv-%d", sgTenant.Tenant.ShortName, vol.Num)
 		volumenSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: fmt.Sprintf("%s/%s", vol.MountPath, sgTenant.Tenant.ShortName)}}
+		// Use EmptyDir instead. https://kubernetes.io/docs/concepts/storage/volumes/#emptydir
+		if getDevUseEmptyDir() {
+			volumenSource = v1.VolumeSource{EmptyDir: &v1.EmptyDirVolumeSource{}}
+		}
 		hostPathVolume := v1.Volume{Name: vname, VolumeSource: volumenSource}
 
 		mount := v1.VolumeMount{

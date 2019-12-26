@@ -68,3 +68,7 @@ func getMinIOImage() string {
 func getMinIOImagePullPolicy() string {
 	return env.Get(minIOImagePullPolicy, "IfNotPresent")
 }
+
+func getDevUseEmptyDir() bool {
+	return strings.ToLower(env.Get(devUseEmptyDir, "false")) == "true"
+}
