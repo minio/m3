@@ -40,6 +40,11 @@ func getM3ContainerImage() string {
 	return env.Get(m3Image, "minio/m3:edge")
 }
 
+func getM3ImagePullPolicy() string {
+	//TODO: Change to `IfNotPresent` when we move out of edge
+	return env.Get(m3ImagePullPolicy, "Always")
+}
+
 func getLivenessMaxInitialDelaySeconds() int32 {
 	var maxSeconds int32
 	if v := env.Get(maxLivenessInitialSecondsDelay, "120"); v != "" {
@@ -58,4 +63,8 @@ func getPublishNotReadyAddress() bool {
 
 func getMinIOImage() string {
 	return env.Get(minIOImage, "minio/minio:RELEASE.2019-12-19T22-52-26Z")
+}
+
+func getMinIOImagePullPolicy() string {
+	return env.Get(minIOImagePullPolicy, "IfNotPresent")
 }
