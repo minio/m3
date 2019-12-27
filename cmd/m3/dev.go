@@ -98,7 +98,8 @@ func dev(ctx *cli.Context) error {
 	podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			pod := obj.(*v1.Pod)
-			if strings.HasPrefix(pod.ObjectMeta.Name, "m3") {
+			if val, ok := pod.Labels["app"]; ok && val == "m3" {
+				//if strings.HasPrefix(pod.ObjectMeta.Name, "m3") {
 				fmt.Println("An m3 pod was added:", pod.ObjectMeta.Name)
 				// we are going to ignore the first registered pod
 				if !initialized {
@@ -137,6 +138,7 @@ func dev(ctx *cli.Context) error {
 	go podInformer.Run(doneCh)
 
 	// monitor if a channel gets closed
+	numTries := 0
 OuterLoop:
 	for {
 		select {
@@ -146,8 +148,13 @@ OuterLoop:
 			publicCh = servicePortForwardPort(m3PFCtx, "m3", "50051", color.FgBlue)
 		case <-privateCh:
 			fmt.Println("Private port forward closed, restarting it after 2 seconds")
+			numTries++
 			time.Sleep(time.Second * 2)
 			privateCh = servicePortForwardPort(m3PFCtx, "m3", "50052", color.FgGreen)
+			// if more than 100 tries, probs the container is down, stop trying
+			if numTries > 100 {
+				break OuterLoop
+			}
 		case <-nginxCh:
 			fmt.Println("Nginx port forward closed, restarting it after 2 seconds")
 			time.Sleep(time.Second * 2)
