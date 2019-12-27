@@ -750,9 +750,9 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 		kesServiceName := fmt.Sprintf("%s-kes", sgTenant.ShortName)
 		kesServiceAddress := fmt.Sprintf("https://%s:7373", kesServiceName)
 		tenantConfig["MINIO_KMS_KES_ENDPOINT"] = kesServiceAddress
-		tenantConfig["MINIO_KMS_KES_KEY_FILE"] = fmt.Sprintf("/kes-config/%s/app/key", sgTenant.ShortName)
-		tenantConfig["MINIO_KMS_KES_CERT_FILE"] = fmt.Sprintf("/kes-config/%s/app/cert", sgTenant.ShortName)
-		tenantConfig["MINIO_KMS_KES_CA_PATH"] = fmt.Sprintf("/kes-config/%s/server/cert", sgTenant.ShortName)
+		tenantConfig["MINIO_KMS_KES_KEY_FILE"] = fmt.Sprintf("/kes-config/%s/app/key/key", sgTenant.ShortName)
+		tenantConfig["MINIO_KMS_KES_CERT_FILE"] = fmt.Sprintf("/kes-config/%s/app/cert/cert", sgTenant.ShortName)
+		tenantConfig["MINIO_KMS_KES_CA_PATH"] = fmt.Sprintf("/kes-config/%s/server/cert/cert", sgTenant.ShortName)
 		tenantConfig["MINIO_KMS_KES_KEY_NAME"] = "app-key"
 	}
 

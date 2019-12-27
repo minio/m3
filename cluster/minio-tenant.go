@@ -143,19 +143,19 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 
 				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
 					Name:      "app-keypair-key",
-					MountPath: fmt.Sprintf("/kes-config/%s/app", sgTenant.ShortName),
+					MountPath: fmt.Sprintf("/kes-config/%s/app/key", sgTenant.ShortName),
 					ReadOnly:  true,
 				})
 
 				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
 					Name:      "app-keypair-cert",
-					MountPath: fmt.Sprintf("/kes-config/%s/app", sgTenant.ShortName),
+					MountPath: fmt.Sprintf("/kes-config/%s/app/cert", sgTenant.ShortName),
 					ReadOnly:  true,
 				})
 
 				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
 					Name:      "server-keypair-cert",
-					MountPath: fmt.Sprintf("/kes-config/%s/server", sgTenant.ShortName),
+					MountPath: fmt.Sprintf("/kes-config/%s/server/cert", sgTenant.ShortName),
 					ReadOnly:  true,
 				})
 			}

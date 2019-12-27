@@ -183,12 +183,12 @@ func getNewKesDeployment(deploymentName string, kesSecretsNames map[string]strin
 					},
 					{
 						Name:      "server-keypair-key",
-						MountPath: "/kes-config/server",
+						MountPath: "/kes-config/server/key",
 						ReadOnly:  true,
 					},
 					{
 						Name:      "server-keypair-cert",
-						MountPath: "/kes-config/server",
+						MountPath: "/kes-config/server/cert",
 						ReadOnly:  true,
 					},
 				},
@@ -452,8 +452,8 @@ func createKesConfigurations(KmsClient *vapi.Client, tenant string, roleID strin
 			root = "disabled"
 			
 			[tls]
-			key  = "kes-config/server/key"
-			cert = "kes-config/server/cert"
+			key  = "kes-config/server/key/key"
+			cert = "kes-config/server/cert/cert"
 			
 			[policy.prod-app]
 			paths      = [ "/v1/key/create/app-key", "/v1/key/generate/app-key" , "/v1/key/decrypt/app-key"]
