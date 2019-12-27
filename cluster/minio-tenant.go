@@ -119,27 +119,42 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 
 				volumenSource := v1.VolumeSource{
 					Secret: &v1.SecretVolumeSource{
-						SecretName: fmt.Sprintf("%s-kes-app-keypair", sgTenant.ShortName),
+						SecretName: fmt.Sprintf("%s-kes-app-keypair-key", sgTenant.ShortName),
 					},
 				}
-				hostPathVolume := v1.Volume{Name: "app-keypair", VolumeSource: volumenSource}
+				hostPathVolume := v1.Volume{Name: "app-keypair-key", VolumeSource: volumenSource}
 				tenantVolumes = append(tenantVolumes, hostPathVolume)
 
 				volumenSource = v1.VolumeSource{
 					Secret: &v1.SecretVolumeSource{
-						SecretName: fmt.Sprintf("%s-kes-server-keypair", sgTenant.ShortName),
+						SecretName: fmt.Sprintf("%s-kes-app-keypair-cert", sgTenant.ShortName),
 					},
 				}
-				hostPathVolume = v1.Volume{Name: "server-keypair", VolumeSource: volumenSource}
+				hostPathVolume = v1.Volume{Name: "app-keypair-cert", VolumeSource: volumenSource}
+				tenantVolumes = append(tenantVolumes, hostPathVolume)
+
+				volumenSource = v1.VolumeSource{
+					Secret: &v1.SecretVolumeSource{
+						SecretName: fmt.Sprintf("%s-kes-server-keypair-cert", sgTenant.ShortName),
+					},
+				}
+				hostPathVolume = v1.Volume{Name: "server-keypair-cert", VolumeSource: volumenSource}
 				tenantVolumes = append(tenantVolumes, hostPathVolume)
 
 				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
-					Name:      "app-keypair",
+					Name:      "app-keypair-key",
 					MountPath: fmt.Sprintf("/kes-config/%s/app", sgTenant.ShortName),
 					ReadOnly:  true,
 				})
+
 				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
-					Name:      "server-keypair",
+					Name:      "app-keypair-cert",
+					MountPath: fmt.Sprintf("/kes-config/%s/app", sgTenant.ShortName),
+					ReadOnly:  true,
+				})
+
+				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
+					Name:      "server-keypair-cert",
 					MountPath: fmt.Sprintf("/kes-config/%s/server", sgTenant.ShortName),
 					ReadOnly:  true,
 				})

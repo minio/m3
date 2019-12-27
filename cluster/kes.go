@@ -182,7 +182,12 @@ func getNewKesDeployment(deploymentName string, kesSecretsNames map[string]strin
 						ReadOnly:  true,
 					},
 					{
-						Name:      "server-keypair",
+						Name:      "server-keypair-key",
+						MountPath: "/kes-config/server",
+						ReadOnly:  true,
+					},
+					{
+						Name:      "server-keypair-cert",
 						MountPath: "/kes-config/server",
 						ReadOnly:  true,
 					},
@@ -199,10 +204,18 @@ func getNewKesDeployment(deploymentName string, kesSecretsNames map[string]strin
 				},
 			},
 			{
-				Name: "server-keypair",
+				Name: "server-keypair-key",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: kesSecretsNames["kesServerKeyPairSecretName"],
+						SecretName: kesSecretsNames["kesServerKeyPairKeySecretName"],
+					},
+				},
+			},
+			{
+				Name: "server-keypair-cert",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: kesSecretsNames["kesServerKeyPairCertSecretName"],
 					},
 				},
 			},
@@ -416,10 +429,12 @@ func storeKeyPairInSecret(secretName string, content map[string]string) <-chan s
 func generateKeyPairAndStoreInSecret(name string) *KeyPair {
 	kesKeyPair := <-generateKeyPair(name)
 	if kesKeyPair != nil && kesKeyPair.cert != "" && kesKeyPair.key != "" {
-		<-storeKeyPairInSecret(name, map[string]string{
+		<-storeKeyPairInSecret(fmt.Sprintf("%s-cert", name), map[string]string{
 			"cert":         kesKeyPair.cert,
-			"key":          kesKeyPair.key,
 			"certIdentity": kesKeyPair.certIdentity,
+		})
+		<-storeKeyPairInSecret(fmt.Sprintf("%s-key", name), map[string]string{
+			"key": kesKeyPair.key,
 		})
 	}
 	return kesKeyPair
@@ -459,9 +474,11 @@ func createKesConfigurations(KmsClient *vapi.Client, tenant string, roleID strin
 		"server-config.toml": kesServerConfig,
 	})
 	return map[string]string{
-		"kesServerConfigSecretName":  kesServerConfigSecretName,
-		"kesServerKeyPairSecretName": kesServerKeyPairSecretName,
-		"kesAppKeyPairSecretName":    kesAppKeyPairSecretName,
+		"kesServerConfigSecretName":      kesServerConfigSecretName,
+		"kesServerKeyPairKeySecretName":  fmt.Sprintf("%s-key", kesServerKeyPairSecretName),
+		"kesServerKeyPairCertSecretName": fmt.Sprintf("%s-cert", kesServerKeyPairSecretName),
+		"kesAppKeyPairKeySecretName":     fmt.Sprintf("%s-key", kesAppKeyPairSecretName),
+		"kesAppKeyPairCertSecretName":    fmt.Sprintf("%s-cert", kesAppKeyPairSecretName),
 	}
 }
 
