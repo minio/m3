@@ -91,7 +91,11 @@ func tenantServiceAccountList(ctx *cli.Context) error {
 	}
 
 	// create context
-	appCtx := cluster.NewCtxWithTenant(&tenant)
+	appCtx, err := cluster.NewCtxWithTenant(&tenant)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
 
 	users, err := cluster.GetServiceAccountList(appCtx, offset, limit)
 	if err != nil {

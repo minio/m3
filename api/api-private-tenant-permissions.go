@@ -54,7 +54,9 @@ func (ps *privateServer) TenantPermissionAdd(ctx context.Context, in *pb.TenantP
 	if err != nil {
 		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
 	}
-	appCtx.Tenant = &tenant
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 
 	if _, err := cluster.AddPermissionToDB(appCtx, in.Name, in.Description, effect, in.Resources, in.Actions); err != nil {
 		appCtx.Rollback()
@@ -79,7 +81,9 @@ func (ps *privateServer) TenantPermissionList(ctx context.Context, in *pb.Tenant
 		log.Println(err)
 		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
 	}
-	appCtx.Tenant = &tenant
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 	// perform actions
 	perms, err := cluster.ListPermissions(appCtx, in.Offset, in.Limit)
 	if err != nil {
@@ -133,7 +137,9 @@ func (ps *privateServer) TenantPermissionAssign(ctx context.Context, in *pb.Tena
 		log.Println(err)
 		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
 	}
-	appCtx.Tenant = &tenant
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 
 	// validate the permission
 	// get the permission to see if it's valid

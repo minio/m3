@@ -17,7 +17,6 @@
 package cluster
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -76,7 +75,9 @@ func ProvisionTenants(ctx *Context, tenants []string, sg *StorageGroup) error {
 			log.Println("Error adding the tenant to the db: ", tenantResult.Error)
 			return errors.New("Error adding the tenant to the db")
 		}
-		ctx.Tenant = tenantResult.Tenant
+		if err := ctx.SetTenant(tenantResult.Tenant); err != nil {
+			return err
+		}
 		log.Println(fmt.Sprintf("Registered as tenant %s\n", tenantResult.Tenant.ID.String()))
 
 		// Create tenant namespace
@@ -142,13 +143,15 @@ func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) err
 		return errors.New("No space available")
 	}
 	// now that we have a tenant, designate it as the tenant to be used in context
-	ctx.Tenant = tenant
-	if err = ClaimTenant(ctx, tenant, name, domain); err != nil {
+	if err := ctx.SetTenant(tenant); err != nil {
+		return err
+	}
+	if err = claimTenant(ctx, tenant, name, domain); err != nil {
 		return err
 	}
 	// update the context tenant
-	ctx.Tenant.Name = name
-	ctx.Tenant.Domain = domain
+	ctx.Tenant().Name = name
+	ctx.Tenant().Domain = domain
 	sgt := <-GetTenantStorageGroupByShortName(ctx, tenant.ShortName)
 	if sgt.Error != nil {
 		return sgt.Error
@@ -219,12 +222,7 @@ func InsertTenant(ctx *Context, tenantName string, tenantShortName string) chan 
 				tenants ("id", "name", "short_name","enabled", "available", "domain", "sys_created_by")
 			  VALUES
 				($1, $2, $3, $4, $5, $6, $7)`
-		tx, err := ctx.MainTx()
-		if err != nil {
-			ch <- AddTenantResult{Error: err}
-			return
-		}
-		_, err = tx.Exec(query, tenantID, tenantName, tenantShortName, TenantDisabled, TenantAvailable, tenantShortName, ctx.WhoAmI)
+		_, err = ctx.MainTx().Exec(query, tenantID, tenantName, tenantShortName, TenantDisabled, TenantAvailable, tenantShortName, ctx.WhoAmI)
 		if err != nil {
 			ch <- AddTenantResult{Error: err}
 			return
@@ -264,11 +262,7 @@ func validTenantShortName(ctx *Context, tenantShortName string) error {
 		WHERE 
 		      short_name=$1`
 	var totalCollisions int
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
-	row := tx.QueryRow(checkUniqueQuery, tenantShortName)
+	row := ctx.MainTx().QueryRow(checkUniqueQuery, tenantShortName)
 	err = row.Scan(&totalCollisions)
 	if err != nil {
 		fmt.Println(err)
@@ -460,19 +454,7 @@ func GetTenantByDomainWithCtx(ctx *Context, tenantDomain string) (tenant Tenant,
 			FROM 
 				tenants t1
 			WHERE domain=$1`
-	// non-transactional query
-	var row *sql.Row
-	// did we got a context? query inside of it
-	if ctx != nil {
-		tx, err := ctx.MainTx()
-		if err != nil {
-			return tenant, err
-		}
-		row = tx.QueryRow(query, ctx.Tenant.Domain)
-	} else {
-		// no context? straight to db
-		row = db.GetInstance().Db.QueryRow(query, tenantDomain)
-	}
+	row := ctx.MainTx().QueryRow(query, tenantDomain)
 
 	// Save the resulted query on the User struct
 	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain)
@@ -496,20 +478,7 @@ func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (tenant Tenant, err
 			FROM 
 				tenants t1
 			WHERE t1.id=$1`
-	// non-transactional query
-	var row *sql.Row
-	// did we got a context? query inside of it
-	if ctx != nil {
-		tx, err := ctx.MainTx()
-		if err != nil {
-			return tenant, err
-		}
-		row = tx.QueryRow(query, tenantID)
-	} else {
-		// no context? straight to db
-		row = db.GetInstance().Db.QueryRow(query, tenantID)
-	}
-
+	row := ctx.MainTx().QueryRow(query, tenantID)
 	// Save the resulted query on the User struct
 	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain)
 	if err != nil {
@@ -547,10 +516,6 @@ func DeleteTenant(ctx *Context, sgt *StorageGroupTenantResult) error {
 		log.Println("Error deleting schema: ", err)
 		return errors.New("Error deleting tenant's")
 	}
-	// purge connection from pool
-
-	db.GetInstance().RemoveCnx(tenantShortName)
-
 	//delete namesapce
 	nsDeleteCh := DeleteTenantNamespace(tenantShortName)
 
@@ -639,12 +604,7 @@ func DeleteTenantRecord(ctx *Context, tenantShortName string) chan error {
 				tenants_storage_groups t1
 			  WHERE
 			  t1.tenant_id IN (SELECT id FROM tenants WHERE short_name=$1 )`
-		tx, err := ctx.MainTx()
-		if err != nil {
-			ch <- err
-			return
-		}
-		_, err = tx.Exec(query, tenantShortName)
+		_, err := ctx.MainTx().Exec(query, tenantShortName)
 		if err != nil {
 			ch <- err
 			return
@@ -657,12 +617,7 @@ func DeleteTenantRecord(ctx *Context, tenantShortName string) chan error {
 				tenants
 			  WHERE
 			  short_name=$1`
-		tx, err = ctx.MainTx()
-		if err != nil {
-			ch <- err
-			return
-		}
-		_, err = tx.Exec(query, tenantShortName)
+		_, err = ctx.MainTx().Exec(query, tenantShortName)
 		if err != nil {
 			ch <- err
 			return
@@ -695,18 +650,7 @@ func DeleteTenantNamespace(tenantShortName string) chan error {
 func TenantShortNameAvailable(ctx *Context, tenantShortName string) (bool, error) {
 	// Checks if a tenant short name is in use
 	queryUser := `SELECT EXISTS(SELECT 1 FROM tenants WHERE short_name=$1 LIMIT 1)`
-
-	var row *sql.Row
-	// if no context is provided, don't use a transaction
-	if ctx == nil {
-		row = db.GetInstance().Db.QueryRow(queryUser, tenantShortName)
-	} else {
-		tx, err := ctx.MainTx()
-		if err != nil {
-			return false, err
-		}
-		row = tx.QueryRow(queryUser, tenantShortName)
-	}
+	row := ctx.MainTx().QueryRow(queryUser, tenantShortName)
 	exists := false
 	// Save the result on the exist
 	err := row.Scan(&exists)
@@ -734,7 +678,7 @@ func GetStreamOfTenants(ctx *Context, maxChanSize int) chan TenantResult {
 				tenants t1`
 
 		// no context? straight to db
-		rows, err := db.GetInstance().Db.Query(query)
+		rows, err := ctx.MainTx().Query(query)
 		if err != nil {
 			ch <- TenantResult{Error: err}
 			return
@@ -835,19 +779,7 @@ func GetTenantWithCtxByServiceName(ctx *Context, serviceName string) (tenant Ten
 			FROM 
 				tenants t1 LEFT JOIN tenants_storage_groups tsg ON t1.id = tsg.tenant_id
 			WHERE tsg.service_name=$1`
-	// non-transactional query
-	var row *sql.Row
-	// did we got a context? query inside of it
-	if ctx != nil {
-		tx, err := ctx.MainTx()
-		if err != nil {
-			return tenant, err
-		}
-		row = tx.QueryRow(query, serviceName)
-	} else {
-		// no context? straight to db
-		row = db.GetInstance().Db.QueryRow(query, serviceName)
-	}
+	row := ctx.MainTx().QueryRow(query, serviceName)
 
 	// Save the resulted query on the User struct
 	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain)
@@ -898,14 +830,10 @@ func GrabAvailableTenant(ctx *Context) (*Tenant, error) {
 			LIMIT 1
 			FOR UPDATE`
 	// transactional query
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return nil, err
-	}
-	row := tx.QueryRow(query)
+	row := ctx.MainTx().QueryRow(query)
 	// Save the resulted query on the User struct
 	tenant := Tenant{}
-	if err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain); err != nil {
+	if err := row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain); err != nil {
 		return nil, err
 	}
 	return &tenant, nil
@@ -920,11 +848,7 @@ func ClaimTenant(ctx *Context, tenant *Tenant, name, domain string) error {
 				WHERE id=$3`
 
 	// Execute Query
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
-	_, err = tx.Exec(query, name, domain, tenant.ID)
+	_, err := ctx.MainTx().Exec(query, name, domain, tenant.ID)
 	if err != nil {
 		return err
 	}
@@ -932,10 +856,6 @@ func ClaimTenant(ctx *Context, tenant *Tenant, name, domain string) error {
 }
 
 func UpdateTenantCost(ctx *Context, tenantID *uuid.UUID, costMultiplier float32) error {
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
 	// create the bucket registry
 	query :=
 		`UPDATE 
@@ -945,7 +865,7 @@ func UpdateTenantCost(ctx *Context, tenantID *uuid.UUID, costMultiplier float32)
 		WHERE 
 			id=$1`
 
-	if _, err = tx.Exec(query, tenantID, costMultiplier); err != nil {
+	if _, err := ctx.MainTx().Exec(query, tenantID, costMultiplier); err != nil {
 		return err
 	}
 	return nil
@@ -953,10 +873,6 @@ func UpdateTenantCost(ctx *Context, tenantID *uuid.UUID, costMultiplier float32)
 
 // UpdateTenantEnabledStatus changes the tenant's enabled column on the db
 func UpdateTenantEnabledStatus(ctx *Context, tenantID *uuid.UUID, enabled bool) error {
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
 	// create the bucket registry
 	query :=
 		`UPDATE 
@@ -966,7 +882,7 @@ func UpdateTenantEnabledStatus(ctx *Context, tenantID *uuid.UUID, enabled bool) 
 		WHERE 
 			id=$1`
 
-	if _, err = tx.Exec(query, tenantID, enabled); err != nil {
+	if _, err := ctx.MainTx().Exec(query, tenantID, enabled); err != nil {
 		return err
 	}
 	return nil

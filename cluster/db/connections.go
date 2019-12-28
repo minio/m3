@@ -29,7 +29,7 @@ import (
 )
 
 type Singleton struct {
-	Db         *sql.DB
+	db         *sql.DB
 	tenantsCnx map[string]*sql.DB
 }
 
@@ -50,7 +50,7 @@ func GetInstance() *Singleton {
 		cnxCache := make(map[string]*sql.DB)
 
 		instance = &Singleton{
-			Db:         cnxResult.Cnx,
+			db:         cnxResult.Cnx,
 			tenantsCnx: cnxCache,
 		}
 	})
@@ -134,7 +134,8 @@ func ConnectToDb(ctx context.Context, config *Config) chan CnxResult {
 // then it's returned from a local cache, else it's created, cached and returned.
 func (s *Singleton) GetTenantDB(tenantName string) *sql.DB {
 	// if we find the connection in the cache, return it
-	if db, ok := s.tenantsCnx[tenantName]; ok {
+	// For now, all tenants will live in a single connection
+	if db, ok := s.tenantsCnx["all-tenants"]; ok {
 		//do something here
 		return db
 	}
@@ -143,12 +144,14 @@ func (s *Singleton) GetTenantDB(tenantName string) *sql.DB {
 	ctx := context.Background()
 	// Get the tenant DB configuration
 	config := GetTenantDBConfig(tenantName)
+	// don't set any schema on the search_path of the connection
+	config.SchemaName = ""
 	tenantDbCnx := <-ConnectToDb(ctx, config)
 	if tenantDbCnx.Error != nil {
 		return nil
 	}
-	s.tenantsCnx[tenantName] = tenantDbCnx.Cnx
-	return s.tenantsCnx[tenantName]
+	s.tenantsCnx["all-tenants"] = tenantDbCnx.Cnx
+	return s.tenantsCnx["all-tenants"]
 }
 
 func GetTenantDBConfig(tenantName string) *Config {
@@ -157,11 +160,6 @@ func GetTenantDBConfig(tenantName string) *Config {
 	config.Name = env.Get("M3_TENANTS_DB", "tenants")
 	config.SchemaName = tenantName
 	return config
-}
-
-// RemoveCnx removes a tenant DB connection from the cache
-func (s *Singleton) RemoveCnx(tenantName string) {
-	delete(s.tenantsCnx, tenantName)
 }
 
 // Close all connectiosn
@@ -173,8 +171,17 @@ func (s *Singleton) Close() error {
 		}
 	}
 	// close main connections
-	if err := s.Db.Close(); err != nil {
+	if err := s.db.Close(); err != nil {
 		return err
 	}
 	return nil
+}
+
+// Close all connectiosn
+func (s *Singleton) StartMainTx(controlCtx context.Context) (*sql.Tx, error) {
+	tx, err := s.db.BeginTx(controlCtx, nil)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
 }

@@ -19,7 +19,6 @@ package cluster
 import (
 	"bytes"
 	"crypto/tls"
-	"database/sql"
 	"errors"
 	"fmt"
 	"html/template"
@@ -29,8 +28,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-
-	"github.com/minio/m3/cluster/db"
 
 	"github.com/minio/minio/pkg/env"
 )
@@ -183,18 +180,7 @@ func getTemplateFromDB(ctx *Context, templateName string) (*string, error) {
 				email_templates et
 			WHERE et.name=$1`
 	// non-transactional query
-	var row *sql.Row
-	// did we got a context? query inside of it
-	if ctx != nil {
-		tx, err := ctx.MainTx()
-		if err != nil {
-			return nil, err
-		}
-		row = tx.QueryRow(query, templateName)
-	} else {
-		// no context? straight to db
-		row = db.GetInstance().Db.QueryRow(query, templateName)
-	}
+	row := ctx.MainTx().QueryRow(query, templateName)
 
 	// Save the resulted query on the User struct
 	var template string
@@ -219,12 +205,8 @@ func SetEmailTemplate(ctx *Context, templateName, templateBody string) error {
 				VALUES ($1, $2) 
 				ON CONFLICT (name) DO 
 			    UPDATE SET template=$2`
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
 	// Execute query
-	_, err = tx.Exec(query, templateName, templateBody)
+	_, err := ctx.MainTx().Exec(query, templateName, templateBody)
 	if err != nil {
 		return err
 	}

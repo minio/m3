@@ -81,12 +81,8 @@ func createUserWithCredentials(ctx *Context, tenantShortName string, userdID uui
 				credentials ("access_key", "user_id", "ui_credential", "sys_created_by")
 			  VALUES
 				($1, $2, $3, $4)`
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
 	// Execute query
-	_, err = tx.Exec(query, userUICredentials.AccessKey, userdID, true, ctx.WhoAmI)
+	_, err = ctx.TenantTx().Exec(query, userUICredentials.AccessKey, userdID, true, ctx.WhoAmI)
 	if err != nil {
 		return err
 	}
@@ -180,12 +176,8 @@ func createServiceAccountCredentials(ctx *Context, tenantShortName string, servi
 				credentials ("access_key","service_account_id","ui_credential","sys_created_by")
 			  VALUES
 				($1,$2,$3,$4)`
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return nil, err
-	}
 	// Execute query
-	_, err = tx.Exec(query, saCredentials.AccessKey, serviceAccountID, false, ctx.WhoAmI)
+	_, err = ctx.TenantTx().Exec(query, saCredentials.AccessKey, serviceAccountID, false, ctx.WhoAmI)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +196,7 @@ func GetCredentialsForServiceAccount(ctx *Context, serviceAccountID *uuid.UUID) 
 				LEFT JOIN service_accounts sa ON c.service_account_id = sa.id
 			WHERE sa.id=$1 LIMIT 1`
 
-	row := ctx.TenantDB().QueryRow(queryUser, serviceAccountID)
+	row := ctx.TenantTx().QueryRow(queryUser, serviceAccountID)
 	sac := ServiceAccountCredentials{}
 	// Save the resulted query on the User struct
 	err := row.Scan(&sac.AccessKey)

@@ -25,8 +25,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/minio/m3/cluster/db"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -66,10 +64,6 @@ func CreateSession(ctx *Context, user *User, tenant *Tenant) (*Session, error) {
 				sessions ("id","user_id", "tenant_id", "status", "occurred_at", "expires_at")
 			  VALUES
 				($1,$2,$3,$4,NOW(),(NOW() + INTERVAL '1 day'))`
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return nil, err
-	}
 	newSession := &Session{
 		ID:       sessionID,
 		UserID:   user.ID,
@@ -77,7 +71,7 @@ func CreateSession(ctx *Context, user *User, tenant *Tenant) (*Session, error) {
 		Status:   SessionValid,
 	}
 	// Execute Query
-	_, err = tx.Exec(query, newSession.ID, newSession.UserID, newSession.TenantID, newSession.Status)
+	_, err = ctx.MainTx().Exec(query, newSession.ID, newSession.UserID, newSession.TenantID, newSession.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -90,13 +84,9 @@ func UpdateSessionStatus(ctx *Context, sessionID string, status SessionStatus) e
 		`UPDATE sessions 
 			SET status = $2
 		WHERE id=$1`
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
 
 	// Execute Query
-	_, err = tx.Exec(query, sessionID, status)
+	_, err := ctx.MainTx().Exec(query, sessionID, status)
 	if err != nil {
 		return err
 	}
@@ -121,18 +111,17 @@ func GetRandString(size int, method string) (string, error) {
 
 // GetValidSession validates the sessionID available in the grpc
 // metadata headers and returns the session row id and tenant's id
-func GetValidSession(sessionID string) (*Session, error) {
+func GetValidSession(ctx *Context, sessionID string) (*Session, error) {
 	// With validating sessionID behind us, we query the tenant MinIO
 	// service corresponding to the logged-in user to make the bucket
 
 	// Prepare DB instance
-	db := db.GetInstance().Db
 	session := Session{ID: sessionID}
 	// Get tenant name from the DB
 	getTenantShortnameQ := `SELECT s.tenant_id, s.user_id
                             FROM sessions AS s 
                             WHERE s.id=$1 AND s.status=$2 AND NOW() < s.expires_at`
-	tenantRow := db.QueryRow(getTenantShortnameQ, sessionID, SessionValid)
+	tenantRow := ctx.MainTx().QueryRow(getTenantShortnameQ, sessionID, SessionValid)
 
 	err := tenantRow.Scan(&session.TenantID, &session.UserID)
 	if err == sql.ErrNoRows {
@@ -151,11 +140,7 @@ func GetUserSessionsFromDB(ctx *Context, user *User, status SessionStatus) (sess
 				FROM sessions AS s
 				WHERE s.user_id=$1 AND s.status=$2`
 
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return nil, err
-	}
-	rows, err := tx.Query(query, user.ID, status)
+	rows, err := ctx.MainTx().Query(query, user.ID, status)
 	defer rows.Close()
 	for rows.Next() {
 		sRes := &Session{}
@@ -188,12 +173,8 @@ func UpdateBulkSessionStatusOnDB(ctx *Context, sessions []*Session, status Sessi
 				SET status = $2
 				WHERE id = ANY($1)
 			`
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
 	// Execute query
-	_, err = tx.Exec(query, pq.Array(sessionIDs), status)
+	_, err := ctx.MainTx().Exec(query, pq.Array(sessionIDs), status)
 	if err != nil {
 		return err
 	}

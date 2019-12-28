@@ -52,7 +52,7 @@ func (ps *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, i
 	saID := saToStrmap[in.ServiceAccount]
 
 	// Get in which SG is the tenant located
-	sgt := <-cluster.GetTenantStorageGroupByShortName(appCtx, appCtx.Tenant.ShortName)
+	sgt := <-cluster.GetTenantStorageGroupByShortName(appCtx, appCtx.Tenant().ShortName)
 
 	if sgt.Error != nil {
 		log.Println(sgt.Error)
@@ -60,7 +60,7 @@ func (ps *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, i
 	}
 
 	// Get the credentials for a tenant
-	tenantConf, err := cluster.GetTenantConfig(appCtx.Tenant)
+	tenantConf, err := cluster.GetTenantConfig(appCtx.Tenant())
 	if err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
@@ -94,7 +94,9 @@ func (ps *privateServer) TenantServiceAccountAssign(ctx context.Context, in *pb.
 		log.Println(err)
 		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
 	}
-	appCtx.Tenant = &tenant
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 
 	// validate the permission
 	// get the permission to see if it's valid

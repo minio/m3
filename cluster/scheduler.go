@@ -24,8 +24,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/minio/m3/cluster/db"
-
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,8 +58,12 @@ type Task struct {
 // starts a loop that monitors the tasks table for pending task to schedule inside the cluster
 func StartScheduler() {
 	// monitor tasks table for new tasks every 500ms
+	ctx, err := NewEmptyContext()
+	if err != nil {
+		panic(err)
+	}
 	for {
-		task, err := fetchNewTask()
+		task, err := fetchNewTask(ctx)
 		if err != nil && err != sql.ErrNoRows {
 			// panic if we can't fetch tasks
 			panic(err)
@@ -69,11 +71,19 @@ func StartScheduler() {
 		// if we got a task, schedule it
 		if task != nil {
 			log.Printf("Schedule task %d\n", task.ID)
-			if err := scheduleTaskJob(task); err != nil {
+			if err := scheduleTaskJob(ctx, task); err != nil {
 				log.Println(err)
-				if err = markTask(task, ErrorSchedulingTaskStatus); err != nil {
+				if err = markTask(ctx, task, ErrorSchedulingTaskStatus); err != nil {
 					log.Println(err)
 				}
+			}
+			// commit changes
+			if err := ctx.Commit(); err != nil {
+				panic(err)
+			}
+			// start new transaction so the loop continues
+			if err := ctx.BeginTx(); err != nil {
+				panic(err)
 			}
 		} else {
 			// we got not task, sleep a little
@@ -84,7 +94,7 @@ func StartScheduler() {
 
 // fetchNewTask gets a task in "new" state and locks it until it's unlocked by an update to the record.
 // We do the locking at database just in case there's 2 schedulers running, they cannot grab the same task.
-func fetchNewTask() (*Task, error) {
+func fetchNewTask(ctx *Context) (*Task, error) {
 	// select a task in new state and lock it
 	query :=
 		`SELECT 
@@ -95,7 +105,7 @@ func fetchNewTask() (*Task, error) {
 			LIMIT 1
 		FOR UPDATE`
 	// query the reord
-	row := db.GetInstance().Db.QueryRow(query, NewTaskStatus)
+	row := ctx.MainTx().QueryRow(query, NewTaskStatus)
 	task := Task{}
 	// Save the resulted query on the User struct
 	err := row.Scan(&task.ID, &task.Name, &task.Data, &task.Status)
@@ -106,7 +116,7 @@ func fetchNewTask() (*Task, error) {
 }
 
 // markTask marks a task as the passes `newStatus` state.
-func markTask(task *Task, newStatus TaskStatus) error {
+func markTask(ctx *Context, task *Task, newStatus TaskStatus) error {
 	// if we are marking the task as scheduled, set the schedule time field
 	extraField := ""
 	if newStatus == ScheduledTaskStatus {
@@ -119,7 +129,7 @@ func markTask(task *Task, newStatus TaskStatus) error {
 				WHERE id=$2`, extraField)
 
 	// Execute Query
-	_, err := db.GetInstance().Db.Exec(query, newStatus, task.ID)
+	_, err := ctx.MainTx().Exec(query, newStatus, task.ID)
 	if err != nil {
 		return err
 	}
@@ -127,18 +137,18 @@ func markTask(task *Task, newStatus TaskStatus) error {
 }
 
 // scheduleTaskJob creates the kubernetes job for the passed task and if successful, it marks the task as scheduled
-func scheduleTaskJob(task *Task) error {
+func scheduleTaskJob(ctx *Context, task *Task) error {
 	// create job
 	err := startJob(task)
 	if err != nil {
 		log.Println(err)
-		if err = markTask(task, ErrorSchedulingTaskStatus); err != nil {
+		if err = markTask(ctx, task, ErrorSchedulingTaskStatus); err != nil {
 			log.Println(err)
 		}
 		return err
 	}
 	// mark the task as scheduled
-	if err = markTask(task, ScheduledTaskStatus); err != nil {
+	if err = markTask(ctx, task, ScheduledTaskStatus); err != nil {
 		return err
 	}
 	return nil
@@ -199,10 +209,30 @@ func startJob(task *Task) error {
 	return nil
 }
 
+// getTaskByID returns a task by id
+func getTaskByID(ctx *Context, id int64) (*Task, error) {
+	query :=
+		`SELECT 
+				t.id, t.name, t.data, t.status
+			FROM 
+				tasks t
+			WHERE t.id=$1
+			LIMIT 1`
+	// query the reord
+	row := ctx.MainTx().QueryRow(query, id)
+	task := Task{}
+	// Save the resulted query on the User struct
+	err := row.Scan(&task.ID, &task.Name, &task.Data, &task.Status)
+	if err != nil {
+		return nil, err
+	}
+	return &task, nil
+}
+
 // RunTask runs a task by id and records the result of if on the task record.
 // attempts to recover from a panic in case there's one within the task and also marks it on the db.
-func RunTask(id int64) error {
-	task, err := getTaskByID(id)
+func RunTask(ctx *Context, id int64) error {
+	task, err := getTaskByID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -210,7 +240,7 @@ func RunTask(id int64) error {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println(err)
-			if err := markTask(task, FailedTaskStatus); err != nil {
+			if err := markTask(ctx, task, FailedTaskStatus); err != nil {
 				log.Println(err)
 			}
 			time.Sleep(time.Second * 2)
@@ -229,36 +259,16 @@ func RunTask(id int64) error {
 		}
 	default:
 		log.Printf("Unknown task name: %s\n", task.Name)
-		if err := markTask(task, UnknownTaskStatus); err != nil {
+		if err := markTask(ctx, task, UnknownTaskStatus); err != nil {
 			log.Println(err)
 		}
 	}
 	// mark the task as complete
-	if err = markTask(task, CompleteTaskStatus); err != nil {
+	if err = markTask(ctx, task, CompleteTaskStatus); err != nil {
 		return err
 	}
 	os.Exit(0)
 	return nil
-}
-
-// getTaskByID returns a task by id
-func getTaskByID(id int64) (*Task, error) {
-	query :=
-		`SELECT 
-				t.id, t.name, t.data, t.status
-			FROM 
-				tasks t
-			WHERE t.id=$1
-			LIMIT 1`
-	// query the reord
-	row := db.GetInstance().Db.QueryRow(query, id)
-	task := Task{}
-	// Save the resulted query on the User struct
-	err := row.Scan(&task.ID, &task.Name, &task.Data, &task.Status)
-	if err != nil {
-		return nil, err
-	}
-	return &task, nil
 }
 
 func ScheduleTask(ctx *Context, name string, data interface{}) error {
@@ -272,12 +282,8 @@ func ScheduleTask(ctx *Context, name string, data interface{}) error {
 				tasks ("name", "data")
 			  VALUES
 				($1, $2)`
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
 	// Execute query
-	_, err = tx.Exec(query, name, string(dataJSON))
+	_, err = ctx.MainTx().Exec(query, name, string(dataJSON))
 	if err != nil {
 		return err
 	}

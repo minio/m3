@@ -54,7 +54,9 @@ func (s *server) SetPassword(ctx context.Context, in *pb.SetPasswordRequest) (*p
 		log.Println(err)
 		return nil, status.New(codes.Unauthenticated, "invalid URL Token").Err()
 	}
-	appCtx.Tenant = &tenant
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 
 	urlToken, err := cluster.GetTenantTokenDetails(appCtx, &parsedJwtToken.Token)
 	if err != nil {
@@ -100,7 +102,10 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteReques
 		log.Println("error getting tenant by id:", err)
 		return nil, status.New(codes.Unauthenticated, "invalid token").Err()
 	}
-	appCtx := cluster.NewCtxWithTenant(&tenant)
+	appCtx, err := cluster.NewCtxWithTenant(&tenant)
+	if err != nil {
+		return nil, err
+	}
 
 	urlToken, err := cluster.GetTenantTokenDetails(appCtx, &parsedJwtToken.Token)
 	if err != nil {
@@ -147,7 +152,9 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 		log.Println(err)
 		return nil, status.New(codes.Internal, "internal Error").Err()
 	}
-	appCtx.Tenant = &tenant
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 
 	// Password validation
 	// Look for the user on the database by email

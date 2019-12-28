@@ -48,8 +48,13 @@ func runTask(ctx *cli.Context) error {
 			return errors.New("invalid error identifier")
 		}
 	}
+	appCtx, err := cluster.NewEmptyContext()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
 	log.Printf("Runnnig task: %d\n", id)
-	if err := cluster.RunTask(id); err != nil {
+	if err := cluster.RunTask(appCtx, id); err != nil {
 		log.Println(err)
 		return err
 	}

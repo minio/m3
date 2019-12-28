@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 
 	"github.com/minio/m3/cluster/db"
@@ -33,9 +34,8 @@ import (
 // rolled back.
 type Context struct {
 	// tenant in question
-	Tenant     *Tenant
+	tenant     *Tenant
 	tenantTx   *sql.Tx
-	tenantDB   *sql.DB
 	mainTx     *sql.Tx
 	ControlCtx context.Context
 	// a user identifier of who is starting the context
@@ -43,38 +43,18 @@ type Context struct {
 }
 
 // MainTx returns a transaction against the Main DB, if none has been started, it starts one
-func (c *Context) MainTx() (*sql.Tx, error) {
-	if c.mainTx == nil {
-		db := db.GetInstance().Db
-		tx, err := db.BeginTx(c.ControlCtx, nil)
-		if err != nil {
-			return nil, err
-		}
-		c.mainTx = tx
-	}
-	return c.mainTx, nil
+func (c *Context) Tenant() *Tenant {
+	return c.tenant
 }
 
-// TenantDB returns a configured DB connection for the Tenant DB
-func (c *Context) TenantDB() *sql.DB {
-	if c.tenantDB == nil {
-		db := db.GetInstance().GetTenantDB(c.Tenant.ShortName)
-		c.tenantDB = db
-	}
-	return c.tenantDB
+// MainTx returns a transaction against the Main DB, if none has been started, it starts one
+func (c *Context) MainTx() *sql.Tx {
+	return c.mainTx
 }
 
 // TenantTx returns a transaction against the Tenant DB, if none has been started, it starts one
-func (c *Context) TenantTx() (*sql.Tx, error) {
-	if c.tenantTx == nil {
-		db := c.TenantDB()
-		tx, err := db.BeginTx(c.ControlCtx, nil)
-		if err != nil {
-			return nil, err
-		}
-		c.tenantTx = tx
-	}
-	return c.tenantTx, nil
+func (c *Context) TenantTx() *sql.Tx {
+	return c.tenantTx
 }
 
 // Commit commits the any transaction that was started on this context
@@ -87,7 +67,6 @@ func (c *Context) Commit() error {
 		}
 		// restart the txn
 		c.tenantTx = nil
-		c.tenantDB = nil
 	}
 	// commit main schema tx
 	if c.mainTx != nil {
@@ -97,6 +76,28 @@ func (c *Context) Commit() error {
 		}
 		// restart the txn
 		c.mainTx = nil
+	}
+	return nil
+}
+
+func (c *Context) BeginTx() error {
+	// being tenant schema tx
+	if c.tenantTx == nil && c.Tenant != nil {
+		tenantTx, err := startTenantTx(c.ControlCtx, c.Tenant())
+		if err != nil {
+			return err
+		}
+		// restart the txn
+		c.tenantTx = tenantTx
+	}
+	// being main schema tx
+	if c.mainTx != nil {
+		mainTx, err := db.GetInstance().StartMainTx(c.ControlCtx)
+		if err != nil {
+			return err
+		}
+		// restart the txn
+		c.mainTx = mainTx
 	}
 	return nil
 }
@@ -126,14 +127,17 @@ func (c *Context) Rollback() error {
 // Creates a new `Context` with no tenant tenant that holds transaction and `context.Context`
 // to control timeouts and cancellations.
 func NewEmptyContext() (*Context, error) {
-	return NewCtxWithTenant(nil), nil
+	return NewCtxWithTenant(nil)
 }
 
 // Creates a new `Context` with no tenant tenant that holds transaction and `context.Context`
 // to control timeouts and cancellations starting from a grpc context which should contain wether the user
 // is authenticated or not
 func NewEmptyContextWithGrpcContext(ctx context.Context) (*Context, error) {
-	appCtx := NewCtxWithTenant(nil)
+	appCtx, err := NewCtxWithTenant(nil)
+	if err != nil {
+		return nil, err
+	}
 	var whoAmI string
 	if ctx.Value(WhoAmIKey) != nil {
 		whoAmI = ctx.Value(WhoAmIKey).(string)
@@ -145,11 +149,60 @@ func NewEmptyContextWithGrpcContext(ctx context.Context) (*Context, error) {
 	return appCtx, nil
 }
 
-func NewCtxWithTenant(tenant *Tenant) *Context {
+func NewCtxWithTenant(tenant *Tenant) (*Context, error) {
 	// we are going to default the control context to background
 	ctlCtx := context.Background()
-	c := &Context{Tenant: tenant, ControlCtx: ctlCtx}
-	return c
+
+	// if we got a tenant, start a transaction
+	var tenantTx *sql.Tx
+	if tenant != nil {
+		var err error
+		tenantTx, err = startTenantTx(ctlCtx, tenant)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// start transaction to the main tenant
+	tx, err := db.GetInstance().StartMainTx(ctlCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	newCtx := &Context{
+		tenant:     tenant,
+		ControlCtx: ctlCtx,
+		tenantTx:   tenantTx,
+		mainTx:     tx,
+	}
+	return newCtx, nil
+}
+
+// SetTenant sets the tenant to the context and starts a transaction for the context
+func (c *Context) SetTenant(tenant *Tenant) error {
+	c.tenant = tenant
+	tenantTx, err := startTenantTx(c.ControlCtx, tenant)
+	if err != nil {
+		return err
+	}
+	c.tenantTx = tenantTx
+	return nil
+}
+
+// startTenantTx starts a tenant transaction and set the search_path to the tenants schema
+func startTenantTx(controlCtx context.Context, tenant *Tenant) (*sql.Tx, error) {
+	tenantDb := db.GetInstance().GetTenantDB(tenant.ShortName)
+	var err error
+	tenantTx, err := tenantDb.BeginTx(controlCtx, nil)
+	if err != nil {
+		return nil, err
+	}
+	// Set the search path for the tenant within the transaction
+	searchPathQuery := fmt.Sprintf("SET search_path TO %s", tenant.ShortName)
+	_, err = tenantTx.Exec(searchPathQuery)
+	if err != nil {
+		return nil, err
+	}
+	return tenantTx, nil
 }
 
 // Creates a new `Context` with no tenant tenant that holds transaction and `context.Context`
@@ -167,7 +220,10 @@ func NewTenantContextWithGrpcContext(ctx context.Context) (*Context, error) {
 		return nil, status.New(codes.Internal, "internal error").Err()
 	}
 	// create a context with the tenant
-	appCtx := NewCtxWithTenant(&tenant)
+	appCtx, err := NewCtxWithTenant(&tenant)
+	if err != nil {
+		return nil, err
+	}
 	var whoAmI string
 	if ctx.Value(WhoAmIKey) != nil {
 		whoAmI = ctx.Value(WhoAmIKey).(string)

@@ -17,10 +17,8 @@
 package cluster
 
 import (
-	"database/sql"
+	"errors"
 	"time"
-
-	"github.com/minio/m3/cluster/db"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -53,8 +51,8 @@ func CreateAdminSession(ctx *Context, adminID *uuid.UUID) (*AdminSession, error)
 		`INSERT INTO
 				admin_sessions ("id","admin_id","refresh_token", "status", "occurred_at", "expires_at","refresh_expires_at")
 			  VALUES
-				($1,$2,$3,$4,NOW(),(NOW() + interval '1 day'),(NOW() + interval '1 month'))`
-	tx, err := ctx.MainTx()
+				($1,$2,$3,$4,NOW(),(NOW() + INTERVAL '1 day'),(NOW() + INTERVAL '1 month'))`
+
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +65,7 @@ func CreateAdminSession(ctx *Context, adminID *uuid.UUID) (*AdminSession, error)
 		Status:           "valid",
 	}
 	// Execute Query
-	_, err = tx.Exec(query, newSession.ID, newSession.AdminID, newSession.RefreshToken, newSession.Status)
+	_, err = ctx.MainTx().Exec(query, newSession.ID, newSession.AdminID, newSession.RefreshToken, newSession.Status)
 	if err != nil {
 		return nil, err
 	}
@@ -80,13 +78,9 @@ func UpdateAdminSessionStatus(ctx *Context, sessionID string, status string) err
 		`UPDATE sessions 
 			SET status = $1
 		WHERE id=$2`
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
 
 	// Execute Query
-	_, err = tx.Exec(query, status, sessionID)
+	_, err := ctx.MainTx().Exec(query, status, sessionID)
 	if err != nil {
 		return err
 	}
@@ -95,6 +89,10 @@ func UpdateAdminSessionStatus(ctx *Context, sessionID string, status string) err
 
 // GetAdminTokenDetails get the details for the provided AdminToken
 func GetAdminSessionDetails(ctx *Context, sessionID *string) (*AdminSession, error) {
+	// if no context is provided, don't use a transaction
+	if ctx == nil {
+		return nil, errors.New("no context provided")
+	}
 	var session AdminSession
 	// Get an individual session
 	queryUser := `
@@ -102,20 +100,10 @@ func GetAdminSessionDetails(ctx *Context, sessionID *string) (*AdminSession, err
 				s.id, s.admin_id, a.email
 		FROM 
 			admin_sessions s 
-		LEFT JOIN admins a on s.admin_id = a.id
+		LEFT JOIN admins a ON s.admin_id = a.id
 		WHERE s.id=$1 AND s.status='valid' AND s.expires_at > NOW() LIMIT 1`
 
-	var row *sql.Row
-	// if no context is provided, don't use a transaction
-	if ctx == nil {
-		row = db.GetInstance().Db.QueryRow(queryUser, sessionID)
-	} else {
-		tx, err := ctx.MainTx()
-		if err != nil {
-			return nil, err
-		}
-		row = tx.QueryRow(queryUser, sessionID)
-	}
+	row := ctx.MainTx().QueryRow(queryUser, sessionID)
 
 	// Save the resulted query on the AdminToken struct
 	err := row.Scan(&session.ID, &session.AdminID, &session.WhoAmI)

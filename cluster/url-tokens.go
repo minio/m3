@@ -45,12 +45,8 @@ func NewURLToken(ctx *Context, userID *uuid.UUID, usedFor string, validity *time
 				url_tokens ("id", "user_id", "used_for", "expiration", "sys_created_by")
 			  VALUES
 				($1, $2, $3, $4, $5)`
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return nil, err
-	}
 	// Execute query
-	_, err = tx.Exec(query, urlToken, userID, usedFor, validity, ctx.WhoAmI)
+	_, err := ctx.TenantTx().Exec(query, urlToken, userID, usedFor, validity, ctx.WhoAmI)
 	if err != nil {
 		return nil, err
 	}
@@ -68,15 +64,10 @@ func GetTenantTokenDetails(ctx *Context, urlToken *uuid.UUID) (*URLToken, error)
 				url_tokens
 			WHERE id=$1 LIMIT 1`
 
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return nil, err
-	}
-
-	row := tx.QueryRow(queryUser, urlToken)
+	row := ctx.TenantTx().QueryRow(queryUser, urlToken)
 
 	// Save the resulted query on the URLToken struct
-	err = row.Scan(&token.ID, &token.UserID, &token.Expiration, &token.UsedFor, &token.Consumed)
+	err := row.Scan(&token.ID, &token.UserID, &token.Expiration, &token.UsedFor, &token.Consumed)
 	if err != nil {
 		return nil, err
 	}
@@ -85,13 +76,9 @@ func GetTenantTokenDetails(ctx *Context, urlToken *uuid.UUID) (*URLToken, error)
 
 // MarkTokenConsumed updates the record for the urlToken as is it has been used
 func MarkTokenConsumed(ctx *Context, urlTokenID *uuid.UUID) error {
-	query := `UPDATE url_tokens SET consumed=true WHERE id=$1`
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
+	query := `UPDATE url_tokens SET consumed=TRUE WHERE id=$1`
 	// Execute query
-	_, err = tx.Exec(query, urlTokenID)
+	_, err := ctx.TenantTx().Exec(query, urlTokenID)
 	if err != nil {
 		ctx.Rollback()
 		return err
@@ -161,7 +148,7 @@ func buildJwtTokenForURLToken(ctx *Context, urlTokenID *uuid.UUID) (*string, err
 	// you would like it to contain.
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"t": urlTokenID.String(),
-		"e": ctx.Tenant.ID.String(),
+		"e": ctx.Tenant().ID.String(),
 	})
 
 	jwtSecret, err := getJWTSecretKey()

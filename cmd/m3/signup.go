@@ -78,7 +78,11 @@ func signup(ctx *cli.Context) error {
 		return err
 	}
 
-	appCtx := cluster.NewCtxWithTenant(&tenant)
+	appCtx, err := cluster.NewCtxWithTenant(&tenant)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
 
 	urlToken, err := cluster.GetTenantTokenDetails(appCtx, &parsedJwtToken.Token)
 	if err != nil {

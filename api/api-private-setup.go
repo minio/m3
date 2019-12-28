@@ -29,7 +29,12 @@ import (
 
 // SetupDB installs the base schema
 func (ps *privateServer) SetupDB(ctx context.Context, in *pb.AdminEmpty) (*pb.AdminEmpty, error) {
-	err := cluster.SetupDBAction()
+	appCtx, err := cluster.NewEmptyContext()
+	if err != nil {
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+
+	err = cluster.SetupDBAction(appCtx)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}

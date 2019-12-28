@@ -76,18 +76,19 @@ func PublicAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unar
 		return handler(ctx, req)
 	}
 
-	// attempt to validate the session
-	validSession, err := validateSessionID(ctx)
-	if err != nil || validSession == nil {
-		log.Println("Invalid session.", err)
-		return nil, status.Errorf(codes.Unauthenticated, "invalid token.")
-	}
-	// attempt to identify the user for the context
 	appCtx, err := cluster.NewEmptyContext()
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.Internal, "internal error").Err()
 	}
+
+	// attempt to validate the session
+	validSession, err := validateSessionID(appCtx, ctx)
+	if err != nil || validSession == nil {
+		log.Println("Invalid session.", err)
+		return nil, status.Errorf(codes.Unauthenticated, "invalid token.")
+	}
+	// attempt to identify the user for the context
 	tenant, err := cluster.GetTenantByID(&validSession.TenantID)
 	if err != nil {
 		log.Println(err)
@@ -98,7 +99,9 @@ func PublicAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unar
 		log.Printf("Attempted access for tenant `%s` by user_id `%s`", tenant.ShortName, validSession.ID)
 		return nil, status.New(codes.Unauthenticated, "Account is disabled").Err()
 	}
-	appCtx.Tenant = &tenant
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "internal error").Err()
+	}
 	user, err := cluster.GetUserByID(appCtx, validSession.UserID)
 	if err != nil {
 		log.Println(err)

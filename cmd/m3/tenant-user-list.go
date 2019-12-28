@@ -90,7 +90,11 @@ func tenantUserList(ctx *cli.Context) error {
 	}
 
 	// create context
-	appCtx := cluster.NewCtxWithTenant(&tenant)
+	appCtx, err := cluster.NewCtxWithTenant(&tenant)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
 	// perform the action
 	users, err := cluster.GetUsersForTenant(appCtx, int32(offset), int32(limit))
 	if err != nil {

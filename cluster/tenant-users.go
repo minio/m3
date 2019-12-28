@@ -65,10 +65,6 @@ func AddUser(ctx *Context, newUser *User) error {
 		return err
 	}
 
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
 	// Add parameters to query
 	newUser.ID = uuid.NewV4()
 	query := `INSERT INTO
@@ -77,13 +73,13 @@ func AddUser(ctx *Context, newUser *User) error {
 				($1,$2,$3,$4)`
 
 	// Execute query
-	_, err = tx.Exec(query, newUser.ID, newUser.Name, newUser.Email, hashedPassword)
+	_, err = ctx.TenantTx().Exec(query, newUser.ID, newUser.Name, newUser.Email, hashedPassword)
 	if err != nil {
 		return err
 	}
 
 	// Create this user's credentials so he can interact with it's own buckets/data
-	err = createUserWithCredentials(ctx, ctx.Tenant.ShortName, newUser.ID)
+	err = createUserWithCredentials(ctx, ctx.Tenant().ShortName, newUser.ID)
 	if err != nil {
 		return err
 	}
@@ -101,18 +97,18 @@ func DeleteUser(ctx *Context, userID uuid.UUID) error {
 		return err
 	}
 
-	err = deleteUsersSecrets(userID, ctx.Tenant.ShortName)
+	err = deleteUsersSecrets(userID, ctx.Tenant().ShortName)
 	if err != nil {
 		return err
 	}
 
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant().ShortName)
 	if sgt.Error != nil {
 		return sgt.Error
 	}
 	// Get the credentials for a tenant
-	tenantConf, err := GetTenantConfig(ctx.Tenant)
+	tenantConf, err := GetTenantConfig(ctx.Tenant())
 	if err != nil {
 		return err
 	}
@@ -126,14 +122,10 @@ func DeleteUser(ctx *Context, userID uuid.UUID) error {
 
 // deleteUserFromDB deletes a tenant's user from the db and it's secrets
 func deleteUserFromDB(ctx *Context, userID uuid.UUID) error {
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
 	query := `DELETE FROM users 
 			WHERE id=$1 `
 	// Execute query
-	_, err = tx.Exec(query, userID)
+	_, err := ctx.TenantTx().Exec(query, userID)
 	if err != nil {
 		return err
 	}
@@ -147,7 +139,7 @@ func getUserAccessKey(ctx *Context, userID uuid.UUID) (accessKey string, err err
 			  FROM credentials c
 			  WHERE user_id=$1`
 	// Execute query
-	row := ctx.TenantDB().QueryRow(query, userID)
+	row := ctx.TenantTx().QueryRow(query, userID)
 	err = row.Scan(&accessKey)
 	if err != nil {
 		return "", err
@@ -181,12 +173,9 @@ func SetUserEnabledOnDB(ctx *Context, userID uuid.UUID, status bool) error {
 			  SET enabled = $1
 			  WHERE id=$2
 			  `
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
+
 	// Execute query
-	_, err = tx.Exec(query, status, userID)
+	_, err := ctx.TenantTx().Exec(query, status, userID)
 	if err != nil {
 		return err
 	}
@@ -207,7 +196,7 @@ func GetUserByEmail(ctx *Context, email string) (user User, err error) {
 				users t1
 			WHERE email=$1 LIMIT 1`
 
-	row := ctx.TenantDB().QueryRow(queryUser, email)
+	row := ctx.TenantTx().QueryRow(queryUser, email)
 	// Save the resulted query on the User struct
 	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Enabled)
 	if err != nil {
@@ -228,7 +217,7 @@ func GetUserByID(ctx *Context, id uuid.UUID) (user User, err error) {
 				users t1
 			WHERE id=$1 LIMIT 1`
 
-	row := ctx.TenantDB().QueryRow(queryUser, id)
+	row := ctx.TenantTx().QueryRow(queryUser, id)
 
 	// Save the resulted query on the User struct
 	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Enabled)
@@ -253,7 +242,7 @@ func GetUsersForTenant(ctx *Context, offset int32, limit int32) ([]*User, error)
 				users t1
 			OFFSET $1 LIMIT $2`
 
-	rows, err := ctx.TenantDB().Query(queryUser, offset, limit)
+	rows, err := ctx.TenantTx().Query(queryUser, offset, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +267,7 @@ func GetTotalNumberOfUsers(ctx *Context) (int, error) {
 			FROM
 				users`
 
-	row := ctx.TenantDB().QueryRow(queryUser)
+	row := ctx.TenantTx().QueryRow(queryUser)
 	var count int
 	err := row.Scan(&count)
 	if err != nil {
@@ -306,7 +295,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 	}
 
 	// send email with the invite
-	tenant, err := GetTenantByDomainWithCtx(ctx, ctx.Tenant.Domain)
+	tenant, err := GetTenantByDomainWithCtx(ctx, ctx.Tenant().Domain)
 	if err != nil {
 		return fmt.Errorf("tenant: %w", err)
 	}
@@ -360,12 +349,8 @@ func SetUserPassword(ctx *Context, userID *uuid.UUID, password string) error {
 	}
 
 	query := `UPDATE users SET password=$1 WHERE id=$2`
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
 	// Execute query
-	_, err = tx.Exec(query, hashedPassword, userID)
+	_, err = ctx.TenantTx().Exec(query, hashedPassword, userID)
 	if err != nil {
 		ctx.Rollback()
 		return err
@@ -377,12 +362,8 @@ func SetUserPassword(ctx *Context, userID *uuid.UUID, password string) error {
 // MarkInvitationAccepted sets the invitation accepted for a users a true
 func MarkInvitationAccepted(ctx *Context, userID *uuid.UUID) error {
 	query := `UPDATE users SET accepted_invitation=TRUE WHERE id=$1`
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
 	// Execute query
-	_, err = tx.Exec(query, userID)
+	_, err := ctx.TenantTx().Exec(query, userID)
 	if err != nil {
 		ctx.Rollback()
 		return err

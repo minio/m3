@@ -17,12 +17,9 @@
 package cluster
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"time"
-
-	"github.com/minio/m3/cluster/db"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -42,12 +39,8 @@ func NewAdminToken(ctx *Context, AdminID *uuid.UUID, usedFor string, validity *t
 				admin_tokens ("id", "admin_id", "used_for", "expiration", "sys_created_by")
 			  VALUES
 				($1, $2, $3, $4, $5)`
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return nil, err
-	}
 	// Execute query
-	_, err = tx.Exec(query, AdminToken, AdminID, usedFor, validity, ctx.WhoAmI)
+	_, err := ctx.MainTx().Exec(query, AdminToken, AdminID, usedFor, validity, ctx.WhoAmI)
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +49,10 @@ func NewAdminToken(ctx *Context, AdminID *uuid.UUID, usedFor string, validity *t
 
 // GetAdminTokenDetails get the details for the provided AdminToken
 func GetAdminTokenDetails(ctx *Context, adminToken *uuid.UUID) (*AdminToken, error) {
+	// if no context is provided, don't use a transaction
+	if ctx == nil {
+		return nil, errors.New("no context provided")
+	}
 	var token AdminToken
 	// Get an individual token
 	queryUser := `
@@ -65,17 +62,7 @@ func GetAdminTokenDetails(ctx *Context, adminToken *uuid.UUID) (*AdminToken, err
 				admin_tokens
 			WHERE id=$1 LIMIT 1`
 
-	var row *sql.Row
-	// if no context is provided, don't use a transaction
-	if ctx == nil {
-		row = db.GetInstance().Db.QueryRow(queryUser, adminToken)
-	} else {
-		tx, err := ctx.MainTx()
-		if err != nil {
-			return nil, err
-		}
-		row = tx.QueryRow(queryUser, adminToken)
-	}
+	row := ctx.MainTx().QueryRow(queryUser, adminToken)
 
 	// Save the resulted query on the AdminToken struct
 	err := row.Scan(&token.ID, &token.AdminID, &token.Expiration, &token.UsedFor, &token.Consumed)
@@ -87,13 +74,9 @@ func GetAdminTokenDetails(ctx *Context, adminToken *uuid.UUID) (*AdminToken, err
 
 // MarkAdminTokenConsumed updates the record for the AdminToken as is it has been used
 func MarkAdminTokenConsumed(ctx *Context, AdminTokenID *uuid.UUID) error {
-	query := `UPDATE admin_tokens SET consumed=true WHERE id=$1`
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
+	query := `UPDATE admin_tokens SET consumed=TRUE WHERE id=$1`
 	// Execute query
-	_, err = tx.Exec(query, AdminTokenID)
+	_, err := ctx.MainTx().Exec(query, AdminTokenID)
 	if err != nil {
 		return err
 	}

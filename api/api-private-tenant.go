@@ -193,10 +193,12 @@ func (ps *privateServer) TenantDisable(ctx context.Context, in *pb.TenantSingleR
 		log.Println(err)
 		return nil, status.New(codes.NotFound, "Tenant not found").Err()
 	}
-	appCtx.Tenant = &tenant
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 
 	// Update Tenant's enabled status on DB
-	err = cluster.UpdateTenantEnabledStatus(appCtx, &appCtx.Tenant.ID, false)
+	err = cluster.UpdateTenantEnabledStatus(appCtx, &appCtx.Tenant().ID, false)
 	if err != nil {
 		log.Println("error setting tenant's enabled column:", err)
 		return nil, status.New(codes.Internal, "error setting tenant's enabled status").Err()
@@ -238,10 +240,12 @@ func (ps *privateServer) TenantEnable(ctx context.Context, in *pb.TenantSingleRe
 		log.Println(err)
 		return nil, status.New(codes.NotFound, "Tenant not found").Err()
 	}
-	appCtx.Tenant = &tenant
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 
 	// Update Tenant's enabled status on DB
-	err = cluster.UpdateTenantEnabledStatus(appCtx, &appCtx.Tenant.ID, true)
+	err = cluster.UpdateTenantEnabledStatus(appCtx, &appCtx.Tenant().ID, true)
 	if err != nil {
 		log.Println("error setting tenant's enabled column:", err)
 		return nil, status.New(codes.Internal, "error setting tenant's enabled status").Err()
@@ -376,9 +380,11 @@ func (ps *privateServer) TenantCostSet(ctx context.Context, in *pb.TenantCostReq
 		log.Println(err)
 		return nil, status.New(codes.NotFound, "Tenant not found").Err()
 	}
-	appCtx.Tenant = &tenant
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 
-	err = cluster.UpdateTenantCost(appCtx, &appCtx.Tenant.ID, tenantCostMultiplier)
+	err = cluster.UpdateTenantCost(appCtx, &appCtx.Tenant().ID, tenantCostMultiplier)
 	if err != nil {
 		log.Println("error setting tenant's cost multiplier:", err)
 		return nil, status.New(codes.Internal, "error setting tenant's cost multiplier").Err()

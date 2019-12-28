@@ -17,11 +17,8 @@
 package cluster
 
 import (
-	"database/sql"
 	"errors"
 	"log"
-
-	"github.com/minio/m3/cluster/db"
 )
 
 type Configuration struct {
@@ -59,20 +56,9 @@ func SetConfigWithLock(ctx *Context, key, val, valType string, locked bool) erro
 				configurations ("key", "value", "type", "locked", "sys_created_by")
 			  VALUES
 				($1, $2, $3, $4, $5)`
-	// If we were provided context, query inside a transaction
-	if ctx != nil {
-		tx, err := ctx.MainTx()
-		if err != nil {
-			return err
-		}
-		if _, err = tx.Exec(query, key, val, valType, locked, ctx.WhoAmI); err != nil {
-			return err
-		}
-	} else {
-		// no context? straight to db
-		if _, err := db.GetInstance().Db.Exec(query, key, val, valType, locked, ""); err != nil {
-			return err
-		}
+	// If we were provided context, query inside a transaction ¬if ctx != nil {
+	if _, err := ctx.MainTx().Exec(query, key, val, valType, locked, ctx.WhoAmI); err != nil {
+		return err
 	}
 	return nil
 }
@@ -85,18 +71,7 @@ func GetConfig(ctx *Context, key string, fallback interface{}) (*Configuration, 
 				configurations c
 			WHERE c.key=$1`
 	// non-transactional query
-	var row *sql.Row
-	// did we got a context? query inside of it
-	if ctx != nil {
-		tx, err := ctx.MainTx()
-		if err != nil {
-			return nil, err
-		}
-		row = tx.QueryRow(query, key)
-	} else {
-		// no context? straight to db
-		row = db.GetInstance().Db.QueryRow(query, key)
-	}
+	row := ctx.MainTx().QueryRow(query, key)
 	config := Configuration{}
 	// Save the resulted query on the User struct
 	err := row.Scan(&config.Key, &config.Value, &config.ValueType, &config.locked)

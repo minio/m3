@@ -52,7 +52,7 @@ func getValidSASlug(ctx *Context, saName string) (*string, error) {
 		WHERE 
 		    slug = $1`
 
-	row := ctx.TenantDB().QueryRow(queryUser, saSlug)
+	row := ctx.TenantTx().QueryRow(queryUser, saSlug)
 	var count int
 	err := row.Scan(&count)
 	if err != nil {
@@ -87,12 +87,8 @@ func AddServiceAccount(ctx *Context, tenantShortName string, name string, descri
 				service_accounts ("id", "name", "slug", "description", "enabled", "sys_created_by")
 			  VALUES
 				($1, $2, $3, $4, $5, $6)`
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return nil, nil, err
-	}
 	// Execute query
-	_, err = tx.Exec(query, serviceAccount.ID, serviceAccount.Name, serviceAccount.Slug, &serviceAccount.Description, serviceAccount.Enabled, ctx.WhoAmI)
+	_, err = ctx.TenantTx().Exec(query, serviceAccount.ID, serviceAccount.Name, serviceAccount.Slug, &serviceAccount.Description, serviceAccount.Enabled, ctx.WhoAmI)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -129,7 +125,7 @@ func GetServiceAccountList(ctx *Context, offset int, limit int) ([]*ServiceAccou
 		OFFSET $1 
 		LIMIT $2`
 
-	rows, err := ctx.TenantDB().Query(queryUser, offset, limit)
+	rows, err := ctx.TenantTx().Query(queryUser, offset, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +152,7 @@ func GetTotalNumberOfServiceAccounts(ctx *Context) (int, error) {
 		WHERE 
 		    sa.sys_deleted IS NULL`
 
-	row := ctx.TenantDB().QueryRow(queryUser)
+	row := ctx.TenantTx().QueryRow(queryUser)
 	var count int
 	err := row.Scan(&count)
 	if err != nil {
@@ -176,7 +172,7 @@ func MapServiceAccountsToIDs(ctx *Context, serviceAccounts []string) (map[string
 		WHERE 
 		      sa.slug = ANY ($1)`
 
-	rows, err := ctx.TenantDB().Query(queryUser, pq.Array(serviceAccounts))
+	rows, err := ctx.TenantTx().Query(queryUser, pq.Array(serviceAccounts))
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +214,7 @@ func MapServiceAccountsIDsToSlugs(ctx *Context, serviceAccountIDs []*uuid.UUID) 
 		WHERE 
 		      sa.id = ANY ($1)`
 
-	rows, err := ctx.TenantDB().Query(queryUser, pq.Array(serviceAccountIDs))
+	rows, err := ctx.TenantTx().Query(queryUser, pq.Array(serviceAccountIDs))
 	defer rows.Close()
 	if err != nil {
 		return nil, err
@@ -340,7 +336,7 @@ func filterServiceAccountsWithPermission(ctx *Context, serviceAccounts []*uuid.U
 		FROM service_accounts_permissions sap
 		WHERE sap.permission_id = $1 AND sap.service_account_id = ANY($2)`
 
-	rows, err := ctx.TenantDB().Query(queryUser, permission, pq.Array(serviceAccounts))
+	rows, err := ctx.TenantTx().Query(queryUser, permission, pq.Array(serviceAccounts))
 	if err != nil {
 		return nil, err
 	}
@@ -389,14 +385,14 @@ func AssignMultiplePermissionsToSA(ctx *Context, serviceAccount *uuid.UUID, perm
 	}
 
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant().ShortName)
 
 	if sgt.Error != nil {
 		return sgt.Error
 	}
 
 	// Get the credentials for a tenant
-	tenantConf, err := GetTenantConfig(ctx.Tenant)
+	tenantConf, err := GetTenantConfig(ctx.Tenant())
 	if err != nil {
 		return err
 	}
@@ -426,7 +422,7 @@ func ValidServiceAccount(ctx *Context, serviceAccount *string) (bool, error) {
 						service_accounts t1
 					WHERE slug=$1 LIMIT 1)`
 
-	row := ctx.TenantDB().QueryRow(queryUser, serviceAccount)
+	row := ctx.TenantTx().QueryRow(queryUser, serviceAccount)
 	// Whether the serviceAccount id is valid
 	var exists bool
 	err := row.Scan(&exists)
@@ -448,7 +444,7 @@ func GetServiceAccountBySlug(ctx *Context, slug string) (*ServiceAccount, error)
 			LEFT JOIN credentials c ON sa.id = c.service_account_id
 			WHERE sa.slug=$1 LIMIT 1`
 
-	row := ctx.TenantDB().QueryRow(queryUser, slug)
+	row := ctx.TenantTx().QueryRow(queryUser, slug)
 	sa := ServiceAccount{}
 	err := row.Scan(&sa.ID, &sa.Name, &sa.Slug, &sa.Description, &sa.AccessKey)
 	if err != nil {
@@ -469,7 +465,7 @@ func GetServiceAccountByID(ctx *Context, id *uuid.UUID) (*ServiceAccount, error)
 			LEFT JOIN credentials c ON sa.id = c.service_account_id
 			WHERE sa.id=$1 LIMIT 1`
 
-	row := ctx.TenantDB().QueryRow(queryUser, id)
+	row := ctx.TenantTx().QueryRow(queryUser, id)
 	sa := ServiceAccount{}
 	err := row.Scan(&sa.ID, &sa.Name, &sa.Slug, &sa.Description, &sa.Enabled, &sa.AccessKey)
 	if err != nil {
@@ -488,12 +484,8 @@ func UpdateServiceAccountDB(ctx *Context, serviceAccount *ServiceAccount) error 
 				name = $2, enabled = $3
 			WHERE id=$1`
 	// create records
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
 	// Execute query
-	_, err = tx.Exec(query,
+	_, err := ctx.TenantTx().Exec(query,
 		serviceAccount.ID,
 		serviceAccount.Name,
 		serviceAccount.Enabled,
@@ -561,12 +553,12 @@ func UpdateServiceAccountFields(ctx *Context, serviceAccount *ServiceAccount, na
 func UpdateMinioServiceAccountPoliciesAndStatus(ctx *Context, serviceAccount *ServiceAccount, updateStatus bool) error {
 	// Update the policies for the SA on Minio
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant().ShortName)
 	if sgt.Error != nil {
 		return sgt.Error
 	}
 	// Get the credentials for a tenant
-	tenantConf, err := GetTenantConfig(ctx.Tenant)
+	tenantConf, err := GetTenantConfig(ctx.Tenant())
 	if err != nil {
 		return err
 	}
@@ -594,12 +586,12 @@ func SetMinioServiceAccountStatus(ctx *Context, serviceAccount *ServiceAccount, 
 		return err
 	}
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant().ShortName)
 	if sgt.Error != nil {
 		return sgt.Error
 	}
 	// Get the credentials for a tenant
-	tenantConf, err := GetTenantConfig(ctx.Tenant)
+	tenantConf, err := GetTenantConfig(ctx.Tenant())
 	if err != nil {
 		return err
 	}
@@ -618,12 +610,8 @@ func DeleteServiceAccountDB(ctx *Context, serviceAccount *ServiceAccount) error 
 				service_accounts s
 			WHERE id = $1`
 	// create records
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
 	// Execute query
-	_, err = tx.Exec(query, serviceAccount.ID)
+	_, err := ctx.TenantTx().Exec(query, serviceAccount.ID)
 	if err != nil {
 		return err
 	}
@@ -637,12 +625,12 @@ func RemoveMinioServiceAccount(ctx *Context, serviceAccount *ServiceAccount) err
 		return err
 	}
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant().ShortName)
 	if sgt.Error != nil {
 		return sgt.Error
 	}
 	// Get the credentials for a tenant
-	tenantConf, err := GetTenantConfig(ctx.Tenant)
+	tenantConf, err := GetTenantConfig(ctx.Tenant())
 	if err != nil {
 		return err
 	}
@@ -668,12 +656,12 @@ type AccessKeyToTenantShortNameResult struct {
 // they resolve to.
 // This function uses a channel because there may be hundreds of thousands of access keys and we don't want to pre-alloc
 // all that information on memory.
-func streamAccessKeyToTenantServices() chan *AccessKeyToTenantShortNameResult {
+func streamAccessKeyToTenantServices(ctx *Context) chan *AccessKeyToTenantShortNameResult {
 	ch := make(chan *AccessKeyToTenantShortNameResult)
 	go func() {
 		defer close(ch)
 
-		tenants := streamTenantService(10)
+		tenants := streamTenantService(ctx, 10)
 
 		for tenantRes := range tenants {
 			if tenantRes.Error != nil {
@@ -685,14 +673,18 @@ func streamAccessKeyToTenantServices() chan *AccessKeyToTenantShortNameResult {
 				continue
 			}
 			//we need a context for this tenant
-			tCtx := NewCtxWithTenant(tenantRes.Tenant)
+			tCtx, err := NewCtxWithTenant(tenantRes.Tenant)
+			if err != nil {
+				log.Println("Error connecting to  tenant", err)
+				continue
+			}
 
 			query :=
 				`SELECT c.access_key
 				FROM service_accounts
          			LEFT JOIN credentials c ON service_accounts.id = c.service_account_id`
 
-			rows, err := tCtx.TenantDB().Query(query)
+			rows, err := tCtx.TenantTx().Query(query)
 			if err != nil {
 				ch <- &AccessKeyToTenantShortNameResult{Error: err}
 				return

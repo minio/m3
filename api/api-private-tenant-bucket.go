@@ -50,7 +50,9 @@ func (ps *privateServer) TenantBucketAdd(ctx context.Context, in *pb.TenantBucke
 		log.Println(err)
 		return nil, err
 	}
-	appCtx.Tenant = &tenant
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal Error").Err()
+	}
 
 	err = cluster.MakeBucket(appCtx, tenant.ShortName, in.BucketName, cluster.BucketPrivate)
 	if err != nil {

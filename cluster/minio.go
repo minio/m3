@@ -203,7 +203,7 @@ func tagErrorAsMinio(what string, err error) error {
 // minioIsReady determines whether the MinIO for a tenant is ready or not
 func minioIsReady(ctx *Context) (bool, error) {
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(ctx, ctx.Tenant.ShortName)
+	minioClient, err := newTenantMinioClient(ctx, ctx.Tenant().ShortName)
 	if err != nil {
 		return false, err
 	}

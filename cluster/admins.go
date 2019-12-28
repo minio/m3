@@ -21,8 +21,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/minio/m3/cluster/db"
-
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -100,12 +98,8 @@ func InsertAdmin(ctx *Context, admin *Admin) error {
 				admins ("id", "name", "email", "password","sys_created_by")
 			  VALUES
 				($1, $2, $3, $4, $5)`
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
 	// Execute query
-	_, err = tx.Exec(query, admin.ID, admin.Name, admin.Email, hashedPassword, ctx.WhoAmI)
+	_, err = ctx.MainTx().Exec(query, admin.ID, admin.Name, admin.Email, hashedPassword, ctx.WhoAmI)
 	if err != nil {
 		return err
 	}
@@ -132,12 +126,8 @@ func setAdminPassword(ctx *Context, adminID *uuid.UUID, password string) error {
 	}
 
 	query := `UPDATE admins SET password=$1 WHERE id=$2`
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
 	// Execute query
-	_, err = tx.Exec(query, hashedPassword, adminID)
+	_, err = ctx.MainTx().Exec(query, hashedPassword, adminID)
 	if err != nil {
 		return err
 	}
@@ -155,7 +145,7 @@ func GetAdminByEmail(ctx *Context, email string) (*Admin, error) {
 				admins t1
 			WHERE email=$1 LIMIT 1`
 
-	row := db.GetInstance().Db.QueryRow(queryUser, email)
+	row := ctx.MainTx().QueryRow(queryUser, email)
 
 	admin := Admin{}
 

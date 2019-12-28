@@ -58,7 +58,9 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 		log.Println(err)
 		return nil, status.New(codes.NotFound, "Tenant not found").Err()
 	}
-	appCtx.Tenant = &tenant
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 	// perform the action
 	err = cluster.AddUser(appCtx, &user)
 	if err != nil {
@@ -115,7 +117,9 @@ func (ps *privateServer) TenantUserDelete(ctx context.Context, in *pb.TenantUser
 		log.Println(err)
 		return nil, status.New(codes.NotFound, "Tenant not found").Err()
 	}
-	appCtx.Tenant = &tenant
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 	user, err := cluster.GetUserByEmail(appCtx, in.Email)
 	if err != nil {
 		log.Println(err)
@@ -145,7 +149,10 @@ func (ps *privateServer) TenantUserForgotPassword(ctx context.Context, in *pb.Te
 		return nil, status.New(codes.InvalidArgument, "Invalid tenant").Err()
 	}
 	// start context
-	appCtx := cluster.NewCtxWithTenant(&tenant)
+	appCtx, err := cluster.NewCtxWithTenant(&tenant)
+	if err != nil {
+		return nil, err
+	}
 
 	user, err := cluster.GetUserByEmail(appCtx, in.Email)
 	if err != nil {

@@ -223,13 +223,8 @@ func InsertPermission(ctx *Context, permission *Permission) error {
 				permissions ("id","name","slug","description","effect","sys_created_by")
 					VALUES ($1, $2, $3, $4, $5, $6)`
 
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
-
 	// Execute query
-	_, err = tx.Exec(
+	_, err := ctx.TenantTx().Exec(
 		queryUpdatePermissions,
 		permission.ID,
 		permission.Name,
@@ -265,13 +260,8 @@ func InsertResource(ctx *Context, permission *Permission, resource *Resource) er
 				permissions_resources ("id", "permission_id", "bucket_name", "pattern", "sys_created_by")
 					VALUES ($1, $2, $3, $4, $5)`
 
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
-
 	// Execute query
-	_, err = tx.Exec(queryUpdatePermissionsResources, resource.ID, permission.ID, resource.BucketName, resource.Pattern, ctx.WhoAmI)
+	_, err := ctx.TenantTx().Exec(queryUpdatePermissionsResources, resource.ID, permission.ID, resource.BucketName, resource.Pattern, ctx.WhoAmI)
 	if err != nil {
 		return err
 	}
@@ -286,12 +276,8 @@ func DeleteBulkPermissionResourceDB(ctx *Context, resourcesID []uuid.UUID) error
 				permissions_resources pr
 			WHERE id = ANY($1)`
 		// create records
-		tx, err := ctx.TenantTx()
-		if err != nil {
-			return err
-		}
 		// Execute query
-		_, err = tx.Exec(query, pq.Array(resourcesID))
+		_, err := ctx.TenantTx().Exec(query, pq.Array(resourcesID))
 		if err != nil {
 			return err
 		}
@@ -307,12 +293,8 @@ func DeleteBulkPermissionActionDB(ctx *Context, actionsID []uuid.UUID) error {
 				permissions_actions pr
 			WHERE id = ANY($1)`
 		// create records
-		tx, err := ctx.TenantTx()
-		if err != nil {
-			return err
-		}
 		// Execute query
-		_, err = tx.Exec(query, pq.Array(actionsID))
+		_, err := ctx.TenantTx().Exec(query, pq.Array(actionsID))
 		if err != nil {
 			return err
 		}
@@ -326,12 +308,8 @@ func InsertAction(ctx *Context, permission *Permission, action *Action) error {
 				permissions_actions ("id","permission_id","action","sys_created_by")
 					VALUES ($1, $2, $3, $4)`
 
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
 	// Execute query
-	_, err = tx.Exec(queryUpdatePermissionsActions, action.ID, permission.ID, action.ActionType, ctx.WhoAmI)
+	_, err := ctx.TenantTx().Exec(queryUpdatePermissionsActions, action.ID, permission.ID, action.ActionType, ctx.WhoAmI)
 	if err != nil {
 		return err
 	}
@@ -352,7 +330,7 @@ func ListPermissions(ctx *Context, offset int64, limit int32) ([]*Permission, er
 				permissions p
 			OFFSET $1 LIMIT $2`
 
-	rows, err := ctx.TenantDB().Query(queryUser, offset, limit)
+	rows, err := ctx.TenantTx().Query(queryUser, offset, limit)
 	defer rows.Close()
 	if err != nil {
 		return nil, err
@@ -415,7 +393,7 @@ func getResourcesForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission
 		WHERE 
 		      permission_id = ANY($1)`
 
-		rows, err := ctx.TenantDB().Query(query, pq.Array(ids))
+		rows, err := ctx.TenantTx().Query(query, pq.Array(ids))
 		if err != nil {
 			ch <- err
 			return
@@ -459,7 +437,7 @@ func getActionsForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) 
 		WHERE 
 		      permission_id = ANY($1)`
 
-		rows, err := ctx.TenantDB().Query(query, pq.Array(ids))
+		rows, err := ctx.TenantTx().Query(query, pq.Array(ids))
 		if err != nil {
 			ch <- err
 			return
@@ -498,7 +476,7 @@ func ValidPermission(ctx *Context, permission *string) (bool, error) {
 						permissions t1
 					WHERE slug=$1 LIMIT 1)`
 
-	row := ctx.TenantDB().QueryRow(queryUser, permission)
+	row := ctx.TenantTx().QueryRow(queryUser, permission)
 	// Whether the permission id is valid
 	var exists bool
 	err := row.Scan(&exists)
@@ -543,14 +521,14 @@ func AssignPermissionAction(ctx *Context, permission *uuid.UUID, serviceAccountI
 func UpdatePoliciesForMultipleServiceAccount(ctx *Context, serviceAccountIDs []*uuid.UUID) error {
 
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant().ShortName)
 
 	if sgt.Error != nil {
 		return sgt.Error
 	}
 
 	// Get the credentials for a tenant
-	tenantConf, err := GetTenantConfig(ctx.Tenant)
+	tenantConf, err := GetTenantConfig(ctx.Tenant())
 	if err != nil {
 		return err
 	}
@@ -576,12 +554,8 @@ func UpdatePoliciesForMultipleServiceAccount(ctx *Context, serviceAccountIDs []*
 func assignPermissionToMultipleSAsOnDB(ctx *Context, permission *uuid.UUID, serviceAccountIDs []*uuid.UUID) error {
 
 	// create records
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
 	// prepare re-usable statement
-	stmt, err := tx.Prepare(`INSERT INTO 
+	stmt, err := ctx.TenantTx().Prepare(`INSERT INTO 
     								service_accounts_permissions (
     	                              service_account_id, 
     	                              permission_id, 
@@ -604,12 +578,8 @@ func assignPermissionToMultipleSAsOnDB(ctx *Context, permission *uuid.UUID, serv
 // AssignMultiplePermissionsToSADB inserts on table service_accounts_permissions, multiple permissions to a single service account
 func AssignMultiplePermissionsToSADB(ctx *Context, serviceAccountID *uuid.UUID, permissionsIDs []*uuid.UUID) error {
 	// create records
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
 	// prepare re-usable statement
-	stmt, err := tx.Prepare(`INSERT INTO 
+	stmt, err := ctx.TenantTx().Prepare(`INSERT INTO 
     								service_accounts_permissions (
     	                              service_account_id, 
     	                              permission_id, 
@@ -635,12 +605,8 @@ func DeleteMultiplePermissionsOnSADB(ctx *Context, serviceAccountID *uuid.UUID, 
 			DELETE FROM service_accounts_permissions sap
 			WHERE sap.service_account_id = $1 AND sap.permission_id = ANY($2)`
 		// create records
-		tx, err := ctx.TenantTx()
-		if err != nil {
-			return err
-		}
 		// Execute query
-		_, err = tx.Exec(query, serviceAccountID, pq.Array(permissionsIDs))
+		_, err := ctx.TenantTx().Exec(query, serviceAccountID, pq.Array(permissionsIDs))
 		if err != nil {
 			return err
 		}
@@ -660,11 +626,8 @@ func GetAllThePermissionForServiceAccount(ctx *Context, serviceAccountID *uuid.U
 			WHERE 
 			      sap.service_account_id = $1
 				`
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return nil, err
-	}
-	rows, err := tx.Query(queryUser, serviceAccountID)
+
+	rows, err := ctx.TenantTx().Query(queryUser, serviceAccountID)
 	defer rows.Close()
 	if err != nil {
 		return nil, err
@@ -680,7 +643,7 @@ func GetAllServiceAccountsForPermission(ctx *Context, permissionID *uuid.UUID) (
 		FROM service_accounts_permissions sap
 		WHERE sap.permission_id = $1`
 
-	rows, err := ctx.TenantDB().Query(queryUser, permissionID)
+	rows, err := ctx.TenantTx().Query(queryUser, permissionID)
 	if err != nil {
 		return nil, err
 	}
@@ -717,7 +680,7 @@ func getValidPermSlug(ctx *Context, permName string) (*string, error) {
 		WHERE 
 		    slug = $1`
 
-	row := ctx.TenantDB().QueryRow(queryUser, permSlug)
+	row := ctx.TenantTx().QueryRow(queryUser, permSlug)
 	var count int
 	err := row.Scan(&count)
 	if err != nil {
@@ -741,7 +704,7 @@ func GetPermissionBySlug(ctx *Context, slug string) (*Permission, error) {
 				permissions p
 			WHERE p.slug=$1 LIMIT 1`
 
-	rows, err := ctx.TenantDB().Query(queryUser, slug)
+	rows, err := ctx.TenantTx().Query(queryUser, slug)
 	if err != nil {
 		return nil, err
 	}
@@ -767,7 +730,7 @@ func GetPermissionByID(ctx *Context, id string) (*Permission, error) {
 				permissions p
 			WHERE id=$1 LIMIT 1`
 
-	rows, err := ctx.TenantDB().Query(query, id)
+	rows, err := ctx.TenantTx().Query(query, id)
 	if err != nil {
 		return nil, err
 	}
@@ -792,12 +755,8 @@ func UpdatePermissionDB(ctx *Context, permission *Permission) error {
 				name=$2, description=$3, effect=$4
 			WHERE id=$1`
 	// create records
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
 	// Execute query
-	_, err = tx.Exec(query,
+	_, err := ctx.TenantTx().Exec(query,
 		permission.ID,
 		permission.Name,
 		permission.Description,
@@ -816,12 +775,8 @@ func DeletePermissionDB(ctx *Context, permission *Permission) error {
 				permissions p
 			WHERE id = $1`
 	// create records
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
 	// Execute query
-	_, err = tx.Exec(query, permission.ID)
+	_, err := ctx.TenantTx().Exec(query, permission.ID)
 	if err != nil {
 		return err
 	}
@@ -837,7 +792,7 @@ func filterPermissionsWithServiceAccount(ctx *Context, permissions []*uuid.UUID,
 		FROM service_accounts_permissions sap
 		WHERE sap.service_account_id = $1 AND sap.permission_id = ANY($2)`
 
-	rows, err := ctx.TenantDB().Query(queryUser, serviceAccount, pq.Array(permissions))
+	rows, err := ctx.TenantTx().Query(queryUser, serviceAccount, pq.Array(permissions))
 	if err != nil {
 		return nil, err
 	}
@@ -872,7 +827,7 @@ func MapPermissionsToIDs(ctx *Context, permissions []string) (map[string]*uuid.U
 		WHERE 
 		      p.slug = ANY ($1)`
 
-	rows, err := ctx.TenantDB().Query(queryUser, pq.Array(permissions))
+	rows, err := ctx.TenantTx().Query(queryUser, pq.Array(permissions))
 	defer rows.Close()
 	if err != nil {
 		return nil, err

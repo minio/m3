@@ -52,11 +52,11 @@ func getHeaderFromRequest(ctx context.Context, key string) (keyValue string, err
 
 // validateSessionId validates the sessionID available in the grpc metadata
 // headers and returns the session row id and the tenant short name
-func validateSessionID(ctx context.Context) (*cluster.Session, error) {
-	sessionID, err := getHeaderFromRequest(ctx, "sessionId")
+func validateSessionID(ctx *cluster.Context, reqCtx context.Context) (*cluster.Session, error) {
+	sessionID, err := getHeaderFromRequest(reqCtx, "sessionId")
 	if err != nil {
 		return nil, status.New(codes.InvalidArgument, err.Error()).Err()
 	}
-	session, err := cluster.GetValidSession(sessionID)
+	session, err := cluster.GetValidSession(ctx, sessionID)
 	return session, err
 }

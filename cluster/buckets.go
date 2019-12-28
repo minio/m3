@@ -26,8 +26,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/minio/m3/cluster/db"
-
 	"github.com/minio/minio-go/v6"
 	"github.com/minio/minio-go/v6/pkg/policy"
 	"github.com/minio/minio/pkg/env"
@@ -193,10 +191,6 @@ func DeleteBucket(tenantShortname, bucket string) error {
 }
 
 func registerBucketForTenant(ctx *Context, bucketName string, tenantID *uuid.UUID) error {
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
 	// create the bucket registry
 	query :=
 		`INSERT INTO
@@ -205,7 +199,7 @@ func registerBucketForTenant(ctx *Context, bucketName string, tenantID *uuid.UUI
 			($1, $2)
 		ON CONFLICT DO NOTHING`
 
-	if _, err = tx.Exec(query, bucketName, tenantID); err != nil {
+	if _, err := ctx.MainTx().Exec(query, bucketName, tenantID); err != nil {
 		return err
 	}
 
@@ -213,17 +207,13 @@ func registerBucketForTenant(ctx *Context, bucketName string, tenantID *uuid.UUI
 }
 
 func unregisterBucketForTenant(ctx *Context, bucketName string, tenantID *uuid.UUID) error {
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
 	// delete the bucket registry
 	query :=
 		`DELETE FROM
 			buckets 
 		WHERE name=$1 AND tenant_id=$2`
 
-	if _, err = tx.Exec(query, bucketName, tenantID); err != nil {
+	if _, err := ctx.MainTx().Exec(query, bucketName, tenantID); err != nil {
 		return err
 	}
 
@@ -245,7 +235,7 @@ type BucketToServiceResult struct {
 // they resolve to.
 // This function uses a channel because there may be hundreds of thousands of buckets and we don't want to pre-alloc
 // all that information on memory.
-func streamBucketToTenantServices() chan *BucketToServiceResult {
+func streamBucketToTenantServices(ctx *Context) chan *BucketToServiceResult {
 	ch := make(chan *BucketToServiceResult)
 	go func() {
 		defer close(ch)
@@ -258,7 +248,7 @@ func streamBucketToTenantServices() chan *BucketToServiceResult {
 			ORDER BY b.name ASC`
 
 		// no context? straight to db
-		rows, err := db.GetInstance().Db.Query(query)
+		rows, err := ctx.MainTx().Query(query)
 		if err != nil {
 			ch <- &BucketToServiceResult{Error: err}
 			return
@@ -319,12 +309,8 @@ func GetTenantUsageCostMultiplier(ctx *Context) (cost float32, err error) {
 			  FROM tenants t
 			  WHERE t.short_name=$1`
 
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return 0, err
-	}
 	// Execute query search one Month after `date`
-	row := tx.QueryRow(query, ctx.Tenant.ShortName)
+	row := ctx.MainTx().QueryRow(query, ctx.Tenant().ShortName)
 	if err != nil {
 		return 0, err
 	}
@@ -376,13 +362,9 @@ func GetLatestTotalBuckets(ctx *Context, date time.Time) (totalBuckets uint64, e
 				WHERE last_update >= $1 AND last_update <= $2
 				GROUP BY last_update
 				ORDER BY last_update DESC`
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return 0, err
-	}
 	// Get first result of the query which contains the latest number of
 	// buckets during the selected period one Month
-	row := tx.QueryRow(query, date, date.AddDate(0, 1, 0))
+	row := ctx.TenantTx().QueryRow(query, date, date.AddDate(0, 1, 0))
 	if err != nil {
 		return 0, err
 	}
@@ -418,12 +400,8 @@ func GetTotalMonthBucketUsageFromDB(ctx *Context, date time.Time) (monthUsage ui
 				GROUP BY
 					s.year, s.month`
 
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return 0, err
-	}
 	// Execute query search one Month after `date`
-	row := tx.QueryRow(query, date, date.AddDate(0, 1, 0))
+	row := ctx.TenantTx().QueryRow(query, date, date.AddDate(0, 1, 0))
 	if err != nil {
 		return 0, err
 	}
@@ -482,12 +460,8 @@ func GetDailyAvgBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric
 						) a
 					) a`
 
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return nil, err
-	}
 	// Execute query search one Month after `date`
-	rows, err := tx.Query(query, date, date.AddDate(0, 1, 0))
+	rows, err := ctx.TenantTx().Query(query, date, date.AddDate(0, 1, 0))
 	if err != nil {
 		return nil, err
 	}
@@ -579,7 +553,10 @@ func CalculateTenantsMetrics() error {
 }
 
 func getTenantMetrics(ctx *Context, tenant *Tenant) error {
-	ctx.Tenant = tenant
+	if err := ctx.SetTenant(tenant); err != nil {
+		return err
+	}
+
 	// Get in which SG is the tenant located
 	sgt := <-GetTenantStorageGroupByShortName(ctx, tenant.ShortName)
 	if sgt.Error != nil {
@@ -597,10 +574,6 @@ func getTenantMetrics(ctx *Context, tenant *Tenant) error {
 			  	  VALUES
 					($1, $2, $3, $4, $5, $6)`
 
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
 	dataUsageInfo, err := getMinioDataUsageInfo(sgt.StorageGroupTenant, tenantConf)
 	if err != nil {
 		return err
@@ -610,7 +583,7 @@ func getTenantMetrics(ctx *Context, tenant *Tenant) error {
 		return err
 	}
 	// Execute query
-	_, err = tx.Exec(query, dataUsageInfo.LastUpdate, dataUsageInfo.ObjectsCount, bucketSizes, dataUsageInfo.BucketsCount, dataUsageInfo.ObjectsTotalSize, 0)
+	_, err = ctx.TenantTx().Exec(query, dataUsageInfo.LastUpdate, dataUsageInfo.ObjectsCount, bucketSizes, dataUsageInfo.BucketsCount, dataUsageInfo.ObjectsTotalSize, 0)
 	if err != nil {
 		return err
 	}

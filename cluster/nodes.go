@@ -22,8 +22,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/minio/m3/cluster/db"
-
 	"github.com/lib/pq"
 
 	uuid "github.com/satori/go.uuid"
@@ -81,12 +79,8 @@ func NodeAdd(ctx *Context, name, k8sLabel string) (*Node, error) {
 				nodes ("id", "name", "k8s_label", "sys_created_by")
 			  VALUES
 				($1, $2, $3, $4)`
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return nil, err
-	}
 	// Execute query
-	_, err = tx.Exec(query, node.ID, node.Name, node.K8sLabel, ctx.WhoAmI)
+	_, err = ctx.MainTx().Exec(query, node.ID, node.Name, node.K8sLabel, ctx.WhoAmI)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +96,7 @@ func GetNodeByName(ctx *Context, name string) (*Node, error) {
 				nodes n
 			WHERE n.name=$1 LIMIT 1`
 
-	row := db.GetInstance().Db.QueryRow(query, name)
+	row := ctx.MainTx().QueryRow(query, name)
 	node := Node{}
 	err := row.Scan(&node.ID, &node.Name, &node.K8sLabel)
 	if err != nil {
@@ -139,12 +133,8 @@ func VolumeAdd(ctx *Context, nodeID *uuid.UUID, mountPoint string) (*NodeVolume,
 				node_volumes ("num", "id", "node_id", "mount_path", "sys_created_by")
 				SELECT COUNT(*)+1, $2, $3, $4, $5 FROM node_volumes WHERE node_id=$1`
 
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return nil, err
-	}
 	// Execute query
-	_, err = tx.Exec(query, volume.NodeID, volume.ID, volume.NodeID, volume.MountPath, ctx.WhoAmI)
+	_, err = ctx.MainTx().Exec(query, volume.NodeID, volume.ID, volume.NodeID, volume.MountPath, ctx.WhoAmI)
 	if err != nil {
 		return nil, err
 	}
@@ -154,17 +144,14 @@ func VolumeAdd(ctx *Context, nodeID *uuid.UUID, mountPoint string) (*NodeVolume,
 // Creates a storage cluster in the DB
 func AssignNodeToStorageCluster(ctx *Context, nodeID *uuid.UUID, storageClusterID *uuid.UUID) error {
 	// TODO: Validate the symmetry of disk of this node to other existing nodes on the storage cluster
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return err
-	}
+
 	// Create association m-n
 	query :=
 		`INSERT INTO
 				storage_cluster_nodes ("num","storage_cluster_id", "node_id", "sys_created_by")
 			  SELECT COUNT(*)+1 ,$2, $3 ,$4 FROM storage_cluster_nodes WHERE storage_cluster_id=$1`
 
-	if _, err = tx.Exec(query, storageClusterID, storageClusterID, nodeID, ctx.WhoAmI); err != nil {
+	if _, err := ctx.MainTx().Exec(query, storageClusterID, storageClusterID, nodeID, ctx.WhoAmI); err != nil {
 		return err
 	}
 	return nil
@@ -181,11 +168,8 @@ func GetNodesForStorageGroup(ctx *Context, storageGroupID *uuid.UUID) ([]*Storag
 		LEFT JOIN storage_groups sg ON scn.storage_cluster_id = sg.storage_cluster_id
 		WHERE 
 		      sg.id = $1`
-	tx, err := ctx.MainTx()
-	if err != nil {
-		return nil, err
-	}
-	rows, err := tx.Query(queryNodes, storageGroupID)
+
+	rows, err := ctx.MainTx().Query(queryNodes, storageGroupID)
 	if err != nil {
 		return nil, err
 	}
@@ -213,11 +197,7 @@ func GetNodesForStorageGroup(ctx *Context, storageGroupID *uuid.UUID) ([]*Storag
 			node_volumes nv
 		WHERE 
 		      nv.node_id = ANY($1)`
-	tx, err = ctx.MainTx()
-	if err != nil {
-		return nil, err
-	}
-	volRows, err := tx.Query(queryVolumes, pq.Array(nodeIDs))
+	volRows, err := ctx.MainTx().Query(queryVolumes, pq.Array(nodeIDs))
 	if err != nil {
 		return nil, err
 	}

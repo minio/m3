@@ -152,8 +152,12 @@ func SetupM3() error {
 		}
 	}
 	log.Println("postgres is online")
+	appCtx, err := NewEmptyContext()
+	if err != nil {
+		return err
+	}
 
-	err = SetupDBAction()
+	err = SetupDBAction(appCtx)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -161,8 +165,12 @@ func SetupM3() error {
 
 	// Check wether we are being setup as global bucket, or bucket namespace per tenant
 	useGlobalBuckets := env.Get("SETUP_USE_GLOBAL_BUCKETS", "false")
-	if err = SetConfigWithLock(nil, cfgCoreGlobalBuckets, useGlobalBuckets, "bool", true); err != nil {
+	if err = SetConfigWithLock(appCtx, cfgCoreGlobalBuckets, useGlobalBuckets, "bool", true); err != nil {
 		log.Println("Could not store global bucket configuration.", err)
+		return err
+	}
+	// commit DB changes
+	if err := appCtx.Commit(); err != nil {
 		return err
 	}
 
@@ -191,14 +199,14 @@ func SetupM3() error {
 }
 
 // SetupDBAction runs all the operations to setup the DB or migrate it
-func SetupDBAction() error {
+func SetupDBAction(ctx *Context) error {
 	// setup the tenants shared db
-	err := CreateProvisioningSchema()
+	err := CreateProvisioningSchema(ctx)
 	if err != nil {
 		// this error could be because the database already exists, so we are going to tolerate it.
 		log.Println(err)
 	}
-	err = CreateTenantsSharedDatabase()
+	err = CreateTenantsSharedDatabase(ctx)
 	if err != nil {
 		// this error could be because the database already exists, so we are going to tolerate it.
 		log.Println(err)
@@ -471,15 +479,12 @@ func RunMigrations() error {
 }
 
 // CreateTenantSchema creates a db schema for the tenant
-func CreateTenantsSharedDatabase() error {
-
-	// get the DB connection for the tenant
-	db := db.GetInstance().Db
+func CreateTenantsSharedDatabase(ctx *Context) error {
 
 	// format in the tenant name assuming it's safe
 	query := fmt.Sprintf(`CREATE DATABASE %s`, env.Get("M3_TENANTS_DB", "tenants"))
 
-	_, err := db.Exec(query)
+	_, err := ctx.MainTx().Exec(query)
 	if err != nil {
 		return err
 	}
@@ -487,14 +492,11 @@ func CreateTenantsSharedDatabase() error {
 }
 
 // CreateProvisioningSchema creates a db schema for provisioning
-func CreateProvisioningSchema() error {
-	// get the DB connection for the tenant
-	db := db.GetInstance().Db
-
+func CreateProvisioningSchema(ctx *Context) error {
 	// format in the tenant name assuming it's safe
 	query := `CREATE SCHEMA provisioning`
 
-	_, err := db.Exec(query)
+	_, err := ctx.MainTx().Exec(query)
 	if err != nil {
 		return err
 	}
