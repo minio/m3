@@ -82,7 +82,7 @@ func PublicAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unar
 	}
 
 	// attempt to validate the session
-	validSession, err := validateSessionID(appCtx, ctx)
+	validSession, err := validateSessionID(ctx, appCtx)
 	if err != nil || validSession == nil {
 		log.Println("Invalid session.", err)
 		return nil, status.Errorf(codes.Unauthenticated, "invalid token.")

@@ -82,8 +82,8 @@ func (c *Context) Commit() error {
 
 func (c *Context) BeginTx() error {
 	// being tenant schema tx
-	if c.tenantTx == nil && c.Tenant != nil {
-		tenantTx, err := startTenantTx(c.ControlCtx, c.Tenant())
+	if c.tenantTx == nil && c.tenant != nil {
+		tenantTx, err := startTenantTx(c.ControlCtx, c.tenant)
 		if err != nil {
 			return err
 		}
