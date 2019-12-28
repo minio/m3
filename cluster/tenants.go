@@ -57,6 +57,17 @@ const (
 
 func ProvisionTenants(ctx *Context, tenants []string, sg *StorageGroup) error {
 	for _, shortName := range tenants {
+		// Enable kes service for handling minio encryption
+		if getKmsAddress() != "" {
+			err := <-StartNewKes(shortName)
+			if err != nil {
+				log.Println(err)
+				return errors.New("encryption was enable but there was an error while creating the kes service")
+			}
+			log.Println("Encryption will be enabled for tenant")
+		} else {
+			log.Println("Encryption will be disabled for tenant")
+		}
 		// register the tenant
 		tenantResult := <-InsertTenant(ctx, shortName, shortName)
 		if tenantResult.Error != nil {
@@ -737,6 +748,17 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 	}
 	// Env variable to tell MinIO that it is running on a replica set deployment
 	tenantConfig["KUBERNETES_REPLICA_SET"] = "1"
+
+	if getKmsAddress() != "" {
+		kesServiceName := fmt.Sprintf("%s-kes", sgTenant.ShortName)
+		kesServiceAddress := fmt.Sprintf("https://%s:7373", kesServiceName)
+		tenantConfig["MINIO_KMS_KES_ENDPOINT"] = kesServiceAddress
+		tenantConfig["MINIO_KMS_KES_KEY_FILE"] = fmt.Sprintf("/kes-config/%s/app/key/key", sgTenant.ShortName)
+		tenantConfig["MINIO_KMS_KES_CERT_FILE"] = fmt.Sprintf("/kes-config/%s/app/cert/cert", sgTenant.ShortName)
+		tenantConfig["MINIO_KMS_KES_CA_PATH"] = fmt.Sprintf("/kes-config/%s/server/cert/cert", sgTenant.ShortName)
+		tenantConfig["MINIO_KMS_KES_KEY_NAME"] = "app-key"
+	}
+
 	// Build the config map
 	configMap := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

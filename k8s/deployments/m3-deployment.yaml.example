@@ -56,6 +56,9 @@ data:
   #IDENTITY_PROVIDER_CLIENT_ID: ""
   #IDENTITY_PROVIDER_SECRET: ""
   #IDENTITY_PROVIDER_CALLBACK: ""
+  # Uncomment these to enable tenant data encryption using an external KMS
+  #KMS_ADDRESS: ""
+  #KMS_TOKEN: ""
 ---
 apiVersion: apps/v1
 kind: Deployment

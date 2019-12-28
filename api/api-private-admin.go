@@ -58,17 +58,20 @@ func (ps *privateServer) SetPassword(ctx context.Context, in *pb.SetAdminPasswor
 	}
 	tokenID, err := uuid.FromString(in.Token)
 	if err != nil {
+		log.Println(err)
 		return nil, status.New(codes.InvalidArgument, "Invalid token").Err()
 	}
-
 	err = cluster.SetAdminPasswordAction(appCtx, &tokenID, in.Password)
 	if err != nil {
+		log.Println(err)
 		appCtx.Rollback()
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
+
 	// if no error happened to this point commit transaction
 	err = appCtx.Commit()
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 

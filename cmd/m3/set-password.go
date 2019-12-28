@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"syscall"
 
 	"github.com/minio/cli"
@@ -66,12 +67,14 @@ func setPassword(ctx *cli.Context) error {
 		fmt.Print("Enter Password: ")
 		newPassword, err := terminal.ReadPassword(int(syscall.Stdin))
 		if err != nil {
+			log.Println(err)
 			return err
 		}
 		fmt.Print("\n")
 		fmt.Print("Re-type Password: ")
 		retypePassword, err := terminal.ReadPassword(int(syscall.Stdin))
 		if err != nil {
+			log.Println(err)
 			return err
 		}
 		fmt.Print("\n")
@@ -87,7 +90,7 @@ func setPassword(ctx *cli.Context) error {
 	// get grpc Channel/Client
 	cnxs, err := GetGRPCChannel()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return err
 	}
 	defer cnxs.Conn.Close()
@@ -98,7 +101,7 @@ func setPassword(ctx *cli.Context) error {
 	})
 
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return nil
 	}
 

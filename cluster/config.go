@@ -40,6 +40,10 @@ func getM3ContainerImage() string {
 	return env.Get(m3Image, "minio/m3:edge")
 }
 
+func getKesContainerImage() string {
+	return env.Get(kesImage, "minio/kes:latest")
+}
+
 func getM3ImagePullPolicy() string {
 	return env.Get(m3ImagePullPolicy, "IfNotPresent")
 }
@@ -66,6 +70,14 @@ func getMinIOImage() string {
 
 func getMinIOImagePullPolicy() string {
 	return env.Get(minIOImagePullPolicy, "IfNotPresent")
+}
+
+func getKmsAddress() string {
+	return env.Get(kmsAddress, "")
+}
+
+func getKmsToken() string {
+	return env.Get(kmsToken, "")
 }
 
 func getDevUseEmptyDir() bool {
