@@ -57,8 +57,8 @@ func GetInstance() *Singleton {
 	return instance
 }
 
-// DbConfig holds the configuration to connect to a database
-type DbConfig struct {
+// Config holds the configuration to connect to a database
+type Config struct {
 	// Hostname
 	Host string
 	// Port
@@ -75,10 +75,10 @@ type DbConfig struct {
 	SchemaName string
 }
 
-// GetM3DbConfig returns a `DbConfig` object with the values for the database by either reading them from the environment or
+// GetM3DbConfig returns a `Config` object with the values for the database by either reading them from the environment or
 // defaulting them to a known value.
-func GetM3DbConfig() *DbConfig {
-	return &DbConfig{
+func GetM3DbConfig() *Config {
+	return &Config{
 		Host:       env.Get("DB_HOSTNAME", "localhost"),
 		Port:       env.Get("DB_PORT", "5432"),
 		User:       env.Get("DB_USER", "postgres"),
@@ -89,14 +89,14 @@ func GetM3DbConfig() *DbConfig {
 	}
 }
 
-type DBCnxResult struct {
+type CnxResult struct {
 	Cnx   *sql.DB
 	Error error
 }
 
 // Creates a connection to the DB and returns it
-func ConnectToDb(ctx context.Context, config *DbConfig) chan DBCnxResult {
-	ch := make(chan DBCnxResult)
+func ConnectToDb(ctx context.Context, config *Config) chan CnxResult {
+	ch := make(chan CnxResult)
 	go func() {
 		defer close(ch)
 		select {
@@ -121,10 +121,10 @@ func ConnectToDb(ctx context.Context, config *DbConfig) chan DBCnxResult {
 			db, err := sql.Open("postgres", dbStr)
 			if err != nil {
 				log.Println(err)
-				ch <- DBCnxResult{Error: err}
+				ch <- CnxResult{Error: err}
 				return
 			}
-			ch <- DBCnxResult{Cnx: db}
+			ch <- CnxResult{Cnx: db}
 		}
 	}()
 	return ch
@@ -151,7 +151,7 @@ func (s *Singleton) GetTenantDB(tenantName string) *sql.DB {
 	return s.tenantsCnx[tenantName]
 }
 
-func GetTenantDBConfig(tenantName string) *DbConfig {
+func GetTenantDBConfig(tenantName string) *Config {
 	// right now all tenants live on the same server as m3, but on a different DB
 	config := GetM3DbConfig()
 	config.Name = "tenants"
