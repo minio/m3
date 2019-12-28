@@ -57,17 +57,17 @@ const (
 
 func ProvisionTenants(ctx *Context, tenants []string, sg *StorageGroup) error {
 	for _, shortName := range tenants {
-    	// Enable kes service for handling minio encryption
-    if getKmsAddress() != "" {
-      err := <-StartNewKes(shortName)
-      if err != nil {
-        log.Println(err)
-        return errors.New("encryption was enable but there was an error while creating the kes service")
-      }
-      log.Println("Encryption will be enabled for tenant")
-    } else {
-      log.Println("Encryption will be disabled for tenant")
-    }
+		// Enable kes service for handling minio encryption
+		if getKmsAddress() != "" {
+			err := <-StartNewKes(shortName)
+			if err != nil {
+				log.Println(err)
+				return errors.New("encryption was enable but there was an error while creating the kes service")
+			}
+			log.Println("Encryption will be enabled for tenant")
+		} else {
+			log.Println("Encryption will be disabled for tenant")
+		}
 		// register the tenant
 		tenantResult := <-InsertTenant(ctx, shortName, shortName)
 		if tenantResult.Error != nil {
