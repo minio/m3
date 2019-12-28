@@ -58,24 +58,24 @@ func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType Buc
 		return err
 	}
 
-	// make it so this timeouts after only 2 seconds
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	// make it so this timeouts after only 20 seconds
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 	// Create Bucket on tenant's MinIO
 	if err = minioClient.MakeBucketWithContext(timeoutCtx, bucketName, "us-east-1"); err != nil {
 		log.Println(err)
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("MakeBucketWithContext", err)
 	}
 
 	if err = addMinioBucketNotification(minioClient, bucketName, "us-east-1"); err != nil {
 		log.Println(err)
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("addMinioBucketNotification", err)
 	}
 
 	err = SetBucketAccess(minioClient, bucketName, accessType)
 	if err != nil {
 		log.Println(err)
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("SetBucketAccess", err)
 	}
 	// announce the bucket on the router
 	<-UpdateNginxConfiguration(ctx)
@@ -157,13 +157,13 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 		return []TenantBucketInfo{}, err
 	}
 
-	tCtx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	tCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
 	var buckets []minio.BucketInfo
 	buckets, err = minioClient.ListBucketsWithContext(tCtx)
 	if err != nil {
-		return []TenantBucketInfo{}, tagErrorAsMinio(err)
+		return []TenantBucketInfo{}, tagErrorAsMinio("ListBucketsWithContext", err)
 	}
 
 	var (
@@ -173,7 +173,7 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 	for _, bucket := range buckets {
 		accessType, err = GetBucketAccess(minioClient, bucket.Name)
 		if err != nil {
-			return []TenantBucketInfo{}, tagErrorAsMinio(err)
+			return []TenantBucketInfo{}, tagErrorAsMinio("GetBucketAccess", err)
 		}
 		bucketInfos = append(bucketInfos, TenantBucketInfo{Name: bucket.Name, Access: accessType})
 	}

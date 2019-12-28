@@ -17,9 +17,14 @@
 package main
 
 import (
+	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
+	"syscall"
+
+	"github.com/minio/m3/cluster"
 
 	"github.com/minio/cli"
 	"github.com/minio/mc/pkg/console"
@@ -64,6 +69,33 @@ var appCmds = []cli.Command{
 }
 
 func main() {
+	// catch sig kill
+	var gracefulStop = make(chan os.Signal)
+	signal.Notify(gracefulStop, syscall.SIGTERM)
+	signal.Notify(gracefulStop, syscall.SIGINT)
+	go func() {
+		sig := <-gracefulStop
+		log.Printf("caught sig: %+v", sig)
+		log.Println("Closing all connections")
+		if err := cluster.GetInstance().Close(); err != nil {
+			log.Println("Error closing connections:", err)
+		}
+		// exit code OK
+		os.Exit(0)
+	}()
+
+	// if the m3 fails close all connections
+	defer func() {
+		if err := recover(); err != nil { //catch
+			log.Println("Closing all connections after a panic")
+			if err := cluster.GetInstance().Close(); err != nil {
+				log.Println("Error closing connections:", err)
+			}
+			// exit code NOT OK
+			os.Exit(1)
+		}
+	}()
+
 	args := os.Args
 	// Set the m3 app name.
 	appName := filepath.Base(args[0])
