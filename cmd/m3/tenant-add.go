@@ -18,11 +18,13 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
 	"github.com/minio/cli"
 	pb "github.com/minio/m3/api/stubs"
+	"github.com/schollz/progressbar/v2"
 )
 
 // list files and folders.
@@ -101,6 +103,11 @@ func addTenant(ctx *cli.Context) error {
 		fmt.Println("User name and email is needed")
 		return errMissingArguments
 	}
+	fmt.Println(fmt.Sprintf("Adding tenant: %s ...", tenantName))
+	// progress bar initialize
+	bar := progressbar.NewOptions(100)
+	// Render the current state, which is 0% in this case
+	bar.RenderBlank()
 
 	cnxs, err := GetGRPCChannel()
 	if err != nil {
@@ -109,19 +116,29 @@ func addTenant(ctx *cli.Context) error {
 	}
 	defer cnxs.Conn.Close()
 	// perform RPC
-	fmt.Println(fmt.Sprintf("Adding tenant: %s ...", tenantName))
-	_, err = cnxs.Client.TenantAdd(cnxs.Context, &pb.TenantAddRequest{
+	stream, err := cnxs.Client.TenantAdd(cnxs.Context, &pb.TenantAddRequest{
 		Name:      tenantName,
 		ShortName: tenantShortName,
 		UserName:  userName,
 		UserEmail: userEmail,
 	})
-
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
 
-	fmt.Println("Done adding tenant!")
+	// display progress bar updates
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		bar.Add(int(resp.Progress))
+		fmt.Print(resp.Message)
+	}
 	return nil
 }
