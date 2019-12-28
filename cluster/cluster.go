@@ -19,7 +19,6 @@ package cluster
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -801,27 +800,6 @@ func DeleteTenantSecrets(tenantShortName string) chan error {
 		err = clientset.CoreV1().Secrets("default").Delete(secretsName, nil)
 		if err != nil {
 			ch <- err
-		}
-	}()
-	return ch
-}
-
-func waitDeploymentLive(scHostName string, port int32) chan error {
-	ch := make(chan error)
-	go func() {
-		defer close(ch)
-		targetURL := fmt.Sprintf("http://%s:%d/minio/health/live", scHostName, port)
-		for {
-			resp, err := http.Get(targetURL)
-			if err != nil {
-				// TODO: Return error if it's not a "not found" error
-				fmt.Println(err)
-			}
-			if resp != nil && resp.StatusCode == http.StatusOK {
-				fmt.Println("host available")
-				return
-			}
-			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 	return ch
