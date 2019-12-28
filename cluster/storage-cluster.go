@@ -625,34 +625,39 @@ func streamTenantService(maxChanSize int) chan TenantServiceResult {
 }
 
 func SchedulePreProvisionTenantInStorageGroup(ctx *Context, sg *StorageGroup) error {
-	// first check if we can fit 1 more tenant
+	//first check if we can fit 1 more tenant
 	total, err := totalNumberOfTenantInStorageGroup(&sg.ID)
 	if err != nil {
 		return err
 	}
-	if total >= maxNumberOfTenantsPerSg {
+	if int(total) >= getMaxNumberOfTenantsPerSg() {
 		return errors.New("Max number of tenants on that storage group reached")
 	}
-
-	// pre-provision the first tenant of this storage group
-	provTenantName := fmt.Sprintf("z%s", strings.ToLower(RandomCharString(15)))
-	// check if tenant name is available
-	for {
-		available, err := TenantShortNameAvailable(ctx, provTenantName)
-		if err != nil {
-			log.Println(err)
-			return err
+	// if we can fit more tenants, only provision the different
+	numTenantsToProvision := getMaxNumberOfTenantsPerSg() - int(total)
+	var ts []string
+	for i := 0; i < numTenantsToProvision; i++ {
+		// pre-provision the first tenant of this storage group
+		provTenantName := fmt.Sprintf("z%s", strings.ToLower(RandomCharString(15)))
+		// check if tenant name is available
+		for {
+			available, err := TenantShortNameAvailable(ctx, provTenantName)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			if available {
+				break
+			}
 		}
-		if available {
-			break
-		}
+		log.Printf("Pre-Provisioning Tenant %s\n", provTenantName)
+		ts = append(ts, provTenantName)
 	}
-	log.Printf("Pre-Provisioning Tenant %s\n", provTenantName)
+
 	taskData := ProvisionTenantTaskData{
-		TenantShortName: provTenantName,
-		StorageGroupID:  sg.ID,
+		Tenants:        ts,
+		StorageGroupID: sg.ID,
 	}
-
 	err = ScheduleTask(ctx, TaskProvisionTenant, taskData)
 	if err != nil {
 		log.Printf("WARNING: Could not pre-provision tenant on the storage group `%s`\n", sg.Name)

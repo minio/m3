@@ -47,6 +47,10 @@ data:
   APP_URL: <APP_URL>
   S3_DOMAIN: <S3_DOMAIN>
   SETUP_USE_GLOBAL_BUCKETS: "true"
+  M3_IMAGE: "minio/m3:edge"
+  # Other configs
+  # Maximum number of tenants per storage group. 16 is the sweetest number.
+  # MAX_NUM_TENANTS_PER_SG: "16"
   # Uncomment these to enable IDP for Admin Login
   #IDENTITY_PROVIDER_URL: ""
   #IDENTITY_PROVIDER_CLIENT_ID: ""
