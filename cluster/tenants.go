@@ -408,7 +408,7 @@ func newTenantMinioClient(ctx *Context, tenantShortname string) (*minio.Client, 
 		tenantConf.SecretKey,
 		false)
 	if err != nil {
-		return nil, tagErrorAsMinio(err)
+		return nil, tagErrorAsMinio("minio.New", err)
 	}
 
 	return minioClient, nil
