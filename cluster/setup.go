@@ -42,11 +42,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	m3SystemNamespace = "m3"
-	defNS             = "default"
-)
-
 // Setups m3 on the kubernetes deployment that we are installed to
 func SetupM3() error {
 	// creates the clientset
@@ -57,7 +52,8 @@ func SetupM3() error {
 
 	// setup m3 namespace on k8s
 	log.Println("Setting up m3 namespace")
-	waitNsCh := setupM3Namespace(clientset)
+	waitNsM3Ch := setupNameSpace(clientset, m3SystemNamespace)
+	waitNsProvisioninCh := setupNameSpace(clientset, provisioningNamespace)
 
 	//setup etcd cluster
 	waitEtcdCh := SetupEtcCluster()
@@ -79,7 +75,7 @@ func SetupM3() error {
 	waitNginxResolverCh := DeployNginxResolver()
 
 	// Wait for the m3 NS to install postgres
-	<-waitNsCh
+	<-waitNsM3Ch
 	// setup postgres service
 	log.Println("Setting up postgres service")
 	waitPgSvcCh := setupPostgresService(clientset)
@@ -183,6 +179,9 @@ func SetupM3() error {
 		log.Println(err)
 		return err
 	}
+	// wait for things that we had no rush to wait on
+	// provisioning namespace
+	<-waitNsProvisioninCh
 	// mark setup as complete
 	<-markSetupComplete(clientset)
 	log.Println("Setup process done")
@@ -221,14 +220,13 @@ func SetupDBAction() error {
 	return err
 }
 
-// setupM3Namespace Setups the namespace used by the provisioning service
-func setupM3Namespace(clientset *kubernetes.Clientset) <-chan struct{} {
+// setupNameSpace Setups a namespaces
+func setupNameSpace(clientset *kubernetes.Clientset, namespaceName string) <-chan struct{} {
 	doneCh := make(chan struct{})
-	namespaceName := "m3"
 	go func() {
 		_, m3NamespaceExists := clientset.CoreV1().Namespaces().Get(namespaceName, metav1.GetOptions{})
 		if m3NamespaceExists == nil {
-			log.Println("m3 namespace already exists... skip create")
+			log.Printf("%s namespace already exists... skip create\n", namespaceName)
 			close(doneCh)
 		} else {
 			factory := informers.NewSharedInformerFactory(clientset, 0)
@@ -237,7 +235,7 @@ func setupM3Namespace(clientset *kubernetes.Clientset) <-chan struct{} {
 				AddFunc: func(obj interface{}) {
 					namespace := obj.(*v1.Namespace)
 					if namespace.Name == namespaceName {
-						log.Println("m3 namespace created correctly")
+						log.Printf("%s namespace created correctly\n", namespaceName)
 						close(doneCh)
 					}
 				},

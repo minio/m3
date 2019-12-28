@@ -345,7 +345,7 @@ func DeprovisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGr
 		}
 
 		// call for the storage group to refresh
-		err = <-ReDeployStorageGroup(ctx, sgTenantResult.StorageGroupTenant)
+		err = <-ReDeployStorageGroup(ctx, sg)
 		if err != nil {
 			ch <- err
 			return
@@ -412,14 +412,6 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGrou
 			}
 		}
 		CreateTenantServiceInStorageGroup(sgTenantResult.StorageGroupTenant)
-		// call for the storage group to refresh
-		err = <-ReDeployStorageGroup(ctx, sgTenantResult.StorageGroupTenant)
-		if err != nil {
-			ch <- &StorageGroupTenantResult{
-				Error: err,
-			}
-		}
-
 		ch <- sgTenantResult
 	}()
 	return ch
@@ -607,20 +599,19 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sg *StorageGroup, sgNode *S
 		jobContainer.VolumeMounts = volumeMounts
 
 		job.Spec.Template.Spec.Containers = append(job.Spec.Template.Spec.Containers, jobContainer)
-
-		_, err = clientset.BatchV1().Jobs("default").Create(&job)
+		_, err = clientset.BatchV1().Jobs(provisioningNamespace).Create(&job)
 		if err != nil {
 			ch <- err
 			return
 		}
 		//now sit and wait for the job to complete before returning
 		for {
-			status, err := clientset.BatchV1().Jobs("default").Get(jobName, metav1.GetOptions{})
+			status, err := clientset.BatchV1().Jobs(provisioningNamespace).Get(jobName, metav1.GetOptions{})
 			if err != nil {
 				panic(err)
 			}
 			// if completitions above 1 job is complete
-			if *status.Spec.Completions > 0 {
+			if status.Status.Succeeded > 0 {
 				// we are done here
 				//return
 				break
@@ -629,7 +620,7 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sg *StorageGroup, sgNode *S
 			time.Sleep(300 * time.Millisecond)
 		}
 		// job cleanup
-		err = clientset.BatchV1().Jobs("default").Delete(jobName, nil)
+		err = clientset.BatchV1().Jobs(provisioningNamespace).Delete(jobName, nil)
 		if err != nil {
 			ch <- err
 			return
@@ -639,15 +630,15 @@ func CreateTenantFolderInDiskAndWait(tenant *Tenant, sg *StorageGroup, sgNode *S
 }
 
 // Based on the current list of tenants for the `StorageGroup` it re-deploys it.
-func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan error {
+func ReDeployStorageGroup(ctx *Context, sg *StorageGroup) <-chan error {
 	ch := make(chan error)
 
 	go func() {
 		defer close(ch)
-		if sgTenant == nil {
-			ch <- errors.New("invalid empty Storage group Tenant")
-		}
-		sg := sgTenant.StorageGroup
+		//if sgTenant == nil {
+		//	ch <- errors.New("invalid empty Storage group Tenant")
+		//}
+		//sg := sgTenant.StorageGroup
 		tenants := <-GetListOfTenantsForStorageGroup(ctx, sg)
 
 		// we build a set to keep track of existing tenants in this SG
@@ -766,16 +757,6 @@ func ReDeployStorageGroup(ctx *Context, sgTenant *StorageGroupTenant) <-chan err
 
 			}
 
-			// wait for the deployment to come online before replacing the next deployment
-			// to know when the past deployment is online, we will expect the deployed tenant to reply with it's
-			// liveliness probe. If the storage group had no tenants prior to this one, don't wait.
-			if len(tenants) > 0 && sgTenant.StorageGroup.TotalTenants > 0 {
-				err = <-waitDeploymentLive(sgHostName, sgTenant.Port)
-				if err != nil {
-					ch <- err
-					return
-				}
-			}
 		}
 	}()
 	return ch

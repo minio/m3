@@ -104,10 +104,14 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 
 	var buckets []*pb.Bucket
 	for _, bucketInfo := range bucketInfos {
-		size, ok := dataUsageInfo.BucketsSizes[bucketInfo.Name]
-		if !ok {
-			// if !ok size is 0 by default
-			log.Println("size not available for bucket: ", bucketInfo.Name)
+		var size uint64
+		var ok bool
+		if dataUsageInfo != nil {
+			size, ok = dataUsageInfo.BucketsSizes[bucketInfo.Name]
+			if !ok {
+				// if !ok size is 0 by default
+				log.Println("size not available for bucket: ", bucketInfo.Name)
+			}
 		}
 		buckets = append(buckets, &pb.Bucket{
 			Name:   bucketInfo.Name,

@@ -58,8 +58,8 @@ func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType Buc
 		return err
 	}
 
-	// make it so this timeouts after only 2 seconds
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	// make it so this timeouts after only 20 seconds
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 	// Create Bucket on tenant's MinIO
 	if err = minioClient.MakeBucketWithContext(timeoutCtx, bucketName, "us-east-1"); err != nil {
@@ -157,7 +157,7 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 		return []TenantBucketInfo{}, err
 	}
 
-	tCtx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	tCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
 	var buckets []minio.BucketInfo
