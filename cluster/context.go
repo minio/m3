@@ -21,6 +21,8 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/minio/m3/cluster/db"
+
 	uuid "github.com/satori/go.uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -43,7 +45,7 @@ type Context struct {
 // MainTx returns a transaction against the Main DB, if none has been started, it starts one
 func (c *Context) MainTx() (*sql.Tx, error) {
 	if c.mainTx == nil {
-		db := GetInstance().Db
+		db := db.GetInstance().Db
 		tx, err := db.BeginTx(c.ControlCtx, nil)
 		if err != nil {
 			return nil, err
@@ -56,7 +58,7 @@ func (c *Context) MainTx() (*sql.Tx, error) {
 // TenantDB returns a configured DB connection for the Tenant DB
 func (c *Context) TenantDB() *sql.DB {
 	if c.tenantDB == nil {
-		db := GetInstance().GetTenantDB(c.Tenant.ShortName)
+		db := db.GetInstance().GetTenantDB(c.Tenant.ShortName)
 		c.tenantDB = db
 	}
 	return c.tenantDB

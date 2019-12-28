@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/minio/m3/cluster/db"
+
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 
@@ -123,11 +125,11 @@ func SetupM3() error {
 	ctx := context.Background()
 
 	// Get the m3 Database configuration
-	config := GetM3DbConfig()
+	config := db.GetM3DbConfig()
 
 	for {
 		// try to connect
-		cnxResult := <-ConnectToDb(ctx, config)
+		cnxResult := <-db.ConnectToDb(ctx, config)
 		if cnxResult.Error != nil {
 			log.Println(cnxResult.Error)
 			return err
@@ -438,7 +440,7 @@ func setupPostgresService(clientset *kubernetes.Clientset) <-chan struct{} {
 // apply the missing migrations.
 func RunMigrations() error {
 	// Get the Database configuration
-	dbConfg := GetM3DbConfig()
+	dbConfg := db.GetM3DbConfig()
 	// Build the database URL connection
 	sslMode := "disable"
 	if dbConfg.Ssl {
@@ -472,7 +474,7 @@ func RunMigrations() error {
 func CreateTenantsSharedDatabase() error {
 
 	// get the DB connection for the tenant
-	db := GetInstance().Db
+	db := db.GetInstance().Db
 
 	// format in the tenant name assuming it's safe
 	query := fmt.Sprintf(`CREATE DATABASE tenants`)
@@ -487,7 +489,7 @@ func CreateTenantsSharedDatabase() error {
 // CreateProvisioningSchema creates a db schema for provisioning
 func CreateProvisioningSchema() error {
 	// get the DB connection for the tenant
-	db := GetInstance().Db
+	db := db.GetInstance().Db
 
 	// format in the tenant name assuming it's safe
 	query := `CREATE SCHEMA provisioning`

@@ -312,7 +312,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 	}
 
 	// for now, let's hardcode the url, subsequent PRs will introduce system configs
-	signupURL := fmt.Sprintf("http://%s/create-password?t=%s", GetInstance().AppURL(), *jwtToken)
+	signupURL := fmt.Sprintf("http://%s/create-password?t=%s", getAppURL(), *jwtToken)
 
 	templateData := struct {
 		Name string

@@ -24,7 +24,7 @@ import (
 	"sort"
 	"syscall"
 
-	"github.com/minio/m3/cluster"
+	"github.com/minio/m3/cluster/db"
 
 	"github.com/minio/cli"
 	"github.com/minio/mc/pkg/console"
@@ -77,7 +77,7 @@ func main() {
 		sig := <-gracefulStop
 		log.Printf("caught sig: %+v", sig)
 		log.Println("Closing all connections")
-		if err := cluster.GetInstance().Close(); err != nil {
+		if err := db.GetInstance().Close(); err != nil {
 			log.Println("Error closing connections:", err)
 		}
 		// exit code OK
@@ -88,7 +88,7 @@ func main() {
 	defer func() {
 		if err := recover(); err != nil { //catch
 			log.Println("Closing all connections after a panic")
-			if err := cluster.GetInstance().Close(); err != nil {
+			if err := db.GetInstance().Close(); err != nil {
 				log.Println("Error closing connections:", err)
 			}
 			// exit code NOT OK

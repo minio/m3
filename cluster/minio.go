@@ -22,6 +22,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/minio/m3/cluster/db"
+
 	"github.com/minio/minio-go/v6"
 	"github.com/minio/minio/pkg/env"
 	"github.com/minio/minio/pkg/madmin"
@@ -150,7 +152,7 @@ func stopMinioTenantServers(sgt *StorageGroupTenant, tenantConf *TenantConfigura
 // getPostgresNotificationMinioConfigKV creates minio postgres notification configuration
 func getPostgresNotificationMinioConfigKV() (config string) {
 	// Get the Database configuration
-	dbConfg := GetM3DbConfig()
+	dbConfg := db.GetM3DbConfig()
 	// Build the database URL connection
 	dbConfigSSLMode := "disable"
 	if dbConfg.Ssl {

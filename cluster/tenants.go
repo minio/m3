@@ -24,6 +24,8 @@ import (
 	"log"
 	"regexp"
 
+	"github.com/minio/m3/cluster/db"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/minio/minio-go/v6"
 	uuid "github.com/satori/go.uuid"
@@ -282,7 +284,7 @@ func validTenantShortName(ctx *Context, tenantShortName string) error {
 func CreateTenantSchema(tenantShortName string) error {
 
 	// get the DB connection for the tenant
-	db := GetInstance().GetTenantDB(tenantShortName)
+	db := db.GetInstance().GetTenantDB(tenantShortName)
 
 	// Since we cannot parametrize the tenant name into create schema
 	// we are going to validate the tenant name
@@ -308,7 +310,7 @@ func CreateTenantSchema(tenantShortName string) error {
 func DestroyTenantSchema(tenantName string) error {
 
 	// get the DB connection for the tenant
-	db := GetInstance().GetTenantDB(tenantName)
+	db := db.GetInstance().GetTenantDB(tenantName)
 
 	// Since we cannot parametrize the tenant name into create schema
 	// we are going to validate the tenant name
@@ -368,7 +370,7 @@ func MigrateTenantDB(tenantName string) chan error {
 	go func() {
 		defer close(ch)
 		// Get the Database configuration
-		dbConfg := GetTenantDBConfig(tenantName)
+		dbConfg := db.GetTenantDBConfig(tenantName)
 		// Build the database URL connection
 		sslMode := "disable"
 		if dbConfg.Ssl {
@@ -469,7 +471,7 @@ func GetTenantByDomainWithCtx(ctx *Context, tenantDomain string) (tenant Tenant,
 		row = tx.QueryRow(query, ctx.Tenant.Domain)
 	} else {
 		// no context? straight to db
-		row = GetInstance().Db.QueryRow(query, tenantDomain)
+		row = db.GetInstance().Db.QueryRow(query, tenantDomain)
 	}
 
 	// Save the resulted query on the User struct
@@ -505,7 +507,7 @@ func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (tenant Tenant, err
 		row = tx.QueryRow(query, tenantID)
 	} else {
 		// no context? straight to db
-		row = GetInstance().Db.QueryRow(query, tenantID)
+		row = db.GetInstance().Db.QueryRow(query, tenantID)
 	}
 
 	// Save the resulted query on the User struct
@@ -547,7 +549,7 @@ func DeleteTenant(ctx *Context, sgt *StorageGroupTenantResult) error {
 	}
 	// purge connection from pool
 
-	GetInstance().RemoveCnx(tenantShortName)
+	db.GetInstance().RemoveCnx(tenantShortName)
 
 	//delete namesapce
 	nsDeleteCh := deleteTenantNamespace(tenantShortName)
@@ -653,7 +655,7 @@ func TenantShortNameAvailable(ctx *Context, tenantShortName string) (bool, error
 	var row *sql.Row
 	// if no context is provided, don't use a transaction
 	if ctx == nil {
-		row = GetInstance().Db.QueryRow(queryUser, tenantShortName)
+		row = db.GetInstance().Db.QueryRow(queryUser, tenantShortName)
 	} else {
 		tx, err := ctx.MainTx()
 		if err != nil {
@@ -688,7 +690,7 @@ func GetStreamOfTenants(ctx *Context, maxChanSize int) chan TenantResult {
 				tenants t1`
 
 		// no context? straight to db
-		rows, err := GetInstance().Db.Query(query)
+		rows, err := db.GetInstance().Db.Query(query)
 		if err != nil {
 			ch <- TenantResult{Error: err}
 			return
@@ -800,7 +802,7 @@ func GetTenantWithCtxByServiceName(ctx *Context, serviceName string) (tenant Ten
 		row = tx.QueryRow(query, serviceName)
 	} else {
 		// no context? straight to db
-		row = GetInstance().Db.QueryRow(query, serviceName)
+		row = db.GetInstance().Db.QueryRow(query, serviceName)
 	}
 
 	// Save the resulted query on the User struct

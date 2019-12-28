@@ -17,6 +17,7 @@
 package cluster
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -94,4 +95,15 @@ func getMaxNumberOfTenantsPerSg() int {
 		}
 	}
 	return maxSeconds
+}
+
+// AppURL returns the main application url
+func getAppURL() string {
+	appDomain := getS3Domain()
+	return env.Get("APP_URL", fmt.Sprintf("http://%s", appDomain))
+}
+
+// CliCommand returns the command used for the cli
+func getCliCommand() string {
+	return env.Get("CLI_COMMAND", "m3")
 }

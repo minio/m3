@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cluster
+package db
 
 import (
 	"context"
@@ -162,17 +162,6 @@ func GetTenantDBConfig(tenantName string) *DbConfig {
 // RemoveCnx removes a tenant DB connection from the cache
 func (s *Singleton) RemoveCnx(tenantName string) {
 	delete(s.tenantsCnx, tenantName)
-}
-
-// AppURL returns the main application url
-func (s *Singleton) AppURL() string {
-	appDomain := getS3Domain()
-	return env.Get("APP_URL", fmt.Sprintf("http://%s", appDomain))
-}
-
-// CliCommand returns the command used for the cli
-func (s *Singleton) CliCommand() string {
-	return env.Get("CLI_COMMAND", "m3")
 }
 
 // Close all connectiosn
