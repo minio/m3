@@ -1,4 +1,12 @@
 #!/bin/bash
+# download vault
+
+COMMANDOUTPUT=$(command -v ./vault)
+if [ -z "$COMMANDOUTPUT" ]; then
+  echo "No vault binary found, please download it from https://www.vaultproject.io/downloads.html"
+  exit 1
+fi
+
 startVault="./vault server -config vault-config.json";
 export VAULT_ADDR=http://127.0.0.1:8200
 unsealVault="./vault operator init";
@@ -21,3 +29,5 @@ do
       ./vault secrets enable kv
     fi
 done
+
+exit 0
