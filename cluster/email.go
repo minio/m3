@@ -30,6 +30,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/minio/m3/cluster/db"
+
 	"github.com/minio/minio/pkg/env"
 )
 
@@ -191,7 +193,7 @@ func getTemplateFromDB(ctx *Context, templateName string) (*string, error) {
 		row = tx.QueryRow(query, templateName)
 	} else {
 		// no context? straight to db
-		row = GetInstance().Db.QueryRow(query, templateName)
+		row = db.GetInstance().Db.QueryRow(query, templateName)
 	}
 
 	// Save the resulted query on the User struct

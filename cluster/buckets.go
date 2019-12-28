@@ -26,6 +26,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/minio/m3/cluster/db"
+
 	"github.com/minio/minio-go/v6"
 	"github.com/minio/minio-go/v6/pkg/policy"
 	"github.com/minio/minio/pkg/env"
@@ -258,7 +260,7 @@ func streamBucketToTenantServices() chan *BucketToServiceResult {
 			ORDER BY b.name ASC`
 
 		// no context? straight to db
-		rows, err := GetInstance().Db.Query(query)
+		rows, err := db.GetInstance().Db.Query(query)
 		if err != nil {
 			ch <- &BucketToServiceResult{Error: err}
 			return

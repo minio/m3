@@ -20,6 +20,8 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+
+	"github.com/minio/m3/cluster/db"
 )
 
 type Configuration struct {
@@ -68,7 +70,7 @@ func SetConfigWithLock(ctx *Context, key, val, valType string, locked bool) erro
 		}
 	} else {
 		// no context? straight to db
-		if _, err := GetInstance().Db.Exec(query, key, val, valType, locked, ""); err != nil {
+		if _, err := db.GetInstance().Db.Exec(query, key, val, valType, locked, ""); err != nil {
 			return err
 		}
 	}
@@ -93,7 +95,7 @@ func GetConfig(ctx *Context, key string, fallback interface{}) (*Configuration, 
 		row = tx.QueryRow(query, key)
 	} else {
 		// no context? straight to db
-		row = GetInstance().Db.QueryRow(query, key)
+		row = db.GetInstance().Db.QueryRow(query, key)
 	}
 	config := Configuration{}
 	// Save the resulted query on the User struct

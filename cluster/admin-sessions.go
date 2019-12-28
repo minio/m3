@@ -20,6 +20,8 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/minio/m3/cluster/db"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -106,7 +108,7 @@ func GetAdminSessionDetails(ctx *Context, sessionID *string) (*AdminSession, err
 	var row *sql.Row
 	// if no context is provided, don't use a transaction
 	if ctx == nil {
-		row = GetInstance().Db.QueryRow(queryUser, sessionID)
+		row = db.GetInstance().Db.QueryRow(queryUser, sessionID)
 	} else {
 		tx, err := ctx.MainTx()
 		if err != nil {

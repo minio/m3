@@ -24,6 +24,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/minio/m3/cluster/db"
+
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -93,7 +95,7 @@ func fetchNewTask() (*Task, error) {
 			LIMIT 1
 		FOR UPDATE`
 	// query the reord
-	row := GetInstance().Db.QueryRow(query, NewTaskStatus)
+	row := db.GetInstance().Db.QueryRow(query, NewTaskStatus)
 	task := Task{}
 	// Save the resulted query on the User struct
 	err := row.Scan(&task.ID, &task.Name, &task.Data, &task.Status)
@@ -117,7 +119,7 @@ func markTask(task *Task, newStatus TaskStatus) error {
 				WHERE id=$2`, extraField)
 
 	// Execute Query
-	_, err := GetInstance().Db.Exec(query, newStatus, task.ID)
+	_, err := db.GetInstance().Db.Exec(query, newStatus, task.ID)
 	if err != nil {
 		return err
 	}
@@ -207,7 +209,7 @@ func getTaskByID(id int64) (*Task, error) {
 			WHERE t.id=$1
 			LIMIT 1`
 	// query the reord
-	row := GetInstance().Db.QueryRow(query, id)
+	row := db.GetInstance().Db.QueryRow(query, id)
 	task := Task{}
 	// Save the resulted query on the User struct
 	err := row.Scan(&task.ID, &task.Name, &task.Data, &task.Status)

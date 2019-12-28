@@ -25,6 +25,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/minio/m3/cluster/db"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -124,7 +126,7 @@ func GetValidSession(sessionID string) (*Session, error) {
 	// service corresponding to the logged-in user to make the bucket
 
 	// Prepare DB instance
-	db := GetInstance().Db
+	db := db.GetInstance().Db
 	session := Session{ID: sessionID}
 	// Get tenant name from the DB
 	getTenantShortnameQ := `SELECT s.tenant_id, s.user_id

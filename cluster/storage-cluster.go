@@ -23,6 +23,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/minio/m3/cluster/db"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -61,7 +63,7 @@ func GetStorageClusterByName(ctx *Context, name string) (*StorageCluster, error)
 				storage_clusters sg
 			WHERE sg.name=$1 LIMIT 1`
 
-	row := GetInstance().Db.QueryRow(query, name)
+	row := db.GetInstance().Db.QueryRow(query, name)
 	storageGroup := StorageCluster{}
 	err := row.Scan(&storageGroup.ID, &storageGroup.Name)
 	if err != nil {
@@ -142,7 +144,7 @@ func GetStorageGroupByID(ctx *Context, id *uuid.UUID) (*StorageGroup, error) {
 			     storage_groups sg
 			WHERE sg.id=$1 LIMIT 1;`
 	// non-transactional query as there cannot be a storage group insert along with a read
-	if err := GetInstance().Db.QueryRow(query, id).Scan(&sg.ID, &sg.Name, &sg.Num, &sg.StorageClusterID); err != nil {
+	if err := db.GetInstance().Db.QueryRow(query, id).Scan(&sg.ID, &sg.Name, &sg.Num, &sg.StorageClusterID); err != nil {
 		return nil, err
 	}
 	// get volume counts and host counts
@@ -152,7 +154,7 @@ func GetStorageGroupByID(ctx *Context, id *uuid.UUID) (*StorageGroup, error) {
 			FROM storage_cluster_nodes sgn 
 			WHERE sgn.storage_cluster_id=$1`
 	// non-transactional query as there cannot be a storage group insert along with a read
-	if err := GetInstance().Db.QueryRow(queryNodes, sg.StorageClusterID).Scan(&sg.TotalNodes); err != nil {
+	if err := db.GetInstance().Db.QueryRow(queryNodes, sg.StorageClusterID).Scan(&sg.TotalNodes); err != nil {
 		return nil, err
 	}
 
@@ -165,7 +167,7 @@ func GetStorageGroupByID(ctx *Context, id *uuid.UUID) (*StorageGroup, error) {
 			GROUP BY nv.node_id
 			LIMIT 1) AS ct`
 	// non-transactional query as there cannot be a storage group insert along with a read
-	if err := GetInstance().Db.QueryRow(queryVolumes, sg.StorageClusterID).Scan(&sg.TotalVolumes); err != nil {
+	if err := db.GetInstance().Db.QueryRow(queryVolumes, sg.StorageClusterID).Scan(&sg.TotalVolumes); err != nil {
 		return nil, err
 	}
 
@@ -175,7 +177,7 @@ func GetStorageGroupByID(ctx *Context, id *uuid.UUID) (*StorageGroup, error) {
 			FROM tenants_storage_groups tsg 
 			WHERE tsg.storage_group_id=$1`
 	// non-transactional query as there cannot be a storage group insert along with a read
-	if err := GetInstance().Db.QueryRow(queryTenants, sg.ID).Scan(&sg.TotalTenants); err != nil {
+	if err := db.GetInstance().Db.QueryRow(queryTenants, sg.ID).Scan(&sg.TotalTenants); err != nil {
 		return nil, err
 	}
 
@@ -228,7 +230,7 @@ func SelectSGWithSpace(ctx *Context) chan *StorageGroupResult {
 			OFFSET 
 				floor(random() * (SELECT COUNT(*) FROM storage_groups)) LIMIT 1;`
 		// non-transactional query as there cannot be a storage group insert along with a read
-		if err := GetInstance().Db.QueryRow(query).Scan(&id, &name, &num, &storageClusterID); err != nil {
+		if err := db.GetInstance().Db.QueryRow(query).Scan(&id, &name, &num, &storageClusterID); err != nil {
 			ch <- &StorageGroupResult{Error: err}
 			return
 		}
@@ -240,7 +242,7 @@ func SelectSGWithSpace(ctx *Context) chan *StorageGroupResult {
 			FROM storage_cluster_nodes sgn 
 			WHERE sgn.storage_cluster_id=$1`
 		// non-transactional query as there cannot be a storage group insert along with a read
-		if err := GetInstance().Db.QueryRow(queryNodes, storageClusterID).Scan(&totalNodes); err != nil {
+		if err := db.GetInstance().Db.QueryRow(queryNodes, storageClusterID).Scan(&totalNodes); err != nil {
 			ch <- &StorageGroupResult{Error: err}
 			return
 		}
@@ -255,7 +257,7 @@ func SelectSGWithSpace(ctx *Context) chan *StorageGroupResult {
 			GROUP BY nv.node_id
 			LIMIT 1) AS ct`
 		// non-transactional query as there cannot be a storage group insert along with a read
-		if err := GetInstance().Db.QueryRow(queryVolumes, storageClusterID).Scan(&totalVolumes); err != nil {
+		if err := db.GetInstance().Db.QueryRow(queryVolumes, storageClusterID).Scan(&totalVolumes); err != nil {
 			ch <- &StorageGroupResult{Error: err}
 			return
 		}
@@ -510,7 +512,7 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 			}
 			row = tx.QueryRow(query, tenantShortName)
 		} else {
-			row = GetInstance().Db.QueryRow(query, tenantShortName)
+			row = db.GetInstance().Db.QueryRow(query, tenantShortName)
 		}
 
 		// if we found nothing
@@ -586,7 +588,7 @@ func streamTenantService(maxChanSize int) chan TenantServiceResult {
 				tenants t LEFT JOIN tenants_storage_groups tsg ON t.id = tsg.tenant_id`
 
 		// no context? straight to db
-		rows, err := GetInstance().Db.Query(query)
+		rows, err := db.GetInstance().Db.Query(query)
 		if err != nil {
 			ch <- TenantServiceResult{Error: err}
 			return
@@ -674,7 +676,7 @@ func totalNumberOfTenantInStorageGroup(storageGroupID *uuid.UUID) (int32, error)
 			WHERE tsg.storage_group_id =$1`
 	// non-transactional query as there cannot be a storage group insert along with a read
 	var totalTenants int32
-	if err := GetInstance().Db.QueryRow(queryNodes, storageGroupID).Scan(&totalTenants); err != nil {
+	if err := db.GetInstance().Db.QueryRow(queryNodes, storageGroupID).Scan(&totalTenants); err != nil {
 		return totalTenants, err
 	}
 	return totalTenants, nil
