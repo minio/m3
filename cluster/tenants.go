@@ -46,8 +46,8 @@ type AddTenantResult struct {
 }
 
 type ProvisionTenantTaskData struct {
-	TenantShortName string
-	StorageGroupID  uuid.UUID
+	Tenants        []string
+	StorageGroupID uuid.UUID
 }
 
 const (
@@ -55,51 +55,58 @@ const (
 	TenantAvailable = true
 )
 
-func ProvisionTenant(ctx *Context, shortName string, sg *StorageGroup) error {
-	// register the tenant
-	tenantResult := <-InsertTenant(ctx, shortName, shortName)
-	if tenantResult.Error != nil {
-		log.Println("Error adding the tenant to the db: ", tenantResult.Error)
-		return errors.New("Error adding the tenant to the db")
+func ProvisionTenants(ctx *Context, tenants []string, sg *StorageGroup) error {
+	for _, shortName := range tenants {
+		// register the tenant
+		tenantResult := <-InsertTenant(ctx, shortName, shortName)
+		if tenantResult.Error != nil {
+			log.Println("Error adding the tenant to the db: ", tenantResult.Error)
+			return errors.New("Error adding the tenant to the db")
+		}
+		ctx.Tenant = tenantResult.Tenant
+		log.Println(fmt.Sprintf("Registered as tenant %s\n", tenantResult.Tenant.ID.String()))
+
+		// Create tenant namespace
+		namespaceCh := createTenantNamespace(shortName)
+
+		// provision the tenant schema and run the migrations
+		tenantSchemaCh := ProvisionTenantDB(shortName)
+
+		// Generate the Tenant's Access/Secret key and operator
+		tenantConfig := TenantConfiguration{
+			AccessKey: RandomCharString(16),
+			SecretKey: RandomCharString(32)}
+
+		// Create a store for the tenant's configuration
+		if err := CreateTenantSecrets(tenantResult.Tenant, &tenantConfig); err != nil {
+			log.Println("Error creating tenant's secrets: ", err)
+			return errors.New("Error creating tenant's secrets")
+		}
+
+		// provision the tenant on that cluster
+		sgTenantResult := <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sg)
+		if sgTenantResult.Error != nil {
+			log.Println("Error provisioning tenant into storage group: ", sgTenantResult.Error)
+			return errors.New("Error provisioning tenant into storage group")
+		}
+		// wait for db provisioning
+		if err := <-tenantSchemaCh; err != nil {
+			log.Println("Error creating tenant's db schema: ", err)
+			return errors.New("Error creating tenant's db schema")
+		}
+
+		// wait for the tenant namespace to finish creating
+		if err := <-namespaceCh; err != nil {
+			log.Println("Error creating tenant's namespace: ", err)
+			return errors.New("Error creating tenant's namespace")
+		}
+		log.Printf("Done Provisioning Tenant: `%s`\n", shortName)
 	}
-	ctx.Tenant = tenantResult.Tenant
-	log.Println(fmt.Sprintf("Registered as tenant %s\n", tenantResult.Tenant.ID.String()))
-
-	// Create tenant namespace
-	namespaceCh := createTenantNamespace(shortName)
-
-	// provision the tenant schema and run the migrations
-	tenantSchemaCh := ProvisionTenantDB(shortName)
-
-	// Generate the Tenant's Access/Secret key and operator
-	tenantConfig := TenantConfiguration{
-		AccessKey: RandomCharString(16),
-		SecretKey: RandomCharString(32)}
-
-	// Create a store for the tenant's configuration
-	if err := CreateTenantSecrets(tenantResult.Tenant, &tenantConfig); err != nil {
-		log.Println("Error creating tenant's secrets: ", err)
-		return errors.New("Error creating tenant's secrets")
+	// call for the storage group to refresh
+	err := <-ReDeployStorageGroup(ctx, sg)
+	if err != nil {
+		return err
 	}
-
-	// provision the tenant on that cluster
-	sgTenantResult := <-ProvisionTenantOnStorageGroup(ctx, tenantResult.Tenant, sg)
-	if sgTenantResult.Error != nil {
-		log.Println("Error provisioning tenant into storage group: ", sgTenantResult.Error)
-		return errors.New("Error provisioning tenant into storage group")
-	}
-	// wait for db provisioning
-	if err := <-tenantSchemaCh; err != nil {
-		log.Println("Error creating tenant's db schema: ", err)
-		return errors.New("Error creating tenant's db schema")
-	}
-
-	// wait for the tenant namespace to finish creating
-	if err := <-namespaceCh; err != nil {
-		log.Println("Error creating tenant's namespace: ", err)
-		return errors.New("Error creating tenant's namespace")
-	}
-	log.Println("Done Provisioning Tenant")
 	return nil
 }
 
@@ -178,10 +185,6 @@ func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) err
 			log.Println("Error inviting user by email: ", err.Error())
 			return errors.New("Error inviting user by email")
 		}
-	}
-	// take one, provision one, tolerate failure of this call
-	if err = SchedulePreProvisionTenantInStorageGroup(ctx, sgt.StorageGroup); err != nil {
-		log.Println("Warning:", err)
 	}
 	return err
 }
@@ -405,7 +408,7 @@ func newTenantMinioClient(ctx *Context, tenantShortname string) (*minio.Client, 
 		tenantConf.SecretKey,
 		false)
 	if err != nil {
-		return nil, tagErrorAsMinio(err)
+		return nil, tagErrorAsMinio("minio.New", err)
 	}
 
 	return minioClient, nil
@@ -728,7 +731,7 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 		// The instance the MinIO instance identifies as
 		tenantConfig["MINIO_PUBLIC_IPS"] = sgTenant.ServiceName
 		// Domain under all MinIO instances check for
-		tenantConfig["MINIO_DOMAIN"] = fmt.Sprintf("domain.m3,%s.s3", sgTenant.Tenant.ShortName)
+		tenantConfig["MINIO_DOMAIN"] = "domain.m3"
 		tenantConfig["MINIO_ETCD_ENDPOINTS"] = "http://m3-etcd-cluster-client:2379"
 		tenantConfig["MINIO_ETCD_PATH_PREFIX"] = fmt.Sprintf("%s/", sgTenant.Tenant.ShortName)
 	}
@@ -804,7 +807,7 @@ func ProvisionTenantTask(task *Task) error {
 		return err
 	}
 	// Provision the tenant
-	err = ProvisionTenant(ctx, taskData.TenantShortName, sg)
+	err = ProvisionTenants(ctx, taskData.Tenants, sg)
 	if err != nil {
 		return err
 	}

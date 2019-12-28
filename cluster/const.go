@@ -21,6 +21,9 @@ type key int
 const (
 	Version = `0.1.0`
 	// Environment variables
+	m3SystemNamespace              = "m3"
+	defNS                          = "default"
+	provisioningNamespace          = "provisioning"
 	minioAccessKey                 = "MINIO_ACCESS_KEY"
 	minioSecretKey                 = "MINIO_SECRET_KEY"
 	accessKey                      = "ACCESS_KEY"
@@ -33,6 +36,7 @@ const (
 	minIOImagePullPolicy           = "MINIO_IMAGE_PULL_POLICY"
 	maxLivenessInitialSecondsDelay = "LIVENESS_MAX_INITIAL_SECONDS_DELAY"
 	pubNotReadyAddress             = "PUBLISH_NOT_READY_ADDRESS"
+	maxNumberOfTenantsPerSg        = "MAX_NUM_TENANTS_PER_SG"
 	// constants
 	TokenSignupEmail            = "signup-email"
 	TokenResetPasswordEmail     = "reset-password-email"
@@ -45,7 +49,6 @@ const (
 	SessionIDKey            key = iota
 	WhoAmIKey               key = iota
 	maxReadinessTries           = 120 // This should allow for 4 minutes of attempts
-	maxNumberOfTenantsPerSg     = 16
 
 	// configurations
 	cfgCoreGlobalBuckets = "core.global_buckets"

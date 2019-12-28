@@ -138,6 +138,7 @@ func (s *Singleton) GetTenantDB(tenantName string) *sql.DB {
 		//do something here
 		return db
 	}
+	log.Printf("Connection for `%s` not found, opening new connection.", tenantName)
 	// if we reach this point, there was no connection in cache, connect and return the connection
 	ctx := context.Background()
 	// Get the tenant DB configuration
@@ -172,4 +173,19 @@ func (s *Singleton) AppURL() string {
 // CliCommand returns the command used for the cli
 func (s *Singleton) CliCommand() string {
 	return env.Get("CLI_COMMAND", "m3")
+}
+
+// Close all connectiosn
+func (s *Singleton) Close() error {
+	// close all tenants connections
+	for _, cnx := range s.tenantsCnx {
+		if err := cnx.Close(); err != nil {
+			log.Println(err)
+		}
+	}
+	// close main connections
+	if err := s.Db.Close(); err != nil {
+		return err
+	}
+	return nil
 }

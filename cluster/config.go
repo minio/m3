@@ -41,8 +41,7 @@ func getM3ContainerImage() string {
 }
 
 func getM3ImagePullPolicy() string {
-	//TODO: Change to `IfNotPresent` when we move out of edge
-	return env.Get(m3ImagePullPolicy, "Always")
+	return env.Get(m3ImagePullPolicy, "IfNotPresent")
 }
 
 func getLivenessMaxInitialDelaySeconds() int32 {
@@ -71,4 +70,16 @@ func getMinIOImagePullPolicy() string {
 
 func getDevUseEmptyDir() bool {
 	return strings.ToLower(env.Get(devUseEmptyDir, "false")) == "true"
+}
+
+func getMaxNumberOfTenantsPerSg() int {
+	var maxSeconds int
+	if v := env.Get(maxNumberOfTenantsPerSg, "16"); v != "" {
+		var err error
+		maxSeconds, err = strconv.Atoi(v)
+		if err != nil {
+			return 16
+		}
+	}
+	return maxSeconds
 }
