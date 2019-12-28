@@ -82,19 +82,9 @@ func (ps *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, i
 // TenantPermissionAssign provides the endpoint to assign a permission by id-name to multiple service accounts by
 // id-name as well.
 func (ps *privateServer) TenantServiceAccountAssign(ctx context.Context, in *pb.TenantServiceAccountAssignRequest) (*pb.TenantServiceAccountAssignResponse, error) {
-	// get context
-	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	appCtx, err := getContextIfValidTenant(ctx, in.Tenant)
 	if err != nil {
 		log.Println(err)
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
-	// validate Tenant
-	tenant, err := cluster.GetTenantByDomain(in.Tenant)
-	if err != nil {
-		log.Println(err)
-		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
-	}
-	if err := appCtx.SetTenant(&tenant); err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 

@@ -53,7 +53,7 @@ func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType Buc
 	}
 
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
+	minioClient, err := newTenantMinioClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -111,9 +111,9 @@ func SetBucketAccess(minioClient *minio.Client, bucketName string, accessType Bu
 }
 
 // ChangeBucketAccess changes access type assigned to the given bucket
-func ChangeBucketAccess(tenantShortname, bucketName string, accessType BucketAccess) error {
+func ChangeBucketAccess(ctx *Context, bucketName string, accessType BucketAccess) error {
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
+	minioClient, err := newTenantMinioClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -153,9 +153,9 @@ func GetBucketAccess(minioClient *minio.Client, bucketName string) (BucketAccess
 }
 
 // ListBuckets for the given tenant's short name
-func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
+func ListBuckets(ctx *Context) ([]TenantBucketInfo, error) {
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
+	minioClient, err := newTenantMinioClient(ctx)
 	if err != nil {
 		return []TenantBucketInfo{}, err
 	}
@@ -180,9 +180,9 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 }
 
 // Deletes a bucket in the given tenant's MinIO
-func DeleteBucket(tenantShortname, bucket string) error {
+func DeleteBucket(ctx *Context, bucket string) error {
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
+	minioClient, err := newTenantMinioClient(ctx)
 	if err != nil {
 		return err
 	}

@@ -218,7 +218,7 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 
 		var nginxConfiguration string
 		// check whether global buckets are enabled
-		globalBuckets, err := GetConfig(nil, cfgCoreGlobalBuckets, false)
+		globalBuckets, err := GetConfig(ctx, cfgCoreGlobalBuckets, false)
 		if err != nil {
 			ch <- err
 			return

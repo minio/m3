@@ -83,18 +83,24 @@ func tenantUserList(ctx *cli.Context) error {
 		fmt.Println("You must provide tenant name")
 		return errMissingArguments
 	}
-	//validate tenant
-	tenant, err := cluster.GetTenantByDomain(tenantDomain)
-	if err != nil {
-		return err
-	}
 
 	// create context
-	appCtx, err := cluster.NewCtxWithTenant(&tenant)
+	appCtx, err := cluster.NewEmptyContext()
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
+	//validate tenant
+	tenant, err := cluster.GetTenantByDomainWithCtx(appCtx, tenantDomain)
+	if err != nil {
+		return err
+	}
+	// set the tenant to the context
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		fmt.Println(err)
+		return err
+	}
+
 	// perform the action
 	users, err := cluster.GetUsersForTenant(appCtx, int32(offset), int32(limit))
 	if err != nil {

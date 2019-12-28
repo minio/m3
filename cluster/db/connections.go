@@ -185,3 +185,7 @@ func (s *Singleton) StartMainTx(controlCtx context.Context) (*sql.Tx, error) {
 	}
 	return tx, nil
 }
+
+func (s *Singleton) MainDB() *sql.DB {
+	return s.db
+}

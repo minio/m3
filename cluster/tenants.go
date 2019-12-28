@@ -396,9 +396,9 @@ func MigrateTenantDB(tenantName string) chan error {
 }
 
 // newTenantMinioClient creates a MinIO client for the given tenant
-func newTenantMinioClient(ctx *Context, tenantShortname string) (*minio.Client, error) {
+func newTenantMinioClient(ctx *Context) (*minio.Client, error) {
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortname)
+	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant().ShortName)
 	if sgt.Error != nil {
 		return nil, sgt.Error
 	}
@@ -464,11 +464,6 @@ func GetTenantByDomainWithCtx(ctx *Context, tenantDomain string) (tenant Tenant,
 	return tenant, nil
 }
 
-// GetTenantByID returns a tenant by id
-func GetTenantByID(tenantID *uuid.UUID) (tenant Tenant, err error) {
-	return GetTenantWithCtxByID(nil, tenantID)
-}
-
 // GetTenantWithCtxByID gets the Tenant if it exists on the m3.provisining.tenants table
 // search is done by tenant id
 func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (tenant Tenant, err error) {
@@ -485,10 +480,6 @@ func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (tenant Tenant, err
 		return tenant, err
 	}
 	return tenant, nil
-}
-
-func GetTenantByDomain(tenantDomain string) (tenant Tenant, err error) {
-	return GetTenantByDomainWithCtx(nil, tenantDomain)
 }
 
 // DeleteTenant runs all the logic to remove a tenant from the cluster.
@@ -717,14 +708,14 @@ func StopTenantServers(sgt *StorageGroupTenantResult) error {
 
 // createTenantConfigMap creates a ConfigMap that will hold the tenant environment configuration variables.
 // This is so we don't have to update all the deployments individually just to reconfigure the MinIO instance.
-func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
+func createTenantConfigMap(ctx *Context, sgTenant *StorageGroupTenant) error {
 	tenant := sgTenant.Tenant
 
 	// Configuration to store
 	tenantConfig := make(map[string]string)
 
 	// if global bucket is enabled, configure the etcd
-	globalBuckets, err := GetConfig(nil, cfgCoreGlobalBuckets, false)
+	globalBuckets, err := GetConfig(ctx, cfgCoreGlobalBuckets, false)
 	if err != nil {
 		return err
 	}

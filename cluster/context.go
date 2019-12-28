@@ -213,17 +213,23 @@ func NewTenantContextWithGrpcContext(ctx context.Context) (*Context, error) {
 	// get tenant ID from context
 	tenantIDStr := ctx.Value(TenantIDKey).(string)
 	tenantID, _ := uuid.FromString(tenantIDStr)
+
+	// create a context with the tenant
+	appCtx, err := NewEmptyContext()
+	if err != nil {
+		return nil, err
+	}
 	// get the tenant record
-	tenant, err := GetTenantByID(&tenantID)
+	tenant, err := GetTenantWithCtxByID(appCtx, &tenantID)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.Internal, "internal error").Err()
 	}
-	// create a context with the tenant
-	appCtx, err := NewCtxWithTenant(&tenant)
-	if err != nil {
-		return nil, err
+	// set the tenant on the context
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "internal error").Err()
 	}
+
 	var whoAmI string
 	if ctx.Value(WhoAmIKey) != nil {
 		whoAmI = ctx.Value(WhoAmIKey).(string)

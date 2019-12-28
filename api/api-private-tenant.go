@@ -172,13 +172,14 @@ func progressStruct(progressInt int32, message string) *pb.TenantResponse {
 
 // TenantDisable disables a tenant
 func (ps *privateServer) TenantDisable(ctx context.Context, in *pb.TenantSingleRequest) (*pb.Empty, error) {
-	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	tenantShortName := in.GetShortName()
-	if tenantShortName == "" {
+	tenantDomain := in.GetShortName()
+	if tenantDomain == "" {
 		return nil, status.New(codes.InvalidArgument, "a short name is needed").Err()
+	}
+	appCtx, err := getContextIfValidTenant(ctx, tenantDomain)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
 	defer func() {
@@ -187,15 +188,6 @@ func (ps *privateServer) TenantDisable(ctx context.Context, in *pb.TenantSingleR
 			return
 		}
 	}()
-
-	tenant, err := cluster.GetTenantByDomain(tenantShortName)
-	if err != nil {
-		log.Println(err)
-		return nil, status.New(codes.NotFound, "Tenant not found").Err()
-	}
-	if err := appCtx.SetTenant(&tenant); err != nil {
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
 
 	// Update Tenant's enabled status on DB
 	err = cluster.UpdateTenantEnabledStatus(appCtx, &appCtx.Tenant().ID, false)
@@ -219,13 +211,14 @@ func (ps *privateServer) TenantDisable(ctx context.Context, in *pb.TenantSingleR
 
 // TenantEnable disables a tenant
 func (ps *privateServer) TenantEnable(ctx context.Context, in *pb.TenantSingleRequest) (*pb.Empty, error) {
-	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
-	if err != nil {
-		return nil, err
-	}
 	tenantShortName := in.GetShortName()
 	if tenantShortName == "" {
 		return nil, status.New(codes.InvalidArgument, "a short name is needed").Err()
+	}
+	appCtx, err := getContextIfValidTenant(ctx, tenantShortName)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
 	defer func() {
@@ -234,15 +227,6 @@ func (ps *privateServer) TenantEnable(ctx context.Context, in *pb.TenantSingleRe
 			return
 		}
 	}()
-
-	tenant, err := cluster.GetTenantByDomain(tenantShortName)
-	if err != nil {
-		log.Println(err)
-		return nil, status.New(codes.NotFound, "Tenant not found").Err()
-	}
-	if err := appCtx.SetTenant(&tenant); err != nil {
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
 
 	// Update Tenant's enabled status on DB
 	err = cluster.UpdateTenantEnabledStatus(appCtx, &appCtx.Tenant().ID, true)
@@ -267,7 +251,7 @@ func (ps *privateServer) TenantEnable(ctx context.Context, in *pb.TenantSingleRe
 // TenantDelete deletes all tenant's related data if it is disabled
 func (ps *privateServer) TenantDelete(in *pb.TenantSingleRequest, stream pb.PrivateAPI_TenantDeleteServer) error {
 	ctx := context.Background()
-	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	appCtx, err := getContextIfValidTenant(ctx, tenantDomain)
 	if err != nil {
 		return err
 	}
@@ -285,18 +269,11 @@ func (ps *privateServer) TenantDelete(in *pb.TenantSingleRequest, stream pb.Priv
 		// commit last transction for provisioning
 		err = appCtx.Commit()
 	}()
-
 	if err := stream.Send(progressStruct(5, "validating tenant")); err != nil {
 		return err
 	}
 
-	tenant, err := cluster.GetTenantByDomain(tenantShortNameReq)
-	if err != nil {
-		log.Println(err)
-		return status.New(codes.NotFound, "Tenant not found").Err()
-	}
-
-	sgt := <-cluster.GetTenantStorageGroupByShortName(nil, tenant.ShortName)
+	sgt := <-cluster.GetTenantStorageGroupByShortName(appCtx, appCtx.Tenant().ShortName)
 	if sgt.Error != nil {
 		return status.New(codes.NotFound, "storage group not found for tenant").Err()
 	}
@@ -356,13 +333,13 @@ func (ps *privateServer) TenantDelete(in *pb.TenantSingleRequest, stream pb.Priv
 
 // TenantCostSet set cost multiplier for the tenant used for billing
 func (ps *privateServer) TenantCostSet(ctx context.Context, in *pb.TenantCostRequest) (*pb.Empty, error) {
-	tenantShortName := in.GetShortName()
-	if tenantShortName == "" {
+	tenantDomain := in.GetShortName()
+	if tenantDomain == "" {
 		return nil, status.New(codes.InvalidArgument, "a short name is needed").Err()
 	}
 	tenantCostMultiplier := in.GetCostMultiplier()
 
-	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	appCtx, err := getContextIfValidTenant(ctx, tenantDomain)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
@@ -374,15 +351,6 @@ func (ps *privateServer) TenantCostSet(ctx context.Context, in *pb.TenantCostReq
 			return
 		}
 	}()
-
-	tenant, err := cluster.GetTenantByDomain(tenantShortName)
-	if err != nil {
-		log.Println(err)
-		return nil, status.New(codes.NotFound, "Tenant not found").Err()
-	}
-	if err := appCtx.SetTenant(&tenant); err != nil {
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
 
 	err = cluster.UpdateTenantCost(appCtx, &appCtx.Tenant().ID, tenantCostMultiplier)
 	if err != nil {

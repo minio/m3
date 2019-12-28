@@ -318,7 +318,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 	}
 
 	// Get the mailing template for inviting users
-	body, err := GetTemplate(emailTemplate, templateData)
+	body, err := GetTemplate(ctx, emailTemplate, templateData)
 	if err != nil {
 		return fmt.Errorf("template: %w", err)
 	}

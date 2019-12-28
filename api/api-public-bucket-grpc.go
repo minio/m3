@@ -91,7 +91,7 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 	// TODO: Update List bucket to use context so the tenant is read automatically
 	// List buckets in the tenant's MinIO
 	var bucketInfos []cluster.TenantBucketInfo
-	bucketInfos, err = cluster.ListBuckets(appCtx.Tenant().ShortName)
+	bucketInfos, err = cluster.ListBuckets(appCtx)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.Internal, "Failed to list buckets").Err()
@@ -122,13 +122,14 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 }
 
 func (s *server) ChangeBucketAccessControl(ctx context.Context, in *pb.AccessControlRequest) (*pb.Empty, error) {
-	// get tenant short name from context
-	tenantShortName := ctx.Value(cluster.TenantShortNameKey).(string)
-	// TODO: Update to use context
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	bucket := in.GetName()
 	accessType := in.GetAccess()
-	if err := cluster.ChangeBucketAccess(tenantShortName, bucket, getBucketAccess(accessType)); err != nil {
+	if err := cluster.ChangeBucketAccess(appCtx, bucket, getBucketAccess(accessType)); err != nil {
 		return nil, status.New(codes.Internal, "Failed to set bucket access").Err()
 	}
 	return &pb.Empty{}, nil
@@ -137,11 +138,13 @@ func (s *server) ChangeBucketAccessControl(ctx context.Context, in *pb.AccessCon
 // DeleteBucket deletes bucket in the tenant's MinIO
 // N B sessionId is expected to be present in the grpc headers
 func (s *server) DeleteBucket(ctx context.Context, in *pb.DeleteBucketRequest) (*pb.Bucket, error) {
-	// get tenant short name from context
-	tenantShortName := ctx.Value(cluster.TenantShortNameKey).(string)
-	// TODO: Update to use context
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	bucket := in.GetName()
-	err := cluster.DeleteBucket(tenantShortName, bucket)
+	err = cluster.DeleteBucket(appCtx, bucket)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}

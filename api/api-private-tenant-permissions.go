@@ -45,16 +45,9 @@ func (ps *privateServer) TenantPermissionAdd(ctx context.Context, in *pb.TenantP
 		return nil, err
 	}
 
-	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	appCtx, err := getContextIfValidTenant(ctx, in.Tenant)
 	if err != nil {
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
-	// validate Tenant
-	tenant, err := cluster.GetTenantByDomain(in.Tenant)
-	if err != nil {
-		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
-	}
-	if err := appCtx.SetTenant(&tenant); err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
@@ -70,18 +63,9 @@ func (ps *privateServer) TenantPermissionAdd(ctx context.Context, in *pb.TenantP
 }
 
 func (ps *privateServer) TenantPermissionList(ctx context.Context, in *pb.TenantPermissionListRequest) (*pb.TenantPermissionListResponse, error) {
-	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	appCtx, err := getContextIfValidTenant(ctx, in.Tenant)
 	if err != nil {
 		log.Println(err)
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
-	// validate Tenant
-	tenant, err := cluster.GetTenantByDomain(in.Tenant)
-	if err != nil {
-		log.Println(err)
-		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
-	}
-	if err := appCtx.SetTenant(&tenant); err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	// perform actions
@@ -125,19 +109,9 @@ func (ps *privateServer) TenantPermissionList(ctx context.Context, in *pb.Tenant
 // TenantPermissionAssign provides the endpoint to assign a permission by id-name to multiple service accounts by
 // id-name as well.
 func (ps *privateServer) TenantPermissionAssign(ctx context.Context, in *pb.TenantPermissionAssignRequest) (*pb.TenantPermissionAssignResponse, error) {
-	// get context
-	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	appCtx, err := getContextIfValidTenant(ctx, in.Tenant)
 	if err != nil {
 		log.Println(err)
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
-	// validate Tenant
-	tenant, err := cluster.GetTenantByDomain(in.Tenant)
-	if err != nil {
-		log.Println(err)
-		return nil, status.New(codes.InvalidArgument, "Invalid tenant name").Err()
-	}
-	if err := appCtx.SetTenant(&tenant); err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 

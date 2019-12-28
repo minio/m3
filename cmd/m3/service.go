@@ -51,7 +51,13 @@ func startAPIServiceCmd(ctx *cli.Context) error {
 	metricsCh := cluster.RecurrentTenantMetricsCalculation()
 
 	go func() {
-		cluster.WatcEtcdBucketCreation()
+		appCtx, err := cluster.NewEmptyContext()
+		if err != nil {
+			log.Println("error starting etcd watch", err)
+			return
+		}
+
+		cluster.WatcEtcdBucketCreation(appCtx)
 	}()
 
 	select {

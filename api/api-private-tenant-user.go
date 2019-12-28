@@ -48,17 +48,9 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 		user.Password = in.Password
 	}
 
-	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	appCtx, err := getContextIfValidTenant(ctx, in.Tenant)
 	if err != nil {
 		log.Println(err)
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
-	tenant, err := cluster.GetTenantByDomain(in.Tenant)
-	if err != nil {
-		log.Println(err)
-		return nil, status.New(codes.NotFound, "Tenant not found").Err()
-	}
-	if err := appCtx.SetTenant(&tenant); err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	// perform the action
@@ -98,7 +90,7 @@ func (ps *privateServer) TenantUserDelete(ctx context.Context, in *pb.TenantUser
 		return nil, status.New(codes.InvalidArgument, "Tenant short name is needed").Err()
 	}
 
-	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	appCtx, err := getContextIfValidTenant(ctx, in.Tenant)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
@@ -112,14 +104,6 @@ func (ps *privateServer) TenantUserDelete(ctx context.Context, in *pb.TenantUser
 		err = appCtx.Commit()
 	}()
 
-	tenant, err := cluster.GetTenantByDomain(tenantReq)
-	if err != nil {
-		log.Println(err)
-		return nil, status.New(codes.NotFound, "Tenant not found").Err()
-	}
-	if err := appCtx.SetTenant(&tenant); err != nil {
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
 	user, err := cluster.GetUserByEmail(appCtx, in.Email)
 	if err != nil {
 		log.Println(err)
@@ -142,16 +126,11 @@ func (ps *privateServer) TenantUserForgotPassword(ctx context.Context, in *pb.Te
 	if in.Email == "" {
 		return nil, status.New(codes.InvalidArgument, "User email is needed").Err()
 	}
-	// validate tenant
-	tenant, err := cluster.GetTenantByDomain(in.Tenant)
+
+	appCtx, err := getContextIfValidTenant(ctx, in.Tenant)
 	if err != nil {
 		log.Println(err)
-		return nil, status.New(codes.InvalidArgument, "Invalid tenant").Err()
-	}
-	// start context
-	appCtx, err := cluster.NewCtxWithTenant(&tenant)
-	if err != nil {
-		return nil, err
+		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
 	user, err := cluster.GetUserByEmail(appCtx, in.Email)

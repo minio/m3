@@ -49,7 +49,7 @@ func (s *server) SetPassword(ctx context.Context, in *pb.SetPasswordRequest) (*p
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
-	tenant, err := cluster.GetTenantByID(&parsedJwtToken.TenantID)
+	tenant, err := cluster.GetTenantWithCtxByID(appCtx, &parsedJwtToken.TenantID)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.Unauthenticated, "invalid URL Token").Err()
@@ -107,6 +107,15 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteReques
 		return nil, err
 	}
 
+	tenant, err := cluster.GetTenantWithCtxByID(appCtx, &parsedJwtToken.TenantID)
+	if err != nil {
+		return nil, status.New(codes.Unauthenticated, "invalid token").Err()
+	}
+	// set the tenant to the context
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
 	urlToken, err := cluster.GetTenantTokenDetails(appCtx, &parsedJwtToken.Token)
 	if err != nil {
 		log.Println("error getting tenant token details:", err)
@@ -136,8 +145,15 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	tenantName := in.GetCompany()
 	email := in.GetEmail()
 
+	// start app context
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "internal Error").Err()
+	}
+
 	// Search for the tenant on the database
-	tenant, err := cluster.GetTenantByDomain(tenantName)
+	tenant, err := cluster.GetTenantByDomainWithCtx(appCtx, tenantName)
 	if err != nil {
 		return nil, status.New(codes.InvalidArgument, "tenant not valid").Err()
 	}
@@ -146,12 +162,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 		log.Printf("Attempted login for disabled tenant `%s` by `%s`", tenant.ShortName, in.Email)
 		return nil, status.New(codes.Unauthenticated, "user account disabled, contact support").Err()
 	}
-	// start app context
-	appCtx, err := cluster.NewEmptyContext()
-	if err != nil {
-		log.Println(err)
-		return nil, status.New(codes.Internal, "internal Error").Err()
-	}
+
 	if err := appCtx.SetTenant(&tenant); err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}

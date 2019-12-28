@@ -130,14 +130,14 @@ func SendMail(toName, toEmail, subject, body string) error {
 }
 
 // GetTemplate gets a template from the templates folder and applies the template date
-func GetTemplate(templateName string, data interface{}) (*string, error) {
+func GetTemplate(ctx *Context, templateName string, data interface{}) (*string, error) {
 	// validate that the template is only alpha numerical stuff
 	var re = regexp.MustCompile(`^[a-z0-9-]{2,}$`)
 	if !re.MatchString(templateName) {
 		return nil, errors.New("invalid template name")
 	}
 	// try to load the template from the db
-	dbTemplate, err := getTemplateFromDB(nil, templateName)
+	dbTemplate, err := getTemplateFromDB(ctx, templateName)
 	if err != nil {
 		// ignore no results error
 		if !strings.Contains(err.Error(), "no rows in result set") {

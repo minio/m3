@@ -269,8 +269,8 @@ func getEtcdCRDDeployment(clusterName string) *unstructured.Unstructured {
 }
 
 // WatcEtcdBucketCreation watches a key prefix on etcd for new buckets being created
-func WatcEtcdBucketCreation() {
-	globalBuckets, err := GetConfig(nil, cfgCoreGlobalBuckets, false)
+func WatcEtcdBucketCreation(ctx *Context) {
+	globalBuckets, err := GetConfig(ctx, cfgCoreGlobalBuckets, false)
 	if err != nil {
 		return
 	}
@@ -370,7 +370,7 @@ func processMessage(ctx *Context, event *clientv3.Event) error {
 		if err != nil {
 			return err
 		}
-		tenant, err := GetTenantWithCtxByServiceName(nil, keyParts.TenantShortName)
+		tenant, err := GetTenantWithCtxByServiceName(ctx, keyParts.TenantShortName)
 		if err != nil {
 			return err
 		}
@@ -386,7 +386,7 @@ func processMessage(ctx *Context, event *clientv3.Event) error {
 			return err
 		}
 
-		tenant, err := GetTenantWithCtxByServiceName(nil, keyParts.TenantShortName)
+		tenant, err := GetTenantWithCtxByServiceName(ctx, keyParts.TenantShortName)
 		if err != nil {
 			return err
 		}

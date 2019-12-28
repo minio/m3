@@ -71,16 +71,21 @@ func signup(ctx *cli.Context) error {
 		return err
 	}
 
+	appCtx, err := cluster.NewEmptyContext()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
 	// validate tenant
-	tenant, err := cluster.GetTenantByID(&parsedJwtToken.TenantID)
+	tenant, err := cluster.GetTenantWithCtxByID(appCtx, &parsedJwtToken.TenantID)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-
-	appCtx, err := cluster.NewCtxWithTenant(&tenant)
-	if err != nil {
-		fmt.Println(err)
+	// set the tenant to the context
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		log.Println(err)
 		return err
 	}
 

@@ -18,37 +18,27 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"log"
 
+	"github.com/minio/m3/cluster"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/minio/m3/cluster"
-
-	pb "github.com/minio/m3/api/stubs"
 )
 
-// TenantBucketAdd rpc to add a new bucket inside a tenant
-func (ps *privateServer) TenantBucketAdd(ctx context.Context, in *pb.TenantBucketAddRequest) (*pb.TenantBucketAddResponse, error) {
-	if in.Tenant == "" {
-		return nil, status.New(codes.InvalidArgument, "You must provide tenant name").Err()
-	}
-
-	if in.BucketName == "" {
-		return nil, status.New(codes.InvalidArgument, "A bucket name is needed").Err()
-	}
-
-	appCtx, err := getContextIfValidTenant(ctx, in.Tenant)
+func getContextIfValidTenant(grpcCtx context.Context, tenantDomain string) (*cluster.Context, error) {
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(grpcCtx)
 	if err != nil {
 		log.Println(err)
-		return nil, status.New(codes.Internal, "Internal error").Err()
+		return nil, status.New(codes.Internal, "Internal Error").Err()
 	}
-
-	err = cluster.MakeBucket(appCtx, tenant.ShortName, in.BucketName, cluster.BucketPrivate)
+	// validate tenant
+	tenant, err := cluster.GetTenantByDomainWithCtx(appCtx, tenantDomain)
 	if err != nil {
-		fmt.Println("Error creating bucket:", err.Error())
-		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
+		log.Println(err)
+		return nil, err
 	}
-	return &pb.TenantBucketAddResponse{}, nil
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		return nil, status.New(codes.Internal, "Internal Error").Err()
+	}
+	return appCtx, nil
 }

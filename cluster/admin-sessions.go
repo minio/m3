@@ -17,8 +17,9 @@
 package cluster
 
 import (
-	"errors"
 	"time"
+
+	"github.com/minio/m3/cluster/db"
 
 	uuid "github.com/satori/go.uuid"
 )
@@ -88,11 +89,7 @@ func UpdateAdminSessionStatus(ctx *Context, sessionID string, status string) err
 }
 
 // GetAdminTokenDetails get the details for the provided AdminToken
-func GetAdminSessionDetails(ctx *Context, sessionID *string) (*AdminSession, error) {
-	// if no context is provided, don't use a transaction
-	if ctx == nil {
-		return nil, errors.New("no context provided")
-	}
+func GetAdminSessionDetails(sessionID *string) (*AdminSession, error) {
 	var session AdminSession
 	// Get an individual session
 	queryUser := `
@@ -103,7 +100,7 @@ func GetAdminSessionDetails(ctx *Context, sessionID *string) (*AdminSession, err
 		LEFT JOIN admins a ON s.admin_id = a.id
 		WHERE s.id=$1 AND s.status='valid' AND s.expires_at > NOW() LIMIT 1`
 
-	row := ctx.MainTx().QueryRow(queryUser, sessionID)
+	row := db.GetInstance().MainDB().QueryRow(queryUser, sessionID)
 
 	// Save the resulted query on the AdminToken struct
 	err := row.Scan(&session.ID, &session.AdminID, &session.WhoAmI)

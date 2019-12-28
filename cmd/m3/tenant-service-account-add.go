@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/minio/cli"
 	"github.com/minio/m3/cluster"
@@ -78,16 +79,23 @@ func tenantServiceAccountAdd(ctx *cli.Context) error {
 	if description != "" {
 		desc = &description
 	}
+
+	// create context
+	appCtx, err := cluster.NewEmptyContext()
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
 	//validate tenant
-	tenant, err := cluster.GetTenantByDomain(tenantDomain)
+	tenant, err := cluster.GetTenantByDomainWithCtx(appCtx, tenantDomain)
 	if err != nil {
 		return err
 	}
 
-	// create context
-	appCtx, err := cluster.NewCtxWithTenant(&tenant)
-	if err != nil {
-		fmt.Println(err)
+	// set the tenant to the context
+	if err := appCtx.SetTenant(&tenant); err != nil {
+		log.Println(err)
 		return err
 	}
 

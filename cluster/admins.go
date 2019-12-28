@@ -73,7 +73,7 @@ func AddAdminAction(ctx *Context, name string, adminEmail string) (*Admin, error
 		CliCommand: getCliCommand(),
 	}
 	// Get the mailing template for inviting users
-	body, err := GetTemplate("new-admin", templateData)
+	body, err := GetTemplate(ctx, "new-admin", templateData)
 	if err != nil {
 		return nil, err
 	}
