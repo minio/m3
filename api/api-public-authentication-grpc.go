@@ -127,7 +127,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 	email := in.GetEmail()
 
 	// Search for the tenant on the database
-	tenant, err := cluster.GetTenant(tenantName)
+	tenant, err := cluster.GetTenantByDomain(tenantName)
 	if err != nil {
 		return nil, status.New(codes.InvalidArgument, "tenant not valid").Err()
 	}

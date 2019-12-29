@@ -16,7 +16,13 @@
 
 package cluster
 
-import "os"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/minio/minio/pkg/env"
+)
 
 // hostConfig configuration of a host.
 type hostConfigV9 struct {
@@ -28,9 +34,76 @@ type hostConfigV9 struct {
 }
 
 func getS3Domain() string {
-	appDomain := "s3.localhost"
-	if os.Getenv(s3Domain) != "" {
-		appDomain = os.Getenv(s3Domain)
+	return env.Get(s3Domain, "s3.localhost")
+}
+
+func getM3ContainerImage() string {
+	return env.Get(m3Image, "minio/m3:edge")
+}
+
+func getKesContainerImage() string {
+	return env.Get(kesImage, "minio/kes:latest")
+}
+
+func getM3ImagePullPolicy() string {
+	return env.Get(m3ImagePullPolicy, "IfNotPresent")
+}
+
+func getLivenessMaxInitialDelaySeconds() int32 {
+	var maxSeconds int32
+	if v := env.Get(maxLivenessInitialSecondsDelay, "120"); v != "" {
+		maxSecondsInt, err := strconv.Atoi(v)
+		if err != nil {
+			return 120
+		}
+		maxSeconds = int32(maxSecondsInt)
 	}
-	return appDomain
+	return maxSeconds
+}
+
+func getPublishNotReadyAddress() bool {
+	return strings.ToLower(env.Get(pubNotReadyAddress, "false")) == "true"
+}
+
+func getMinIOImage() string {
+	return env.Get(minIOImage, "minio/minio:RELEASE.2019-12-24T23-04-45Z")
+}
+
+func getMinIOImagePullPolicy() string {
+	return env.Get(minIOImagePullPolicy, "IfNotPresent")
+}
+
+func getKmsAddress() string {
+	return env.Get(kmsAddress, "")
+}
+
+func getKmsToken() string {
+	return env.Get(kmsToken, "")
+}
+
+func getDevUseEmptyDir() bool {
+	return strings.ToLower(env.Get(devUseEmptyDir, "false")) == "true"
+}
+
+func getMaxNumberOfTenantsPerSg() int {
+	var maxSeconds int
+	if v := env.Get(maxNumberOfTenantsPerSg, "16"); v != "" {
+		var err error
+		maxSeconds, err = strconv.Atoi(v)
+		if err != nil {
+			return 16
+		}
+	}
+	return maxSeconds
+}
+
+// AppURL returns the main application url
+func getAppURL() string {
+	appDomain := getS3Domain()
+	return env.Get("APP_URL", fmt.Sprintf("http://%s", appDomain))
+}
+
+// CliCommand returns the command used for the cli
+func getCliCommand() string {
+	return env.Get("CLI_COMMAND", "m3")
 }

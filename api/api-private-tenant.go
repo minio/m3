@@ -18,6 +18,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"google.golang.org/grpc/codes"
@@ -50,8 +51,8 @@ func (ps *privateServer) TenantAdd(ctx context.Context, in *pb.TenantAddRequest)
 	return &pb.TenantAddResponse{}, nil
 }
 
-// TenantDelete deletes all tenant's related data
-func (ps *privateServer) TenantDelete(ctx context.Context, in *pb.TenantDeleteRequest) (*pb.Empty, error) {
+// TenantDisable disables a tenant
+func (ps *privateServer) TenantDisable(ctx context.Context, in *pb.TenantSingleRequest) (*pb.Empty, error) {
 	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, err
@@ -68,7 +69,103 @@ func (ps *privateServer) TenantDelete(ctx context.Context, in *pb.TenantDeleteRe
 		}
 	}()
 
-	sgt := <-cluster.GetTenantStorageGroupByShortName(nil, tenantShortName)
+	tenant, err := cluster.GetTenantByDomain(tenantShortName)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.NotFound, "Tenant not found").Err()
+	}
+	appCtx.Tenant = &tenant
+
+	// Update Tenant's enabled status on DB
+	err = cluster.UpdateTenantEnabledStatus(appCtx, &appCtx.Tenant.ID, false)
+	if err != nil {
+		log.Println("error setting tenant's enabled column:", err)
+		return nil, status.New(codes.Internal, "error setting tenant's enabled status").Err()
+	}
+	// if we reach here, all is good, commit
+	if err := appCtx.Commit(); err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// Update nginx configurations without the disabled tenants.
+	err = <-cluster.UpdateNginxConfiguration(appCtx)
+	if err != nil {
+		fmt.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	return &pb.Empty{}, nil
+}
+
+// TenantEnable disables a tenant
+func (ps *privateServer) TenantEnable(ctx context.Context, in *pb.TenantSingleRequest) (*pb.Empty, error) {
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	tenantShortName := in.GetShortName()
+	if tenantShortName == "" {
+		return nil, status.New(codes.InvalidArgument, "a short name is needed").Err()
+	}
+
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+	}()
+
+	tenant, err := cluster.GetTenantByDomain(tenantShortName)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.NotFound, "Tenant not found").Err()
+	}
+	appCtx.Tenant = &tenant
+
+	// Update Tenant's enabled status on DB
+	err = cluster.UpdateTenantEnabledStatus(appCtx, &appCtx.Tenant.ID, true)
+	if err != nil {
+		log.Println("error setting tenant's enabled column:", err)
+		return nil, status.New(codes.Internal, "error setting tenant's enabled status").Err()
+	}
+	// if we reach here, all is good, commit
+	if err := appCtx.Commit(); err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// Update nginx configurations without the disabled tenants.
+	err = <-cluster.UpdateNginxConfiguration(appCtx)
+	if err != nil {
+		fmt.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	return &pb.Empty{}, nil
+}
+
+// TenantDelete deletes all tenant's related data if it is disabled
+func (ps *privateServer) TenantDelete(ctx context.Context, in *pb.TenantSingleRequest) (*pb.Empty, error) {
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	tenantShortName := in.GetShortName()
+	if tenantShortName == "" {
+		return nil, status.New(codes.InvalidArgument, "a short name is needed").Err()
+	}
+
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+	}()
+
+	tenant, err := cluster.GetTenantByDomain(tenantShortName)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.NotFound, "Tenant not found").Err()
+	}
+
+	sgt := <-cluster.GetTenantStorageGroupByShortName(nil, tenant.ShortName)
 	if sgt.Error != nil {
 		return nil, status.New(codes.NotFound, "storage group not found for tenant").Err()
 	}
@@ -85,6 +182,48 @@ func (ps *privateServer) TenantDelete(ctx context.Context, in *pb.TenantDeleteRe
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
+	// if we reach here, all is good, commit
+	if err := appCtx.Commit(); err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
+	return &pb.Empty{}, nil
+}
+
+// TenantCostSet set cost multiplier for the tenant used for billing
+func (ps *privateServer) TenantCostSet(ctx context.Context, in *pb.TenantCostRequest) (*pb.Empty, error) {
+	tenantShortName := in.GetShortName()
+	if tenantShortName == "" {
+		return nil, status.New(codes.InvalidArgument, "a short name is needed").Err()
+	}
+	tenantCostMultiplier := in.GetCostMultiplier()
+
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
+	defer func() {
+		if err != nil {
+			appCtx.Rollback()
+			return
+		}
+	}()
+
+	tenant, err := cluster.GetTenantByDomain(tenantShortName)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.NotFound, "Tenant not found").Err()
+	}
+	appCtx.Tenant = &tenant
+
+	err = cluster.UpdateTenantCost(appCtx, &appCtx.Tenant.ID, tenantCostMultiplier)
+	if err != nil {
+		log.Println("error setting tenant's cost multiplier:", err)
+		return nil, status.New(codes.Internal, "error setting tenant's cost multiplier").Err()
+	}
 	// if we reach here, all is good, commit
 	if err := appCtx.Commit(); err != nil {
 		log.Println(err)

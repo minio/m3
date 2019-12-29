@@ -22,6 +22,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/minio/m3/cluster/db"
+
 	"github.com/minio/minio-go/v6"
 	"github.com/minio/minio/pkg/env"
 	"github.com/minio/minio/pkg/madmin"
@@ -37,7 +39,7 @@ func addMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, acce
 	err := adminClient.AddUser(accessKey, secretKey)
 	if err != nil {
 		log.Println(err)
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("AddUser", err)
 	}
 	return nil
 }
@@ -51,7 +53,7 @@ func addMinioCannedPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfi
 	// Add the canned policy
 	err := adminClient.SetPolicy(policy, accessKey, false)
 	if err != nil {
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("SetPolicy", err)
 	}
 	return nil
 }
@@ -67,12 +69,12 @@ func addMinioIAMPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfigur
 	// Add the canned policy
 	err := adminClient.AddCannedPolicy(policyName, policy)
 	if err != nil {
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("AddCannedPolicy", err)
 	}
 	// Add the canned policy
 	err = adminClient.SetPolicy(policyName, userAccessKey, false)
 	if err != nil {
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("SetPolicy", err)
 	}
 	return nil
 }
@@ -94,7 +96,7 @@ func setMinioUserStatus(sgt *StorageGroupTenant, tenantConf *TenantConfiguration
 	// Set Minio User's status
 	err := adminClient.SetUserStatus(userAccessKey, status)
 	if err != nil {
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("SetUserStatus", err)
 	}
 	return nil
 }
@@ -109,7 +111,7 @@ func removeMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, u
 	// Remove MinIO's user
 	err := adminClient.RemoveUser(userAccessKey)
 	if err != nil {
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("RemoveUser", err)
 	}
 	return nil
 }
@@ -124,12 +126,12 @@ func setMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *Ten
 
 	err := adminClient.SetConfigKV(getPostgresNotificationMinioConfigKV())
 	if err != nil {
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("SetConfigKV", err)
 	}
 	// Restart minios after setting configuration
 	err = adminClient.ServiceRestart()
 	if err != nil {
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("ServiceRestart", err)
 	}
 	return nil
 }
@@ -142,7 +144,7 @@ func stopMinioTenantServers(sgt *StorageGroupTenant, tenantConf *TenantConfigura
 	// Restart minios after setting configuration
 	err := adminClient.ServiceStop()
 	if err != nil {
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("ServiceStop", err)
 	}
 	return nil
 }
@@ -150,7 +152,7 @@ func stopMinioTenantServers(sgt *StorageGroupTenant, tenantConf *TenantConfigura
 // getPostgresNotificationMinioConfigKV creates minio postgres notification configuration
 func getPostgresNotificationMinioConfigKV() (config string) {
 	// Get the Database configuration
-	dbConfg := GetM3DbConfig()
+	dbConfg := db.GetM3DbConfig()
 	// Build the database URL connection
 	dbConfigSSLMode := "disable"
 	if dbConfg.Ssl {
@@ -184,14 +186,14 @@ func addMinioBucketNotification(minioClient *minio.Client, bucketName, region st
 	defer cancel()
 	err := minioClient.SetBucketNotificationWithContext(timeoutCtx, bucketName, bucketNotification)
 	if err != nil {
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("SetBucketNotificationWithContext", err)
 	}
 	return nil
 }
 
 // tagErrorAsMinio takes an error and tags it as a MinIO error
-func tagErrorAsMinio(err error) error {
-	return fmt.Errorf("MinIO: %s", err.Error())
+func tagErrorAsMinio(what string, err error) error {
+	return fmt.Errorf("MinIO: `%s`, %s", what, err.Error())
 }
 
 // minioIsReady determines whether the MinIO for a tenant is ready or not
@@ -206,7 +208,7 @@ func minioIsReady(ctx *Context) (bool, error) {
 	// Check if it exist, we expect it to say no, or fail if MinIO is not ready
 	_, err = minioClient.BucketExists(randBucket)
 	if err != nil {
-		return false, tagErrorAsMinio(err)
+		return false, tagErrorAsMinio("BucketExists", err)
 	}
 
 	return true, nil

@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/minio/m3/cluster/db"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -66,7 +68,7 @@ func GetAdminTokenDetails(ctx *Context, adminToken *uuid.UUID) (*AdminToken, err
 	var row *sql.Row
 	// if no context is provided, don't use a transaction
 	if ctx == nil {
-		row = GetInstance().Db.QueryRow(queryUser, adminToken)
+		row = db.GetInstance().Db.QueryRow(queryUser, adminToken)
 	} else {
 		tx, err := ctx.MainTx()
 		if err != nil {

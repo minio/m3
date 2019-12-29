@@ -29,22 +29,26 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/minio/m3/cluster/db"
+
+	"github.com/minio/minio/pkg/env"
 )
 
 // SendMail sends an email to `toName <toEmail>` with the provided subject and body.
-// This function depends on `MAIL ACCOUNT`, `MAIL_SERVER` and `MAIL_PASSWORD` environment variables being set.
+// This function depends on `MAIL_ACCOUNT`, `MAIL_SERVER` and `MAIL_PASSWORD` environment variables being set.
 func SendMail(toName, toEmail, subject, body string) error {
 	// Sender data.
-	account := os.Getenv("MAIL_ACCOUNT")
+	account := env.Get("MAIL_ACCOUNT", "")
 	if account == "" {
 		return errors.New("No mailing account configured")
 	}
 	// Connect to the SMTP Server
-	servername := os.Getenv("MAIL_SERVER")
+	servername := env.Get("MAIL_SERVER", "")
 	if servername == "" {
 		return errors.New("mail server is not set")
 	}
-	password := os.Getenv("MAIL_PASSWORD")
+	password := env.Get("MAIL_PASSWORD", "")
 	from := mail.Address{Name: "mkube team", Address: account}
 	to := mail.Address{Name: toName, Address: toEmail}
 
@@ -189,7 +193,7 @@ func getTemplateFromDB(ctx *Context, templateName string) (*string, error) {
 		row = tx.QueryRow(query, templateName)
 	} else {
 		// no context? straight to db
-		row = GetInstance().Db.QueryRow(query, templateName)
+		row = db.GetInstance().Db.QueryRow(query, templateName)
 	}
 
 	// Save the resulted query on the User struct

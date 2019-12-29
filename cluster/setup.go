@@ -20,10 +20,11 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/minio/m3/cluster/db"
 
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
@@ -31,6 +32,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/minio/minio/pkg/env"
+
 	// the postgres driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 
@@ -39,11 +42,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-const (
-	m3SystemNamespace = "m3"
-	defNS             = "default"
 )
 
 // Setups m3 on the kubernetes deployment that we are installed to
@@ -56,7 +54,8 @@ func SetupM3() error {
 
 	// setup m3 namespace on k8s
 	log.Println("Setting up m3 namespace")
-	waitNsCh := setupM3Namespace(clientset)
+	waitNsM3Ch := setupNameSpace(clientset, m3SystemNamespace)
+	waitNsProvisioninCh := setupNameSpace(clientset, provisioningNamespace)
 
 	//setup etcd cluster
 	waitEtcdCh := SetupEtcCluster()
@@ -65,9 +64,11 @@ func SetupM3() error {
 	waitPrometheusCh := SetupPrometheusCluster()
 
 	// setup nginx router
-	log.Println("setting up nginx configmap")
+	log.Println("setting up nginx configmap and service account")
 	waitCh := SetupNginxConfigMap(clientset)
+	nginxSACh := setupNginxServiceAccount()
 	<-waitCh
+	<-nginxSACh
 	//// Setup Jwt Secret
 	log.Println("Setting up jwt secret")
 	waitJwtCh := SetupJwtSecrets(clientset)
@@ -79,7 +80,7 @@ func SetupM3() error {
 	waitNginxResolverCh := DeployNginxResolver()
 
 	// Wait for the m3 NS to install postgres
-	<-waitNsCh
+	<-waitNsM3Ch
 	// setup postgres service
 	log.Println("Setting up postgres service")
 	waitPgSvcCh := setupPostgresService(clientset)
@@ -127,11 +128,11 @@ func SetupM3() error {
 	ctx := context.Background()
 
 	// Get the m3 Database configuration
-	config := GetM3DbConfig()
+	config := db.GetM3DbConfig()
 
 	for {
 		// try to connect
-		cnxResult := <-ConnectToDb(ctx, config)
+		cnxResult := <-db.ConnectToDb(ctx, config)
 		if cnxResult.Error != nil {
 			log.Println(cnxResult.Error)
 			return err
@@ -158,22 +159,20 @@ func SetupM3() error {
 	err = SetupDBAction()
 	if err != nil {
 		log.Println(err)
+		return err
 	}
 
 	// Check wether we are being setup as global bucket, or bucket namespace per tenant
-	if os.Getenv("SETUP_USE_GLOBAL_BUCKETS") == "true" {
-		err := SetConfigWithLock(nil, cfgCoreGlobalBuckets, "true", "bool", true)
-		if err != nil {
-			log.Println("Could not store global bucket configuration.", err)
-		}
-	} else {
-		err := SetConfigWithLock(nil, cfgCoreGlobalBuckets, "false", "bool", true)
-		if err != nil {
-			log.Println("Could not store global bucket configuration.", err)
-		}
+	useGlobalBuckets := env.Get("SETUP_USE_GLOBAL_BUCKETS", "false")
+	if err = SetConfigWithLock(nil, cfgCoreGlobalBuckets, useGlobalBuckets, "bool", true); err != nil {
+		log.Println("Could not store global bucket configuration.", err)
+		return err
 	}
+
 	// wait for all other servicess
+	log.Println("Waiting on JWT")
 	<-waitJwtCh
+	log.Println("Waiting on etcd cluster")
 	err = <-waitEtcdCh
 	if err != nil {
 		log.Println(err)
@@ -186,11 +185,15 @@ func SetupM3() error {
 	}
 
 	// wait on nginx resolver and check if there were any errors
+	log.Println("Waiting on nginx resolver")
 	err = <-waitNginxResolverCh
 	if err != nil {
 		log.Println(err)
 		return err
 	}
+	// wait for things that we had no rush to wait on
+	// provisioning namespace
+	<-waitNsProvisioninCh
 	// mark setup as complete
 	<-markSetupComplete(clientset)
 	log.Println("Setup process done")
@@ -216,27 +219,26 @@ func SetupDBAction() error {
 		log.Println(err)
 	}
 
-	//we'll try to re-add the first admin, if it fails we can tolerate it
-	adminName := os.Getenv("ADMIN_NAME")
-	adminEmail := os.Getenv("ADMIN_EMAIL")
+	// we'll try to re-add the first admin, if it fails we can tolerate it
+	adminName := env.Get("ADMIN_NAME", "")
+	adminEmail := env.Get("ADMIN_EMAIL", "")
 	err = AddM3Admin(adminName, adminEmail)
 	if err != nil {
 		log.Println("admin m3 error")
-		//we can tolerate this failure
+		// we can tolerate this failure
 		log.Println(err)
 	}
 
 	return err
 }
 
-// setupM3Namespace Setups the namespace used by the provisioning service
-func setupM3Namespace(clientset *kubernetes.Clientset) <-chan struct{} {
+// setupNameSpace Setups a namespaces
+func setupNameSpace(clientset *kubernetes.Clientset, namespaceName string) <-chan struct{} {
 	doneCh := make(chan struct{})
-	namespaceName := "m3"
 	go func() {
 		_, m3NamespaceExists := clientset.CoreV1().Namespaces().Get(namespaceName, metav1.GetOptions{})
 		if m3NamespaceExists == nil {
-			log.Println("m3 namespace already exists... skip create")
+			log.Printf("%s namespace already exists... skip create\n", namespaceName)
 			close(doneCh)
 		} else {
 			factory := informers.NewSharedInformerFactory(clientset, 0)
@@ -245,7 +247,7 @@ func setupM3Namespace(clientset *kubernetes.Clientset) <-chan struct{} {
 				AddFunc: func(obj interface{}) {
 					namespace := obj.(*v1.Namespace)
 					if namespace.Name == namespaceName {
-						log.Println("m3 namespace created correctly")
+						log.Printf("%s namespace created correctly\n", namespaceName)
 						close(doneCh)
 					}
 				},
@@ -339,8 +341,8 @@ func setupPostgresDeployment(clientset *kubernetes.Clientset) <-chan struct{} {
 				Containers: []v1.Container{
 					{
 						Name:            "postgres",
-						Image:           "postgres:12.0",
-						ImagePullPolicy: "Always",
+						Image:           "postgres:12",
+						ImagePullPolicy: "IfNotPresent",
 						Ports: []v1.ContainerPort{
 							{
 								Name:          "http",
@@ -444,116 +446,11 @@ func setupPostgresService(clientset *kubernetes.Clientset) <-chan struct{} {
 	return doneCh
 }
 
-func SetupNginxConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
-	doneCh := make(chan struct{})
-	nginxConfigMapName := "nginx-configuration"
-
-	go func() {
-		_, nginxConfigMapExists := clientset.CoreV1().ConfigMaps("default").Get(nginxConfigMapName, metav1.GetOptions{})
-		if nginxConfigMapExists == nil {
-			log.Println("nginx configmap already exists... skip create")
-			close(doneCh)
-		} else {
-			factory := informers.NewSharedInformerFactory(clientset, 0)
-			configMapInformer := factory.Core().V1().ConfigMaps().Informer()
-			configMapInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {
-					configMap := obj.(*v1.ConfigMap)
-					if configMap.Name == nginxConfigMapName {
-						log.Println("nginx configmap created correctly")
-						close(doneCh)
-					}
-				},
-			})
-
-			go configMapInformer.Run(doneCh)
-
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nginxConfigMapName,
-				},
-				Data: map[string]string{
-					"nginx.conf": `
-user nginx;
-worker_processes auto;
-error_log /dev/stdout debug;
-pid /var/run/nginx.pid;
-
-events {
-	worker_connections  1024;
-}
-			`,
-				},
-			}
-			_, err := clientset.CoreV1().ConfigMaps("default").Create(&configMap)
-			if err != nil {
-				log.Println(err)
-				close(doneCh)
-			}
-		}
-	}()
-	return doneCh
-}
-
-// SetupNginxLoadBalancer setups the loadbalancer/reverse proxy used to resolve the tenants subdomains
-func SetupNginxLoadBalancer(clientset *kubernetes.Clientset) <-chan struct{} {
-	doneCh := make(chan struct{})
-	nginxServiceName := "nginx-resolver"
-
-	go func() {
-		_, nginxServiceExists := clientset.CoreV1().Services("default").Get(nginxServiceName, metav1.GetOptions{})
-		if nginxServiceExists == nil {
-			log.Println("nginx service already exists... skip create")
-			close(doneCh)
-		} else {
-			factory := informers.NewSharedInformerFactory(clientset, 0)
-			serviceInformer := factory.Core().V1().Services().Informer()
-			serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {
-					service := obj.(*v1.Service)
-					if service.Name == nginxServiceName {
-						log.Println("nginx service created correctly")
-						close(doneCh)
-					}
-				},
-			})
-
-			go serviceInformer.Run(doneCh)
-
-			nginxService := v1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nginxServiceName,
-					Labels: map[string]string{
-						"name": nginxServiceName,
-					},
-				},
-				Spec: v1.ServiceSpec{
-					Ports: []v1.ServicePort{
-						{
-							Name: "http",
-							Port: 80,
-						},
-					},
-					Selector: map[string]string{
-						"app": nginxServiceName,
-					},
-				},
-			}
-			_, err := clientset.CoreV1().Services("default").Create(&nginxService)
-			if err != nil {
-				log.Println(err)
-				close(doneCh)
-			}
-		}
-	}()
-	return doneCh
-}
-
 // This runs all the migrations on the cluster/migrations folder, if some migrations were already applied it then will
 // apply the missing migrations.
 func RunMigrations() error {
 	// Get the Database configuration
-	dbConfg := GetM3DbConfig()
+	dbConfg := db.GetM3DbConfig()
 	// Build the database URL connection
 	sslMode := "disable"
 	if dbConfg.Ssl {
@@ -587,7 +484,7 @@ func RunMigrations() error {
 func CreateTenantsSharedDatabase() error {
 
 	// get the DB connection for the tenant
-	db := GetInstance().Db
+	db := db.GetInstance().Db
 
 	// format in the tenant name assuming it's safe
 	query := fmt.Sprintf(`CREATE DATABASE tenants`)
@@ -602,7 +499,7 @@ func CreateTenantsSharedDatabase() error {
 // CreateProvisioningSchema creates a db schema for provisioning
 func CreateProvisioningSchema() error {
 	// get the DB connection for the tenant
-	db := GetInstance().Db
+	db := db.GetInstance().Db
 
 	// format in the tenant name assuming it's safe
 	query := `CREATE SCHEMA provisioning`
@@ -625,9 +522,15 @@ func AddM3Admin(name, email string) error {
 	_, err = AddAdminAction(apptCtx, name, email)
 	if err != nil {
 		log.Println("Error adding user:", err.Error())
+		if err = apptCtx.Rollback(); err != nil {
+			log.Println(err)
+		}
 		return err
 	}
-	apptCtx.Commit()
+	// if no error, commit
+	if err = apptCtx.Commit(); err != nil {
+		log.Println(err)
+	}
 	log.Println("Admin was added")
 	return nil
 }
@@ -698,14 +601,14 @@ func SetupMigrateAction() error {
 
 	// restrict how many tenants will be placed in the channel at any given time, this is to avoid massive
 	// concurrent processing
-	maxChannelSize := 10
-	if os.Getenv(maxTenantChannelSize) != "" {
-		mtcs, err := strconv.Atoi(os.Getenv(maxTenantChannelSize))
+	var maxChannelSize int
+	if v := env.Get(maxTenantChannelSize, "10"); v != "" {
+		mtcs, err := strconv.Atoi(v)
 		if err != nil {
 			log.Println("Invalid MAX_TENANT_CHANNEL_SIZE value:", err)
-		} else {
-			maxChannelSize = mtcs
+			return err
 		}
+		maxChannelSize = mtcs
 	}
 
 	// get a list of tenants and run the migrations for each tenant

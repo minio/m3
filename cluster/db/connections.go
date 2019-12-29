@@ -14,18 +14,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cluster
+package db
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 	"sync"
 
 	// postgres driver for database/sql
 	_ "github.com/lib/pq"
+	"github.com/minio/minio/pkg/env"
 )
 
 type Singleton struct {
@@ -57,8 +57,8 @@ func GetInstance() *Singleton {
 	return instance
 }
 
-// DbConfig holds the configuration to connect to a database
-type DbConfig struct {
+// Config holds the configuration to connect to a database
+type Config struct {
 	// Hostname
 	Host string
 	// Port
@@ -75,63 +75,28 @@ type DbConfig struct {
 	SchemaName string
 }
 
-// GetM3DbConfig returns a `DbConfig` object with the values for the database by either reading them from the environment or
+// GetM3DbConfig returns a `Config` object with the values for the database by either reading them from the environment or
 // defaulting them to a known value.
-func GetM3DbConfig() *DbConfig {
-	dbHost := "localhost"
-	if os.Getenv("DB_HOSTNAME") != "" {
-		dbHost = os.Getenv("DB_HOSTNAME")
-	}
-
-	dbPort := "5432"
-	if os.Getenv("DB_PORT") != "" {
-		dbPort = os.Getenv("DB_PORT")
-	}
-
-	dbUser := "postgres"
-	if os.Getenv("DB_USER") != "" {
-		dbUser = os.Getenv("DB_USER")
-	}
-
-	dbPass := "postgres"
-	if os.Getenv("DB_PASSWORD") != "" {
-		dbPass = os.Getenv("DB_PASSWORD")
-	}
-	dbSsl := false
-	if os.Getenv("DB_SSL") != "" {
-		if os.Getenv("DB_SSL") == "true" {
-			dbSsl = true
-		}
-	}
-
-	dbName := "m3"
-	if os.Getenv("DB_NAME") != "" {
-		dbName = os.Getenv("DB_NAME")
-	}
-
-	dbSchema := "provisioning"
-	if os.Getenv("DB_SCHEMA") != "" {
-		dbSchema = os.Getenv("DB_SCHEMA")
-	}
-	return &DbConfig{
-		Host:       dbHost,
-		Port:       dbPort,
-		User:       dbUser,
-		Pwd:        dbPass,
-		Name:       dbName,
-		Ssl:        dbSsl,
-		SchemaName: dbSchema,
+func GetM3DbConfig() *Config {
+	return &Config{
+		Host:       env.Get("DB_HOSTNAME", "localhost"),
+		Port:       env.Get("DB_PORT", "5432"),
+		User:       env.Get("DB_USER", "postgres"),
+		Pwd:        env.Get("DB_PASSWORD", "postgres"),
+		Name:       env.Get("DB_NAME", "m3"),
+		Ssl:        env.Get("DB_SSL", "false") == "true",
+		SchemaName: env.Get("DB_SCHEMA", "provisioning"),
 	}
 }
 
-type DBCnxResult struct {
+type CnxResult struct {
 	Cnx   *sql.DB
 	Error error
 }
 
 // Creates a connection to the DB and returns it
-func ConnectToDb(ctx context.Context, config *DbConfig) chan DBCnxResult {
-	ch := make(chan DBCnxResult)
+func ConnectToDb(ctx context.Context, config *Config) chan CnxResult {
+	ch := make(chan CnxResult)
 	go func() {
 		defer close(ch)
 		select {
@@ -156,10 +121,10 @@ func ConnectToDb(ctx context.Context, config *DbConfig) chan DBCnxResult {
 			db, err := sql.Open("postgres", dbStr)
 			if err != nil {
 				log.Println(err)
-				ch <- DBCnxResult{Error: err}
+				ch <- CnxResult{Error: err}
 				return
 			}
-			ch <- DBCnxResult{Cnx: db}
+			ch <- CnxResult{Cnx: db}
 		}
 	}()
 	return ch
@@ -173,6 +138,7 @@ func (s *Singleton) GetTenantDB(tenantName string) *sql.DB {
 		//do something here
 		return db
 	}
+	log.Printf("Connection for `%s` not found, opening new connection.", tenantName)
 	// if we reach this point, there was no connection in cache, connect and return the connection
 	ctx := context.Background()
 	// Get the tenant DB configuration
@@ -185,7 +151,7 @@ func (s *Singleton) GetTenantDB(tenantName string) *sql.DB {
 	return s.tenantsCnx[tenantName]
 }
 
-func GetTenantDBConfig(tenantName string) *DbConfig {
+func GetTenantDBConfig(tenantName string) *Config {
 	// right now all tenants live on the same server as m3, but on a different DB
 	config := GetM3DbConfig()
 	config.Name = "tenants"
@@ -198,21 +164,17 @@ func (s *Singleton) RemoveCnx(tenantName string) {
 	delete(s.tenantsCnx, tenantName)
 }
 
-// AppURL returns the main application url
-func (s *Singleton) AppURL() string {
-	appDomain := getS3Domain()
-	appURL := fmt.Sprintf("http://%s", appDomain)
-	if os.Getenv("APP_URL") != "" {
-		appURL = os.Getenv("APP_URL")
+// Close all connectiosn
+func (s *Singleton) Close() error {
+	// close all tenants connections
+	for _, cnx := range s.tenantsCnx {
+		if err := cnx.Close(); err != nil {
+			log.Println(err)
+		}
 	}
-	return appURL
-}
-
-// CliCommand returns the command used for the cli
-func (s *Singleton) CliCommand() string {
-	cliCommand := "m3"
-	if os.Getenv("CLI_COMMAND") != "" {
-		cliCommand = os.Getenv("CLI_COMMAND")
+	// close main connections
+	if err := s.Db.Close(); err != nil {
+		return err
 	}
-	return cliCommand
+	return nil
 }

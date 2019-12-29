@@ -1,3 +1,6 @@
+VERSION ?= $(shell git describe --tags)
+TAG ?= "minio/m3:$(VERSION)-dev"
+
 default: m3
 
 grpc:
@@ -28,6 +31,6 @@ docker:
 	@docker build -t minio/m3 .
 
 k8sdev:
-	@docker build -t minio/m3:dev .	
-	@kind load docker-image minio/m3:dev --name m3cluster
+	@docker build -t $(TAG) .
+	@kind load docker-image $(TAG) --name m3cluster
 	@echo "Done, now restart your m3 deployment"

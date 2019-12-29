@@ -18,14 +18,14 @@ package portal
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"net"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	gw "github.com/minio/m3/api/stubs"
+	"github.com/minio/minio/pkg/env"
 	"github.com/rs/cors"
 	"google.golang.org/grpc"
 )
@@ -43,15 +43,9 @@ func StartPortal() error {
 		return "", false
 	}))
 
-	m3Hostname := "localhost"
-	if os.Getenv("M3_HOSTNAME") != "" {
-		m3Hostname = os.Getenv("M3_HOSTNAME")
-	}
-	m3PublicPort := "50051"
-	if os.Getenv("M3_PUBLIC_PORT") != "" {
-		m3PublicPort = os.Getenv("M3_PUBLIC_PORT")
-	}
-	m3Address := fmt.Sprintf("%s:%s", m3Hostname, m3PublicPort)
+	m3Hostname := env.Get("M3_HOSTNAME", "localhost")
+	m3PublicPort := env.Get("M3_PUBLIC_PORT", "50051")
+	m3Address := net.JoinHostPort(m3Hostname, m3PublicPort)
 
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 	err := gw.RegisterPublicAPIHandlerFromEndpoint(ctx, mux, m3Address, opts)

@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -52,8 +53,8 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 
 	tenantContainer := v1.Container{
 		Name:            fmt.Sprintf("%s-minio-%d", sgTenant.Tenant.ShortName, sgNode.Num),
-		Image:           "minio/minio:RELEASE.2019-12-19T22-52-26Z",
-		ImagePullPolicy: "IfNotPresent",
+		Image:           getMinIOImage(),
+		ImagePullPolicy: v1.PullPolicy(getMinIOImagePullPolicy()),
 		Args:            minioConfigCmd,
 		Ports: []v1.ContainerPort{
 			{
@@ -85,7 +86,7 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 					},
 				},
 			},
-			InitialDelaySeconds: 120,
+			InitialDelaySeconds: getLivenessMaxInitialDelaySeconds(),
 			PeriodSeconds:       20,
 		},
 	}
@@ -94,6 +95,10 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 	for _, vol := range sgNode.Node.Volumes {
 		vname := fmt.Sprintf("%s-pv-%d", sgTenant.Tenant.ShortName, vol.Num)
 		volumenSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: fmt.Sprintf("%s/%s", vol.MountPath, sgTenant.Tenant.ShortName)}}
+		// Use EmptyDir instead. https://kubernetes.io/docs/concepts/storage/volumes/#emptydir
+		if getDevUseEmptyDir() {
+			volumenSource = v1.VolumeSource{EmptyDir: &v1.EmptyDirVolumeSource{}}
+		}
 		hostPathVolume := v1.Volume{Name: vname, VolumeSource: volumenSource}
 
 		mount := v1.VolumeMount{
@@ -104,6 +109,58 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 		volumeMounts = append(volumeMounts, mount)
 	}
 	tenantContainer.VolumeMounts = volumeMounts
+
+	if getKmsAddress() != "" {
+		clientset, _ := k8sClient()
+		if clientset != nil {
+			kesServiceName := fmt.Sprintf("%s-kes", sgTenant.ShortName)
+			_, kesServiceExists := clientset.CoreV1().Services("default").Get(kesServiceName, metav1.GetOptions{})
+			if kesServiceExists == nil {
+
+				volumenSource := v1.VolumeSource{
+					Secret: &v1.SecretVolumeSource{
+						SecretName: fmt.Sprintf("%s-kes-app-keypair-key", sgTenant.ShortName),
+					},
+				}
+				hostPathVolume := v1.Volume{Name: "app-keypair-key", VolumeSource: volumenSource}
+				tenantVolumes = append(tenantVolumes, hostPathVolume)
+
+				volumenSource = v1.VolumeSource{
+					Secret: &v1.SecretVolumeSource{
+						SecretName: fmt.Sprintf("%s-kes-app-keypair-cert", sgTenant.ShortName),
+					},
+				}
+				hostPathVolume = v1.Volume{Name: "app-keypair-cert", VolumeSource: volumenSource}
+				tenantVolumes = append(tenantVolumes, hostPathVolume)
+
+				volumenSource = v1.VolumeSource{
+					Secret: &v1.SecretVolumeSource{
+						SecretName: fmt.Sprintf("%s-kes-server-keypair-cert", sgTenant.ShortName),
+					},
+				}
+				hostPathVolume = v1.Volume{Name: "server-keypair-cert", VolumeSource: volumenSource}
+				tenantVolumes = append(tenantVolumes, hostPathVolume)
+
+				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
+					Name:      "app-keypair-key",
+					MountPath: fmt.Sprintf("/kes-config/%s/app/key", sgTenant.ShortName),
+					ReadOnly:  true,
+				})
+
+				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
+					Name:      "app-keypair-cert",
+					MountPath: fmt.Sprintf("/kes-config/%s/app/cert", sgTenant.ShortName),
+					ReadOnly:  true,
+				})
+
+				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
+					Name:      "server-keypair-cert",
+					MountPath: fmt.Sprintf("/kes-config/%s/server/cert", sgTenant.ShortName),
+					ReadOnly:  true,
+				})
+			}
+		}
+	}
 
 	return tenantContainer, tenantVolumes
 }

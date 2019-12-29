@@ -22,13 +22,15 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
-	"os"
 	"regexp"
 	"strconv"
 	"time"
 
+	"github.com/minio/m3/cluster/db"
+
 	"github.com/minio/minio-go/v6"
 	"github.com/minio/minio-go/v6/pkg/policy"
+	"github.com/minio/minio/pkg/env"
 	"github.com/minio/minio/pkg/madmin"
 	uuid "github.com/satori/go.uuid"
 )
@@ -43,7 +45,7 @@ const (
 
 // MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
 // TODO: allow to spcify the user performing the action (like in the API/gRPC case)
-func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) error {
+func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType BucketAccess) error {
 	// validate bucket name
 	if bucketName != "" {
 		var re = regexp.MustCompile(`^[a-z0-9-]{3,}$`)
@@ -58,21 +60,28 @@ func MakeBucket(tenantShortname, bucketName string, accessType BucketAccess) err
 		return err
 	}
 
-	// make it so this timeouts after only 2 seconds
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	// make it so this timeouts after only 20 seconds
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 	// Create Bucket on tenant's MinIO
 	if err = minioClient.MakeBucketWithContext(timeoutCtx, bucketName, "us-east-1"); err != nil {
 		log.Println(err)
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("MakeBucketWithContext", err)
 	}
 
 	if err = addMinioBucketNotification(minioClient, bucketName, "us-east-1"); err != nil {
 		log.Println(err)
-		return tagErrorAsMinio(err)
+		return tagErrorAsMinio("addMinioBucketNotification", err)
 	}
 
-	return SetBucketAccess(minioClient, bucketName, accessType)
+	err = SetBucketAccess(minioClient, bucketName, accessType)
+	if err != nil {
+		log.Println(err)
+		return tagErrorAsMinio("SetBucketAccess", err)
+	}
+	// announce the bucket on the router
+	<-UpdateNginxConfiguration(ctx)
+	return nil
 }
 
 type TenantBucketInfo struct {
@@ -150,13 +159,13 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 		return []TenantBucketInfo{}, err
 	}
 
-	tCtx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	tCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
 	var buckets []minio.BucketInfo
 	buckets, err = minioClient.ListBucketsWithContext(tCtx)
 	if err != nil {
-		return []TenantBucketInfo{}, tagErrorAsMinio(err)
+		return []TenantBucketInfo{}, tagErrorAsMinio("ListBucketsWithContext", err)
 	}
 
 	var (
@@ -166,7 +175,7 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 	for _, bucket := range buckets {
 		accessType, err = GetBucketAccess(minioClient, bucket.Name)
 		if err != nil {
-			return []TenantBucketInfo{}, tagErrorAsMinio(err)
+			return []TenantBucketInfo{}, tagErrorAsMinio("GetBucketAccess", err)
 		}
 		bucketInfos = append(bucketInfos, TenantBucketInfo{Name: bucket.Name, Access: accessType})
 	}
@@ -251,7 +260,7 @@ func streamBucketToTenantServices() chan *BucketToServiceResult {
 			ORDER BY b.name ASC`
 
 		// no context? straight to db
-		rows, err := GetInstance().Db.Query(query)
+		rows, err := db.GetInstance().Db.Query(query)
 		if err != nil {
 			ch <- &BucketToServiceResult{Error: err}
 			return
@@ -361,7 +370,7 @@ func GetLatestTotalBuckets(ctx *Context, date time.Time) (totalBuckets uint64, e
 func GetTotalMonthBucketUsageFromDB(ctx *Context, date time.Time) (monthUsage uint64, err error) {
 	// Select query doing MAX total_usage grouping by year and month
 	query := `SELECT 
-					MAX(s.total_usage) as total_monthly_usage
+					MAX(s.total_usage) AS total_monthly_usage
 				FROM (
 					SELECT
 					    EXTRACT (YEAR FROM s.last_update) AS YEAR,
@@ -508,14 +517,14 @@ func CalculateTenantsMetrics() error {
 
 	// restrict how many tenants will be placed in the channel at any given time, this is to avoid massive
 	// concurrent processing
-	maxChannelSize := 10
-	if os.Getenv(maxTenantChannelSize) != "" {
-		mtcs, err := strconv.Atoi(os.Getenv(maxTenantChannelSize))
+	var maxChannelSize int
+	if v := env.Get(maxTenantChannelSize, "10"); v != "" {
+		mtcs, err := strconv.Atoi(v)
 		if err != nil {
 			log.Println("Invalid MAX_TENANT_CHANNEL_SIZE value:", err)
-		} else {
-			maxChannelSize = mtcs
+			return err
 		}
+		maxChannelSize = mtcs
 	}
 
 	// get a list of tenants and run the migrations for each tenant
@@ -525,7 +534,7 @@ func CalculateTenantsMetrics() error {
 		if tenantResult.Error != nil {
 			return tenantResult.Error
 		}
-		err := getTenantMetrics(appCtx, tenantResult.Tenant.ShortName)
+		err := getTenantMetrics(appCtx, tenantResult.Tenant)
 		if err != nil {
 			appCtx.Rollback()
 			return err
@@ -538,15 +547,10 @@ func CalculateTenantsMetrics() error {
 	return nil
 }
 
-func getTenantMetrics(ctx *Context, tenantShortName string) error {
-	// validate Tenant
-	tenant, err := GetTenant(tenantShortName)
-	if err != nil {
-		return err
-	}
-	ctx.Tenant = &tenant
+func getTenantMetrics(ctx *Context, tenant *Tenant) error {
+	ctx.Tenant = tenant
 	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, tenantShortName)
+	sgt := <-GetTenantStorageGroupByShortName(ctx, tenant.ShortName)
 	if sgt.Error != nil {
 		return sgt.Error
 	}

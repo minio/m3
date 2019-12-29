@@ -21,6 +21,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/minio/m3/cluster/db"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -70,7 +72,7 @@ func AddAdminAction(ctx *Context, name string, adminEmail string) (*Admin, error
 	}{
 		Name:       admin.Name,
 		Token:      adminToken.String(),
-		CliCommand: GetInstance().CliCommand(),
+		CliCommand: getCliCommand(),
 	}
 	// Get the mailing template for inviting users
 	body, err := GetTemplate("new-admin", templateData)
@@ -153,7 +155,7 @@ func GetAdminByEmail(ctx *Context, email string) (*Admin, error) {
 				admins t1
 			WHERE email=$1 LIMIT 1`
 
-	row := GetInstance().Db.QueryRow(queryUser, email)
+	row := db.GetInstance().Db.QueryRow(queryUser, email)
 
 	admin := Admin{}
 

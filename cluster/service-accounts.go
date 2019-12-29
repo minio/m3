@@ -310,7 +310,7 @@ func UpdateMinioPolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, t
 		// for debug
 		policyJSON, err := policy.MarshalJSON()
 		if err != nil {
-			ch <- tagErrorAsMinio(err)
+			ch <- tagErrorAsMinio("policy.MarshalJSON", err)
 			return
 		}
 

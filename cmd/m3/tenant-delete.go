@@ -67,7 +67,7 @@ func tenantDelete(ctx *cli.Context) error {
 	}
 	defer cnxs.Conn.Close()
 	// perform RPC
-	_, err = cnxs.Client.TenantDelete(cnxs.Context, &pb.TenantDeleteRequest{
+	_, err = cnxs.Client.TenantDelete(cnxs.Context, &pb.TenantSingleRequest{
 		ShortName: shortName,
 	})
 	if err != nil {

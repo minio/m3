@@ -22,6 +22,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/minio/m3/cluster/db"
+
 	"github.com/lib/pq"
 
 	uuid "github.com/satori/go.uuid"
@@ -100,7 +102,7 @@ func GetNodeByName(ctx *Context, name string) (*Node, error) {
 				nodes n
 			WHERE n.name=$1 LIMIT 1`
 
-	row := GetInstance().Db.QueryRow(query, name)
+	row := db.GetInstance().Db.QueryRow(query, name)
 	node := Node{}
 	err := row.Scan(&node.ID, &node.Name, &node.K8sLabel)
 	if err != nil {

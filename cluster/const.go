@@ -21,16 +21,30 @@ type key int
 const (
 	Version = `0.1.0`
 	// Environment variables
-	minioAccessKey       = "MINIO_ACCESS_KEY"
-	minioSecretKey       = "MINIO_SECRET_KEY"
-	accessKey            = "ACCESS_KEY"
-	secretKey            = "SECRET_KEY"
-	maxTenantChannelSize = "MAX_TENANT_CHANNEL_SIZE"
-	s3Domain             = "S3_DOMAIN"
+	m3SystemNamespace              = "m3"
+	defNS                          = "default"
+	provisioningNamespace          = "provisioning"
+	minioAccessKey                 = "MINIO_ACCESS_KEY"
+	minioSecretKey                 = "MINIO_SECRET_KEY"
+	accessKey                      = "ACCESS_KEY"
+	secretKey                      = "SECRET_KEY"
+	maxTenantChannelSize           = "MAX_TENANT_CHANNEL_SIZE"
+	s3Domain                       = "S3_DOMAIN"
+	m3Image                        = "M3_IMAGE"
+	kesImage                       = "KES_IMAGE"
+	m3ImagePullPolicy              = "M3_IMAGE_PULL_POLICY"
+	minIOImage                     = "MINIO_IMAGE"
+	minIOImagePullPolicy           = "MINIO_IMAGE_PULL_POLICY"
+	maxLivenessInitialSecondsDelay = "LIVENESS_MAX_INITIAL_SECONDS_DELAY"
+	pubNotReadyAddress             = "PUBLISH_NOT_READY_ADDRESS"
+	kmsAddress                     = "KMS_ADDRESS"
+	kmsToken                       = "KMS_TOKEN"
+	maxNumberOfTenantsPerSg        = "MAX_NUM_TENANTS_PER_SG"
 	// constants
 	TokenSignupEmail            = "signup-email"
 	TokenResetPasswordEmail     = "reset-password-email"
 	AdminTokenSetPassword       = "admin-set-password"
+	NginxConfiguration          = "nginx-configuration"
 	AdminIDKey              key = iota
 	UserIDKey               key = iota
 	TenantIDKey             key = iota
@@ -41,4 +55,7 @@ const (
 
 	// configurations
 	cfgCoreGlobalBuckets = "core.global_buckets"
+
+	// Development Flags
+	devUseEmptyDir = "DEV_EMPTY_DIR"
 )
