@@ -11,12 +11,13 @@ WORKDIR /go/src/github.com/minio/m3-vault/
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-w -s" -a -o m3-vault ./cmd/m3-vault
 
-FROM scratch
+FROM vault
 MAINTAINER MinIO Development "dev@min.io"
 EXPOSE 8200
 
+ENV VAULT_DEV_ROOT_TOKEN_ID="eaeaeaea"
+ENV VAULT_DEV_LISTEN_ADDRESS="0.0.0.0:8200"
+
 COPY --from=0 /go/src/github.com/minio/m3-vault/m3-vault    .
-COPY --from=0 /go/src/github.com/minio/m3-vault/vault    .
-COPY --from=0 /go/src/github.com/minio/m3-vault/vault-config.json    .
 
 CMD ["/m3-vault"]

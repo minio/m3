@@ -31,7 +31,13 @@ func main() {
 		}
 	}()
 
-	vaultServiceCh := startVaultService(color.FgYellow)
+	//if VAULT_DEV_ROOT_TOKEN_ID is not provided we assume vault server is not running
+	//we proceed to start a new local vault server
+	vaultServiceCh := make(chan interface{})
+	if os.Getenv("VAULT_DEV_ROOT_TOKEN_ID") == "" {
+		vaultServiceCh = startVaultService(color.FgYellow)
+	}
+
 	err := <-vaultInitAndUnseal()
 	if err != nil {
 		log.Println(err)
@@ -58,6 +64,8 @@ func startVaultService(dcolor color.Attribute) chan interface{} {
 	go func() {
 		defer close(doneCh)
 		// command to run
+		//docker run --cap-add=IPC_LOCK --rm -p 8200:8200 -e 'VAULT_DEV_ROOT_TOKEN_ID=s.PN9OMcvgjjKQ1zBr2DXS4Ze5' --name=dev-vault vault
+		//docker run --cap-add=IPC_LOCK --rm -p 8200:8200 -e 'VAULT_DEV_ROOT_TOKEN_ID=eaeaea' -e 'VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200' minio/m3-vault:latest
 		cmd := exec.Command("./vault", "server", "-config", "vault-config.json")
 		// prepare to capture the output
 		var errStdout, errStderr error
@@ -101,21 +109,33 @@ func vaultInitAndUnseal() chan error {
 	doneCh := make(chan error)
 	go func() {
 		defer close(doneCh)
-		client, initConfigs, err := isVaultReadyRetry("http://127.0.0.1:8200")
+
+		rootToken := os.Getenv("VAULT_DEV_ROOT_TOKEN_ID")
+		address := "http://127.0.0.1:8200"
+		client, err := isVaultReadyRetry(address)
 		if err != nil {
 			doneCh <- err
 			return
 		}
-		for _, key := range initConfigs.Keys {
-			_, err := client.Sys().Unseal(key)
+		//if provided rootToken is empty that means vault server is not initialized
+		if rootToken == "" {
+			initConfigs, err := client.Sys().Init(&vapi.InitRequest{SecretShares: 5, SecretThreshold: 3})
 			if err != nil {
 				doneCh <- err
 				return
 			}
+			for _, key := range initConfigs.Keys {
+				_, err := client.Sys().Unseal(key)
+				if err != nil {
+					doneCh <- err
+					return
+				}
+			}
+			rootToken = initConfigs.RootToken
 		}
 
-		log.Println("Vault root token:", initConfigs.RootToken)
-		client.SetToken(initConfigs.RootToken)
+		log.Println("Vault root token:", rootToken)
+		client.SetToken(rootToken)
 		health, err := client.Sys().Health()
 
 		if err != nil {
@@ -133,8 +153,6 @@ func vaultInitAndUnseal() chan error {
 			return
 		}
 
-		log.Println("Vault unsealed successfully")
-
 		err = client.Sys().EnableAuthWithOptions("approle", &vapi.EnableAuthOptions{Type: "approle"})
 		if err != nil {
 			doneCh <- err
@@ -151,24 +169,27 @@ func vaultInitAndUnseal() chan error {
 	return doneCh
 }
 
-func isVaultReadyRetry(address string) (*vapi.Client, *vapi.InitResponse, error) {
+func isVaultReadyRetry(address string) (*vapi.Client, error) {
 	currentTries := 0
 	for {
-		client, _ := vapi.NewClient(&vapi.Config{Address: address})
-		initResponse, err := client.Sys().Init(&vapi.InitRequest{SecretShares: 5, SecretThreshold: 3})
+		client, err := vapi.NewClient(&vapi.Config{Address: address})
+		if err != nil {
+			return client, err
+		}
+		healthResponse, err := client.Sys().Health()
 		if err != nil {
 			// we'll tolerate errors here, probably vault not responding
 			log.Println(err)
 		}
-		if initResponse != nil {
+		if healthResponse != nil {
 			log.Println("Vault started successfully")
-			return client, initResponse, nil
+			return client, nil
 		}
 		log.Println("Vault not ready, sleeping 2 seconds.")
 		time.Sleep(time.Second * 2)
 		currentTries++
 		if currentTries >= 5 {
-			return nil, nil, errors.New("vault was never ready. Unable to complete configuration of the KMS")
+			return nil, errors.New("vault was never ready. Unable to complete configuration of the KMS")
 		}
 	}
 }
