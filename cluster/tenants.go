@@ -137,13 +137,13 @@ func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) err
 	}
 
 	// Find an available tenant
-	tenant, err := grabAvailableTenant(ctx)
+	tenant, err := GrabAvailableTenant(ctx)
 	if err != nil {
 		return errors.New("No space available")
 	}
 	// now that we have a tenant, designate it as the tenant to be used in context
 	ctx.Tenant = tenant
-	if err = claimTenant(ctx, tenant, name, domain); err != nil {
+	if err = ClaimTenant(ctx, tenant, name, domain); err != nil {
 		return err
 	}
 	// update the context tenant
@@ -168,7 +168,7 @@ func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) err
 	// if the first admin name and email was provided send them an invitation
 	if userName != "" && userEmail != "" {
 		// wait for MinIO to be ready before creating the first user
-		ready := isMinioReadyRetry(ctx)
+		ready := IsMinioReadyRetry(ctx)
 		if !ready {
 			return errors.New("MinIO was never ready. Unable to complete configuration of tenant")
 		}
@@ -186,7 +186,7 @@ func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) err
 			return errors.New("Error getting tenants config")
 		}
 		// create minio postgres configuration for bucket notification
-		err = setMinioConfigPostgresNotification(sgt.StorageGroupTenant, tenantConf)
+		err = SetMinioConfigPostgresNotification(sgt.StorageGroupTenant, tenantConf)
 		if err != nil {
 			log.Println("Error setting tenant's minio postgres configuration", err)
 			return errors.New("Error setting tenant's minio postgres configuration")
@@ -552,7 +552,7 @@ func DeleteTenant(ctx *Context, sgt *StorageGroupTenantResult) error {
 	db.GetInstance().RemoveCnx(tenantShortName)
 
 	//delete namesapce
-	nsDeleteCh := deleteTenantNamespace(tenantShortName)
+	nsDeleteCh := DeleteTenantNamespace(tenantShortName)
 
 	// announce the tenant on the router
 	nginxCh := UpdateNginxConfiguration(ctx)
@@ -583,8 +583,52 @@ func DeleteTenant(ctx *Context, sgt *StorageGroupTenantResult) error {
 	return err
 }
 
+func DeleteTenantK8sObjects(ctx *Context, tenantShortName string) error {
+	// delete tenant schema
+	// wait for schema deletion
+	err := <-DeleteTenantDB(tenantShortName)
+	if err != nil {
+		log.Println("Error deleting schema: ", err)
+		return errors.New("Error deleting tenant's")
+	}
+	// purge connection from pool
+	db.GetInstance().RemoveCnx(tenantShortName)
+
+	//delete namespace
+	nsDeleteCh := DeleteTenantNamespace(tenantShortName)
+
+	// announce the tenant on the router
+	nginxCh := UpdateNginxConfiguration(ctx)
+
+	//delete secret
+
+	secretCh := DeleteTenantSecrets(tenantShortName)
+
+	// wait for namespace deletion
+	err = <-nsDeleteCh
+	if err != nil {
+		log.Println("Error deleting namespace: ", err)
+		return errors.New("Error deleting namespace")
+	}
+
+	// wait for secret deletion
+	err = <-secretCh
+	if err != nil {
+		log.Println("Error deleting secret: ", err)
+		return errors.New("Error deleting secret")
+	}
+
+	// wait for router
+	err = <-nginxCh
+	if err != nil {
+		log.Println("Error updating router: ", err)
+		return errors.New("Error updating router: ")
+	}
+	return nil
+}
+
 // DeleteTenantRecord unregisters a tenant from the main DB tenants table,
-// rendering the tenant invisible to the cluster.
+// rendering the tenant invisible to the cluster
 func DeleteTenantRecord(ctx *Context, tenantShortName string) chan error {
 	ch := make(chan error)
 	go func() {
@@ -627,8 +671,8 @@ func DeleteTenantRecord(ctx *Context, tenantShortName string) chan error {
 	return ch
 }
 
-// deleteTenantNamespace deletes a tenant namespace on k8s
-func deleteTenantNamespace(tenantShortName string) chan error {
+// DeleteTenantNamespace deletes a tenant namespace on k8s
+func DeleteTenantNamespace(tenantShortName string) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
@@ -842,9 +886,9 @@ func ProvisionTenantTask(task *Task) error {
 	return nil
 }
 
-// grabAvailableTenant will select an available tenant and mark it for update so it cannot be grabbed by a different
+// GrabAvailableTenant will select an available tenant and mark it for update so it cannot be grabbed by a different
 // process.
-func grabAvailableTenant(ctx *Context) (*Tenant, error) {
+func GrabAvailableTenant(ctx *Context) (*Tenant, error) {
 	query :=
 		`SELECT 
 				t1.id, t1.name, t1.short_name, t1.enabled, t1.domain
@@ -867,8 +911,8 @@ func grabAvailableTenant(ctx *Context) (*Tenant, error) {
 	return &tenant, nil
 }
 
-// claimTenant claims a tenant to a new account, marks it as not available and enables it for the router
-func claimTenant(ctx *Context, tenant *Tenant, name, domain string) error {
+// ClaimTenant claims a tenant to a new account, marks it as not available and enables it for the router
+func ClaimTenant(ctx *Context, tenant *Tenant, name, domain string) error {
 	// build the query
 	query :=
 		`UPDATE tenants 

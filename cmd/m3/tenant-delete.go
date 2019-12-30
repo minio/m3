@@ -18,9 +18,11 @@ package main
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/minio/cli"
 	pb "github.com/minio/m3/api/stubs"
+	"github.com/schollz/progressbar/v2"
 )
 
 // list files and folders.
@@ -59,6 +61,10 @@ func tenantDelete(ctx *cli.Context) error {
 		return nil
 	}
 	fmt.Println("Deleting tenant:", shortName)
+	// progress bar initialize
+	bar := progressbar.NewOptions(100)
+	// Render the current state, which is 0% in this case
+	bar.RenderBlank()
 
 	cnxs, err := GetGRPCChannel()
 	if err != nil {
@@ -66,8 +72,9 @@ func tenantDelete(ctx *cli.Context) error {
 		return err
 	}
 	defer cnxs.Conn.Close()
+
 	// perform RPC
-	_, err = cnxs.Client.TenantDelete(cnxs.Context, &pb.TenantSingleRequest{
+	stream, err := cnxs.Client.TenantDelete(cnxs.Context, &pb.TenantSingleRequest{
 		ShortName: shortName,
 	})
 	if err != nil {
@@ -75,6 +82,18 @@ func tenantDelete(ctx *cli.Context) error {
 		return nil
 	}
 
-	fmt.Println("Done deleting tenant!")
+	// display progress bar updates
+	for {
+		resp, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		bar.Add(int(resp.Progress))
+		fmt.Print(resp.Message)
+	}
 	return nil
 }

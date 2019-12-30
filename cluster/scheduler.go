@@ -199,26 +199,6 @@ func startJob(task *Task) error {
 	return nil
 }
 
-// getTaskByID returns a task by id
-func getTaskByID(id int64) (*Task, error) {
-	query :=
-		`SELECT 
-				t.id, t.name, t.data, t.status
-			FROM 
-				tasks t
-			WHERE t.id=$1
-			LIMIT 1`
-	// query the reord
-	row := db.GetInstance().Db.QueryRow(query, id)
-	task := Task{}
-	// Save the resulted query on the User struct
-	err := row.Scan(&task.ID, &task.Name, &task.Data, &task.Status)
-	if err != nil {
-		return nil, err
-	}
-	return &task, nil
-}
-
 // RunTask runs a task by id and records the result of if on the task record.
 // attempts to recover from a panic in case there's one within the task and also marks it on the db.
 func RunTask(id int64) error {
@@ -259,6 +239,26 @@ func RunTask(id int64) error {
 	}
 	os.Exit(0)
 	return nil
+}
+
+// getTaskByID returns a task by id
+func getTaskByID(id int64) (*Task, error) {
+	query :=
+		`SELECT 
+				t.id, t.name, t.data, t.status
+			FROM 
+				tasks t
+			WHERE t.id=$1
+			LIMIT 1`
+	// query the reord
+	row := db.GetInstance().Db.QueryRow(query, id)
+	task := Task{}
+	// Save the resulted query on the User struct
+	err := row.Scan(&task.ID, &task.Name, &task.Data, &task.Status)
+	if err != nil {
+		return nil, err
+	}
+	return &task, nil
 }
 
 func ScheduleTask(ctx *Context, name string, data interface{}) error {
