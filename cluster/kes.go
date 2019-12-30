@@ -401,7 +401,6 @@ func storeKeyPairInSecret(secretName string, content map[string]string) <-chan s
 			AddFunc: func(obj interface{}) {
 				secret := obj.(*corev1.Secret)
 				if secret.Name == secretName {
-					log.Println(secret)
 					return
 				}
 			},
