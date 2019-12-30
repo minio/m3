@@ -19,6 +19,8 @@ package cluster
 import (
 	"errors"
 	"log"
+
+	"github.com/minio/m3/cluster/db"
 )
 
 type Configuration struct {
@@ -63,7 +65,7 @@ func SetConfigWithLock(ctx *Context, key, val, valType string, locked bool) erro
 	return nil
 }
 
-func GetConfig(ctx *Context, key string, fallback interface{}) (*Configuration, error) {
+func GetConfig(key string, fallback interface{}) (*Configuration, error) {
 	query :=
 		`SELECT 
 				c.key, c.value, c.type, c.locked
@@ -71,7 +73,7 @@ func GetConfig(ctx *Context, key string, fallback interface{}) (*Configuration, 
 				configurations c
 			WHERE c.key=$1`
 	// non-transactional query
-	row := ctx.MainTx().QueryRow(query, key)
+	row := db.GetInstance().MainDB().QueryRow(query, key)
 	config := Configuration{}
 	// Save the resulted query on the User struct
 	err := row.Scan(&config.Key, &config.Value, &config.ValueType, &config.locked)

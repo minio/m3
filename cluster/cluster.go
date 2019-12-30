@@ -406,7 +406,7 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGrou
 			}
 		}
 		// Create Tenant artifacts
-		if err := createTenantConfigMap(ctx, sgTenantResult.StorageGroupTenant); err != nil {
+		if err := createTenantConfigMap(sgTenantResult.StorageGroupTenant); err != nil {
 			ch <- &StorageGroupTenantResult{
 				Error: err,
 			}

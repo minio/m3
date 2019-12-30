@@ -708,14 +708,14 @@ func StopTenantServers(sgt *StorageGroupTenantResult) error {
 
 // createTenantConfigMap creates a ConfigMap that will hold the tenant environment configuration variables.
 // This is so we don't have to update all the deployments individually just to reconfigure the MinIO instance.
-func createTenantConfigMap(ctx *Context, sgTenant *StorageGroupTenant) error {
+func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 	tenant := sgTenant.Tenant
 
 	// Configuration to store
 	tenantConfig := make(map[string]string)
 
 	// if global bucket is enabled, configure the etcd
-	globalBuckets, err := GetConfig(ctx, cfgCoreGlobalBuckets, false)
+	globalBuckets, err := GetConfig(cfgCoreGlobalBuckets, false)
 	if err != nil {
 		return err
 	}
@@ -763,21 +763,34 @@ func createTenantConfigMap(ctx *Context, sgTenant *StorageGroupTenant) error {
 
 // GetTenantWithCtxByServiceName gets the Tenant if it exists on the m3.provisining.tenants table
 // search is done by tenant service name
-func GetTenantWithCtxByServiceName(ctx *Context, serviceName string) (tenant Tenant, err error) {
+var ErrNoTenant = errors.New("no tenant found")
+
+func GetTenantWithCtxByServiceName(ctx *Context, serviceName string) (*Tenant, error) {
 	query :=
 		`SELECT 
 				t1.id, t1.name, t1.short_name, t1.enabled, t1.domain
 			FROM 
 				tenants t1 LEFT JOIN tenants_storage_groups tsg ON t1.id = tsg.tenant_id
 			WHERE tsg.service_name=$1`
-	row := ctx.MainTx().QueryRow(query, serviceName)
-
-	// Save the resulted query on the User struct
-	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain)
+	rows, err := ctx.MainTx().Query(query, serviceName)
 	if err != nil {
-		return tenant, err
+		return nil, err
 	}
-	return tenant, nil
+	defer rows.Close()
+	// if we can iterate at least once we found a tenant, no iteration, means no results
+	// we do this to avoid sql.ErrNoRows which would close the transaction
+	for rows.Next() {
+		tenant := Tenant{}
+		err = rows.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain)
+		if err != nil {
+			return &tenant, err
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoTenant
 }
 
 // ProvisionTenantTask takes a task for provisioning of a tenant and executes it

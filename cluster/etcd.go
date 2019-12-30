@@ -270,7 +270,7 @@ func getEtcdCRDDeployment(clusterName string) *unstructured.Unstructured {
 
 // WatcEtcdBucketCreation watches a key prefix on etcd for new buckets being created
 func WatcEtcdBucketCreation(ctx *Context) {
-	globalBuckets, err := GetConfig(ctx, cfgCoreGlobalBuckets, false)
+	globalBuckets, err := GetConfig(cfgCoreGlobalBuckets, false)
 	if err != nil {
 		return
 	}
@@ -323,10 +323,13 @@ func WatcEtcdBucketCreation(ctx *Context) {
 					if err := ctx.Rollback(); err != nil {
 						log.Println(err)
 					}
+					log.Println("ROLLING BACK")
 					return
 				}
+				log.Println("error state:", err)
 				// announce the bucket on the router
 				<-UpdateNginxConfiguration(ctx)
+
 				if err := ctx.Commit(); err != nil {
 					log.Println(err)
 				}
@@ -337,12 +340,12 @@ func WatcEtcdBucketCreation(ctx *Context) {
 
 // EventBucketTenant stores structure parsed from etc event key.
 type EventBucketTenant struct {
-	TenantShortName string
-	BucketName      string
+	TenantServiceName string
+	BucketName        string
 }
 
 func processEtcdKey(event *clientv3.Event) (*EventBucketTenant, error) {
-	// key looks like `/skydns/m3/tenantShortName/bucketName/Pod.IP.bla.bla`
+	// key looks like `/skydns/m3/tenantServiceName/bucketName/Pod.IP.bla.bla`
 	// so we want the 4th item for tenant short name and  the 5th
 	// for the new bucket name
 	keyParts := strings.Split(string(event.Kv.Key), "/")
@@ -353,28 +356,30 @@ func processEtcdKey(event *clientv3.Event) (*EventBucketTenant, error) {
 
 	var eventValue map[string]interface{}
 	err := json.Unmarshal(event.Kv.Value, &eventValue)
+	log.Println(eventValue)
 	if err != nil {
 		return nil, err
 	}
-	var tenantShortName string
+	var tenantServiceName string
 	if val, ok := eventValue["host"]; ok {
 		//do something here
-		tenantShortName = val.(string)
+		tenantServiceName = val.(string)
 	}
-	return &EventBucketTenant{TenantShortName: tenantShortName, BucketName: bucketName}, nil
+	return &EventBucketTenant{TenantServiceName: tenantServiceName, BucketName: bucketName}, nil
 }
 
 // processMessage takes an etcd Event
 func processMessage(ctx *Context, event *clientv3.Event) error {
-	log.Println(event.Kv.Key, "-", event.Kv.Value)
+	log.Println(string(event.Kv.Key), "-", string(event.Kv.Value))
 	switch event.Type {
 	case mvccpb.PUT:
 		// process the key from the etcd event
 		keyParts, err := processEtcdKey(event)
+		log.Println(keyParts)
 		if err != nil {
 			return err
 		}
-		tenant, err := GetTenantWithCtxByServiceName(ctx, keyParts.TenantShortName)
+		tenant, err := GetTenantWithCtxByServiceName(ctx, keyParts.TenantServiceName)
 		if err != nil {
 			return err
 		}
@@ -390,7 +395,7 @@ func processMessage(ctx *Context, event *clientv3.Event) error {
 			return err
 		}
 
-		tenant, err := GetTenantWithCtxByServiceName(ctx, keyParts.TenantShortName)
+		tenant, err := GetTenantWithCtxByServiceName(ctx, keyParts.TenantServiceName)
 		if err != nil {
 			return err
 		}
