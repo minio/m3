@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
 	"sync"
 	"time"
 
@@ -113,7 +114,28 @@ func vaultInitAndUnseal() chan error {
 			doneCh <- err
 			return
 		}
-		initConfigs, err := client.Sys().Init(&vapi.InitRequest{SecretShares: 5, SecretThreshold: 3})
+		secretShares := 5
+		secretThreshold := 3
+		if os.Getenv("SECRET_SHARES") != "" {
+			val, err := strconv.Atoi(os.Getenv("SECRET_SHARES"))
+			if err != nil {
+				log.Println(err)
+			} else {
+				secretShares = val
+			}
+		}
+		if os.Getenv("SECRET_THRESHOLD") != "" {
+			val, err := strconv.Atoi(os.Getenv("SECRET_THRESHOLD"))
+			if err != nil {
+				log.Println(err)
+			} else {
+				secretThreshold = val
+			}
+		}
+		initConfigs, err := client.Sys().Init(&vapi.InitRequest{
+			SecretShares:    secretShares,
+			SecretThreshold: secretThreshold,
+		})
 		if err != nil {
 			doneCh <- err
 			return

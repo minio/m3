@@ -33,10 +33,14 @@ spec:
           args:
             - /m3-vault
           env:
-            - name: VAULT_DEV_ROOT_TOKEN_ID
-              value: "eaeaeaea"
-            - name: VAULT_DEV_LISTEN_ADDRESS
-              value: "0.0.0.0:8200"
+            - name: SECRET_SHARES
+              value: "5"
+            - name: SECRET_THRESHOLD
+              value: "3"
           ports:
             - containerPort: 8200
               name: rest-api
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK
