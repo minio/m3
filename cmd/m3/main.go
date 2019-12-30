@@ -93,6 +93,11 @@ func main() {
 			}
 			// exit code NOT OK
 			os.Exit(1)
+		} else {
+			// Natural kind of exit, close connections
+			if err := db.GetInstance().Close(); err != nil {
+				log.Println("Error closing connections:", err)
+			}
 		}
 	}()
 
