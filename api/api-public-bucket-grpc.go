@@ -41,10 +41,7 @@ func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (*pb.
 		return nil, status.New(codes.Internal, "Internal Error").Err()
 	}
 
-	// get tenant short name from context
-	tenantShortName := ctx.Value(cluster.TenantShortNameKey).(string)
-	// TODO: Update to use context
-	err = cluster.MakeBucket(appCtx, tenantShortName, bucket, accessType)
+	err = cluster.MakeBucket(appCtx, bucket, accessType)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
 	}

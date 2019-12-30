@@ -320,12 +320,16 @@ func WatcEtcdBucketCreation(ctx *Context) {
 				err = processMessage(ctx, event)
 				if err != nil {
 					log.Println("error processing event", err)
-					ctx.Rollback()
+					if err := ctx.Rollback(); err != nil {
+						log.Println(err)
+					}
 					return
 				}
-				ctx.Commit()
 				// announce the bucket on the router
 				<-UpdateNginxConfiguration(ctx)
+				if err := ctx.Commit(); err != nil {
+					log.Println(err)
+				}
 			}(event)
 		}
 	}
