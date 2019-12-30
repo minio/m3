@@ -17,6 +17,7 @@
 package cluster
 
 import (
+	"errors"
 	"time"
 
 	"github.com/minio/m3/cluster/db"
@@ -88,9 +89,11 @@ func UpdateAdminSessionStatus(ctx *Context, sessionID string, status string) err
 	return nil
 }
 
+var ErrNoAdminSession = errors.New("admin: no session found")
+
 // GetAdminTokenDetails get the details for the provided AdminToken
 func GetAdminSessionDetails(sessionID *string) (*AdminSession, error) {
-	var session AdminSession
+
 	// Get an individual session
 	queryUser := `
 		SELECT 
@@ -100,12 +103,23 @@ func GetAdminSessionDetails(sessionID *string) (*AdminSession, error) {
 		LEFT JOIN admins a ON s.admin_id = a.id
 		WHERE s.id=$1 AND s.status='valid' AND s.expires_at > NOW() LIMIT 1`
 
-	row := db.GetInstance().MainDB().QueryRow(queryUser, sessionID)
-
-	// Save the resulted query on the AdminToken struct
-	err := row.Scan(&session.ID, &session.AdminID, &session.WhoAmI)
+	rows, err := db.GetInstance().MainDB().Query(queryUser, sessionID)
 	if err != nil {
 		return nil, err
 	}
-	return &session, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		// Save the resulted query on the AdminToken struct
+		session := AdminSession{}
+		err := rows.Scan(&session.ID, &session.AdminID, &session.WhoAmI)
+		if err != nil {
+			return nil, err
+		}
+		return &session, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoAdminSession
 }

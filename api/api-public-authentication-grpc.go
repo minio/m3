@@ -73,13 +73,14 @@ func (s *server) SetPassword(ctx context.Context, in *pb.SetPasswordRequest) (*p
 	err = cluster.CompleteSignup(appCtx, urlToken, reqPassword)
 	if err != nil {
 		log.Println(err)
-		appCtx.Rollback()
+		if err = appCtx.Rollback(); err != nil {
+			log.Println(err)
+		}
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
 	// no errors? lets commit
-	err = appCtx.Commit()
-	if err != nil {
+	if err = appCtx.Commit(); err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 	return &pb.Empty{}, nil

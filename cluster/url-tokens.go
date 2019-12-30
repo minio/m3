@@ -53,9 +53,11 @@ func NewURLToken(ctx *Context, userID *uuid.UUID, usedFor string, validity *time
 	return &urlToken, nil
 }
 
+var ErrNoUrlToken = errors.New("tenant: No URL Token found")
+
 // GetTenantTokenDetails get the details for the provided urlToken
 func GetTenantTokenDetails(ctx *Context, urlToken *uuid.UUID) (*URLToken, error) {
-	var token URLToken
+
 	// Get an individual token
 	queryUser := `
 		SELECT 
@@ -64,14 +66,25 @@ func GetTenantTokenDetails(ctx *Context, urlToken *uuid.UUID) (*URLToken, error)
 				url_tokens
 			WHERE id=$1 LIMIT 1`
 
-	row := ctx.TenantTx().QueryRow(queryUser, urlToken)
-
-	// Save the resulted query on the URLToken struct
-	err := row.Scan(&token.ID, &token.UserID, &token.Expiration, &token.UsedFor, &token.Consumed)
+	rows, err := ctx.TenantTx().Query(queryUser, urlToken)
 	if err != nil {
 		return nil, err
 	}
-	return &token, nil
+	defer rows.Close()
+
+	for rows.Next() {
+		// Save the resulted query on the URLToken struct
+		var token URLToken
+		err := rows.Scan(&token.ID, &token.UserID, &token.Expiration, &token.UsedFor, &token.Consumed)
+		if err != nil {
+			return nil, err
+		}
+		return &token, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoUrlToken
 }
 
 // MarkTokenConsumed updates the record for the urlToken as is it has been used
@@ -80,7 +93,6 @@ func MarkTokenConsumed(ctx *Context, urlTokenID *uuid.UUID) error {
 	// Execute query
 	_, err := ctx.TenantTx().Exec(query, urlTokenID)
 	if err != nil {
-		ctx.Rollback()
 		return err
 	}
 

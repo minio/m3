@@ -135,6 +135,8 @@ func setAdminPassword(ctx *Context, adminID *uuid.UUID, password string) error {
 	return nil
 }
 
+var ErrNoAdmin = errors.New("admin: no Admin found")
+
 // GetAdminByEmail retrieves an admin by it's email
 func GetAdminByEmail(ctx *Context, email string) (*Admin, error) {
 	// Get user from tenants database
@@ -145,15 +147,25 @@ func GetAdminByEmail(ctx *Context, email string) (*Admin, error) {
 				admins t1
 			WHERE email=$1 LIMIT 1`
 
-	row := ctx.MainTx().QueryRow(queryUser, email)
-
-	admin := Admin{}
-
-	// Save the resulted query on the User struct
-	err := row.Scan(&admin.ID, &admin.Name, &admin.Email, &admin.Password)
+	rows, err := ctx.MainTx().Query(queryUser, email)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		admin := Admin{}
+		// Save the resulted query on the User struct
+		err := rows.Scan(&admin.ID, &admin.Name, &admin.Email, &admin.Password)
+		if err != nil {
+			return nil, err
+		}
+		return &admin, nil
+	}
 
-	return &admin, nil
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return nil, ErrNoAdmin
 }

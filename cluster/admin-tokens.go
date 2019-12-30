@@ -47,13 +47,10 @@ func NewAdminToken(ctx *Context, AdminID *uuid.UUID, usedFor string, validity *t
 	return &AdminToken, nil
 }
 
+var ErrNoAdminToken = errors.New("admin: no Token found")
+
 // GetAdminTokenDetails get the details for the provided AdminToken
 func GetAdminTokenDetails(ctx *Context, adminToken *uuid.UUID) (*AdminToken, error) {
-	// if no context is provided, don't use a transaction
-	if ctx == nil {
-		return nil, errors.New("no context provided")
-	}
-	var token AdminToken
 	// Get an individual token
 	queryUser := `
 		SELECT 
@@ -62,14 +59,24 @@ func GetAdminTokenDetails(ctx *Context, adminToken *uuid.UUID) (*AdminToken, err
 				admin_tokens
 			WHERE id=$1 LIMIT 1`
 
-	row := ctx.MainTx().QueryRow(queryUser, adminToken)
-
-	// Save the resulted query on the AdminToken struct
-	err := row.Scan(&token.ID, &token.AdminID, &token.Expiration, &token.UsedFor, &token.Consumed)
+	rows, err := ctx.MainTx().Query(queryUser, adminToken)
 	if err != nil {
 		return nil, err
 	}
-	return &token, nil
+	defer rows.Close()
+	for rows.Next() {
+		// Save the resulted query on the AdminToken struct
+		var token AdminToken
+		err := rows.Scan(&token.ID, &token.AdminID, &token.Expiration, &token.UsedFor, &token.Consumed)
+		if err != nil {
+			return nil, err
+		}
+		return &token, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoAdminToken
 }
 
 // MarkAdminTokenConsumed updates the record for the AdminToken as is it has been used

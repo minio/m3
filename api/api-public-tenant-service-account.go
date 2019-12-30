@@ -40,18 +40,9 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 	// start app context
 	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
-
-	defer func() {
-		if err != nil {
-			log.Println(err.Error())
-			appCtx.Rollback()
-			return
-		}
-		// if no error happened to this point commit transaction
-		err = appCtx.Commit()
-	}()
 
 	serviceAccount, saCred, err := cluster.AddServiceAccount(appCtx, appCtx.Tenant().ShortName, name, &name)
 	if err != nil {
@@ -63,6 +54,7 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 	for _, idString := range permisionsIDs {
 		permUUID, err := uuid.FromString(idString)
 		if err != nil {
+			log.Println(err)
 			return nil, status.New(codes.Internal, "permission uuid not valid").Err()
 		}
 		permissionIDsArr = append(permissionIDsArr, &permUUID)
@@ -75,7 +67,23 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 	}
 
 	// update nginx
-	<-cluster.UpdateNginxConfiguration(appCtx)
+	err = <-cluster.UpdateNginxConfiguration(appCtx)
+	if err != nil {
+		log.Println(err)
+	}
+
+	if err != nil {
+		log.Println(err.Error())
+		if err = appCtx.Rollback(); err != nil {
+			log.Println(err)
+		}
+		return
+	}
+	// if no error happened to this point commit transaction
+	if err = appCtx.Commit(); err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 
 	return &pb.CreateServiceAccountResponse{
 		ServiceAccount: &pb.ServiceAccount{

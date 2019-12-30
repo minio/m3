@@ -71,15 +71,15 @@ func (ps *privateServer) TenantAdd(in *pb.TenantAddRequest, stream pb.PrivateAPI
 	}
 
 	// now that we have a tenant, designate it as the tenant to be used in context
-	appCtx.Tenant = tenant
+	appCtx.SetTenant(tenant)
 	if err = cluster.ClaimTenant(appCtx, tenant, name, domain); err != nil {
 		log.Println("Error claiming tenant:", err)
 		return status.New(codes.Internal, "Error claiming tenant").Err()
 	}
 
 	// update the context tenant
-	appCtx.Tenant.Name = name
-	appCtx.Tenant.Domain = domain
+	appCtx.Tenant().Name = name
+	appCtx.Tenant().Domain = domain
 	sgt := <-cluster.GetTenantStorageGroupByShortName(appCtx, tenant.ShortName)
 	if sgt.Error != nil {
 		return status.New(codes.Internal, sgt.Error.Error()).Err()
@@ -251,7 +251,7 @@ func (ps *privateServer) TenantEnable(ctx context.Context, in *pb.TenantSingleRe
 // TenantDelete deletes all tenant's related data if it is disabled
 func (ps *privateServer) TenantDelete(in *pb.TenantSingleRequest, stream pb.PrivateAPI_TenantDeleteServer) error {
 	ctx := context.Background()
-	appCtx, err := getContextIfValidTenant(ctx, tenantDomain)
+	appCtx, err := getContextIfValidTenant(ctx, in.ShortName)
 	if err != nil {
 		return err
 	}
