@@ -157,7 +157,7 @@ func SetupM3() error {
 		return err
 	}
 
-	err = SetupDBAction(appCtx)
+	err = SetupDBAction()
 	if err != nil {
 		log.Println(err)
 		return err
@@ -199,14 +199,14 @@ func SetupM3() error {
 }
 
 // SetupDBAction runs all the operations to setup the DB or migrate it
-func SetupDBAction(ctx *Context) error {
+func SetupDBAction() error {
 	// setup the tenants shared db
-	err := CreateProvisioningSchema(ctx)
+	err := CreateProvisioningSchema()
 	if err != nil {
 		// this error could be because the database already exists, so we are going to tolerate it.
 		log.Println(err)
 	}
-	err = CreateTenantsSharedDatabase(ctx)
+	err = CreateTenantsSharedDatabase()
 	if err != nil {
 		// this error could be because the database already exists, so we are going to tolerate it.
 		log.Println(err)
@@ -479,12 +479,13 @@ func RunMigrations() error {
 }
 
 // CreateTenantSchema creates a db schema for the tenant
-func CreateTenantsSharedDatabase(ctx *Context) error {
+func CreateTenantsSharedDatabase() error {
 
 	// format in the tenant name assuming it's safe
 	query := fmt.Sprintf(`CREATE DATABASE %s`, env.Get("M3_TENANTS_DB", "tenants"))
 
-	_, err := ctx.MainTx().Exec(query)
+	// we cannot create a DB inside a transaction
+	_, err := db.GetInstance().MainDB().Exec(query)
 	if err != nil {
 		return err
 	}
@@ -492,11 +493,11 @@ func CreateTenantsSharedDatabase(ctx *Context) error {
 }
 
 // CreateProvisioningSchema creates a db schema for provisioning
-func CreateProvisioningSchema(ctx *Context) error {
+func CreateProvisioningSchema() error {
 	// format in the tenant name assuming it's safe
 	query := `CREATE SCHEMA provisioning`
 
-	_, err := ctx.MainTx().Exec(query)
+	_, err := db.GetInstance().MainDB().Exec(query)
 	if err != nil {
 		return err
 	}
