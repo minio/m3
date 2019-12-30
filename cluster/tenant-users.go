@@ -308,7 +308,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 	// send email with the invite
 	tenant, err := GetTenantByDomainWithCtx(ctx, ctx.Tenant.Domain)
 	if err != nil {
-		return fmt.Errorf("tenant: %s", err.Error())
+		return fmt.Errorf("tenant: %w", err)
 	}
 
 	// for now, let's hardcode the url, subsequent PRs will introduce system configs
@@ -331,7 +331,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 	// Get the mailing template for inviting users
 	body, err := GetTemplate(emailTemplate, templateData)
 	if err != nil {
-		return fmt.Errorf("template: %s", err.Error())
+		return fmt.Errorf("template: %w", err)
 	}
 
 	// send the email

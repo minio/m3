@@ -24,15 +24,6 @@ import (
 	"github.com/minio/minio/pkg/env"
 )
 
-// hostConfig configuration of a host.
-type hostConfigV9 struct {
-	URL       string `json:"url"`
-	AccessKey string `json:"accessKey"`
-	SecretKey string `json:"secretKey"`
-	API       string `json:"api"`
-	Lookup    string `json:"lookup"`
-}
-
 func getS3Domain() string {
 	return env.Get(s3Domain, "s3.localhost")
 }
