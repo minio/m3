@@ -32,9 +32,9 @@ service PrivateAPI {
     rpc SetupMigrate (AdminEmpty) returns (AdminEmpty) {
     }
     // Tenant Operations
-    rpc TenantAdd (TenantAddRequest) returns (TenantAddResponse) {
+    rpc TenantAdd (TenantAddRequest) returns (stream TenantResponse) {
     }
-    rpc TenantDelete (TenantSingleRequest) returns (Empty){
+    rpc TenantDelete (TenantSingleRequest) returns (stream TenantResponse){
     }
     rpc TenantEnable (TenantSingleRequest) returns (Empty){
     }
@@ -113,7 +113,9 @@ message TenantSingleRequest {
     string short_name = 1;
 }
 
-message TenantAddResponse {
+message TenantResponse{
+    int32 progress = 1; 
+    string message = 2;
 }
 
 message TenantCostRequest{

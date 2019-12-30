@@ -116,8 +116,8 @@ func removeMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, u
 	return nil
 }
 
-// setMinioConfigPostgresNotification configures Minio for Postgres notification
-func setMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *TenantConfiguration) error {
+// SetMinioConfigPostgresNotification configures Minio for Postgres notification
+func SetMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *TenantConfiguration) error {
 	// get an admin with operator keys
 	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
@@ -214,8 +214,8 @@ func minioIsReady(ctx *Context) (bool, error) {
 	return true, nil
 }
 
-// isMinioReadyRetry tries maxReadinessTries times and returns if is ready after retries
-func isMinioReadyRetry(ctx *Context) bool {
+// IsMinioReadyRetry tries maxReadinessTries times and returns if is ready after retries
+func IsMinioReadyRetry(ctx *Context) bool {
 	currentTries := 0
 	for {
 		ready, err := minioIsReady(ctx)
