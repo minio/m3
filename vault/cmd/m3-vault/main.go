@@ -33,10 +33,7 @@ func main() {
 
 	//if VAULT_DEV_ROOT_TOKEN_ID is not provided we assume vault server is not running
 	//we proceed to start a new local vault server
-	vaultServiceCh := make(chan interface{})
-	if os.Getenv("VAULT_DEV_ROOT_TOKEN_ID") == "" {
-		vaultServiceCh = startVaultService(color.FgYellow)
-	}
+	vaultServiceCh := startVaultService(color.FgYellow)
 
 	err := <-vaultInitAndUnseal()
 	if err != nil {
@@ -64,9 +61,8 @@ func startVaultService(dcolor color.Attribute) chan interface{} {
 	go func() {
 		defer close(doneCh)
 		// command to run
-		//docker run --cap-add=IPC_LOCK --rm -p 8200:8200 -e 'VAULT_DEV_ROOT_TOKEN_ID=s.PN9OMcvgjjKQ1zBr2DXS4Ze5' --name=dev-vault vault
 		//docker run --cap-add=IPC_LOCK --rm -p 8200:8200 -e 'VAULT_DEV_ROOT_TOKEN_ID=eaeaea' -e 'VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200' minio/m3-vault:latest
-		cmd := exec.Command("./vault", "server", "-config", "vault-config.json")
+		cmd := exec.Command("vault", "server", "-config", "vault-config.json")
 		// prepare to capture the output
 		var errStdout, errStderr error
 		stdoutIn, _ := cmd.StdoutPipe()
@@ -110,29 +106,26 @@ func vaultInitAndUnseal() chan error {
 	go func() {
 		defer close(doneCh)
 
-		rootToken := os.Getenv("VAULT_DEV_ROOT_TOKEN_ID")
+		rootToken := ""
 		address := "http://127.0.0.1:8200"
 		client, err := isVaultReadyRetry(address)
 		if err != nil {
 			doneCh <- err
 			return
 		}
-		//if provided rootToken is empty that means vault server is not initialized
-		if rootToken == "" {
-			initConfigs, err := client.Sys().Init(&vapi.InitRequest{SecretShares: 5, SecretThreshold: 3})
+		initConfigs, err := client.Sys().Init(&vapi.InitRequest{SecretShares: 5, SecretThreshold: 3})
+		if err != nil {
+			doneCh <- err
+			return
+		}
+		for _, key := range initConfigs.Keys {
+			_, err := client.Sys().Unseal(key)
 			if err != nil {
 				doneCh <- err
 				return
 			}
-			for _, key := range initConfigs.Keys {
-				_, err := client.Sys().Unseal(key)
-				if err != nil {
-					doneCh <- err
-					return
-				}
-			}
-			rootToken = initConfigs.RootToken
 		}
+		rootToken = initConfigs.RootToken
 
 		log.Println("Vault root token:", rootToken)
 		client.SetToken(rootToken)
