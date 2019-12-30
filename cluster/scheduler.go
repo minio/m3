@@ -251,7 +251,7 @@ func getTaskByID(id int64) (*Task, error) {
 			WHERE t.id=$1
 			LIMIT 1`
 	// query the reord
-	row := GetInstance().Db.QueryRow(query, id)
+	row := db.GetInstance().Db.QueryRow(query, id)
 	task := Task{}
 	// Save the resulted query on the User struct
 	err := row.Scan(&task.ID, &task.Name, &task.Data, &task.Status)

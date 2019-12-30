@@ -592,7 +592,7 @@ func DeleteTenantK8sObjects(ctx *Context, tenantShortName string) error {
 		return errors.New("Error deleting tenant's")
 	}
 	// purge connection from pool
-	GetInstance().RemoveCnx(tenantShortName)
+	db.GetInstance().RemoveCnx(tenantShortName)
 
 	//delete namespace
 	nsDeleteCh := DeleteTenantNamespace(tenantShortName)
