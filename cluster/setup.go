@@ -477,7 +477,7 @@ func CreateTenantsSharedDatabase() error {
 	db := db.GetInstance().Db
 
 	// format in the tenant name assuming it's safe
-	query := fmt.Sprintf(`CREATE DATABASE tenants`)
+	query := fmt.Sprintf(`CREATE DATABASE %s`, env.Get("M3_TENANTS_DB", "tenants"))
 
 	_, err := db.Exec(query)
 	if err != nil {

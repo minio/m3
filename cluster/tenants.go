@@ -415,11 +415,11 @@ func newTenantMinioClient(ctx *Context, tenantShortname string) (*minio.Client, 
 		return nil, err
 	}
 
-	// Initialize minio client object.
-	minioClient, err := minio.New(sgt.Address(),
+	// Initialize minio client object, force and use v4 signature only.
+	minioClient, err := minio.NewV4(sgt.Address(),
 		tenantConf.AccessKey,
 		tenantConf.SecretKey,
-		false)
+		tenantConf.TLS)
 	if err != nil {
 		return nil, tagErrorAsMinio("minio.New", err)
 	}

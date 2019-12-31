@@ -63,6 +63,7 @@ func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType Buc
 	// make it so this timeouts after only 20 seconds
 	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
+
 	// Create Bucket on tenant's MinIO
 	if err = minioClient.MakeBucketWithContext(timeoutCtx, bucketName, "us-east-1"); err != nil {
 		log.Println(err)
@@ -79,6 +80,7 @@ func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType Buc
 		log.Println(err)
 		return tagErrorAsMinio("SetBucketAccess", err)
 	}
+
 	// announce the bucket on the router
 	<-UpdateNginxConfiguration(ctx)
 	return nil
@@ -100,7 +102,8 @@ func SetBucketAccess(minioClient *minio.Client, bucketName string, accessType Bu
 	}
 
 	bucketAccessPolicy := policy.BucketAccessPolicy{Version: "2012-10-17"}
-	bucketAccessPolicy.Statements = policy.SetPolicy(bucketAccessPolicy.Statements, policy.BucketPolicy(bucketPolicy), bucketName, "")
+	bucketAccessPolicy.Statements = policy.SetPolicy(bucketAccessPolicy.Statements,
+		policy.BucketPolicy(bucketPolicy), bucketName, "")
 	var policyJSON []byte
 	if policyJSON, err = json.Marshal(bucketAccessPolicy); err != nil {
 		return err
