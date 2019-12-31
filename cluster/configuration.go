@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"errors"
-	"log"
 
 	"github.com/minio/m3/cluster/db"
 )
@@ -65,7 +64,7 @@ func SetConfigWithLock(ctx *Context, key, val, valType string, locked bool) erro
 	return nil
 }
 
-func GetConfig(key string, fallback interface{}) (*Configuration, error) {
+func GetConfig(key string) (*Configuration, error) {
 	query :=
 		`SELECT 
 				c.key, c.value, c.type, c.locked
@@ -73,15 +72,20 @@ func GetConfig(key string, fallback interface{}) (*Configuration, error) {
 				configurations c
 			WHERE c.key=$1`
 	// non-transactional query
-	row := db.GetInstance().MainDB().QueryRow(query, key)
-	config := Configuration{}
-	// Save the resulted query on the User struct
-	err := row.Scan(&config.Key, &config.Value, &config.ValueType, &config.locked)
+	rows, err := db.GetInstance().MainDB().Query(query, key)
 	if err != nil {
-		//TODO: remove before checkin
-		log.Println("missing config")
-		log.Println(err)
 		return nil, err
 	}
-	return &config, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		config := Configuration{}
+		// Save the resulted query on the User struct
+		err := rows.Scan(&config.Key, &config.Value, &config.ValueType, &config.locked)
+		if err != nil {
+			return nil, err
+		}
+		return &config, nil
+	}
+	return nil, err
 }

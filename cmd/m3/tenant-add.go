@@ -140,5 +140,6 @@ func addTenant(ctx *cli.Context) error {
 		bar.Add(int(resp.Progress))
 		fmt.Print(resp.Message)
 	}
+	fmt.Print("\n")
 	return nil
 }

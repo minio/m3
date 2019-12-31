@@ -27,7 +27,6 @@ import (
 	"net/smtp"
 	"os"
 	"regexp"
-	"strings"
 
 	"github.com/minio/minio/pkg/env"
 )
@@ -140,7 +139,7 @@ func GetTemplate(ctx *Context, templateName string, data interface{}) (*string, 
 	dbTemplate, err := getTemplateFromDB(ctx, templateName)
 	if err != nil {
 		// ignore no results error
-		if !strings.Contains(err.Error(), "no rows in result set") {
+		if err != ErrNoTemplate {
 			return nil, err
 		}
 	}
@@ -172,6 +171,8 @@ func GetTemplate(ctx *Context, templateName string, data interface{}) (*string, 
 	return &body, nil
 }
 
+var ErrNoTemplate = errors.New("template: no template found")
+
 func getTemplateFromDB(ctx *Context, templateName string) (*string, error) {
 	query :=
 		`SELECT 
@@ -180,15 +181,25 @@ func getTemplateFromDB(ctx *Context, templateName string) (*string, error) {
 				email_templates et
 			WHERE et.name=$1`
 	// non-transactional query
-	row := ctx.MainTx().QueryRow(query, templateName)
-
-	// Save the resulted query on the User struct
-	var template string
-	err := row.Scan(&template)
+	rows, err := ctx.MainTx().Query(query, templateName)
 	if err != nil {
 		return nil, err
 	}
-	return &template, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		// Save the resulted query on the User struct
+		var template string
+		err := rows.Scan(&template)
+		if err != nil {
+			return nil, err
+		}
+		return &template, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoTemplate
 }
 
 // SetEmailTemplate upserts a template into the database. If the id is not present the record will be inserted, if it's

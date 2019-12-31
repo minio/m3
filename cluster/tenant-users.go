@@ -132,6 +132,8 @@ func deleteUserFromDB(ctx *Context, userID uuid.UUID) error {
 	return nil
 }
 
+var ErrNoUserAccessKey = errors.New("tenant: no user access key found")
+
 // getUserAccessKey gets the access key for a user
 func getUserAccessKey(ctx *Context, userID uuid.UUID) (accessKey string, err error) {
 	query := `SELECT
@@ -139,12 +141,20 @@ func getUserAccessKey(ctx *Context, userID uuid.UUID) (accessKey string, err err
 			  FROM credentials c
 			  WHERE user_id=$1`
 	// Execute query
-	row := ctx.TenantTx().QueryRow(query, userID)
-	err = row.Scan(&accessKey)
+	rows, err := ctx.TenantTx().Query(query, userID)
 	if err != nil {
 		return "", err
 	}
-	return accessKey, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		err = rows.Scan(&accessKey)
+		if err != nil {
+			return "", err
+		}
+		return accessKey, nil
+	}
+	return "", ErrNoUserAccessKey
 }
 
 // deleteUsersSecrets removes the user's main secret

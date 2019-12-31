@@ -87,8 +87,10 @@ func NodeAdd(ctx *Context, name, k8sLabel string) (*Node, error) {
 	return node, nil
 }
 
+var ErrNoNode = errors.New("nodes: no node found")
+
 func GetNodeByName(ctx *Context, name string) (*Node, error) {
-	// Get user from tenants database
+	// Get node from main schema
 	query := `
 		SELECT 
 				n.id,n.name,n.k8s_label
@@ -96,14 +98,25 @@ func GetNodeByName(ctx *Context, name string) (*Node, error) {
 				nodes n
 			WHERE n.name=$1 LIMIT 1`
 
-	row := ctx.MainTx().QueryRow(query, name)
-	node := Node{}
-	err := row.Scan(&node.ID, &node.Name, &node.K8sLabel)
+	rows, err := ctx.MainTx().Query(query, name)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		node := Node{}
+		err := rows.Scan(&node.ID, &node.Name, &node.K8sLabel)
+		if err != nil {
+			return nil, err
+		}
 
-	return &node, nil
+		return &node, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoNode
 }
 
 type NodeVolume struct {

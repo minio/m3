@@ -226,7 +226,7 @@ func NewTenantContextWithGrpcContext(ctx context.Context) (*Context, error) {
 		return nil, status.New(codes.Internal, "internal error").Err()
 	}
 	// set the tenant on the context
-	if err := appCtx.SetTenant(&tenant); err != nil {
+	if err := appCtx.SetTenant(tenant); err != nil {
 		return nil, status.New(codes.Internal, "internal error").Err()
 	}
 

@@ -52,16 +52,27 @@ func getValidSASlug(ctx *Context, saName string) (*string, error) {
 		WHERE 
 		    slug = $1`
 
-	row := ctx.TenantTx().QueryRow(queryUser, saSlug)
-	var count int
-	err := row.Scan(&count)
+	rows, err := ctx.TenantTx().Query(queryUser, saSlug)
 	if err != nil {
 		return nil, err
 	}
-	// if we have collisions
-	if count > 0 {
-		// add modifier
-		saSlug = fmt.Sprintf("%s-%s", saSlug, RandomCharString(4))
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		var count int
+		err := rows.Scan(&count)
+		if err != nil {
+			return nil, err
+		}
+		// if we have collisions
+		if count > 0 {
+			// add modifier
+			saSlug = fmt.Sprintf("%s-%s", saSlug, RandomCharString(4))
+		}
+		return &saSlug, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return &saSlug, nil
 }

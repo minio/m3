@@ -98,3 +98,12 @@ func getAppURL() string {
 func getCliCommand() string {
 	return env.Get("CLI_COMMAND", "m3")
 }
+
+// getGlobalBucketsCfg returns the config state of global buckets, if there's no config, it returns false
+func getGlobalBucketsCfg() bool {
+	globalBuckets, err := GetConfig(cfgCoreGlobalBuckets)
+	if err != nil || globalBuckets == nil {
+		return false
+	}
+	return globalBuckets.ValBool()
+}

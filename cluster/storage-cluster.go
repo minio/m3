@@ -47,6 +47,8 @@ func AddStorageCluster(ctx *Context, scName string) (*StorageCluster, error) {
 	return &StorageCluster{ID: scID, Name: scName}, nil
 }
 
+var ErrStorageCluster = errors.New("cluster: no storage cluster")
+
 // GetStorageClusterByName returns a storage cluster by name
 func GetStorageClusterByName(ctx *Context, name string) (*StorageCluster, error) {
 	query := `
@@ -56,14 +58,24 @@ func GetStorageClusterByName(ctx *Context, name string) (*StorageCluster, error)
 				storage_clusters sg
 			WHERE sg.name=$1 LIMIT 1`
 
-	row := ctx.MainTx().QueryRow(query, name)
-	storageGroup := StorageCluster{}
-	err := row.Scan(&storageGroup.ID, &storageGroup.Name)
+	rows, err := ctx.MainTx().Query(query, name)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+	for rows.Next() {
+		storageGroup := StorageCluster{}
+		err := rows.Scan(&storageGroup.ID, &storageGroup.Name)
+		if err != nil {
+			return nil, err
+		}
+		return &storageGroup, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
-	return &storageGroup, nil
+	return nil, ErrStorageCluster
 }
 
 // Represents a logical entity in which multiple tenants resides inside a set of machines (Storage Cluster)

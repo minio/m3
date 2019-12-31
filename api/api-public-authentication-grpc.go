@@ -54,7 +54,7 @@ func (s *server) SetPassword(ctx context.Context, in *pb.SetPasswordRequest) (*p
 		log.Println(err)
 		return nil, status.New(codes.Unauthenticated, "invalid URL Token").Err()
 	}
-	if err := appCtx.SetTenant(&tenant); err != nil {
+	if err := appCtx.SetTenant(tenant); err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
@@ -113,7 +113,7 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteReques
 		return nil, status.New(codes.Unauthenticated, "invalid token").Err()
 	}
 	// set the tenant to the context
-	if err := appCtx.SetTenant(&tenant); err != nil {
+	if err := appCtx.SetTenant(tenant); err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
@@ -140,7 +140,7 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteReques
 
 // Login handles the Login request by receiving the user credentials
 // and returning a hashed token.
-func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginResponse, err error) {
+func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginResponse, error) {
 	// Create Credentials
 	// TODO: validate credentials: username->email, tenant->shortname?
 	tenantName := in.GetCompany()
@@ -152,6 +152,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 		log.Println(err)
 		return nil, status.New(codes.Internal, "internal Error").Err()
 	}
+	defer appCtx.Rollback()
 
 	// Search for the tenant on the database
 	tenant, err := cluster.GetTenantByDomainWithCtx(appCtx, tenantName)
@@ -186,25 +187,27 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 		return nil, status.New(codes.Unauthenticated, "wrong tenant, email and/or password").Err()
 	}
 
-	// Add the session within a transaction in case anything goes wrong during the adding process
-	defer func() {
-		if err != nil {
-			appCtx.Rollback()
-			return
-		}
-		// if no error happened to this point commit transaction
-		err = appCtx.Commit()
-	}()
 	// Everything looks good, create session
 	session, err := cluster.CreateSession(appCtx, &user, &tenant)
+	//if err != nil {
+	//	return nil, status.New(codes.Internal, err.Error()).Err()
+	//}
+
 	if err != nil {
+		if err = appCtx.Rollback(); err != nil {
+			log.Println(err)
+		}
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
-	// Return session in Token Response
-	res = &pb.LoginResponse{
-		JwtToken: session.ID,
+	// if no error happened to this point commit transaction
+	if err = appCtx.Commit(); err != nil {
+		log.Println(err)
 	}
-	return res, nil
+
+	// Return session in Token Response
+	return &pb.LoginResponse{
+		JwtToken: session.ID,
+	}, nil
 }
 
 // Logout sets session's status to invalid after validating the sessionId

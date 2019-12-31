@@ -41,6 +41,7 @@ func (s *server) UserWhoAmI(ctx context.Context, in *pb.Empty) (*pb.User, error)
 	if err != nil {
 		return nil, err
 	}
+	defer appCtx.Rollback()
 	// get User ID from context
 	userIDStr := ctx.Value(cluster.UserIDKey).(string)
 	userID, _ := uuid.FromString(userIDStr)

@@ -44,6 +44,7 @@ func (s *server) Metrics(ctx context.Context, in *pb.MetricsRequest) (res *pb.Me
 		log.Println(err)
 		return nil, status.New(codes.Internal, "internal error").Err()
 	}
+	defer appCtx.Rollback()
 	totalBucketsCount, err := cluster.GetLatestTotalBuckets(appCtx, dateFormatted)
 	if err != nil {
 		log.Println("error getting latest total number of buckets:", err)

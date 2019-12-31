@@ -98,7 +98,7 @@ func PublicAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unar
 		log.Printf("Attempted access for tenant `%s` by user_id `%s`", tenant.ShortName, validSession.ID)
 		return nil, status.New(codes.Unauthenticated, "Account is disabled").Err()
 	}
-	if err := appCtx.SetTenant(&tenant); err != nil {
+	if err := appCtx.SetTenant(tenant); err != nil {
 		return nil, status.New(codes.Internal, "internal error").Err()
 	}
 	user, err := cluster.GetUserByID(appCtx, validSession.UserID)

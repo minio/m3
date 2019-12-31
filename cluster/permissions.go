@@ -680,16 +680,24 @@ func getValidPermSlug(ctx *Context, permName string) (*string, error) {
 		WHERE 
 		    slug = $1`
 
-	row := ctx.TenantTx().QueryRow(queryUser, permSlug)
-	var count int
-	err := row.Scan(&count)
+	rows, err := ctx.TenantTx().Query(queryUser, permSlug)
 	if err != nil {
 		return nil, err
 	}
-	// if we have collisions
-	if count > 0 {
-		// add modifier
-		permSlug = fmt.Sprintf("%s-%s", permSlug, RandomCharString(4))
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		var count int
+		err := rows.Scan(&count)
+		if err != nil {
+			return nil, err
+		}
+		// if we have collisions
+		if count > 0 {
+			// add modifier
+			permSlug = fmt.Sprintf("%s-%s", permSlug, RandomCharString(4))
+		}
+		return &permSlug, nil
 	}
 	return &permSlug, nil
 }

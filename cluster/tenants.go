@@ -146,7 +146,7 @@ func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) err
 	if err := ctx.SetTenant(tenant); err != nil {
 		return err
 	}
-	if err = claimTenant(ctx, tenant, name, domain); err != nil {
+	if err = ClaimTenant(ctx, tenant, name, domain); err != nil {
 		return err
 	}
 	// update the context tenant
@@ -182,18 +182,18 @@ func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) err
 			log.Println("Error adding first tenant's admin user: ", err)
 			return errors.New("Error adding first tenant's admin user")
 		}
-		// Get the credentials for a tenant
-		tenantConf, err := GetTenantConfig(tenant)
-		if err != nil {
-			log.Println("Error getting tenants config", err)
-			return errors.New("Error getting tenants config")
-		}
-		// create minio postgres configuration for bucket notification
-		err = SetMinioConfigPostgresNotification(sgt.StorageGroupTenant, tenantConf)
-		if err != nil {
-			log.Println("Error setting tenant's minio postgres configuration", err)
-			return errors.New("Error setting tenant's minio postgres configuration")
-		}
+		//// Get the credentials for a tenant
+		//tenantConf, err := GetTenantConfig(tenant)
+		//if err != nil {
+		//	log.Println("Error getting tenants config", err)
+		//	return errors.New("Error getting tenants config")
+		//}
+		//// create minio postgres configuration for bucket notification
+		//err = SetMinioConfigPostgresNotification(sgt.StorageGroupTenant, tenantConf)
+		//if err != nil {
+		//	log.Println("Error setting tenant's minio postgres configuration", err)
+		//	return errors.New("Error setting tenant's minio postgres configuration")
+		//}
 
 		// Invite it's first admin
 		err = InviteUserByEmail(ctx, TokenSignupEmail, &newUser)
@@ -466,20 +466,29 @@ func GetTenantByDomainWithCtx(ctx *Context, tenantDomain string) (tenant Tenant,
 
 // GetTenantWithCtxByID gets the Tenant if it exists on the m3.provisining.tenants table
 // search is done by tenant id
-func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (tenant Tenant, err error) {
+func GetTenantWithCtxByID(ctx *Context, tenantID *uuid.UUID) (*Tenant, error) {
 	query :=
 		`SELECT 
-				t1.id, t1.name, t1.short_name, t1.enabled, t1.domain
+				t.id, t.name, t.short_name, t.enabled, t.domain
 			FROM 
-				tenants t1
-			WHERE t1.id=$1`
-	row := ctx.MainTx().QueryRow(query, tenantID)
-	// Save the resulted query on the User struct
-	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain)
+				tenants t
+			WHERE t.id=$1`
+	rows, err := ctx.MainTx().Query(query, tenantID)
 	if err != nil {
-		return tenant, err
+		return nil, err
 	}
-	return tenant, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		tenant := Tenant{}
+		// Save the resulted query on the User struct
+		err = rows.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain)
+		if err != nil {
+			return nil, err
+		}
+		return &tenant, nil
+	}
+	return nil, ErrNoTenant
 }
 
 // DeleteTenant runs all the logic to remove a tenant from the cluster.
@@ -547,8 +556,6 @@ func DeleteTenantK8sObjects(ctx *Context, tenantShortName string) error {
 		log.Println("Error deleting schema: ", err)
 		return errors.New("Error deleting tenant's")
 	}
-	// purge connection from pool
-	db.GetInstance().RemoveCnx(tenantShortName)
 
 	//delete namespace
 	nsDeleteCh := DeleteTenantNamespace(tenantShortName)
@@ -715,11 +722,7 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 	tenantConfig := make(map[string]string)
 
 	// if global bucket is enabled, configure the etcd
-	globalBuckets, err := GetConfig(cfgCoreGlobalBuckets, false)
-	if err != nil {
-		return err
-	}
-	if globalBuckets.ValBool() {
+	if getGlobalBucketsCfg() {
 		// The instance the MinIO instance identifies as
 		tenantConfig["MINIO_PUBLIC_IPS"] = sgTenant.ServiceName
 		// Domain under all MinIO instances check for

@@ -42,9 +42,10 @@ func (ps *privateServer) TenantAdd(in *pb.TenantAddRequest, stream pb.PrivateAPI
 			appCtx.Rollback()
 			return
 		}
+		log.Println("COMMITING ADD TENANT")
 		err = appCtx.Commit()
 	}()
-	if err := stream.Send(progressStruct(10, "validating tenant")); err != nil {
+	if err = stream.Send(progressStruct(10, "validating tenant")); err != nil {
 		return err
 	}
 
@@ -84,7 +85,7 @@ func (ps *privateServer) TenantAdd(in *pb.TenantAddRequest, stream pb.PrivateAPI
 	if sgt.Error != nil {
 		return status.New(codes.Internal, sgt.Error.Error()).Err()
 	}
-	if err := stream.Send(progressStruct(40, "updating nginx")); err != nil {
+	if err = stream.Send(progressStruct(40, "updating nginx")); err != nil {
 		return err
 	}
 
@@ -98,7 +99,7 @@ func (ps *privateServer) TenantAdd(in *pb.TenantAddRequest, stream pb.PrivateAPI
 		log.Println("Error updating nginx configuration: ", err)
 		return status.New(codes.Internal, "Error updating nginx configuration").Err()
 	}
-	if err := stream.Send(progressStruct(10, "initializing servers")); err != nil {
+	if err = stream.Send(progressStruct(10, "initializing servers")); err != nil {
 		return err
 	}
 
@@ -109,32 +110,33 @@ func (ps *privateServer) TenantAdd(in *pb.TenantAddRequest, stream pb.PrivateAPI
 		if !ready {
 			return status.New(codes.Internal, "MinIO was never ready. Unable to complete configuration of tenant").Err()
 		}
-		if err := stream.Send(progressStruct(10, "adding first admin user")); err != nil {
+		if err = stream.Send(progressStruct(10, "adding first admin user")); err != nil {
 			return err
 		}
 		// insert user to DB with random password
 		newUser := cluster.User{Name: userName, Email: userEmail}
-		err := cluster.AddUser(appCtx, &newUser)
+		err = cluster.AddUser(appCtx, &newUser)
 		if err != nil {
 			log.Println("Error adding first tenant's admin user: ", err)
 			return status.New(codes.Internal, "Error adding first tenant's admin user").Err()
 		}
-		if err := stream.Send(progressStruct(10, "inviting user by email")); err != nil {
+		if err = stream.Send(progressStruct(10, "inviting user by email")); err != nil {
 			return err
 		}
-		// Get the credentials for a tenant
-		tenantConf, err := cluster.GetTenantConfig(tenant)
-		if err != nil {
-			log.Println("Error getting tenants config", err)
-			return status.New(codes.Internal, "Error getting tenants config").Err()
-		}
 
-		// create minio postgres configuration for bucket notification
-		err = cluster.SetMinioConfigPostgresNotification(sgt.StorageGroupTenant, tenantConf)
-		if err != nil {
-			log.Println("Error setting tenant's minio postgres configuration", err)
-			return status.New(codes.Internal, "Error setting tenant's minio postgres configuration").Err()
-		}
+		//// Get the credentials for a tenant
+		//tenantConf, err := cluster.GetTenantConfig(tenant)
+		//if err != nil {
+		//	log.Println("Error getting tenants config", err)
+		//	return status.New(codes.Internal, "Error getting tenants config").Err()
+		//}
+
+		//// create minio postgres configuration for bucket notification
+		//err = cluster.SetMinioConfigPostgresNotification(sgt.StorageGroupTenant, tenantConf)
+		//if err != nil {
+		//	log.Println("Error setting tenant's minio postgres configuration", err)
+		//	return status.New(codes.Internal, "Error setting tenant's minio postgres configuration").Err()
+		//}
 
 		// Invite it's first admin
 		err = cluster.InviteUserByEmail(appCtx, cluster.TokenSignupEmail, &newUser)
@@ -142,21 +144,16 @@ func (ps *privateServer) TenantAdd(in *pb.TenantAddRequest, stream pb.PrivateAPI
 			log.Println("Error inviting user by email: ", err.Error())
 			return status.New(codes.Internal, "Error inviting user by email").Err()
 		}
-		if err := stream.Send(progressStruct(10, "done inviting user by email")); err != nil {
+		if err = stream.Send(progressStruct(10, "done inviting user by email")); err != nil {
 			return err
 		}
 	} else {
-		if err := stream.Send(progressStruct(30, "")); err != nil {
+		if err = stream.Send(progressStruct(30, "")); err != nil {
 			return err
 		}
 	}
 
-	// take one, provision one, tolerate failure of this call
-	if err := cluster.SchedulePreProvisionTenantInStorageGroup(appCtx, sgt.StorageGroup); err != nil {
-		log.Println("Warning:", err)
-	}
-
-	if err := stream.Send(progressStruct(10, "done adding tenant")); err != nil {
+	if err = stream.Send(progressStruct(10, "done adding tenant")); err != nil {
 		return err
 	}
 	return nil

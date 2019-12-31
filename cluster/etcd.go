@@ -270,11 +270,7 @@ func getEtcdCRDDeployment(clusterName string) *unstructured.Unstructured {
 
 // WatcEtcdBucketCreation watches a key prefix on etcd for new buckets being created
 func WatcEtcdBucketCreation(ctx *Context) {
-	globalBuckets, err := GetConfig(cfgCoreGlobalBuckets, false)
-	if err != nil {
-		return
-	}
-	if globalBuckets.ValBool() {
+	if getGlobalBucketsCfg() {
 		log.Println("Global buckets is ON")
 	} else {
 		log.Println("Global buckets is OFF")
@@ -285,6 +281,7 @@ func WatcEtcdBucketCreation(ctx *Context) {
 	etcdWatchKey := "/skydns"
 
 	var etcd *clientv3.Client
+	var err error
 	tries := 0
 	for {
 		etcd, err = clientv3.New(clientv3.Config{

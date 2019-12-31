@@ -68,10 +68,10 @@ func MakeBucket(ctx *Context, bucketName string, accessType BucketAccess) error 
 		return tagErrorAsMinio("MakeBucketWithContext", err)
 	}
 
-	if err = addMinioBucketNotification(minioClient, bucketName, "us-east-1"); err != nil {
-		log.Println(err)
-		return tagErrorAsMinio("addMinioBucketNotification", err)
-	}
+	//if err = addMinioBucketNotification(minioClient, bucketName, "us-east-1"); err != nil {
+	//	log.Println(err)
+	//	return tagErrorAsMinio("addMinioBucketNotification", err)
+	//}
 
 	err = SetBucketAccess(minioClient, bucketName, accessType)
 	if err != nil {
@@ -327,14 +327,13 @@ func GetLatestBucketsSizes(ctx *Context) (bucketsSizes map[string]uint64, err er
 					buckets_sizes
 				FROM bucket_metrics s
 				ORDER BY last_update DESC`
-	tx, err := ctx.TenantTx()
 	if err != nil {
 		return bucketsSizes, err
 	}
 	// Get first result of the query which contains the latest number of
 	// buckets during the selected period one Month
 	var sizesRow []byte
-	row := tx.QueryRow(query)
+	row := ctx.TenantTx().QueryRow(query)
 	if err != nil {
 		return bucketsSizes, err
 	}
