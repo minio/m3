@@ -27,7 +27,7 @@ import (
 	"github.com/minio/m3/cluster/db"
 
 	"github.com/minio/cli"
-	"github.com/minio/mc/pkg/console"
+	"github.com/minio/minio/pkg/console"
 	"github.com/minio/minio/pkg/trie"
 	"github.com/minio/minio/pkg/words"
 )
