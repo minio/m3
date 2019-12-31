@@ -154,7 +154,7 @@ func (s *Singleton) GetTenantDB(tenantName string) *sql.DB {
 func GetTenantDBConfig(tenantName string) *Config {
 	// right now all tenants live on the same server as m3, but on a different DB
 	config := GetM3DbConfig()
-	config.Name = "tenants"
+	config.Name = env.Get("M3_TENANTS_DB", "tenants")
 	config.SchemaName = tenantName
 	return config
 }
