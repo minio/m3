@@ -55,22 +55,25 @@ func (ps *privateServer) TenantAdd(in *pb.TenantAddRequest, stream pb.PrivateAPI
 	// check if tenant name is available
 	available, err := cluster.TenantShortNameAvailable(appCtx, domain)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error validating domain:", err)
 		return status.New(codes.Internal, "Error validating domain").Err()
 	}
 	if !available {
+		log.Println("Error tenant's shortname not available")
 		return status.New(codes.Internal, "Error tenant's shortname not available").Err()
 	}
 
 	// Find an available tenant
 	tenant, err := cluster.GrabAvailableTenant(appCtx)
 	if err != nil {
+		log.Println("No tenant space available:", err)
 		return status.New(codes.Internal, "No space available").Err()
 	}
 
 	// now that we have a tenant, designate it as the tenant to be used in context
 	appCtx.Tenant = tenant
 	if err = cluster.ClaimTenant(appCtx, tenant, name, domain); err != nil {
+		log.Println("Error claiming tenant:", err)
 		return status.New(codes.Internal, "Error claiming tenant").Err()
 	}
 
@@ -149,7 +152,7 @@ func (ps *privateServer) TenantAdd(in *pb.TenantAddRequest, stream pb.PrivateAPI
 	}
 
 	// take one, provision one, tolerate failure of this call
-	if err = cluster.SchedulePreProvisionTenantInStorageGroup(appCtx, sgt.StorageGroup); err != nil {
+	if err := cluster.SchedulePreProvisionTenantInStorageGroup(appCtx, sgt.StorageGroup); err != nil {
 		log.Println("Warning:", err)
 	}
 
@@ -271,9 +274,11 @@ func (ps *privateServer) TenantDelete(in *pb.TenantSingleRequest, stream pb.Priv
 
 	defer func() {
 		if err != nil {
+			log.Println(err)
 			appCtx.Rollback()
 			return
 		}
+		// commit last transction for provisioning
 		err = appCtx.Commit()
 	}()
 
@@ -332,8 +337,14 @@ func (ps *privateServer) TenantDelete(in *pb.TenantSingleRequest, stream pb.Priv
 		return err
 	}
 
+	// if we reach here, all is good, commit
+	if err := appCtx.Commit(); err != nil {
+		log.Println("error committing transaction:", err)
+		return status.New(codes.Internal, "Internal error").Err()
+	}
+
 	// delete one tenant, provision one tenant, tolerate failure of this call
-	if err = cluster.SchedulePreProvisionTenantInStorageGroup(appCtx, sgt.StorageGroup); err != nil {
+	if err := cluster.SchedulePreProvisionTenantInStorageGroup(appCtx, sgt.StorageGroup); err != nil {
 		log.Println("Warning:", err)
 	}
 	return nil
