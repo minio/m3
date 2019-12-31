@@ -20,6 +20,12 @@ import (
 	"github.com/minio/minio-go/v6"
 )
 
+func init() {
+	// All minio-go API operations shall be performed only once,
+	// another way to look at this is we are turning off retries.
+	minio.MaxRetry = 1
+}
+
 // Config - see http://docs.amazonwebservices.com/AmazonS3/latest/dev/index.html?RESTAuthentication.html
 type Config struct {
 	AccessKey   string

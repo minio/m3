@@ -181,9 +181,11 @@ func addMinioBucketNotification(minioClient *minio.Client, bucketName, region st
 
 	bucketNotification := minio.BucketNotification{}
 	bucketNotification.AddQueue(queueConfig)
-	// make it so this timeouts after only 2 seconds
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+
+	// Setting notification is a fast process, set the timeout to maximum 5 secs.
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
+
 	err := minioClient.SetBucketNotificationWithContext(timeoutCtx, bucketName, bucketNotification)
 	if err != nil {
 		return tagErrorAsMinio("SetBucketNotificationWithContext", err)
@@ -193,7 +195,9 @@ func addMinioBucketNotification(minioClient *minio.Client, bucketName, region st
 
 // tagErrorAsMinio takes an error and tags it as a MinIO error
 func tagErrorAsMinio(what string, err error) error {
-	return fmt.Errorf("MinIO: `%s`, %s", what, err.Error())
+	// Make sure to wrap the errors such that callers can use
+	// errors.Is() or errors.As to extract information
+	return fmt.Errorf("MinIO: `%s`, %w", what, err)
 }
 
 // minioIsReady determines whether the MinIO for a tenant is ready or not

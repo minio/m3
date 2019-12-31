@@ -18,17 +18,13 @@ package cluster
 
 import (
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"io"
-	"path/filepath"
-	"runtime"
 
 	"golang.org/x/crypto/bcrypt"
 
 	"strings"
 
-	"github.com/minio/minio-go/v6"
 	uuid "github.com/satori/go.uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -67,59 +63,31 @@ func GetTenantConfig(tenant *Tenant) (*TenantConfiguration, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	// Get the tenant main secret
 	tenantSecretName := fmt.Sprintf("%s-env", tenant.ShortName)
 	mainSecret, err := clientset.CoreV1().Secrets("default").Get(tenantSecretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
+
 	conf := TenantConfiguration{}
+
 	// Make sure we have the data we need
-	if val, ok := mainSecret.Data[minioAccessKey]; ok {
-		conf.AccessKey = string(val)
-	} else {
-		return nil, errors.New("tenant has no operator access key")
+	val, ok := mainSecret.Data[minioAccessKey]
+	if !ok {
+		return nil, fmt.Errorf("%s tenant has no operator access key", tenant.ShortName)
 	}
-	if val, ok := mainSecret.Data[minioSecretKey]; ok {
-		conf.SecretKey = string(val)
-	} else {
-		return nil, errors.New("tenant has no operator secret key")
+	conf.AccessKey = string(val)
+
+	val, ok = mainSecret.Data[minioSecretKey]
+	if !ok {
+		return nil, fmt.Errorf("%s tenant has no operator secret key", tenant.ShortName)
 	}
+	conf.SecretKey = string(val)
+
 	// Build configuration
 	return &conf, nil
-}
-
-// newS3Config simply creates a new Config struct using the passed
-// parameters.
-func newS3Config(appName, url string, hostCfg *hostConfigV9) *Config {
-	// We have a valid alias and hostConfig. We populate the
-	// credentials from the match found in the config file.
-	s3Config := new(Config)
-
-	s3Config.AppName = filepath.Base(appName)
-	s3Config.AppVersion = Version
-	s3Config.AppComments = []string{filepath.Base(appName), runtime.GOOS, runtime.GOARCH}
-
-	s3Config.HostURL = url
-	if hostCfg != nil {
-		s3Config.AccessKey = hostCfg.AccessKey
-		s3Config.SecretKey = hostCfg.SecretKey
-		s3Config.Signature = hostCfg.API
-	}
-	s3Config.Lookup = toLookupType(hostCfg.Lookup)
-	return s3Config
-}
-
-// toLookupType returns the minio.BucketLookupType for lookup
-// option entered on the command line
-func toLookupType(s string) minio.BucketLookupType {
-	switch strings.ToLower(s) {
-	case "dns":
-		return minio.BucketLookupDNS
-	case "path":
-		return minio.BucketLookupPath
-	}
-	return minio.BucketLookupAuto
 }
 
 // HashPassword hashes the password one way

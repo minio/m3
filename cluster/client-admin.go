@@ -18,11 +18,12 @@ package cluster
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"hash/fnv"
 	"net"
 	"net/http"
 	"net/url"
+	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -32,8 +33,6 @@ import (
 )
 
 const globalAppName = "m3 portal"
-
-var globalRootCAs *x509.CertPool
 
 // newAdminFactory encloses New function with client cache.
 func newAdminFactory() func(config *Config) (*madmin.AdminClient, *probe.Error) {
@@ -75,7 +74,7 @@ func newAdminFactory() func(config *Config) (*madmin.AdminClient, *probe.Error) 
 			}
 
 			// Keep TLS config.
-			tlsConfig := &tls.Config{RootCAs: globalRootCAs}
+			tlsConfig := &tls.Config{}
 			if config.Insecure {
 				tlsConfig.InsecureSkipVerify = true
 			}
@@ -114,19 +113,17 @@ func newAdminFactory() func(config *Config) (*madmin.AdminClient, *probe.Error) 
 
 // NewAdminClient gives a new client interface
 func NewAdminClient(url string, accessKey string, secretKey string) (*madmin.AdminClient, *probe.Error) {
-	hostCfg := hostConfigV9{
-		URL:       url,
-		AccessKey: accessKey,
-		SecretKey: secretKey,
-		API:       "S3v4",
-		Lookup:    "dns",
-	}
-
-	s3Config := newS3Config(globalAppName, hostCfg.URL, &hostCfg)
-
-	s3Client, err := s3AdminNew(s3Config)
+	appName := filepath.Base(globalAppName)
+	s3Client, err := s3AdminNew(&Config{
+		HostURL:     url,
+		AccessKey:   accessKey,
+		SecretKey:   secretKey,
+		AppName:     appName,
+		AppVersion:  Version,
+		AppComments: []string{appName, runtime.GOOS, runtime.GOARCH},
+	})
 	if err != nil {
-		return nil, err.Trace(url, hostCfg.URL)
+		return nil, err.Trace(url)
 	}
 	return s3Client, nil
 }
