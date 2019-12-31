@@ -1,4 +1,6 @@
 # m3 (mkube)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fminio%2Fm3.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fminio%2Fm3?ref=badge_shield)
+
 MinIO Kubernetes Cloud
 
 ## Prerequisites
@@ -235,3 +237,7 @@ kubectl apply -f k8s/deployments/portal-proxy-deployment.yaml
 ```
 kubectl port-forward svc/nginx-resolver 1337:80
 ```
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fminio%2Fm3.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fminio%2Fm3?ref=badge_large)
