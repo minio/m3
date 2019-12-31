@@ -42,7 +42,6 @@ func (ps *privateServer) TenantAdd(in *pb.TenantAddRequest, stream pb.PrivateAPI
 			appCtx.Rollback()
 			return
 		}
-		log.Println("COMMITING ADD TENANT")
 		err = appCtx.Commit()
 	}()
 	if err = stream.Send(progressStruct(10, "validating tenant")); err != nil {

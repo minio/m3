@@ -17,14 +17,12 @@
 package cluster
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/minio/m3/cluster/db"
 
-	"github.com/minio/minio-go/v6"
 	"github.com/minio/minio/pkg/env"
 	"github.com/minio/minio/pkg/madmin"
 )
@@ -170,27 +168,6 @@ func getPostgresNotificationMinioConfigKV() (config string) {
 		dbConfg.Pwd,
 		dbConfg.Name)
 	return config
-}
-
-// addMinioBucketNotification
-func addMinioBucketNotification(minioClient *minio.Client, bucketName, region string) error {
-	postgresTable := env.Get("M3_POSTGRES_NOTIFICATION_TABLE", "bucketevents")
-	queueArn := minio.NewArn("minio", "sqs", region, postgresTable, "postgresql")
-	queueConfig := minio.NewNotificationConfig(queueArn)
-	queueConfig.AddEvents(minio.ObjectCreatedAll, minio.ObjectRemovedAll)
-
-	bucketNotification := minio.BucketNotification{}
-	bucketNotification.AddQueue(queueConfig)
-
-	// Setting notification is a fast process, set the timeout to maximum 5 secs.
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-
-	err := minioClient.SetBucketNotificationWithContext(timeoutCtx, bucketName, bucketNotification)
-	if err != nil {
-		return tagErrorAsMinio("SetBucketNotificationWithContext", err)
-	}
-	return nil
 }
 
 // tagErrorAsMinio takes an error and tags it as a MinIO error

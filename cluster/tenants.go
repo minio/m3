@@ -56,6 +56,8 @@ const (
 	TenantAvailable = true
 )
 
+var ErrNoTenant = errors.New("no tenant found")
+
 func ProvisionTenants(ctx *Context, tenants []string, sg *StorageGroup) error {
 	for _, shortName := range tenants {
 		// Enable kes service for handling minio encryption
@@ -777,8 +779,6 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 
 // GetTenantWithCtxByServiceName gets the Tenant if it exists on the m3.provisining.tenants table
 // search is done by tenant service name
-var ErrNoTenant = errors.New("no tenant found")
-
 func GetTenantWithCtxByServiceName(ctx *Context, serviceName string) (*Tenant, error) {
 	query :=
 		`SELECT 

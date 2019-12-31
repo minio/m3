@@ -68,11 +68,6 @@ func MakeBucket(ctx *Context, bucketName string, accessType BucketAccess) error 
 		return tagErrorAsMinio("MakeBucketWithContext", err)
 	}
 
-	//if err = addMinioBucketNotification(minioClient, bucketName, "us-east-1"); err != nil {
-	//	log.Println(err)
-	//	return tagErrorAsMinio("addMinioBucketNotification", err)
-	//}
-
 	err = SetBucketAccess(minioClient, bucketName, accessType)
 	if err != nil {
 		log.Println(err)

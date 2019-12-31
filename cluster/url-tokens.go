@@ -38,6 +38,8 @@ type URLToken struct {
 	Consumed   bool
 }
 
+var ErrNoURLToken = errors.New("tenant: No URL Token found")
+
 // NewURLToken generates and stores a new urlToken for the provided user, with the specified validity
 func NewURLToken(ctx *Context, userID *uuid.UUID, usedFor string, validity *time.Time) (*uuid.UUID, error) {
 	urlToken := uuid.NewV4()
@@ -52,8 +54,6 @@ func NewURLToken(ctx *Context, userID *uuid.UUID, usedFor string, validity *time
 	}
 	return &urlToken, nil
 }
-
-var ErrNoUrlToken = errors.New("tenant: No URL Token found")
 
 // GetTenantTokenDetails get the details for the provided urlToken
 func GetTenantTokenDetails(ctx *Context, urlToken *uuid.UUID) (*URLToken, error) {
@@ -84,7 +84,7 @@ func GetTenantTokenDetails(ctx *Context, urlToken *uuid.UUID) (*URLToken, error)
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return nil, ErrNoUrlToken
+	return nil, ErrNoURLToken
 }
 
 // MarkTokenConsumed updates the record for the urlToken as is it has been used

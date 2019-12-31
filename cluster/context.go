@@ -164,12 +164,11 @@ func NewEmptyContextWithGrpcContext(ctx context.Context) (*Context, error) {
 // autoRollback startws a go routine that monitors the control context to attempt a rollback
 func (c *Context) autoRollback() {
 	go func() {
-		select {
-		case <-c.ControlCtx.Done():
-			if err := c.Rollback(); err != nil {
-				if err != sql.ErrTxDone {
-					log.Println(err)
-				}
+		// block until done
+		<-c.ControlCtx.Done()
+		if err := c.Rollback(); err != nil {
+			if err != sql.ErrTxDone {
+				log.Println(err)
 			}
 		}
 	}()
