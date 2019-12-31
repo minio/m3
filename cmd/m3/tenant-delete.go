@@ -89,7 +89,7 @@ func tenantDelete(ctx *cli.Context) error {
 			break
 		}
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("\n", err)
 			return nil
 		}
 		bar.Add(int(resp.Progress))
