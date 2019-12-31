@@ -93,10 +93,12 @@ func MarkAdminTokenConsumed(ctx *Context, AdminTokenID *uuid.UUID) error {
 
 // CompleteSignup takes a urlToken and a password and changes the user password and then marks the token as used
 func SetAdminPasswordAction(ctx *Context, tokenID *uuid.UUID, password string) error {
-
 	adminToken, err := GetAdminTokenDetails(ctx, tokenID)
 	if err != nil {
-		return err
+		if err == ErrNoAdminToken {
+			return errors.New("invalid admin token")
+		}
+		return errors.New("Internal error")
 	}
 	if adminToken.Consumed {
 		return errors.New("admin token has already been consumed")

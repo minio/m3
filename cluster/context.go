@@ -91,7 +91,7 @@ func (c *Context) BeginTx() error {
 		c.tenantTx = tenantTx
 	}
 	// being main schema tx
-	if c.mainTx != nil {
+	if c.mainTx == nil {
 		mainTx, err := db.GetInstance().StartMainTx(c.ControlCtx)
 		if err != nil {
 			return err
@@ -104,10 +104,13 @@ func (c *Context) BeginTx() error {
 
 func (c *Context) Rollback() error {
 	// rollback tenant schema tx
+	var tenantTxErr error
+	var mainTxErr error
 	if c.tenantTx != nil {
 		err := c.tenantTx.Rollback()
-		if err != nil {
-			return err
+		if err != nil && err != sql.ErrTxDone {
+			log.Println(err)
+			tenantTxErr = err
 		}
 		// restart the txn
 		c.tenantTx = nil
@@ -115,11 +118,19 @@ func (c *Context) Rollback() error {
 	// rollback main schema tx
 	if c.mainTx != nil {
 		err := c.mainTx.Rollback()
-		if err != nil {
-			return err
+		if err != nil && err != sql.ErrTxDone {
+			log.Println(err)
+			mainTxErr = err
 		}
 		// restart the txn
 		c.mainTx = nil
+	}
+	// return erros
+	if tenantTxErr != nil {
+		return tenantTxErr
+	}
+	if mainTxErr != nil {
+		return mainTxErr
 	}
 	return nil
 }
@@ -146,7 +157,22 @@ func NewEmptyContextWithGrpcContext(ctx context.Context) (*Context, error) {
 		appCtx.WhoAmI = whoAmI
 	}
 	appCtx.ControlCtx = ctx
+	appCtx.autoRollback()
 	return appCtx, nil
+}
+
+// autoRollback startws a go routine that monitors the control context to attempt a rollback
+func (c *Context) autoRollback() {
+	go func() {
+		select {
+		case <-c.ControlCtx.Done():
+			if err := c.Rollback(); err != nil {
+				if err != sql.ErrTxDone {
+					log.Println(err)
+				}
+			}
+		}
+	}()
 }
 
 func NewCtxWithTenant(tenant *Tenant) (*Context, error) {
@@ -180,6 +206,11 @@ func NewCtxWithTenant(tenant *Tenant) (*Context, error) {
 // SetTenant sets the tenant to the context and starts a transaction for the context
 func (c *Context) SetTenant(tenant *Tenant) error {
 	c.tenant = tenant
+	if c.tenantTx != nil {
+		if err := c.tenantTx.Rollback(); err != nil {
+			log.Println(err)
+		}
+	}
 	tenantTx, err := startTenantTx(c.ControlCtx, tenant)
 	if err != nil {
 		return err
@@ -238,5 +269,6 @@ func NewTenantContextWithGrpcContext(ctx context.Context) (*Context, error) {
 		appCtx.WhoAmI = whoAmI
 	}
 	appCtx.ControlCtx = ctx
+	appCtx.autoRollback()
 	return appCtx, nil
 }

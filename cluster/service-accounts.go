@@ -140,6 +140,7 @@ func GetServiceAccountList(ctx *Context, offset int, limit int) ([]*ServiceAccou
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var sas []*ServiceAccount
 	for rows.Next() {
 		sa := ServiceAccount{}
@@ -148,6 +149,9 @@ func GetServiceAccountList(ctx *Context, offset int, limit int) ([]*ServiceAccou
 			return nil, err
 		}
 		sas = append(sas, &sa)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return sas, nil
 }
@@ -700,6 +704,7 @@ func streamAccessKeyToTenantServices(ctx *Context) chan *AccessKeyToTenantShortN
 				ch <- &AccessKeyToTenantShortNameResult{Error: err}
 				return
 			}
+			defer rows.Close()
 
 			for rows.Next() {
 				// Save the resulted query on the User struct
@@ -709,20 +714,15 @@ func streamAccessKeyToTenantServices(ctx *Context) chan *AccessKeyToTenantShortN
 				err = rows.Scan(&ak2s.AccessKey)
 				if err != nil {
 					ch <- &AccessKeyToTenantShortNameResult{Error: err}
-					rows.Close()
 					return
 				}
 				ch <- &AccessKeyToTenantShortNameResult{AccessKeyToTenantShortName: &ak2s}
 			}
 
-			err = rows.Err()
-			if err != nil {
+			if err = rows.Err(); err != nil {
 				ch <- &AccessKeyToTenantShortNameResult{Error: err}
-				rows.Close()
 				return
 			}
-
-			rows.Close()
 		}
 	}()
 	return ch

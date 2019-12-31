@@ -94,7 +94,7 @@ func tenantServiceAccountAdd(ctx *cli.Context) error {
 	}
 
 	// set the tenant to the context
-	if err := appCtx.SetTenant(&tenant); err != nil {
+	if err := appCtx.SetTenant(tenant); err != nil {
 		log.Println(err)
 		return err
 	}

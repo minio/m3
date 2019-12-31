@@ -180,7 +180,6 @@ func (s *Singleton) Close() error {
 
 // Close all connectiosn
 func (s *Singleton) StartMainTx(controlCtx context.Context) (*sql.Tx, error) {
-	log.Println("----Started new main tx")
 	tx, err := s.db.BeginTx(controlCtx, nil)
 	if err != nil {
 		return nil, err

@@ -256,6 +256,7 @@ func GetUsersForTenant(ctx *Context, offset int32, limit int32) ([]*User, error)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var users []*User
 	for rows.Next() {
 		usr := User{}
@@ -264,6 +265,9 @@ func GetUsersForTenant(ctx *Context, offset int32, limit int32) ([]*User, error)
 			return nil, err
 		}
 		users = append(users, &usr)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return users, nil
 }

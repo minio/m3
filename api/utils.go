@@ -18,27 +18,22 @@ package api
 
 import (
 	"context"
-	"log"
 
 	"github.com/minio/m3/cluster"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func getContextIfValidTenant(grpcCtx context.Context, tenantDomain string) (*cluster.Context, error) {
-	appCtx, err := cluster.NewTenantContextWithGrpcContext(grpcCtx)
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(grpcCtx)
 	if err != nil {
-		log.Println(err)
-		return nil, status.New(codes.Internal, "Internal Error").Err()
+		return nil, err
 	}
 	// validate tenant
 	tenant, err := cluster.GetTenantByDomainWithCtx(appCtx, tenantDomain)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
-	if err := appCtx.SetTenant(&tenant); err != nil {
-		return nil, status.New(codes.Internal, "Internal Error").Err()
+	if err := appCtx.SetTenant(tenant); err != nil {
+		return nil, err
 	}
 	return appCtx, nil
 }

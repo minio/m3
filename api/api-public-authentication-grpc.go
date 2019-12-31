@@ -98,12 +98,7 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteReques
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
-	tenant, err := cluster.GetTenantByID(&parsedJwtToken.TenantID)
-	if err != nil {
-		log.Println("error getting tenant by id:", err)
-		return nil, status.New(codes.Unauthenticated, "invalid token").Err()
-	}
-	appCtx, err := cluster.NewCtxWithTenant(&tenant)
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +160,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 		return nil, status.New(codes.Unauthenticated, "user account disabled, contact support").Err()
 	}
 
-	if err := appCtx.SetTenant(&tenant); err != nil {
+	if err := appCtx.SetTenant(tenant); err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
@@ -188,7 +183,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 	}
 
 	// Everything looks good, create session
-	session, err := cluster.CreateSession(appCtx, &user, &tenant)
+	session, err := cluster.CreateSession(appCtx, &user, tenant)
 	//if err != nil {
 	//	return nil, status.New(codes.Internal, err.Error()).Err()
 	//}

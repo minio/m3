@@ -96,7 +96,7 @@ func tenantUserList(ctx *cli.Context) error {
 		return err
 	}
 	// set the tenant to the context
-	if err := appCtx.SetTenant(&tenant); err != nil {
+	if err := appCtx.SetTenant(tenant); err != nil {
 		fmt.Println(err)
 		return err
 	}

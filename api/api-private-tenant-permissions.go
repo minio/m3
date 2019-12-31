@@ -66,13 +66,13 @@ func (ps *privateServer) TenantPermissionList(ctx context.Context, in *pb.Tenant
 	appCtx, err := getContextIfValidTenant(ctx, in.Tenant)
 	if err != nil {
 		log.Println(err)
-		return nil, status.New(codes.Internal, "Internal error").Err()
+		return nil, status.New(codes.Internal, "Internal error 1").Err()
 	}
 	// perform actions
 	perms, err := cluster.ListPermissions(appCtx, in.Offset, in.Limit)
 	if err != nil {
 		log.Println(err)
-		return nil, status.New(codes.Internal, "Internal error").Err()
+		return nil, status.New(codes.Internal, "Internal error 2").Err()
 	}
 	//transform the permissions to pb format
 	var pbPerms []*pb.Permission

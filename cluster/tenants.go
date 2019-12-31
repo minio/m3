@@ -447,21 +447,32 @@ func createTenantNamespace(tenantShortName string) chan error {
 
 // GetTenantByDomainWithCtx gets the Tenant if it exists on the m3.provisining.tenants table
 // search is done by tenant name
-func GetTenantByDomainWithCtx(ctx *Context, tenantDomain string) (tenant Tenant, err error) {
+func GetTenantByDomainWithCtx(ctx *Context, tenantDomain string) (*Tenant, error) {
 	query :=
 		`SELECT 
 				t1.id, t1.name, t1.short_name, t1.enabled, t1.domain
 			FROM 
 				tenants t1
 			WHERE domain=$1`
-	row := ctx.MainTx().QueryRow(query, tenantDomain)
-
-	// Save the resulted query on the User struct
-	err = row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain)
+	rows, err := ctx.MainTx().Query(query, tenantDomain)
 	if err != nil {
-		return tenant, err
+		return nil, err
 	}
-	return tenant, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		tenant := Tenant{}
+		// Save the resulted query on the User struct
+		err = rows.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain)
+		if err != nil {
+			return nil, err
+		}
+		return &tenant, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoTenant
 }
 
 // GetTenantWithCtxByID gets the Tenant if it exists on the m3.provisining.tenants table
