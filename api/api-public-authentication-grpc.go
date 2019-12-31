@@ -91,26 +91,31 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteReques
 	}
 	parsedJwtToken, err := cluster.ParseAndValidateJwtToken(reqURLToken)
 	if err != nil {
+		log.Println("error parsing jwt token:", err)
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
 	tenant, err := cluster.GetTenantByID(&parsedJwtToken.TenantID)
 	if err != nil {
+		log.Println("error getting tenant by id:", err)
 		return nil, status.New(codes.Unauthenticated, "invalid token").Err()
 	}
 	appCtx := cluster.NewCtxWithTenant(&tenant)
 
 	urlToken, err := cluster.GetTenantTokenDetails(appCtx, &parsedJwtToken.Token)
 	if err != nil {
+		log.Println("error getting tenant token details:", err)
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
 	err = cluster.ValidateURLToken(urlToken)
 	if err != nil {
+		log.Println("error validating url token:", err)
 		return nil, status.New(codes.Unauthenticated, "invalid URL Token").Err()
 	}
 	user, err := cluster.GetUserByID(appCtx, urlToken.UserID)
 	if err != nil {
+		log.Println("error getting user by id:", err)
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
