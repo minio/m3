@@ -63,6 +63,10 @@ func StartScheduler() {
 		panic(err)
 	}
 	for {
+		// start new transaction so the loop continues
+		if err := ctx.BeginTx(); err != nil {
+			panic(err)
+		}
 		task, err := fetchNewTask(ctx)
 		if err != nil && err != sql.ErrNoRows {
 			// panic if we can't fetch tasks
@@ -81,11 +85,8 @@ func StartScheduler() {
 			if err := ctx.Commit(); err != nil {
 				panic(err)
 			}
-			// start new transaction so the loop continues
-			if err := ctx.BeginTx(); err != nil {
-				panic(err)
-			}
 		} else {
+			ctx.Rollback()
 			// we got not task, sleep a little
 			time.Sleep(time.Millisecond * 500)
 		}
