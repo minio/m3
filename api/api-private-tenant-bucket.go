@@ -52,7 +52,7 @@ func (ps *privateServer) TenantBucketAdd(ctx context.Context, in *pb.TenantBucke
 	}
 	appCtx.Tenant = &tenant
 
-	err = cluster.MakeBucket(appCtx, in.Tenant, in.BucketName, cluster.BucketPrivate)
+	err = cluster.MakeBucket(appCtx, tenant.ShortName, in.BucketName, cluster.BucketPrivate)
 	if err != nil {
 		fmt.Println("Error creating bucket:", err.Error())
 		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
