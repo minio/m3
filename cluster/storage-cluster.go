@@ -540,8 +540,6 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 			return
 		}
 		ch <- &StorageGroupTenantResult{Error: ErrNoTenantStorageGroup}
-		return
-
 	}()
 	return ch
 }
