@@ -31,6 +31,8 @@ type StorageCluster struct {
 	Name string
 }
 
+var ErrNoTenantStorageGroup = errors.New("cluster: No Tenant Storage Cluster Found")
+
 // Creates a storage cluster in the DB
 func AddStorageCluster(ctx *Context, scName string) (*StorageCluster, error) {
 	scID := uuid.NewV4()
@@ -482,6 +484,7 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 			       tsg.service_name, 
 			       t.name, 
 			       t.short_name, 
+			       t.domain, 
 			       t.enabled, 
 			       tsg.storage_group_id, 
 			       sg.name, 
@@ -494,51 +497,51 @@ func GetTenantStorageGroupByShortName(ctx *Context, tenantShortName string) chan
 				ON tsg.storage_group_id = sg.id
 			WHERE t.short_name=$1 LIMIT 1`
 
-		row := ctx.MainTx().QueryRow(query, tenantShortName)
-
-		// if we found nothing
-		var tenant *StorageGroupTenant
-
-		var tenantID uuid.UUID
-		var storageGroupID uuid.UUID
-		var tenantName string
-		var tenantShortName string
-		var tenantEnabled bool
-		var port int32
-		var sgNum int32
-		var sgName string
-		var serviceName string
-		err := row.Scan(
-			&tenantID,
-			&port,
-			&serviceName,
-			&tenantName,
-			&tenantShortName,
-			&tenantEnabled,
-			&storageGroupID,
-			&sgName,
-			&sgNum)
+		rows, err := ctx.MainTx().Query(query, tenantShortName)
 		if err != nil {
 			ch <- &StorageGroupTenantResult{Error: err}
 			return
 		}
+		defer rows.Close()
+		// if we iterate at least once, we found a result
+		for rows.Next() {
+			// if we found nothing
+			var sgTenant *StorageGroupTenant
+			tenant := Tenant{}
+			sg := StorageGroup{}
+			var port int32
+			var serviceName string
+			err := rows.Scan(
+				&tenant.ID,
+				&port,
+				&serviceName,
+				&tenant.Name,
+				&tenant.ShortName,
+				&tenant.Domain,
+				&tenant.Enabled,
+				&sg.ID,
+				&sg.Name,
+				&sg.Num)
+			if err != nil {
+				ch <- &StorageGroupTenantResult{Error: err}
+				return
+			}
 
-		tenant = &StorageGroupTenant{
-			Tenant: &Tenant{
-				ID:        tenantID,
-				Name:      tenantName,
-				ShortName: tenantShortName,
-				Enabled:   tenantEnabled,
-			},
-			Port:        port,
-			ServiceName: serviceName,
-			StorageGroup: &StorageGroup{
-				ID:   storageGroupID,
-				Num:  sgNum,
-				Name: sgName,
-			}}
+			sgTenant = &StorageGroupTenant{
+				Tenant:       &tenant,
+				Port:         port,
+				ServiceName:  serviceName,
+				StorageGroup: &sg}
 
-		ch <- &StorageGroupTenantResult{StorageGroupTenant: tenant}
+			ch <- &StorageGroupTenantResult{StorageGroupTenant: sgTenant}
+		}
+		if err := rows.Err(); err != nil {
+			ch <- &StorageGroupTenantResult{Error: err}
+			return
+		}
+		ch <- &StorageGroupTenantResult{Error: ErrNoTenantStorageGroup}
+		return
+
 	}()
 	return ch
 }

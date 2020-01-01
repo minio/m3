@@ -109,28 +109,23 @@ func (s *server) AddPermission(ctx context.Context, in *pb.AddPermissionRequest)
 // UpdatePermission gets permission and updates fields
 func (s *server) UpdatePermission(ctx context.Context, in *pb.UpdatePermissionRequest) (res *pb.Permission, err error) {
 	id := in.GetId()
-	resourcesBucketNames := in.GetResources()
-	actionTypes := in.GetActions()
-	permissionEffect := in.GetEffect()
-	permissionName := in.GetName()
-	description := in.GetDescription()
 	// Validate request's arguments
-	if len(resourcesBucketNames) == 0 {
+	if len(in.Resources) == 0 {
 		return nil, status.New(codes.InvalidArgument, "a list of resources is needed").Err()
 	}
-	if len(actionTypes) == 0 {
+	if len(in.Actions) == 0 {
 		return nil, status.New(codes.InvalidArgument, "a list of actions is needed").Err()
 	}
-	if permissionEffect == "" {
+	if in.Effect == "" {
 		return nil, status.New(codes.InvalidArgument, "a valid effect is needed").Err()
 	}
-	if permissionName == "" {
+	if in.Name == "" {
 		return nil, status.New(codes.InvalidArgument, "a valid permission name  is needed").Err()
 	}
-	if description == "" {
+	if in.Description == "" {
 		return nil, status.New(codes.InvalidArgument, "a valid description is needed").Err()
 	}
-	effect := cluster.EffectFromString(permissionEffect)
+	effect := cluster.EffectFromString(in.Effect)
 	if err := effect.IsValid(); err != nil {
 		return nil, status.New(codes.InvalidArgument, "invalid effect").Err()
 	}
@@ -140,36 +135,28 @@ func (s *server) UpdatePermission(ctx context.Context, in *pb.UpdatePermissionRe
 		return nil, err
 	}
 
-	defer func() {
-		if err != nil {
-			appCtx.Rollback()
-			return
-		}
-	}()
-
 	// get permission
 	permission, err := cluster.GetPermissionByID(appCtx, id)
 	if err != nil {
 		return nil, status.New(codes.InvalidArgument, "permission not found").Err()
 	}
-
 	// start updating values on the permission obj not yet on db.
-	permission.Name = permissionName
+	permission.Name = in.Name
 	permission.Effect = effect
-	permission.Description = &description
+	permission.Description = &in.Description
 
 	// Nullified values if they are empty
-	if description == "" {
+	if in.Description == "" {
 		permission.Description = nil
 	}
 
 	// -- Update Permission RESOURCES
-	err = updatePermissionResources(appCtx, permission, resourcesBucketNames)
+	err = updatePermissionResources(appCtx, permission, in.Resources)
 	if err != nil {
 		return nil, status.New(codes.Internal, "error updating permission resources").Err()
 	}
 	// -- Update Permission ACTIONS
-	err = updatePermissionActions(appCtx, permission, actionTypes)
+	err = updatePermissionActions(appCtx, permission, in.Actions)
 	if err != nil {
 		return nil, status.New(codes.Internal, "error updating permission actions").Err()
 	}
