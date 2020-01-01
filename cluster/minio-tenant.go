@@ -122,7 +122,7 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 						SecretName: fmt.Sprintf("%s-kes-app-keypair-key", sgTenant.ShortName),
 					},
 				}
-				hostPathVolume := v1.Volume{Name: "app-keypair-key", VolumeSource: volumenSource}
+				hostPathVolume := v1.Volume{Name: fmt.Sprintf("%s-app-keypair-key", sgTenant.ShortName), VolumeSource: volumenSource}
 				tenantVolumes = append(tenantVolumes, hostPathVolume)
 
 				volumenSource = v1.VolumeSource{
@@ -130,7 +130,7 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 						SecretName: fmt.Sprintf("%s-kes-app-keypair-cert", sgTenant.ShortName),
 					},
 				}
-				hostPathVolume = v1.Volume{Name: "app-keypair-cert", VolumeSource: volumenSource}
+				hostPathVolume = v1.Volume{Name: fmt.Sprintf("%s-app-keypair-cert", sgTenant.ShortName), VolumeSource: volumenSource}
 				tenantVolumes = append(tenantVolumes, hostPathVolume)
 
 				volumenSource = v1.VolumeSource{
@@ -138,23 +138,23 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 						SecretName: fmt.Sprintf("%s-kes-server-keypair-cert", sgTenant.ShortName),
 					},
 				}
-				hostPathVolume = v1.Volume{Name: "server-keypair-cert", VolumeSource: volumenSource}
+				hostPathVolume = v1.Volume{Name: fmt.Sprintf("%s-server-keypair-cert", sgTenant.ShortName), VolumeSource: volumenSource}
 				tenantVolumes = append(tenantVolumes, hostPathVolume)
 
 				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
-					Name:      "app-keypair-key",
+					Name:      fmt.Sprintf("%s-app-keypair-key", sgTenant.ShortName),
 					MountPath: fmt.Sprintf("/kes-config/%s/app/key", sgTenant.ShortName),
 					ReadOnly:  true,
 				})
 
 				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
-					Name:      "app-keypair-cert",
+					Name:      fmt.Sprintf("%s-app-keypair-cert", sgTenant.ShortName),
 					MountPath: fmt.Sprintf("/kes-config/%s/app/cert", sgTenant.ShortName),
 					ReadOnly:  true,
 				})
 
 				tenantContainer.VolumeMounts = append(tenantContainer.VolumeMounts, v1.VolumeMount{
-					Name:      "server-keypair-cert",
+					Name:      fmt.Sprintf("%s-server-keypair-cert", sgTenant.ShortName),
 					MountPath: fmt.Sprintf("/kes-config/%s/server/cert", sgTenant.ShortName),
 					ReadOnly:  true,
 				})
