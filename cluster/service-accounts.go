@@ -39,6 +39,8 @@ type ServiceAccount struct {
 	Enabled     bool
 }
 
+var ErrNoServiceAccount = errors.New("service-account: No Service Account Found")
+
 // getValidSASlug generates a valid slug for a name for the service accounts table, if there's a collision it appends
 // some random string
 func getValidSASlug(ctx *Context, saName string) (*string, error) {
@@ -459,14 +461,25 @@ func GetServiceAccountBySlug(ctx *Context, slug string) (*ServiceAccount, error)
 			LEFT JOIN credentials c ON sa.id = c.service_account_id
 			WHERE sa.slug=$1 LIMIT 1`
 
-	row := ctx.TenantTx().QueryRow(queryUser, slug)
-	sa := ServiceAccount{}
-	err := row.Scan(&sa.ID, &sa.Name, &sa.Slug, &sa.Description, &sa.AccessKey)
+	rows, err := ctx.TenantTx().Query(queryUser, slug)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		sa := ServiceAccount{}
+		err := rows.Scan(&sa.ID, &sa.Name, &sa.Slug, &sa.Description, &sa.AccessKey)
+		if err != nil {
+			return nil, err
+		}
 
-	return &sa, nil
+		return &sa, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoServiceAccount
 }
 
 // GetServiceAccountByID retrieves a permission by it's id
@@ -480,14 +493,25 @@ func GetServiceAccountByID(ctx *Context, id *uuid.UUID) (*ServiceAccount, error)
 			LEFT JOIN credentials c ON sa.id = c.service_account_id
 			WHERE sa.id=$1 LIMIT 1`
 
-	row := ctx.TenantTx().QueryRow(queryUser, id)
-	sa := ServiceAccount{}
-	err := row.Scan(&sa.ID, &sa.Name, &sa.Slug, &sa.Description, &sa.Enabled, &sa.AccessKey)
+	rows, err := ctx.TenantTx().Query(queryUser, id)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		sa := ServiceAccount{}
+		err := rows.Scan(&sa.ID, &sa.Name, &sa.Slug, &sa.Description, &sa.Enabled, &sa.AccessKey)
+		if err != nil {
+			return nil, err
+		}
 
-	return &sa, nil
+		return &sa, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoServiceAccount
 }
 
 // UpdateServiceAccountDB updates Name from the DB doing the query by ID
