@@ -75,7 +75,7 @@ func PublicAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unar
 		return handler(ctx, req)
 	}
 
-	appCtx, err := cluster.NewEmptyContext()
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.Internal, "internal error").Err()
