@@ -848,13 +848,24 @@ func GrabAvailableTenant(ctx *Context) (*Tenant, error) {
 			LIMIT 1
 			FOR UPDATE`
 	// transactional query
-	row := ctx.MainTx().QueryRow(query)
-	// Save the resulted query on the User struct
-	tenant := Tenant{}
-	if err := row.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain); err != nil {
+	rows, err := ctx.MainTx().Query(query)
+	if err != nil {
 		return nil, err
 	}
-	return &tenant, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		// Save the resulted query on the User struct
+		tenant := Tenant{}
+		if err := rows.Scan(&tenant.ID, &tenant.Name, &tenant.ShortName, &tenant.Enabled, &tenant.Domain); err != nil {
+			return nil, err
+		}
+		return &tenant, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoTenant
 }
 
 // ClaimTenant claims a tenant to a new account, marks it as not available and enables it for the router
