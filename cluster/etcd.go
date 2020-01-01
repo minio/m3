@@ -320,7 +320,6 @@ func WatcEtcdBucketCreation(ctx *Context) {
 					if err := ctx.Rollback(); err != nil {
 						log.Println(err)
 					}
-					log.Println("ROLLING BACK")
 					return
 				}
 				log.Println("error state:", err)

@@ -33,6 +33,8 @@ type User struct {
 	Enabled  bool
 }
 
+var ErrNoUser = errors.New("users: No User Found")
+
 // AddUser adds a new user to the tenant's database
 func AddUser(ctx *Context, newUser *User) error {
 	// validate user Name
@@ -197,7 +199,7 @@ func SetUserEnabledOnDB(ctx *Context, userID uuid.UUID, status bool) error {
 
 // GetUserByEmail searches for the user by Email in the defined tenant's database
 // and returns the User if it was found
-func GetUserByEmail(ctx *Context, email string) (user User, err error) {
+func GetUserByEmail(ctx *Context, email string) (*User, error) {
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
@@ -206,19 +208,30 @@ func GetUserByEmail(ctx *Context, email string) (user User, err error) {
 				users t1
 			WHERE email=$1 LIMIT 1`
 
-	row := ctx.TenantTx().QueryRow(queryUser, email)
-	// Save the resulted query on the User struct
-	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Enabled)
+	rows, err := ctx.TenantTx().Query(queryUser, email)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
-
-	return user, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		user := User{}
+		// Save the resulted query on the User struct
+		err = rows.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Enabled)
+		if err != nil {
+			return nil, err
+		}
+		return &user, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoUser
 }
 
 // GetUserByID searches for the user by ID in the defined tenant's database
 // and returns the User if it was found
-func GetUserByID(ctx *Context, id uuid.UUID) (user User, err error) {
+func GetUserByID(ctx *Context, id uuid.UUID) (*User, error) {
 	// Get user from tenants database
 	queryUser := `
 		SELECT 
@@ -227,15 +240,25 @@ func GetUserByID(ctx *Context, id uuid.UUID) (user User, err error) {
 				users t1
 			WHERE id=$1 LIMIT 1`
 
-	row := ctx.TenantTx().QueryRow(queryUser, id)
-
-	// Save the resulted query on the User struct
-	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Enabled)
+	rows, err := ctx.TenantTx().Query(queryUser, email)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
-
-	return user, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		user := User{}
+		// Save the resulted query on the User struct
+		err = rows.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Enabled)
+		if err != nil {
+			return nil, err
+		}
+		return &user, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoUser
 }
 
 // GetUsersForTenant returns a page of users for the provided tenant
