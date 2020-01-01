@@ -36,6 +36,8 @@ type ServiceAccountCredentials struct {
 	SecretKey string
 }
 
+var ErrNoCredentials = errors.New("credentials: no credentials found")
+
 // createUserWithCredentials creates some random access/secret key pair and then stores them on k8s, if successful
 // it will create a MinIO User and attach `readwrite` policy, if successful, it will insert this credential to the
 // tenant DB
@@ -196,13 +198,25 @@ func GetCredentialsForServiceAccount(ctx *Context, serviceAccountID *uuid.UUID) 
 				LEFT JOIN service_accounts sa ON c.service_account_id = sa.id
 			WHERE sa.id=$1 LIMIT 1`
 
-	row := ctx.TenantTx().QueryRow(queryUser, serviceAccountID)
-	sac := ServiceAccountCredentials{}
-	// Save the resulted query on the User struct
-	err := row.Scan(&sac.AccessKey)
+	rows, err := ctx.TenantTx().Query(queryUser, serviceAccountID)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		sac := ServiceAccountCredentials{}
+		// Save the resulted query on the User struct
+		err := rows.Scan(&sac.AccessKey)
+		if err != nil {
+			return nil, err
+		}
 
-	return &sac, nil
+		return &sac, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return nil, ErrNoCredentials
 }
