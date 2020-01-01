@@ -31,7 +31,8 @@ type StorageCluster struct {
 	Name string
 }
 
-var ErrNoTenantStorageGroup = errors.New("cluster: No Tenant Storage Cluster Found")
+var ErrNoStorageGroup = errors.New("cluster: No Storage Group Found")
+var ErrNoTenantStorageGroup = errors.New("cluster: No Tenant Storage Group Found")
 
 // Creates a storage cluster in the DB
 func AddStorageCluster(ctx *Context, scName string) (*StorageCluster, error) {
@@ -113,22 +114,41 @@ func AddStorageGroup(ctx *Context, storageClusterID *uuid.UUID, sgName string) c
 				($1, $2, $3, $4)
 				RETURNING num`
 
-		err := ctx.MainTx().QueryRow(query, sgID, storageClusterID, sgName, ctx.WhoAmI).Scan(&sgNum)
+		rows, err := ctx.MainTx().Query(query, sgID, storageClusterID, sgName, ctx.WhoAmI)
 		if err != nil {
 			ch <- StorageGroupResult{
 				Error: err,
 			}
 			return
 		}
-		// return result via channel
+		defer rows.Close()
+		for rows.Next() {
+			err = rows.Scan(&sgNum)
+			if err != nil {
+				ch <- StorageGroupResult{
+					Error: err,
+				}
+				return
+			}
+			// return result via channel
+			ch <- StorageGroupResult{
+				StorageGroup: &StorageGroup{
+					ID:               sgID,
+					StorageClusterID: storageClusterID,
+					Name:             sgName,
+					Num:              sgNum,
+				},
+				Error: nil,
+			}
+		}
+		if err = rows.Err(); err != nil {
+			ch <- StorageGroupResult{
+				Error: err,
+			}
+			return
+		}
 		ch <- StorageGroupResult{
-			StorageGroup: &StorageGroup{
-				ID:               sgID,
-				StorageClusterID: storageClusterID,
-				Name:             sgName,
-				Num:              sgNum,
-			},
-			Error: nil,
+			Error: ErrNoStorageGroup,
 		}
 
 	}()

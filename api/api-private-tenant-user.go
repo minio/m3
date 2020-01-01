@@ -139,7 +139,7 @@ func (ps *privateServer) TenantUserForgotPassword(ctx context.Context, in *pb.Te
 	}
 
 	// Send email invitation with token
-	err = cluster.InviteUserByEmail(appCtx, cluster.TokenResetPasswordEmail, &user)
+	err = cluster.InviteUserByEmail(appCtx, cluster.TokenResetPasswordEmail, user)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}

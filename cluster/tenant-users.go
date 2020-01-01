@@ -240,7 +240,7 @@ func GetUserByID(ctx *Context, id uuid.UUID) (*User, error) {
 				users t1
 			WHERE id=$1 LIMIT 1`
 
-	rows, err := ctx.TenantTx().Query(queryUser, email)
+	rows, err := ctx.TenantTx().Query(queryUser, id)
 	if err != nil {
 		return nil, err
 	}

@@ -183,7 +183,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginRespo
 	}
 
 	// Everything looks good, create session
-	session, err := cluster.CreateSession(appCtx, &user, tenant)
+	session, err := cluster.CreateSession(appCtx, user, tenant)
 	//if err != nil {
 	//	return nil, status.New(codes.Internal, err.Error()).Err()
 	//}

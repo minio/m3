@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"log"
@@ -40,6 +39,10 @@ const (
 	BucketPublic
 	BucketCustom
 )
+
+var ErrNoCostModifier = errors.New("buckets: No Cost Modifier Found")
+var ErrNoBucketSizes = errors.New("buckets: No bucket Sizes Found")
+var ErrNoLatestTotalBucket = errors.New("buckets: No latest total buckets")
 
 // MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
 // TODO: allow to spcify the user performing the action (like in the API/gRPC case)
@@ -305,50 +308,64 @@ func GetTenantUsageCostMultiplier(ctx *Context) (cost float32, err error) {
 			  WHERE t.short_name=$1`
 
 	// Execute query search one Month after `date`
-	row := ctx.MainTx().QueryRow(query, ctx.Tenant().ShortName)
+	rows, err := ctx.MainTx().Query(query, ctx.Tenant().ShortName)
 	if err != nil {
 		return 0, err
 	}
-	err = row.Scan(&cost)
-	if err != nil {
+	defer rows.Close()
+	for rows.Next() {
+		// if we iterate at least once, we found a result
+		if err != nil {
+			return 0, err
+		}
+		err = rows.Scan(&cost)
+		if err != nil {
+			return 0, err
+		}
+		return cost, nil
+	}
+	if err := rows.Err(); err != nil {
 		return 0, err
 	}
-	return cost, nil
+	return 0, ErrNoCostModifier
 }
 
 // GetLatestBucketsSizes return latest buckets sizes map
-func GetLatestBucketsSizes(ctx *Context) (bucketsSizes map[string]uint64, err error) {
+func GetLatestBucketsSizes(ctx *Context) (map[string]uint64, error) {
 	query := `SELECT
 					buckets_sizes
 				FROM bucket_metrics s
 				ORDER BY last_update DESC`
-	if err != nil {
-		return bucketsSizes, err
-	}
 	// Get first result of the query which contains the latest number of
 	// buckets during the selected period one Month
 	var sizesRow []byte
-	row := ctx.TenantTx().QueryRow(query)
+	rows, err := ctx.TenantTx().Query(query)
 	if err != nil {
-		return bucketsSizes, err
+		return nil, err
 	}
-	err = row.Scan(&sizesRow)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return bucketsSizes, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		err = rows.Scan(&sizesRow)
+		if err != nil {
+			log.Println("error getting latest buckets sizes:", err)
+			return nil, err
 		}
-		log.Println("error getting latest buckets sizes:", err)
-		return bucketsSizes, err
-	}
+		bucketsSizes := make(map[string]uint64)
 
-	err = json.Unmarshal(sizesRow, &bucketsSizes)
-	if err != nil {
-		return bucketsSizes, err
+		err = json.Unmarshal(sizesRow, &bucketsSizes)
+		if err != nil {
+			return nil, err
+		}
+		return bucketsSizes, nil
 	}
-	return bucketsSizes, nil
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoBucketSizes
 }
 
-// GetLatestTotalBuckets get the latest total number of buckets during a month period
+// GetLatestTotalBuckets get the latest total number of buckets during a month period, returns 0 if there's no results
 func GetLatestTotalBuckets(ctx *Context, date time.Time) (totalBuckets uint64, err error) {
 	query := `SELECT
 					MAX(total_buckets) max_buckets
@@ -358,22 +375,28 @@ func GetLatestTotalBuckets(ctx *Context, date time.Time) (totalBuckets uint64, e
 				ORDER BY last_update DESC`
 	// Get first result of the query which contains the latest number of
 	// buckets during the selected period one Month
-	row := ctx.TenantTx().QueryRow(query, date, date.AddDate(0, 1, 0))
+	rows, err := ctx.TenantTx().Query(query, date, date.AddDate(0, 1, 0))
 	if err != nil {
 		return 0, err
 	}
-	err = row.Scan(&totalBuckets)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return 0, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		err = rows.Scan(&totalBuckets)
+		if err != nil {
+			log.Println("error getting latest total number of buckets:", err)
+			return 0, err
 		}
-		log.Println("error getting latest total number of buckets:", err)
+		return totalBuckets, nil
+	}
+	if err := rows.Err(); err != nil {
 		return 0, err
 	}
-	return totalBuckets, nil
+	return 0, nil
+
 }
 
-// GetTotalMonthBucketUsageFromDB get max total bucket usage of the month
+// GetTotalMonthBucketUsageFromDB get max total bucket usage of the month, returns 0 if there's no records
 func GetTotalMonthBucketUsageFromDB(ctx *Context, date time.Time) (monthUsage uint64, err error) {
 	// Select query doing MAX total_usage grouping by year and month
 	query := `SELECT 
@@ -395,19 +418,24 @@ func GetTotalMonthBucketUsageFromDB(ctx *Context, date time.Time) (monthUsage ui
 					s.year, s.month`
 
 	// Execute query search one Month after `date`
-	row := ctx.TenantTx().QueryRow(query, date, date.AddDate(0, 1, 0))
+	rows, err := ctx.TenantTx().Query(query, date, date.AddDate(0, 1, 0))
 	if err != nil {
 		return 0, err
 	}
-	err = row.Scan(&monthUsage)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return 0, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		err = rows.Scan(&monthUsage)
+		if err != nil {
+			log.Println("error getting latest total number of buckets:", err)
+			return 0, err
 		}
-		log.Println("error getting latest total number of buckets:", err)
+		return monthUsage, nil
+	}
+	if err := rows.Err(); err != nil {
 		return 0, err
 	}
-	return monthUsage, nil
+	return 0, nil
 }
 
 // GetDailyAvgBucketUsageFromDB get total average bucket usage metrics per day on one month

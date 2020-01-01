@@ -124,7 +124,7 @@ func (s *server) UserResetPasswordInvite(ctx context.Context, in *pb.InviteReque
 	}
 
 	// Send email invitation with token
-	err = cluster.InviteUserByEmail(appCtx, cluster.TokenResetPasswordEmail, &user)
+	err = cluster.InviteUserByEmail(appCtx, cluster.TokenResetPasswordEmail, user)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -240,7 +240,7 @@ func (s *server) ChangePassword(ctx context.Context, in *pb.ChangePasswordReques
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 	// Invalidate all user's sessions
-	sessions, err := cluster.GetUserSessionsFromDB(appCtx, &userObj, cluster.SessionValid)
+	sessions, err := cluster.GetUserSessionsFromDB(appCtx, userObj, cluster.SessionValid)
 	if err != nil {
 		log.Println("Error getting user sessions from db: ", err)
 		return nil, status.New(codes.Internal, "error disabling user").Err()
@@ -290,7 +290,7 @@ func (s *server) DisableUser(ctx context.Context, in *pb.UserActionRequest) (*pb
 		log.Println("error disabling user on db: ", err)
 		return nil, status.New(codes.Internal, "error disabling user").Err()
 	}
-	sessions, err := cluster.GetUserSessionsFromDB(appCtx, &userObj, cluster.SessionValid)
+	sessions, err := cluster.GetUserSessionsFromDB(appCtx, userObj, cluster.SessionValid)
 	if err != nil {
 		log.Println("Error getting user sessions from db: ", err)
 		return nil, status.New(codes.Internal, "error disabling user").Err()

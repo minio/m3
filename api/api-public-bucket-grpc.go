@@ -97,6 +97,12 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 	bucketsSizes, err := cluster.GetLatestBucketsSizes(appCtx)
 	if err != nil {
 		log.Println("error getting buckets sizes:", err)
+		if err == cluster.ErrNoBucketSizes {
+			// introduce empty bucket size
+			bucketsSizes = make(map[string]uint64)
+		} else {
+			return nil, status.New(codes.Internal, "Failed to list buckets").Err()
+		}
 	}
 
 	var buckets []*pb.Bucket

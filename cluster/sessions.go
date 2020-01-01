@@ -19,8 +19,8 @@ package cluster
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -41,6 +41,8 @@ type Session struct {
 	ExpiresAt time.Time
 	Status    SessionStatus
 }
+
+var ErrNoSession = errors.New("sessions: No Session found")
 
 // SessionStatus - account status.
 type SessionStatus string
@@ -121,17 +123,24 @@ func GetValidSession(ctx *Context, sessionID string) (*Session, error) {
 	getTenantShortnameQ := `SELECT s.tenant_id, s.user_id
                             FROM sessions AS s 
                             WHERE s.id=$1 AND s.status=$2 AND NOW() < s.expires_at`
-	tenantRow := ctx.MainTx().QueryRow(getTenantShortnameQ, sessionID, SessionValid)
-
-	err := tenantRow.Scan(&session.TenantID, &session.UserID)
-	if err == sql.ErrNoRows {
-		return nil, status.New(codes.Unauthenticated, "Session invalid or expired").Err()
-	}
+	rows, err := ctx.MainTx().Query(getTenantShortnameQ, sessionID, SessionValid)
 	if err != nil {
-		return nil, status.New(codes.Unauthenticated, err.Error()).Err()
+		return nil, err
+	}
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		err := rows.Scan(&session.TenantID, &session.UserID)
+		if err != nil {
+			return nil, status.New(codes.Unauthenticated, err.Error()).Err()
+		}
+		return &session, nil
 	}
 
-	return &session, nil
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoSession
 }
 
 // GetUserSessionsFromDB get all sessions for a particular user

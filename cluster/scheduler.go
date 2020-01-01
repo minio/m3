@@ -19,6 +19,7 @@ package cluster
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -54,6 +55,8 @@ type Task struct {
 	// json representation of the data
 	Data []byte
 }
+
+var ErrNoTask = errors.New("tasks: no task found")
 
 // starts a loop that monitors the tasks table for pending task to schedule inside the cluster
 func StartScheduler() {
@@ -220,14 +223,25 @@ func getTaskByID(ctx *Context, id int64) (*Task, error) {
 			WHERE t.id=$1
 			LIMIT 1`
 	// query the reord
-	row := ctx.MainTx().QueryRow(query, id)
-	task := Task{}
-	// Save the resulted query on the User struct
-	err := row.Scan(&task.ID, &task.Name, &task.Data, &task.Status)
+	rows, err := ctx.MainTx().Query(query, id)
 	if err != nil {
 		return nil, err
 	}
-	return &task, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		task := Task{}
+		// Save the resulted query on the User struct
+		err := rows.Scan(&task.ID, &task.Name, &task.Data, &task.Status)
+		if err != nil {
+			return nil, err
+		}
+		return &task, nil
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return nil, ErrNoTask
 }
 
 // RunTask runs a task by id and records the result of if on the task record.

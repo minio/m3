@@ -117,7 +117,7 @@ func CompleteSignup(ctx *Context, urlToken *URLToken, password string) error {
 		log.Println("error getting user by id: ", err)
 		return err
 	}
-	sessions, err := GetUserSessionsFromDB(ctx, &userObj, SessionValid)
+	sessions, err := GetUserSessionsFromDB(ctx, userObj, SessionValid)
 	if err != nil {
 		log.Println("error getting user sessions from db: ", err)
 		return err
