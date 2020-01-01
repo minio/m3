@@ -44,7 +44,7 @@ func (s *server) SetPassword(ctx context.Context, in *pb.SetPasswordRequest) (*p
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
-	appCtx, err := cluster.NewEmptyContext()
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}

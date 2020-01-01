@@ -57,7 +57,6 @@ func NewURLToken(ctx *Context, userID *uuid.UUID, usedFor string, validity *time
 
 // GetTenantTokenDetails get the details for the provided urlToken
 func GetTenantTokenDetails(ctx *Context, urlToken *uuid.UUID) (*URLToken, error) {
-
 	// Get an individual token
 	queryUser := `
 		SELECT 
