@@ -246,7 +246,12 @@ func getTaskByID(ctx *Context, id int64) (*Task, error) {
 
 // RunTask runs a task by id and records the result of if on the task record.
 // attempts to recover from a panic in case there's one within the task and also marks it on the db.
-func RunTask(ctx *Context, id int64) error {
+func RunTask(id int64) error {
+	ctx, err := NewEmptyContext()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
 	task, err := getTaskByID(ctx, id)
 	if err != nil {
 		return err
@@ -258,7 +263,13 @@ func RunTask(ctx *Context, id int64) error {
 			if err := markTask(ctx, task, FailedTaskStatus); err != nil {
 				log.Println(err)
 			}
+			// save task state
+			if err := ctx.Commit(); err != nil {
+				log.Println(err)
+				return
+			}
 			time.Sleep(time.Second * 2)
+			// mark exit as bad exit
 			os.Exit(1)
 		}
 	}()
@@ -282,6 +293,12 @@ func RunTask(ctx *Context, id int64) error {
 	if err = markTask(ctx, task, CompleteTaskStatus); err != nil {
 		return err
 	}
+	// save task state
+	if err := ctx.Commit(); err != nil {
+		log.Println(err)
+		return err
+	}
+	// mark exit as successful
 	os.Exit(0)
 	return nil
 }
