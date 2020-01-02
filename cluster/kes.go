@@ -168,11 +168,20 @@ func getNewKesDeployment(deploymentName string, kesSecretsNames map[string]strin
 				Name:            deploymentName,
 				Image:           getKesContainerImage(),
 				ImagePullPolicy: "IfNotPresent",
-				Command:         []string{"kes"},
-				Args:            []string{"server", "--config=kes-config/server-config.toml", "--mtls-auth=ignore"},
+				Command:         []string{"/bin/sh", "-c", "kes server --config=kes-config/server-config.toml --mtls-auth=ignore; kes key create app-key -k"},
 				Ports: []corev1.ContainerPort{
 					{
 						ContainerPort: 7373,
+					},
+				},
+				Env: []corev1.EnvVar{
+					{
+						Name:  "KES_CLIENT_TLS_KEY_FILE",
+						Value: "/kes-config/app/key/key",
+					},
+					{
+						Name:  "KES_CLIENT_TLS_CERT_FILE",
+						Value: "/kes-config/app/cert/cert",
 					},
 				},
 				VolumeMounts: []corev1.VolumeMount{
@@ -189,6 +198,16 @@ func getNewKesDeployment(deploymentName string, kesSecretsNames map[string]strin
 					{
 						Name:      "server-keypair-cert",
 						MountPath: "/kes-config/server/cert",
+						ReadOnly:  true,
+					},
+					{
+						Name:      "app-keypair-key",
+						MountPath: "/kes-config/app/key",
+						ReadOnly:  true,
+					},
+					{
+						Name:      "app-keypair-cert",
+						MountPath: "/kes-config/app/cert",
 						ReadOnly:  true,
 					},
 				},
@@ -216,6 +235,22 @@ func getNewKesDeployment(deploymentName string, kesSecretsNames map[string]strin
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
 						SecretName: kesSecretsNames["kesServerKeyPairCertSecretName"],
+					},
+				},
+			},
+			{
+				Name: "app-keypair-key",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: kesSecretsNames["kesAppKeyPairKeySecretName"],
+					},
+				},
+			},
+			{
+				Name: "app-keypair-cert",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: kesSecretsNames["kesAppKeyPairCertSecretName"],
 					},
 				},
 			},
@@ -356,7 +391,7 @@ func generateKeyPair(name string) chan *KeyPair {
 			NotBefore:             now,
 			NotAfter:              now.Add(87660 * time.Hour),
 			KeyUsage:              x509.KeyUsageDigitalSignature,
-			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
 			BasicConstraintsValid: true,
 		}
 
@@ -425,8 +460,9 @@ func storeKeyPairInSecret(secretName string, content map[string]string) <-chan s
 	return doneCh
 }
 
-func generateKeyPairAndStoreInSecret(name string) *KeyPair {
-	kesKeyPair := <-generateKeyPair(name)
+func generateKeyPairAndStoreInSecret(name string, tenant string) *KeyPair {
+	serviceName := fmt.Sprintf("%s-kes", tenant)
+	kesKeyPair := <-generateKeyPair(serviceName)
 	if kesKeyPair != nil && kesKeyPair.cert != "" && kesKeyPair.key != "" {
 		<-storeKeyPairInSecret(fmt.Sprintf("%s-cert", name), map[string]string{
 			"cert":         kesKeyPair.cert,
@@ -443,11 +479,11 @@ func createKesConfigurations(KmsClient *vapi.Client, tenant string, roleID strin
 	kms := KmsClient
 	kesAppKeyPairSecretName := fmt.Sprintf("%s-kes-app-keypair", tenant)
 	kesServerKeyPairSecretName := fmt.Sprintf("%s-kes-server-keypair", tenant)
-	appKeys := generateKeyPairAndStoreInSecret(kesAppKeyPairSecretName)
-	generateKeyPairAndStoreInSecret(kesServerKeyPairSecretName)
+	appKeys := generateKeyPairAndStoreInSecret(kesAppKeyPairSecretName, tenant)
+	generateKeyPairAndStoreInSecret(kesServerKeyPairSecretName, tenant)
 
 	kesServerConfig := fmt.Sprintf(`
-			address = "127.0.0.1:7373"
+			address = "0.0.0.0:7373"
 			root = "disabled"
 			
 			[tls]
@@ -455,18 +491,20 @@ func createKesConfigurations(KmsClient *vapi.Client, tenant string, roleID strin
 			cert = "kes-config/server/cert/cert"
 			
 			[policy.prod-app]
-			paths      = [ "/v1/key/create/app-key", "/v1/key/generate/app-key" , "/v1/key/decrypt/app-key"]
+			paths      = [ "/v1/key/create/*", "/v1/key/generate/*" , "/v1/key/decrypt/*"]
 			identities = [ "%s" ]
 			
 			[keystore.vault]
 			address = "%s"
+			name = "%s" 			
+
 			[keystore.vault.approle]
 			id     = "%s"
 			secret = "%s"
 			retry  = "15s"
 			[keystore.vault.status]
 			ping = "10s"
-		`, appKeys.certIdentity, kms.Address(), roleID, roleSecretID)
+		`, appKeys.certIdentity, kms.Address(), tenant, roleID, roleSecretID)
 
 	kesServerConfigSecretName := fmt.Sprintf("%s-kes-server-config", tenant)
 	<-storeKeyPairInSecret(kesServerConfigSecretName, map[string]string{
