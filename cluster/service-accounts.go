@@ -112,11 +112,6 @@ func AddServiceAccount(ctx *Context, tenantShortName string, name string, descri
 		return nil, nil, err
 	}
 	serviceAccount.AccessKey = saCred.AccessKey
-	// if no error happened to this point commit transaction
-	err = ctx.Commit()
-	if err != nil {
-		return nil, nil, err
-	}
 	return serviceAccount, saCred, nil
 }
 
@@ -439,15 +434,26 @@ func ValidServiceAccount(ctx *Context, serviceAccount *string) (bool, error) {
 						service_accounts t1
 					WHERE slug=$1 LIMIT 1)`
 
-	row := ctx.TenantTx().QueryRow(queryUser, serviceAccount)
-	// Whether the serviceAccount id is valid
-	var exists bool
-	err := row.Scan(&exists)
+	rows, err := ctx.TenantTx().Query(queryUser, serviceAccount)
 	if err != nil {
 		return false, err
 	}
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		// Whether the serviceAccount id is valid
+		var exists bool
+		err := rows.Scan(&exists)
+		if err != nil {
+			return false, err
+		}
 
-	return exists, nil
+		return exists, nil
+	}
+	if err := rows.Err(); err != nil {
+		return false, err
+	}
+	return false, nil
 }
 
 // GetServiceAccountBySlug retrieves a permission by it's id-name
@@ -703,49 +709,67 @@ func streamAccessKeyToTenantServices(ctx *Context) chan *AccessKeyToTenantShortN
 		tenants := streamTenantService(ctx, 10)
 
 		for tenantRes := range tenants {
-			if tenantRes.Error != nil {
-				log.Println("Error fetching tenant", tenantRes.Error)
-				continue
-			}
-			// Don't return disabled tenants access keys
-			if !tenantRes.Tenant.Enabled {
-				continue
-			}
-			//we need a context for this tenant
-			tCtx, err := NewCtxWithTenant(tenantRes.Tenant)
-			if err != nil {
-				log.Println("Error connecting to  tenant", err)
-				continue
-			}
+			select {
+			case <-ctx.ControlCtx.Done():
+				return
+			default:
+				if tenantRes.Error != nil {
+					log.Println("Error fetching tenant", tenantRes.Error)
+					continue
+				}
+				// Don't return disabled tenants access keys
+				if !tenantRes.Tenant.Enabled {
+					continue
+				}
+				//we need a context for this tenant
+				tCtx, err := NewCtxWithTenant(tenantRes.Tenant)
+				if err != nil {
+					log.Println("Error connecting to  tenant", err)
+					continue
+				}
 
-			query :=
-				`SELECT c.access_key
+				query :=
+					`SELECT c.access_key
 				FROM service_accounts
          			LEFT JOIN credentials c ON service_accounts.id = c.service_account_id`
 
-			rows, err := tCtx.TenantTx().Query(query)
-			if err != nil {
-				ch <- &AccessKeyToTenantShortNameResult{Error: err}
-				return
-			}
-			defer rows.Close()
-
-			for rows.Next() {
-				// Save the resulted query on the User struct
-				ak2s := AccessKeyToTenantShortName{
-					TenantShortName: tenantRes.Tenant.ShortName,
-				}
-				err = rows.Scan(&ak2s.AccessKey)
+				rows, err := tCtx.TenantTx().Query(query)
 				if err != nil {
 					ch <- &AccessKeyToTenantShortNameResult{Error: err}
 					return
 				}
-				ch <- &AccessKeyToTenantShortNameResult{AccessKeyToTenantShortName: &ak2s}
-			}
 
-			if err = rows.Err(); err != nil {
-				ch <- &AccessKeyToTenantShortNameResult{Error: err}
-				return
+				for rows.Next() {
+					select {
+					case <-ctx.ControlCtx.Done():
+						log.Println("THING DONE222")
+						rows.Close()
+						tCtx.Rollback()
+						return
+					default:
+						// Save the resulted query on the User struct
+						ak2s := AccessKeyToTenantShortName{
+							TenantShortName: tenantRes.Tenant.ShortName,
+						}
+						err = rows.Scan(&ak2s.AccessKey)
+						if err != nil {
+							ch <- &AccessKeyToTenantShortNameResult{Error: err}
+							rows.Close()
+							tCtx.Rollback()
+							return
+						}
+						ch <- &AccessKeyToTenantShortNameResult{AccessKeyToTenantShortName: &ak2s}
+					}
+				}
+
+				if err = rows.Err(); err != nil {
+					ch <- &AccessKeyToTenantShortNameResult{Error: err}
+					rows.Close()
+					tCtx.Rollback()
+					return
+				}
+				rows.Close()
+				tCtx.Rollback()
 			}
 		}
 	}()

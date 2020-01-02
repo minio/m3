@@ -598,24 +598,30 @@ func streamTenantService(ctx *Context, maxChanSize int) chan TenantServiceResult
 		defer rows.Close()
 
 		for rows.Next() {
-			// Save the resulted query on the Tenant and TenantResult result
-			tenant := Tenant{}
-			tRes := TenantServiceResult{}
-			err = rows.Scan(
-				&tenant.ID,
-				&tenant.Name,
-				&tenant.ShortName,
-				&tRes.Service,
-				&tRes.Port,
-				&tenant.Enabled,
-				&tenant.Domain,
-			)
-			if err != nil {
-				ch <- TenantServiceResult{Error: err}
+			select {
+			case <-ctx.ControlCtx.Done():
+				log.Println("THING DONE")
 				return
+			default:
+				// Save the resulted query on the Tenant and TenantResult result
+				tenant := Tenant{}
+				tRes := TenantServiceResult{}
+				err = rows.Scan(
+					&tenant.ID,
+					&tenant.Name,
+					&tenant.ShortName,
+					&tRes.Service,
+					&tRes.Port,
+					&tenant.Enabled,
+					&tenant.Domain,
+				)
+				if err != nil {
+					ch <- TenantServiceResult{Error: err}
+					return
+				}
+				tRes.Tenant = &tenant
+				ch <- tRes
 			}
-			tRes.Tenant = &tenant
-			ch <- tRes
 		}
 
 		err = rows.Err()

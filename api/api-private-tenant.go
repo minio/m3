@@ -191,15 +191,15 @@ func (ps *privateServer) TenantDisable(ctx context.Context, in *pb.TenantSingleR
 		log.Println("error setting tenant's enabled column:", err)
 		return nil, status.New(codes.Internal, "error setting tenant's enabled status").Err()
 	}
-	// if we reach here, all is good, commit
-	if err := appCtx.Commit(); err != nil {
-		log.Println(err)
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
 	// Update nginx configurations without the disabled tenants.
 	err = <-cluster.UpdateNginxConfiguration(appCtx)
 	if err != nil {
 		fmt.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// if we reach here, all is good, commit
+	if err := appCtx.Commit(); err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	return &pb.Empty{}, nil
@@ -230,15 +230,15 @@ func (ps *privateServer) TenantEnable(ctx context.Context, in *pb.TenantSingleRe
 		log.Println("error setting tenant's enabled column:", err)
 		return nil, status.New(codes.Internal, "error setting tenant's enabled status").Err()
 	}
-	// if we reach here, all is good, commit
-	if err := appCtx.Commit(); err != nil {
-		log.Println(err)
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
 	// Update nginx configurations without the disabled tenants.
 	err = <-cluster.UpdateNginxConfiguration(appCtx)
 	if err != nil {
 		fmt.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// if we reach here, all is good, commit
+	if err := appCtx.Commit(); err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 	return &pb.Empty{}, nil

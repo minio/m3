@@ -541,7 +541,7 @@ func CalculateTenantsMetrics() error {
 	if err != nil {
 		return err
 	}
-
+	defer appCtx.Rollback()
 	// restrict how many tenants will be placed in the channel at any given time, this is to avoid massive
 	// concurrent processing
 	var maxChannelSize int
@@ -563,13 +563,12 @@ func CalculateTenantsMetrics() error {
 		}
 		err := getTenantMetrics(appCtx, tenantResult.Tenant)
 		if err != nil {
-			appCtx.Rollback()
 			return err
 		}
-		err = appCtx.Commit()
-		if err != nil {
-			return err
-		}
+	}
+	err = appCtx.Commit()
+	if err != nil {
+		return err
 	}
 	return nil
 }

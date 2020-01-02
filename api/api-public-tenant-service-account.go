@@ -182,10 +182,6 @@ func (s *server) UpdateServiceAccount(ctx context.Context, in *pb.UpdateServiceA
 		log.Println(err.Error())
 		return nil, status.New(codes.Internal, "Error updating Service Account").Err()
 	}
-	// if we reach here, all is good, commit
-	if err := appCtx.Commit(); err != nil {
-		return nil, err
-	}
 
 	// get all the updated permissions for the service account
 	newPerms, err := cluster.GetAllThePermissionForServiceAccount(appCtx, &serviceAccount.ID)
@@ -206,6 +202,11 @@ func (s *server) UpdateServiceAccount(ctx context.Context, in *pb.UpdateServiceA
 	if err != nil {
 		log.Println(err.Error())
 		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
+	// if we reach here, all is good, commit
+	if err := appCtx.Commit(); err != nil {
+		return nil, err
 	}
 
 	servAccountsResp := &pb.ServiceAccount{

@@ -41,26 +41,25 @@ func (ps *privateServer) Login(ctx context.Context, in *pb.CLILoginRequest) (*pb
 	// Look for the user on the database by email
 	admin, err := cluster.GetAdminByEmail(appCtx, in.Email)
 	if err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Unauthenticated, "Wrong email and/or password.").Err()
 	}
 
 	// Comparing the password with the hash
 	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(in.Password)); err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Unauthenticated, "Wrong  email and/or password").Err()
 	}
 
-	// Add the session within a transaction in case anything goes wrong during the adding process
-	defer func() {
-		if err != nil {
-			appCtx.Rollback()
-			return
-		}
-		// if no error happened to this point commit transaction
-		err = appCtx.Commit()
-	}()
 	// Everything looks good, create session
 	session, err := cluster.CreateAdminSession(appCtx, &admin.ID)
 	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, err.Error()).Err()
+	}
+	// if no error happened to this point commit transaction
+	if err = appCtx.Commit(); err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 	// Return session in Token Response
