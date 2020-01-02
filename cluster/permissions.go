@@ -579,18 +579,14 @@ func assignPermissionToMultipleSAsOnDB(ctx *Context, permission *uuid.UUID, serv
 func AssignMultiplePermissionsToSADB(ctx *Context, serviceAccountID *uuid.UUID, permissionsIDs []*uuid.UUID) error {
 	// create records
 	// prepare re-usable statement
-	stmt, err := ctx.TenantTx().Prepare(`INSERT INTO 
-    								service_accounts_permissions (
-    	                              service_account_id, 
-    	                              permission_id, 
-    	                              sys_created_by) 
-    	                              VALUES ($1, $2, $3)`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
+	query := `INSERT INTO 
+				service_accounts_permissions (
+				  service_account_id, 
+				  permission_id, 
+				  sys_created_by) 
+				  VALUES ($1, $2, $3)`
 	for _, permissionID := range permissionsIDs {
-		_, err := stmt.Exec(serviceAccountID, permissionID, ctx.WhoAmI)
+		_, err := ctx.TenantTx().Exec(query, serviceAccountID, permissionID, ctx.WhoAmI)
 		if err != nil {
 			return err
 		}
@@ -658,12 +654,9 @@ func GetAllServiceAccountsForPermission(ctx *Context, permissionID *uuid.UUID) (
 		}
 		saWithPerm = append(saWithPerm, &saID)
 	}
-
-	err = rows.Close()
-	if err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-
 	return saWithPerm, nil
 }
 
