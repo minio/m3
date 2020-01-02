@@ -17,29 +17,6 @@ import (
 	"github.com/minio/minio/pkg/env"
 )
 
-//func getK8sConfig() *rest.Config {
-//	// creates the in-cluster config
-//	var config *rest.Config
-//	if env.Get("DEVELOPMENT", "") != "" {
-//		//when doing local development, mount k8s api via `kubectl proxy`
-//		config = &rest.Config{
-//			Host:            "http://localhost:8001",
-//			TLSClientConfig: rest.TLSClientConfig{Insecure: true},
-//			APIPath:         "/",
-//			BearerToken:     "eyJhbGciOiJSUzI1NiIsImtpZCI6InFETTJ6R21jMS1NRVpTOER0SnUwdVg1Q05XeDZLV2NKVTdMUnlsZWtUa28ifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRldi1zYS10b2tlbi14eGxuaiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJkZXYtc2EiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiJmZDVhMzRjNy0wZTkwLTQxNTctYmY0Zi02Yjg4MzIwYWIzMDgiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6ZGVmYXVsdDpkZXYtc2EifQ.woZ6Bmkkw-BMV-_UX0Y-S_Lkb6H9zqKZX2aNhyy7valbYIZfIzrDqJYWV9q2SwCP20jBfdsDS40nDcMnHJPE5jZHkTajAV6eAnoq4EspRqORtLGFnVV-JR-okxtvhhQpsw5MdZacJk36ED6Hg8If5uTOF7VF5r70dP7WYBMFiZ3HSlJBnbu7QoTKFmbJ1MafsTQ2RBA37IJPkqi3OHvPadTux6UdMI8LlY7bLkZkaryYR36kwIzSqsYgsnefmm4eZkZzpCeyS9scm9lPjeyQTyCAhftlxfw8m_fsV0EDhmybZCjgJi4R49leJYkHdpnCSkubj87kJAbGMwvLhMhFFQ",
-//		}
-//	} else {
-//		var err error
-//		config, err = rest.InClusterConfig()
-//		if err != nil {
-//			panic(err.Error())
-//		}
-//
-//	}
-//
-//	return config
-//}
-
 func main() {
 
 	fmt.Println("Starting vault development service")
@@ -211,49 +188,6 @@ func vaultInitAndUnseal() chan error {
 	}()
 	return doneCh
 }
-
-//func storeConfInK8s(rootToken string) chan struct{} {
-//	doneCh := make(chan struct{})
-//	go func() {
-//		defer close(doneCh)
-//		secretName := "developmentVaultRootToken"
-//		clientSet, err := kubernetes.NewForConfig(getK8sConfig())
-//		if err != nil {
-//			log.Println(err)
-//			return
-//		}
-//		factory := informers.NewSharedInformerFactory(clientSet, 0)
-//		secretInformer := factory.Core().V1().Secrets().Informer()
-//		secretInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-//			AddFunc: func(obj interface{}) {
-//				secret := obj.(*corev1.Secret)
-//				if secret.Name == secretName {
-//					log.Println("Development vault saved inti k8s secret")
-//					return
-//				}
-//			},
-//		})
-//
-//		go secretInformer.Run(doneCh)
-//
-//		_, err = clientSet.CoreV1().Secrets("default").Create(&corev1.Secret{
-//			ObjectMeta: metav1.ObjectMeta{
-//				Name: secretName,
-//				Labels: map[string]string{
-//					"name": secretName,
-//				},
-//			},
-//			StringData: map[string]string{
-//				"token": rootToken,
-//			},
-//		})
-//		if err != nil {
-//			log.Println(err)
-//			return
-//		}
-//	}()
-//	return doneCh
-//}
 
 func isVaultReadyRetry(address string) (*vapi.Client, error) {
 	currentTries := 0
