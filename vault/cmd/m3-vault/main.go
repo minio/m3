@@ -63,7 +63,6 @@ func startVaultService(dcolor color.Attribute) chan interface{} {
 	go func() {
 		defer close(doneCh)
 		// command to run
-		//docker run --cap-add=IPC_LOCK --rm -p 8200:8200 -e 'VAULT_DEV_ROOT_TOKEN_ID=eaeaea' -e 'VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200' minio/m3-vault:latest
 		cmd := exec.Command("vault", "server", "-config", "vault-config.json")
 		// prepare to capture the output
 		var errStdout, errStderr error
