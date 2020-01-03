@@ -49,7 +49,8 @@ func SendMail(toName, toEmail, subject, body string) error {
 		return errors.New("mail server is not set")
 	}
 	password := env.Get("MAIL_PASSWORD", "")
-	from := mail.Address{Name: "mkube team", Address: account}
+	fromName := env.Get("MAIL_FROM_NAME", "mkube team")
+	from := mail.Address{Name: fromName, Address: account}
 	to := mail.Address{Name: toName, Address: toEmail}
 
 	// Setup headers
