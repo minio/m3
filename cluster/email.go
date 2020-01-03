@@ -39,17 +39,19 @@ import (
 // This function depends on `MAIL_ACCOUNT`, `MAIL_SERVER` and `MAIL_PASSWORD` environment variables being set.
 func SendMail(toName, toEmail, subject, body string) error {
 	// Sender data.
-	account := env.Get("MAIL_ACCOUNT", "")
+
+	account := env.Get(mailAccount, "")
 	if account == "" {
 		return errors.New("No mailing account configured")
 	}
 	// Connect to the SMTP Server
-	servername := env.Get("MAIL_SERVER", "")
+	servername := env.Get(mailServer, "")
 	if servername == "" {
 		return errors.New("mail server is not set")
 	}
-	password := env.Get("MAIL_PASSWORD", "")
-	from := mail.Address{Name: "mkube team", Address: account}
+	password := env.Get(mailPassword, "")
+	fromName := env.Get(mailFromName, "mkube team")
+	from := mail.Address{Name: fromName, Address: account}
 	to := mail.Address{Name: toName, Address: toEmail}
 
 	// Setup headers

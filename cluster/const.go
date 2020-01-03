@@ -40,6 +40,10 @@ const (
 	kmsAddress                     = "KMS_ADDRESS"
 	kmsToken                       = "KMS_TOKEN"
 	maxNumberOfTenantsPerSg        = "MAX_NUM_TENANTS_PER_SG"
+	mailAccount                    = "MAIL_ACCOUNT"
+	mailServer                     = "MAIL_SERVER"
+	mailPassword                   = "MAIL_PASSWORD"
+	mailFromName                   = "MAIL_FROM_NAME"
 	// constants
 	TokenSignupEmail            = "signup-email"
 	TokenResetPasswordEmail     = "reset-password-email"
