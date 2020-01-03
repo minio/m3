@@ -290,6 +290,9 @@ func CreateTenantSchema(tenantShortName string) error {
 	if err != nil {
 		return err
 	}
+	if err = db.Close(); err != nil {
+		return err
+	}
 	return nil
 }
 

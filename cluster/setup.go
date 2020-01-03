@@ -142,10 +142,12 @@ func SetupM3() error {
 			if err != nil {
 				log.Println(err)
 			}
+			cnxResult.Cnx.Close()
 			// if we got a 1 back, postgres is online and accepting connections
 			if emptyInt == 1 {
 				break
 			}
+
 			// if we failed, sleep 2 seconds and try again
 			log.Println("gonna sleep 2 seconds")
 			time.Sleep(time.Second * 2)
