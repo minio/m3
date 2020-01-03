@@ -102,6 +102,9 @@ func fetchNewTask(ctx *Context) (*Task, error) {
 		FOR UPDATE`
 	// query the reord
 	tx, err := ctx.MainTx()
+	if err != nil {
+		return nil, err
+	}
 	row := tx.QueryRow(query, NewTaskStatus)
 	task := Task{}
 	// Save the resulted query on the User struct
