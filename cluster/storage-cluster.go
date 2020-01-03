@@ -601,7 +601,6 @@ func streamTenantService(maxChanSize int) chan TenantServiceResult {
 			ch <- TenantServiceResult{Error: err}
 			return
 		}
-		defer rows.Close()
 
 		for rows.Next() {
 			// Save the resulted query on the Tenant and TenantResult result
@@ -618,6 +617,7 @@ func streamTenantService(maxChanSize int) chan TenantServiceResult {
 			)
 			if err != nil {
 				ch <- TenantServiceResult{Error: err}
+				rows.Close()
 				return
 			}
 			tRes.Tenant = &tenant
@@ -627,8 +627,10 @@ func streamTenantService(maxChanSize int) chan TenantServiceResult {
 		err = rows.Err()
 		if err != nil {
 			ch <- TenantServiceResult{Error: err}
+			rows.Close()
 			return
 		}
+		rows.Close()
 
 	}()
 	return ch
