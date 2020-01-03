@@ -353,10 +353,10 @@ func ListPermissions(ctx *Context, offset int64, limit int32) ([]*Permission, er
 			OFFSET $1 LIMIT $2`
 
 	rows, err := ctx.TenantDB().Query(queryUser, offset, limit)
-	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	return buildPermissionsForRows(ctx, rows)
 }
 

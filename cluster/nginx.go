@@ -224,7 +224,7 @@ func UpdateNginxConfiguration(ctx *Context) chan error {
 			return
 		}
 		if globalBuckets.ValBool() {
-			nginxConfiguration = getGlobalBucketNamespaceConfiguration()
+			nginxConfiguration = getGlobalBucketNamespaceConfiguration(ctx)
 		} else {
 			nginxConfiguration = getLocalBucketNamespaceConfiguration(ctx)
 		}
@@ -315,10 +315,10 @@ func getLocalBucketNamespaceConfiguration(ctx *Context) string {
 }
 
 // getGlobalBucketNamespaceConfiguration build the nginx configuration for global bucket name space
-func getGlobalBucketNamespaceConfiguration() string {
+func getGlobalBucketNamespaceConfiguration(ctx *Context) string {
 	// build a list of upstreams for each tenant
 	var tenantUpstreams bytes.Buffer
-	tenantsStream := streamTenantService(10)
+	tenantsStream := streamTenantService(ctx, 10)
 	for tenantRes := range tenantsStream {
 		if tenantRes.Error != nil {
 			log.Println(tenantRes.Error)
@@ -339,7 +339,7 @@ func getGlobalBucketNamespaceConfiguration() string {
 
 	// build a mapping of access keys to upstreams (by tenant short name)
 	var destinationMapping bytes.Buffer
-	accessTenantStream := streamAccessKeyToTenantServices()
+	accessTenantStream := streamAccessKeyToTenantServices(ctx)
 	for accessTenantResult := range accessTenantStream {
 		if accessTenantResult.Error != nil {
 			log.Println(accessTenantResult.Error)

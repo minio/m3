@@ -133,6 +133,8 @@ func GetServiceAccountList(ctx *Context, offset int, limit int) ([]*ServiceAccou
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+	// if we iterate at least once, we found a result
 	var sas []*ServiceAccount
 	for rows.Next() {
 		sa := ServiceAccount{}
@@ -141,6 +143,9 @@ func GetServiceAccountList(ctx *Context, offset int, limit int) ([]*ServiceAccou
 			return nil, err
 		}
 		sas = append(sas, &sa)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return sas, nil
 }
@@ -156,13 +161,24 @@ func GetTotalNumberOfServiceAccounts(ctx *Context) (int, error) {
 		WHERE 
 		    sa.sys_deleted IS NULL`
 
-	row := ctx.TenantDB().QueryRow(queryUser)
-	var count int
-	err := row.Scan(&count)
+	rows, err := ctx.TenantDB().Query(queryUser)
 	if err != nil {
 		return 0, err
 	}
-	return count, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		var count int
+		err := rows.Scan(&count)
+		if err != nil {
+			return 0, err
+		}
+		return count, nil
+	}
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	return 0, nil
 }
 
 // MapServiceAccountsToIDs returns an error if at least one of the ids provided is not on the database
@@ -668,58 +684,63 @@ type AccessKeyToTenantShortNameResult struct {
 // they resolve to.
 // This function uses a channel because there may be hundreds of thousands of access keys and we don't want to pre-alloc
 // all that information on memory.
-func streamAccessKeyToTenantServices() chan *AccessKeyToTenantShortNameResult {
+func streamAccessKeyToTenantServices(ctx *Context) chan *AccessKeyToTenantShortNameResult {
 	ch := make(chan *AccessKeyToTenantShortNameResult)
 	go func() {
 		defer close(ch)
 
-		tenants := streamTenantService(10)
+		tenants := streamTenantService(ctx, 10)
 
 		for tenantRes := range tenants {
-			if tenantRes.Error != nil {
-				log.Println("Error fetching tenant", tenantRes.Error)
-				continue
-			}
-			// Don't return disabled tenants access keys
-			if !tenantRes.Tenant.Enabled {
-				continue
-			}
-			//we need a context for this tenant
-			tCtx := NewCtxWithTenant(tenantRes.Tenant)
+			select {
+			case <-ctx.ControlCtx.Done():
+				return
+			default:
+				if tenantRes.Error != nil {
+					log.Println("Error fetching tenant", tenantRes.Error)
+					continue
+				}
+				// Don't return disabled tenants access keys
+				if !tenantRes.Tenant.Enabled {
+					continue
+				}
+				//we need a context for this tenant
+				tCtx := NewCtxWithTenant(tenantRes.Tenant)
 
-			query :=
-				`SELECT c.access_key
-				FROM service_accounts
+				query :=
+					`SELECT c.access_key
+					FROM service_accounts
          			LEFT JOIN credentials c ON service_accounts.id = c.service_account_id`
 
-			rows, err := tCtx.TenantDB().Query(query)
-			if err != nil {
-				ch <- &AccessKeyToTenantShortNameResult{Error: err}
-				return
-			}
-
-			for rows.Next() {
-				// Save the resulted query on the User struct
-				ak2s := AccessKeyToTenantShortName{
-					TenantShortName: tenantRes.Tenant.ShortName,
+				rows, err := tCtx.TenantDB().Query(query)
+				if err != nil {
+					ch <- &AccessKeyToTenantShortNameResult{Error: err}
+					return
 				}
-				err = rows.Scan(&ak2s.AccessKey)
+
+				for rows.Next() {
+					// Save the resulted query on the User struct
+					ak2s := AccessKeyToTenantShortName{
+						TenantShortName: tenantRes.Tenant.ShortName,
+					}
+					err = rows.Scan(&ak2s.AccessKey)
+					if err != nil {
+						ch <- &AccessKeyToTenantShortNameResult{Error: err}
+						rows.Close()
+						return
+					}
+					ch <- &AccessKeyToTenantShortNameResult{AccessKeyToTenantShortName: &ak2s}
+				}
+
+				err = rows.Err()
 				if err != nil {
 					ch <- &AccessKeyToTenantShortNameResult{Error: err}
 					rows.Close()
 					return
 				}
-				ch <- &AccessKeyToTenantShortNameResult{AccessKeyToTenantShortName: &ak2s}
-			}
 
-			err = rows.Err()
-			if err != nil {
-				ch <- &AccessKeyToTenantShortNameResult{Error: err}
 				rows.Close()
-				return
 			}
-
-			rows.Close()
 		}
 	}()
 	return ch

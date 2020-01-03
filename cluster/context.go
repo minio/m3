@@ -103,10 +103,13 @@ func (c *Context) Commit() error {
 
 func (c *Context) Rollback() error {
 	// rollback tenant schema tx
+	var tenantTxErr error
+	var mainTxErr error
 	if c.tenantTx != nil {
 		err := c.tenantTx.Rollback()
-		if err != nil {
-			return err
+		if err != nil && err != sql.ErrTxDone {
+			log.Println(err)
+			tenantTxErr = err
 		}
 		// restart the txn
 		c.tenantTx = nil
@@ -114,11 +117,19 @@ func (c *Context) Rollback() error {
 	// rollback main schema tx
 	if c.mainTx != nil {
 		err := c.mainTx.Rollback()
-		if err != nil {
-			return err
+		if err != nil && err != sql.ErrTxDone {
+			log.Println(err)
+			mainTxErr = err
 		}
 		// restart the txn
 		c.mainTx = nil
+	}
+	// return erros
+	if tenantTxErr != nil {
+		return tenantTxErr
+	}
+	if mainTxErr != nil {
+		return mainTxErr
 	}
 	return nil
 }
@@ -127,6 +138,19 @@ func (c *Context) Rollback() error {
 // to control timeouts and cancellations.
 func NewEmptyContext() (*Context, error) {
 	return NewCtxWithTenant(nil), nil
+}
+
+// autoRollback startws a go routine that monitors the control context to attempt a rollback
+func (c *Context) autoRollback() {
+	go func() {
+		// block until done
+		<-c.ControlCtx.Done()
+		if err := c.Rollback(); err != nil {
+			if err != sql.ErrTxDone {
+				log.Println(err)
+			}
+		}
+	}()
 }
 
 // Creates a new `Context` with no tenant tenant that holds transaction and `context.Context`
@@ -142,6 +166,7 @@ func NewEmptyContextWithGrpcContext(ctx context.Context) (*Context, error) {
 		appCtx.WhoAmI = whoAmI
 	}
 	appCtx.ControlCtx = ctx
+	appCtx.autoRollback()
 	return appCtx, nil
 }
 
@@ -176,5 +201,6 @@ func NewTenantContextWithGrpcContext(ctx context.Context) (*Context, error) {
 		appCtx.WhoAmI = whoAmI
 	}
 	appCtx.ControlCtx = ctx
+	appCtx.autoRollback()
 	return appCtx, nil
 }
