@@ -304,6 +304,7 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*Sto
 			fmt.Println(err)
 			return
 		}
+		defer rows.Close()
 		var tenants []*StorageGroupTenant
 		for rows.Next() {
 			var tenantID uuid.UUID
@@ -326,6 +327,9 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*Sto
 				ServiceName:  serviceName,
 				StorageGroup: sg})
 
+		}
+		if err := rows.Err(); err != nil {
+			log.Println(err)
 		}
 		ch <- tenants
 	}()
@@ -357,6 +361,7 @@ func GetAllTenantRoutes(ctx *Context) chan []*TenantRoute {
 			fmt.Println(err)
 			return
 		}
+		defer rows.Close()
 		var tenants []*TenantRoute
 		for rows.Next() {
 			tr := TenantRoute{}
@@ -365,6 +370,9 @@ func GetAllTenantRoutes(ctx *Context) chan []*TenantRoute {
 				fmt.Println(err)
 			}
 			tenants = append(tenants, &tr)
+		}
+		if err := rows.Err(); err != nil {
+			log.Println(err)
 		}
 		ch <- tenants
 	}()

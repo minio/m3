@@ -133,6 +133,8 @@ func GetServiceAccountList(ctx *Context, offset int, limit int) ([]*ServiceAccou
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+	// if we iterate at least once, we found a result
 	var sas []*ServiceAccount
 	for rows.Next() {
 		sa := ServiceAccount{}
@@ -141,6 +143,9 @@ func GetServiceAccountList(ctx *Context, offset int, limit int) ([]*ServiceAccou
 			return nil, err
 		}
 		sas = append(sas, &sa)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return sas, nil
 }
@@ -156,13 +161,24 @@ func GetTotalNumberOfServiceAccounts(ctx *Context) (int, error) {
 		WHERE 
 		    sa.sys_deleted IS NULL`
 
-	row := ctx.TenantDB().QueryRow(queryUser)
-	var count int
-	err := row.Scan(&count)
+	rows, err := ctx.TenantDB().Query(queryUser)
 	if err != nil {
 		return 0, err
 	}
-	return count, nil
+	defer rows.Close()
+	// if we iterate at least once, we found a result
+	for rows.Next() {
+		var count int
+		err := rows.Scan(&count)
+		if err != nil {
+			return 0, err
+		}
+		return count, nil
+	}
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	return 0, nil
 }
 
 // MapServiceAccountsToIDs returns an error if at least one of the ids provided is not on the database
