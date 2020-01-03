@@ -373,6 +373,8 @@ github.com/minio/mc v0.0.0-20191231192759-9663319e9e8f h1:PWyEj0mxCw+52/bYMnj8ci
 github.com/minio/mc v0.0.0-20191231192759-9663319e9e8f/go.mod h1:mAAI5htvwU08SZB6dDOslkkQF//oA2esDyQFnhjk+8k=
 github.com/minio/minio v0.0.0-20191231040613-0b7bd024fb30 h1:s6Bt9fdUAbQ1UFssnNgB79o6xTrTHVEk3Q96QF3qAw8=
 github.com/minio/minio v0.0.0-20191231040613-0b7bd024fb30/go.mod h1:4Aa1o4tNqOR8ZAR80H2UCTcIi7w6H1QqHywiKXcYimM=
+github.com/minio/minio v0.0.0-20200103192852-6695fd6a61af h1:T/4Qdy6k9Wch3Shk2AGaIw99FqNa+smwHfNLhgE7osE=
+github.com/minio/minio v0.0.0-20200103192852-6695fd6a61af/go.mod h1:4Aa1o4tNqOR8ZAR80H2UCTcIi7w6H1QqHywiKXcYimM=
 github.com/minio/minio-go/v6 v6.0.44 h1:CVwVXw+uCOcyMi7GvcOhxE8WgV+Xj8Vkf2jItDf/EGI=
 github.com/minio/minio-go/v6 v6.0.44/go.mod h1:qD0lajrGW49lKZLtXKtCB4X/qkMf0a5tBvN2PaZg7Gg=
 github.com/minio/minio-go/v6 v6.0.45-0.20191213193129-a5786a9c2a5b h1:mzW6HUPIw2tUQsUx7x4z4RPWABWFKnI6j47DIZNl53A=

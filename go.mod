@@ -18,7 +18,7 @@ require (
 	github.com/lib/pq v1.2.0
 	github.com/minio/cli v1.22.0
 	github.com/minio/mc v0.0.0-20191231192759-9663319e9e8f
-	github.com/minio/minio v0.0.0-20191231040613-0b7bd024fb30
+	github.com/minio/minio v0.0.0-20200103192852-6695fd6a61af
 	github.com/minio/minio-go/v6 v6.0.45-0.20191213193129-a5786a9c2a5b
 	github.com/pelletier/go-toml v1.6.0
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
