@@ -35,7 +35,7 @@ import (
 // Login rpc to generate a session for an admin
 func (ps *privateServer) Login(ctx context.Context, in *pb.CLILoginRequest) (*pb.CLILoginResponse, error) {
 	// start app context
-	appCtx, err := cluster.NewEmptyContext()
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 
 	// Password validation
 	// Look for the user on the database by email
@@ -76,7 +76,7 @@ func (ps *privateServer) Login(ctx context.Context, in *pb.CLILoginRequest) (*pb
 // Login rpc to validate account against a configured idp and generate an admin session
 func (ps *privateServer) LoginWithIdp(ctx context.Context, in *pb.LoginWithIdpRequest) (*pb.CLILoginResponse, error) {
 	// start app context
-	appCtx, err := cluster.NewEmptyContext()
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	// Add the session within a transaction in case anything goes wrong during the adding process
 	defer func() {
 		if err != nil {

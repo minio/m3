@@ -29,7 +29,7 @@ import (
 
 // ClusterStorageClusterAdd rpc to add a new storage cluster
 func (ps *privateServer) ClusterStorageClusterAdd(ctx context.Context, in *pb.StorageClusterAddRequest) (*pb.StorageClusterAddResponse, error) {
-	appCtx, err := cluster.NewEmptyContext()
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, status.New(codes.Internal, "An internal error happened").Err()
 	}
@@ -83,7 +83,7 @@ func (ps *privateServer) ClusterStorageGroupAdd(ctx context.Context, in *pb.Stor
 	if !re.MatchString(in.Name) {
 		return nil, status.New(codes.InvalidArgument, "Invalid storage group name.").Err()
 	}
-	appCtx, err := cluster.NewEmptyContext()
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, status.New(codes.Internal, "An internal error happened").Err()
 	}

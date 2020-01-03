@@ -304,6 +304,7 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*Sto
 			fmt.Println(err)
 			return
 		}
+		defer rows.Close()
 		var tenants []*StorageGroupTenant
 		for rows.Next() {
 			var tenantID uuid.UUID
@@ -326,6 +327,9 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*Sto
 				ServiceName:  serviceName,
 				StorageGroup: sg})
 
+		}
+		if err := rows.Err(); err != nil {
+			log.Println(err)
 		}
 		ch <- tenants
 	}()
@@ -357,6 +361,7 @@ func GetAllTenantRoutes(ctx *Context) chan []*TenantRoute {
 			fmt.Println(err)
 			return
 		}
+		defer rows.Close()
 		var tenants []*TenantRoute
 		for rows.Next() {
 			tr := TenantRoute{}
@@ -365,6 +370,9 @@ func GetAllTenantRoutes(ctx *Context) chan []*TenantRoute {
 				fmt.Println(err)
 			}
 			tenants = append(tenants, &tr)
+		}
+		if err := rows.Err(); err != nil {
+			log.Println(err)
 		}
 		ch <- tenants
 	}()
@@ -593,7 +601,6 @@ func streamTenantService(maxChanSize int) chan TenantServiceResult {
 			ch <- TenantServiceResult{Error: err}
 			return
 		}
-		defer rows.Close()
 
 		for rows.Next() {
 			// Save the resulted query on the Tenant and TenantResult result
@@ -610,6 +617,7 @@ func streamTenantService(maxChanSize int) chan TenantServiceResult {
 			)
 			if err != nil {
 				ch <- TenantServiceResult{Error: err}
+				rows.Close()
 				return
 			}
 			tRes.Tenant = &tenant
@@ -619,8 +627,10 @@ func streamTenantService(maxChanSize int) chan TenantServiceResult {
 		err = rows.Err()
 		if err != nil {
 			ch <- TenantServiceResult{Error: err}
+			rows.Close()
 			return
 		}
+		rows.Close()
 
 	}()
 	return ch

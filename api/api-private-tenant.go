@@ -122,19 +122,6 @@ func (ps *privateServer) TenantAdd(in *pb.TenantAddRequest, stream pb.PrivateAPI
 		if err := stream.Send(progressStruct(10, "inviting user by email")); err != nil {
 			return err
 		}
-		// Get the credentials for a tenant
-		tenantConf, err := cluster.GetTenantConfig(tenant)
-		if err != nil {
-			log.Println("Error getting tenants config", err)
-			return status.New(codes.Internal, "Error getting tenants config").Err()
-		}
-
-		// create minio postgres configuration for bucket notification
-		err = cluster.SetMinioConfigPostgresNotification(sgt.StorageGroupTenant, tenantConf)
-		if err != nil {
-			log.Println("Error setting tenant's minio postgres configuration", err)
-			return status.New(codes.Internal, "Error setting tenant's minio postgres configuration").Err()
-		}
 
 		// Invite it's first admin
 		err = cluster.InviteUserByEmail(appCtx, cluster.TokenSignupEmail, &newUser)
