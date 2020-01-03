@@ -3,27 +3,28 @@ module github.com/minio/m3
 go 1.13
 
 require (
+	github.com/Microsoft/go-winio v0.4.12 // indirect
 	github.com/coreos/etcd v3.3.12+incompatible
 	github.com/coreos/go-oidc v2.0.0+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
-	github.com/elazarl/goproxy v0.0.0-20191011121108-aa519ddbe484 // indirect
 	github.com/fatih/color v1.7.0
 	github.com/golang-migrate/migrate/v4 v4.7.0
 	github.com/golang/protobuf v1.3.2
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/gosimple/slug v1.9.0
-	github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4
+	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/grpc-ecosystem/grpc-gateway v1.12.1
-	github.com/hashicorp/vault/api v1.0.5-0.20191216174727-9d51b36f3ae4
+	github.com/hashicorp/vault/api v1.0.4
 	github.com/lib/pq v1.2.0
 	github.com/minio/cli v1.22.0
-	github.com/minio/mc v0.0.0-20191012041914-735aa139b19c
-	github.com/minio/minio v0.0.0-20191213205711-c3d4c1f58435
-	github.com/minio/minio-go/v6 v6.0.44
+	github.com/minio/mc v0.0.0-20191231192759-9663319e9e8f
+	github.com/minio/minio v0.0.0-20191231040613-0b7bd024fb30
+	github.com/minio/minio-go/v6 v6.0.45-0.20191213193129-a5786a9c2a5b
 	github.com/pelletier/go-toml v1.6.0
+	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
 	github.com/rs/cors v1.6.0
 	github.com/satori/go.uuid v1.2.0
+	github.com/schollz/progressbar/v2 v2.15.0
 	golang.org/x/crypto v0.0.0-20191117063200-497ca9f6d64f
 	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
@@ -39,5 +40,3 @@ require (
 
 // Added for go1.13 migration https://github.com/golang/go/issues/32805
 replace github.com/gorilla/rpc v1.2.0+incompatible => github.com/gorilla/rpc v1.2.0
-
-replace github.com/hashicorp/vault => github.com/hashicorp/vault v1.3.1

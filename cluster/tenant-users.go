@@ -257,6 +257,7 @@ func GetUsersForTenant(ctx *Context, offset int32, limit int32) ([]*User, error)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var users []*User
 	for rows.Next() {
 		usr := User{}
@@ -265,6 +266,9 @@ func GetUsersForTenant(ctx *Context, offset int32, limit int32) ([]*User, error)
 			return nil, err
 		}
 		users = append(users, &usr)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return users, nil
 }
@@ -308,7 +312,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 	// send email with the invite
 	tenant, err := GetTenantByDomainWithCtx(ctx, ctx.Tenant.Domain)
 	if err != nil {
-		return fmt.Errorf("tenant: %s", err.Error())
+		return fmt.Errorf("tenant: %w", err)
 	}
 
 	// for now, let's hardcode the url, subsequent PRs will introduce system configs
@@ -331,7 +335,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 	// Get the mailing template for inviting users
 	body, err := GetTemplate(emailTemplate, templateData)
 	if err != nil {
-		return fmt.Errorf("template: %s", err.Error())
+		return fmt.Errorf("template: %w", err)
 	}
 
 	// send the email

@@ -167,10 +167,11 @@ func CreateSGHostService(sg *StorageGroup, sgNode *StorageGroupNode) error {
 	return nil
 }
 
-// Holds the configuration for a Tenant
+// TenantConfiguration - holds the configuration for a Tenant
 type TenantConfiguration struct {
 	AccessKey string
 	SecretKey string
+	TLS       bool // TODO: add TLS support
 }
 
 // CreateTenantSecrets creates the "secrets" of a tenant.

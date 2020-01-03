@@ -27,7 +27,7 @@ import (
 	"github.com/minio/m3/cluster/db"
 
 	"github.com/minio/cli"
-	"github.com/minio/mc/pkg/console"
+	"github.com/minio/minio/pkg/console"
 	"github.com/minio/minio/pkg/trie"
 	"github.com/minio/minio/pkg/words"
 )
@@ -93,6 +93,11 @@ func main() {
 			}
 			// exit code NOT OK
 			os.Exit(1)
+		} else {
+			// Natural kind of exit, close connections
+			if err := db.GetInstance().Close(); err != nil {
+				log.Println("Error closing connections:", err)
+			}
 		}
 	}()
 

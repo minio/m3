@@ -63,15 +63,11 @@ func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType Buc
 	// make it so this timeouts after only 20 seconds
 	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
+
 	// Create Bucket on tenant's MinIO
 	if err = minioClient.MakeBucketWithContext(timeoutCtx, bucketName, "us-east-1"); err != nil {
 		log.Println(err)
 		return tagErrorAsMinio("MakeBucketWithContext", err)
-	}
-
-	if err = addMinioBucketNotification(minioClient, bucketName, "us-east-1"); err != nil {
-		log.Println(err)
-		return tagErrorAsMinio("addMinioBucketNotification", err)
 	}
 
 	err = SetBucketAccess(minioClient, bucketName, accessType)
@@ -79,6 +75,7 @@ func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType Buc
 		log.Println(err)
 		return tagErrorAsMinio("SetBucketAccess", err)
 	}
+
 	// announce the bucket on the router
 	<-UpdateNginxConfiguration(ctx)
 	return nil
@@ -100,7 +97,8 @@ func SetBucketAccess(minioClient *minio.Client, bucketName string, accessType Bu
 	}
 
 	bucketAccessPolicy := policy.BucketAccessPolicy{Version: "2012-10-17"}
-	bucketAccessPolicy.Statements = policy.SetPolicy(bucketAccessPolicy.Statements, policy.BucketPolicy(bucketPolicy), bucketName, "")
+	bucketAccessPolicy.Statements = policy.SetPolicy(bucketAccessPolicy.Statements,
+		policy.BucketPolicy(bucketPolicy), bucketName, "")
 	var policyJSON []byte
 	if policyJSON, err = json.Marshal(bucketAccessPolicy); err != nil {
 		return err
@@ -169,15 +167,10 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 	}
 
 	var (
-		accessType  BucketAccess
 		bucketInfos []TenantBucketInfo
 	)
 	for _, bucket := range buckets {
-		accessType, err = GetBucketAccess(minioClient, bucket.Name)
-		if err != nil {
-			return []TenantBucketInfo{}, tagErrorAsMinio("GetBucketAccess", err)
-		}
-		bucketInfos = append(bucketInfos, TenantBucketInfo{Name: bucket.Name, Access: accessType})
+		bucketInfos = append(bucketInfos, TenantBucketInfo{Name: bucket.Name})
 	}
 
 	return bucketInfos, nil
@@ -335,6 +328,39 @@ func GetTenantUsageCostMultiplier(ctx *Context) (cost float32, err error) {
 		return 0, err
 	}
 	return cost, nil
+}
+
+// GetLatestBucketsSizes return latest buckets sizes map
+func GetLatestBucketsSizes(ctx *Context) (bucketsSizes map[string]uint64, err error) {
+	query := `SELECT
+					buckets_sizes
+				FROM bucket_metrics s
+				ORDER BY last_update DESC`
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return bucketsSizes, err
+	}
+	// Get first result of the query which contains the latest number of
+	// buckets during the selected period one Month
+	var sizesRow []byte
+	row := tx.QueryRow(query)
+	if err != nil {
+		return bucketsSizes, err
+	}
+	err = row.Scan(&sizesRow)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return bucketsSizes, nil
+		}
+		log.Println("error getting latest buckets sizes:", err)
+		return bucketsSizes, err
+	}
+
+	err = json.Unmarshal(sizesRow, &bucketsSizes)
+	if err != nil {
+		return bucketsSizes, err
+	}
+	return bucketsSizes, nil
 }
 
 // GetLatestTotalBuckets get the latest total number of buckets during a month period
@@ -527,7 +553,7 @@ func CalculateTenantsMetrics() error {
 		maxChannelSize = mtcs
 	}
 
-	// get a list of tenants and run the migrations for each tenant
+	// get a list of tenants
 	tenantsCh := GetStreamOfTenants(appCtx, maxChannelSize)
 	// var metricsChs []chan error
 	for tenantResult := range tenantsCh {
@@ -562,9 +588,9 @@ func getTenantMetrics(ctx *Context, tenant *Tenant) error {
 
 	// insert the node in the DB
 	query := `INSERT INTO
-					bucket_metrics ("last_update", "total_objects", "total_buckets", "total_usage", "total_cost")
+					bucket_metrics ("last_update", "total_objects", "buckets_sizes", "total_buckets", "total_usage", "total_cost")
 			  	  VALUES
-					($1, $2, $3, $4, $5)`
+					($1, $2, $3, $4, $5, $6)`
 
 	tx, err := ctx.TenantTx()
 	if err != nil {
@@ -574,8 +600,12 @@ func getTenantMetrics(ctx *Context, tenant *Tenant) error {
 	if err != nil {
 		return err
 	}
+	bucketSizes, err := json.Marshal(dataUsageInfo.BucketsSizes)
+	if err != nil {
+		return err
+	}
 	// Execute query
-	_, err = tx.Exec(query, dataUsageInfo.LastUpdate, dataUsageInfo.ObjectsCount, dataUsageInfo.BucketsCount, dataUsageInfo.ObjectsTotalSize, 0)
+	_, err = tx.Exec(query, dataUsageInfo.LastUpdate, dataUsageInfo.ObjectsCount, bucketSizes, dataUsageInfo.BucketsCount, dataUsageInfo.ObjectsTotalSize, 0)
 	if err != nil {
 		return err
 	}

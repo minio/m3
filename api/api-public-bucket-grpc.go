@@ -97,21 +97,17 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 		return nil, status.New(codes.Internal, "Failed to list buckets").Err()
 	}
 
-	dataUsageInfo, err := cluster.GetBucketUsageMetrics(appCtx, appCtx.Tenant.ShortName)
+	bucketsSizes, err := cluster.GetLatestBucketsSizes(appCtx)
 	if err != nil {
-		log.Println("error getting bucket usage metrics:", err)
+		log.Println("error getting buckets sizes:", err)
 	}
 
 	var buckets []*pb.Bucket
 	for _, bucketInfo := range bucketInfos {
-		var size uint64
-		var ok bool
-		if dataUsageInfo != nil {
-			size, ok = dataUsageInfo.BucketsSizes[bucketInfo.Name]
-			if !ok {
-				// if !ok size is 0 by default
-				log.Println("size not available for bucket: ", bucketInfo.Name)
-			}
+		size, ok := bucketsSizes[bucketInfo.Name]
+		if !ok {
+			// if !ok size is 0 by default
+			log.Println("size not available for bucket: ", bucketInfo.Name)
 		}
 		buckets = append(buckets, &pb.Bucket{
 			Name:   bucketInfo.Name,
