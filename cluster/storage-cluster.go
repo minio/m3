@@ -579,7 +579,7 @@ type TenantServiceResult struct {
 }
 
 // streamTenantService returns a channel that returns all tenants and all services on the cluster
-func streamTenantService(maxChanSize int) chan TenantServiceResult {
+func streamTenantService(ctx *Context, maxChanSize int) chan TenantServiceResult {
 	ch := make(chan TenantServiceResult, maxChanSize)
 	go func() {
 		defer close(ch)
@@ -593,7 +593,8 @@ func streamTenantService(maxChanSize int) chan TenantServiceResult {
 			    t.enabled, 
 			    t.domain
 			FROM 
-				tenants t LEFT JOIN tenants_storage_groups tsg ON t.id = tsg.tenant_id`
+				tenants t 
+			LEFT JOIN tenants_storage_groups tsg ON t.id = tsg.tenant_id`
 
 		// no context? straight to db
 		rows, err := db.GetInstance().Db.Query(query)
@@ -603,25 +604,31 @@ func streamTenantService(maxChanSize int) chan TenantServiceResult {
 		}
 
 		for rows.Next() {
-			// Save the resulted query on the Tenant and TenantResult result
-			tenant := Tenant{}
-			tRes := TenantServiceResult{}
-			err = rows.Scan(
-				&tenant.ID,
-				&tenant.Name,
-				&tenant.ShortName,
-				&tRes.Service,
-				&tRes.Port,
-				&tenant.Enabled,
-				&tenant.Domain,
-			)
-			if err != nil {
-				ch <- TenantServiceResult{Error: err}
+			select {
+			case <-ctx.ControlCtx.Done():
 				rows.Close()
 				return
+			default:
+				// Save the resulted query on the Tenant and TenantResult result
+				tenant := Tenant{}
+				tRes := TenantServiceResult{}
+				err = rows.Scan(
+					&tenant.ID,
+					&tenant.Name,
+					&tenant.ShortName,
+					&tRes.Service,
+					&tRes.Port,
+					&tenant.Enabled,
+					&tenant.Domain,
+				)
+				if err != nil {
+					ch <- TenantServiceResult{Error: err}
+					rows.Close()
+					return
+				}
+				tRes.Tenant = &tenant
+				ch <- tRes
 			}
-			tRes.Tenant = &tenant
-			ch <- tRes
 		}
 
 		err = rows.Err()
