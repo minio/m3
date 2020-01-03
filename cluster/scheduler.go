@@ -61,7 +61,11 @@ type Task struct {
 func StartScheduler() {
 	// monitor tasks table for new tasks every 500ms
 	for {
-		task, err := fetchNewTask()
+		ctx, err := NewEmptyContext()
+		if err != nil {
+			panic(err)
+		}
+		task, err := fetchNewTask(ctx)
 		if err != nil && err != sql.ErrNoRows {
 			// panic if we can't fetch tasks
 			panic(err)
@@ -75,7 +79,9 @@ func StartScheduler() {
 					log.Println(err)
 				}
 			}
+			ctx.Commit()
 		} else {
+			ctx.Rollback()
 			// we got not task, sleep a little
 			time.Sleep(time.Millisecond * 500)
 		}
@@ -84,7 +90,7 @@ func StartScheduler() {
 
 // fetchNewTask gets a task in "new" state and locks it until it's unlocked by an update to the record.
 // We do the locking at database just in case there's 2 schedulers running, they cannot grab the same task.
-func fetchNewTask() (*Task, error) {
+func fetchNewTask(ctx *Context) (*Task, error) {
 	// select a task in new state and lock it
 	query :=
 		`SELECT 
@@ -95,10 +101,14 @@ func fetchNewTask() (*Task, error) {
 			LIMIT 1
 		FOR UPDATE`
 	// query the reord
-	row := db.GetInstance().Db.QueryRow(query, NewTaskStatus)
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return nil, err
+	}
+	row := tx.QueryRow(query, NewTaskStatus)
 	task := Task{}
 	// Save the resulted query on the User struct
-	err := row.Scan(&task.ID, &task.Name, &task.Data, &task.Status)
+	err = row.Scan(&task.ID, &task.Name, &task.Data, &task.Status)
 	if err != nil {
 		return nil, err
 	}

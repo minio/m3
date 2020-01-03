@@ -179,19 +179,6 @@ func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) err
 			log.Println("Error adding first tenant's admin user: ", err)
 			return errors.New("Error adding first tenant's admin user")
 		}
-		// Get the credentials for a tenant
-		tenantConf, err := GetTenantConfig(tenant)
-		if err != nil {
-			log.Println("Error getting tenants config", err)
-			return errors.New("Error getting tenants config")
-		}
-		// create minio postgres configuration for bucket notification
-		err = SetMinioConfigPostgresNotification(sgt.StorageGroupTenant, tenantConf)
-		if err != nil {
-			log.Println("Error setting tenant's minio postgres configuration", err)
-			return errors.New("Error setting tenant's minio postgres configuration")
-		}
-
 		// Invite it's first admin
 		err = InviteUserByEmail(ctx, TokenSignupEmail, &newUser)
 		if err != nil {

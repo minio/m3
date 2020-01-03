@@ -17,15 +17,10 @@
 package cluster
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/minio/m3/cluster/db"
-
-	"github.com/minio/minio-go/v6"
-	"github.com/minio/minio/pkg/env"
 	"github.com/minio/minio/pkg/madmin"
 )
 
@@ -116,26 +111,6 @@ func removeMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, u
 	return nil
 }
 
-// SetMinioConfigPostgresNotification configures Minio for Postgres notification
-func SetMinioConfigPostgresNotification(sgt *StorageGroupTenant, tenantConf *TenantConfiguration) error {
-	// get an admin with operator keys
-	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
-	if pErr != nil {
-		return pErr.Cause
-	}
-
-	err := adminClient.SetConfigKV(getPostgresNotificationMinioConfigKV())
-	if err != nil {
-		return tagErrorAsMinio("SetConfigKV", err)
-	}
-	// Restart minios after setting configuration
-	err = adminClient.ServiceRestart()
-	if err != nil {
-		return tagErrorAsMinio("ServiceRestart", err)
-	}
-	return nil
-}
-
 func stopMinioTenantServers(sgt *StorageGroupTenant, tenantConf *TenantConfiguration) error {
 	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
@@ -145,50 +120,6 @@ func stopMinioTenantServers(sgt *StorageGroupTenant, tenantConf *TenantConfigura
 	err := adminClient.ServiceStop()
 	if err != nil {
 		return tagErrorAsMinio("ServiceStop", err)
-	}
-	return nil
-}
-
-// getPostgresNotificationMinioConfigKV creates minio postgres notification configuration
-func getPostgresNotificationMinioConfigKV() (config string) {
-	// Get the Database configuration
-	dbConfg := db.GetM3DbConfig()
-	// Build the database URL connection
-	dbConfigSSLMode := "disable"
-	if dbConfg.Ssl {
-		dbConfigSSLMode = "enable"
-	}
-	postgresTable := env.Get("M3_POSTGRES_NOTIFICATION_TABLE", "bucketevents")
-
-	config = fmt.Sprintf(`notify_postgres:%s format=access connection_string="sslmode=%s" table=%s host=%s port=%s username=%s password=%s database=%s`,
-		postgresTable,
-		dbConfigSSLMode,
-		postgresTable,
-		dbConfg.Host,
-		dbConfg.Port,
-		dbConfg.User,
-		dbConfg.Pwd,
-		dbConfg.Name)
-	return config
-}
-
-// addMinioBucketNotification
-func addMinioBucketNotification(minioClient *minio.Client, bucketName, region string) error {
-	postgresTable := env.Get("M3_POSTGRES_NOTIFICATION_TABLE", "bucketevents")
-	queueArn := minio.NewArn("minio", "sqs", region, postgresTable, "postgresql")
-	queueConfig := minio.NewNotificationConfig(queueArn)
-	queueConfig.AddEvents(minio.ObjectCreatedAll, minio.ObjectRemovedAll)
-
-	bucketNotification := minio.BucketNotification{}
-	bucketNotification.AddQueue(queueConfig)
-
-	// Setting notification is a fast process, set the timeout to maximum 5 secs.
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-
-	err := minioClient.SetBucketNotificationWithContext(timeoutCtx, bucketName, bucketNotification)
-	if err != nil {
-		return tagErrorAsMinio("SetBucketNotificationWithContext", err)
 	}
 	return nil
 }

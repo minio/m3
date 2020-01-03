@@ -44,7 +44,7 @@ func (s *server) SetPassword(ctx context.Context, in *pb.SetPasswordRequest) (*p
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
-	appCtx, err := cluster.NewEmptyContext()
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -142,7 +142,7 @@ func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginR
 		return nil, status.New(codes.Unauthenticated, "user account disabled, contact support").Err()
 	}
 	// start app context
-	appCtx, err := cluster.NewEmptyContext()
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.Internal, "internal Error").Err()
