@@ -116,9 +116,9 @@ func creatNewPolicyOnExternalKMS(KmsClient *vapi.Client, tenant string) <-chan p
 		}
 
 		policyRules := fmt.Sprintf(`
-		path "kv/%s/*" {
-				capabilities = [ "create", "read", "delete" ]
-		}
+path "kv/%s/*" {
+	capabilities = [ "create", "read", "delete" ]
+}
 		`, tenant)
 
 		err := kms.Sys().PutPolicy(policyName, policyRules)
@@ -128,7 +128,7 @@ func creatNewPolicyOnExternalKMS(KmsClient *vapi.Client, tenant string) <-chan p
 			return
 		}
 		data := map[string]interface{}{
-			"policy":             policyName,
+			"policies":           policyName,
 			"token_num_uses":     0,
 			"secret_id_num_uses": 0,
 			"period":             "5m",
