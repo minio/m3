@@ -168,7 +168,7 @@ func getNewKesDeployment(deploymentName string, kesSecretsNames map[string]strin
 				Name:            deploymentName,
 				Image:           getKesContainerImage(),
 				ImagePullPolicy: "IfNotPresent",
-				//start the kes server and at the same time try to create (maximum 5 times) the initial key
+				//start the kes server and at the same time try to create (maximum generateKeyPairAndStoreInSecret5 times) the initial key
 				Command: []string{"/bin/sh", "-c", "for i in {1..5}; do sleep 3; kes key create app-key -k && break || sleep 1; done & kes server --config=kes-config/server-config.toml --mtls-auth=ignore"},
 				Ports: []corev1.ContainerPort{
 					{
@@ -461,6 +461,8 @@ func storeKeyPairInSecret(secretName string, content map[string]string) <-chan s
 	return doneCh
 }
 
+//Generates a public (cert) and private (key) keypair files using the crypto/x509 library based on a given name
+//Stores those files in kubernetes secrets
 func generateKeyPairAndStoreInSecret(name string, tenant string) *KeyPair {
 	serviceName := fmt.Sprintf("%s-kes", tenant)
 	kesKeyPair := <-generateKeyPair(serviceName)
