@@ -20,12 +20,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"log"
-	"regexp"
 	"strconv"
-	"strings"
 	"time"
+
+	"github.com/minio/minio-go/v6/pkg/s3utils"
 
 	"github.com/minio/m3/cluster/db"
 
@@ -44,39 +43,12 @@ const (
 	BucketCustom
 )
 
-var validBucketNameStrict = regexp.MustCompile(`^[a-z0-9][a-z0-9\.\-]{1,61}[a-z0-9]$`)
-var ipAddress = regexp.MustCompile(`^(\d+\.){3}\d+$`)
-
-// Common checker with stricter validation.
-func CheckBucketName(bucketName string) (err error) {
-	if strings.TrimSpace(bucketName) == "" {
-		return errors.New("Bucket name cannot be empty")
-	}
-	if len(bucketName) < 3 {
-		return errors.New("Bucket name cannot be smaller than 3 characters")
-	}
-	if len(bucketName) > 63 {
-		return errors.New("Bucket name cannot be greater than 63 characters")
-	}
-	if ipAddress.MatchString(bucketName) {
-		return errors.New("Bucket name cannot be an ip address")
-	}
-	if strings.Contains(bucketName, "..") || strings.Contains(bucketName, ".-") || strings.Contains(bucketName, "-.") {
-		return errors.New("Bucket name contains invalid characters")
-	}
-
-	if !validBucketNameStrict.MatchString(bucketName) {
-		return errors.New("Bucket name contains invalid characters")
-	}
-	return nil
-}
-
 // MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
 // TODO: allow to spcify the user performing the action (like in the API/gRPC case)
 func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType BucketAccess) error {
 	// validate bucket name
 	if bucketName != "" {
-		if err := CheckBucketName(bucketName); err != nil {
+		if err := s3utils.CheckValidBucketNameStrict(bucketName); err != nil {
 			return err
 		}
 	}

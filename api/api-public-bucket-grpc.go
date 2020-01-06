@@ -20,6 +20,8 @@ import (
 	"context"
 	"log"
 
+	"github.com/minio/minio-go/v6/pkg/s3utils"
+
 	pb "github.com/minio/m3/api/stubs"
 	"github.com/minio/m3/cluster"
 	"google.golang.org/grpc/codes"
@@ -35,7 +37,7 @@ func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (*pb.
 	}
 
 	// validate bucket name
-	if err := cluster.CheckBucketName(in.Name); err != nil {
+	if err := s3utils.CheckValidBucketNameStrict(in.Name); err != nil {
 		return nil, status.New(codes.InvalidArgument, err.Error()).Err()
 	}
 

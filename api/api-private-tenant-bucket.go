@@ -25,6 +25,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/minio/m3/cluster"
+	"github.com/minio/minio-go/v6/pkg/s3utils"
 
 	pb "github.com/minio/m3/api/stubs"
 )
@@ -40,7 +41,7 @@ func (ps *privateServer) TenantBucketAdd(ctx context.Context, in *pb.TenantBucke
 	}
 
 	// validate bucket name
-	if err := cluster.CheckBucketName(in.BucketName); err != nil {
+	if err := s3utils.CheckValidBucketNameStrict(in.BucketName); err != nil {
 		return nil, status.New(codes.InvalidArgument, err.Error()).Err()
 	}
 
