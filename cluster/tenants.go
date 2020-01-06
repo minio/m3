@@ -795,6 +795,7 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 		tenantConfig["MINIO_KMS_KES_CERT_FILE"] = fmt.Sprintf("/kes-config/%s/app/cert/cert", sgTenant.ShortName)
 		tenantConfig["MINIO_KMS_KES_CA_PATH"] = fmt.Sprintf("/kes-config/%s/server/cert/cert", sgTenant.ShortName)
 		tenantConfig["MINIO_KMS_KES_KEY_NAME"] = "app-key"
+		tenantConfig["MINIO_KMS_AUTO_ENCRYPTION"] = "on"
 	}
 
 	// Build the config map

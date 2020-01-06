@@ -21,8 +21,11 @@ kind load docker-image quay.io/prometheus/prometheus:v2.14.0 --name m3cluster
 
 make --directory="../portal-ui" k8sdev
 make --directory="../nginx" k8sdev
+make --directory="../vault" k8sdev
+
 kubectl apply -f deployments/m3-portal-backend-deployment.yaml
 kubectl apply -f deployments/m3-portal-frontend-deployment.yaml
+kubectl apply -f deployments/m3-vault-deployment.yaml
 kubectl apply -f deployments/portal-proxy-deployment.yaml
 echo "done"
 
