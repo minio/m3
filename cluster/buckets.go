@@ -20,11 +20,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"log"
-	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/minio/minio-go/v6/pkg/s3utils"
 
 	"github.com/minio/m3/cluster/db"
 
@@ -48,9 +48,8 @@ const (
 func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType BucketAccess) error {
 	// validate bucket name
 	if bucketName != "" {
-		var re = regexp.MustCompile(`^[a-z0-9-]{3,}$`)
-		if !re.MatchString(bucketName) {
-			return errors.New("a valid bucket name is needed")
+		if err := s3utils.CheckValidBucketNameStrict(bucketName); err != nil {
+			return err
 		}
 	}
 

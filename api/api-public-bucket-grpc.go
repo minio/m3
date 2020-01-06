@@ -20,6 +20,8 @@ import (
 	"context"
 	"log"
 
+	"github.com/minio/minio-go/v6/pkg/s3utils"
+
 	pb "github.com/minio/m3/api/stubs"
 	"github.com/minio/m3/cluster"
 	"google.golang.org/grpc/codes"
@@ -29,10 +31,14 @@ import (
 // MakeBucket makes a bucket after validating the sessionId in the grpc headers in the appropriate tenant's MinIO
 func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (*pb.Bucket, error) {
 	// Make bucket in the tenant's MinIO
-	bucket := in.GetName()
 	accessType := cluster.BucketPrivate
 	if in.GetAccess() == pb.Access_PUBLIC {
 		accessType = cluster.BucketPublic
+	}
+
+	// validate bucket name
+	if err := s3utils.CheckValidBucketNameStrict(in.Name); err != nil {
+		return nil, status.New(codes.InvalidArgument, err.Error()).Err()
 	}
 
 	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
@@ -44,11 +50,12 @@ func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (*pb.
 	// get tenant short name from context
 	tenantShortName := ctx.Value(cluster.TenantShortNameKey).(string)
 	// TODO: Update to use context
-	err = cluster.MakeBucket(appCtx, tenantShortName, bucket, accessType)
+	err = cluster.MakeBucket(appCtx, tenantShortName, in.Name, accessType)
 	if err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
 	}
-	return &pb.Bucket{Name: bucket, Size: 0}, nil
+	return &pb.Bucket{Name: in.Name, Size: 0}, nil
 }
 
 // getAccessType converts BucketAccess type returned by cluster package to
