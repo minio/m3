@@ -719,17 +719,23 @@ func streamAccessKeyToTenantServices(ctx *Context) chan *AccessKeyToTenantShortN
 				}
 
 				for rows.Next() {
-					// Save the resulted query on the User struct
-					ak2s := AccessKeyToTenantShortName{
-						TenantShortName: tenantRes.Tenant.ShortName,
-					}
-					err = rows.Scan(&ak2s.AccessKey)
-					if err != nil {
-						ch <- &AccessKeyToTenantShortNameResult{Error: err}
+					select {
+					case <-ctx.ControlCtx.Done():
 						rows.Close()
 						return
+					default:
+						// Save the resulted query on the User struct
+						ak2s := AccessKeyToTenantShortName{
+							TenantShortName: tenantRes.Tenant.ShortName,
+						}
+						err = rows.Scan(&ak2s.AccessKey)
+						if err != nil {
+							ch <- &AccessKeyToTenantShortNameResult{Error: err}
+							rows.Close()
+							return
+						}
+						ch <- &AccessKeyToTenantShortNameResult{AccessKeyToTenantShortName: &ak2s}
 					}
-					ch <- &AccessKeyToTenantShortNameResult{AccessKeyToTenantShortName: &ak2s}
 				}
 
 				err = rows.Err()
