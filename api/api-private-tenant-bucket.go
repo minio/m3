@@ -39,6 +39,11 @@ func (ps *privateServer) TenantBucketAdd(ctx context.Context, in *pb.TenantBucke
 		return nil, status.New(codes.InvalidArgument, "A bucket name is needed").Err()
 	}
 
+	// validate bucket name
+	if err := cluster.CheckBucketName(in.BucketName); err != nil {
+		return nil, status.New(codes.InvalidArgument, err.Error()).Err()
+	}
+
 	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
 	if err != nil {
 		log.Println(err)
@@ -54,9 +59,6 @@ func (ps *privateServer) TenantBucketAdd(ctx context.Context, in *pb.TenantBucke
 
 	err = cluster.MakeBucket(appCtx, tenant.ShortName, in.BucketName, cluster.BucketPrivate)
 	if err != nil {
-		if err == cluster.ErrInvalidBucketName {
-			return nil, status.New(codes.InvalidArgument, err.Error()).Err()
-		}
 		fmt.Println("Error creating bucket:", err.Error())
 		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
 	}
