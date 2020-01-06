@@ -365,6 +365,7 @@ func getGlobalBucketNamespaceConfiguration(ctx *Context) string {
 
 	nginxConfiguration.WriteString(fmt.Sprintf(`
 			http {
+			server_names_hash_bucket_size  128;
 			upstream portalproxy {
 				server portal-proxy:80;
 			}
