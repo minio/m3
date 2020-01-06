@@ -168,7 +168,8 @@ func getNewKesDeployment(deploymentName string, kesSecretsNames map[string]strin
 				Name:            deploymentName,
 				Image:           getKesContainerImage(),
 				ImagePullPolicy: "IfNotPresent",
-				Command:         []string{"/bin/sh", "-c", "kes server --config=kes-config/server-config.toml --mtls-auth=ignore; kes key create app-key -k"},
+				//start the kes server and at the same time try to create (maximum 5 times) the initial key
+				Command: []string{"/bin/sh", "-c", "for i in {1..5}; do sleep 3; kes key create app-key -k && break || sleep 1; done & kes server --config=kes-config/server-config.toml --mtls-auth=ignore"},
 				Ports: []corev1.ContainerPort{
 					{
 						ContainerPort: 7373,
