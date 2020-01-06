@@ -46,6 +46,9 @@ func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (*pb.
 	// TODO: Update to use context
 	err = cluster.MakeBucket(appCtx, tenantShortName, bucket, accessType)
 	if err != nil {
+		if err == cluster.ErrInvalidBucketName {
+			return nil, status.New(codes.InvalidArgument, err.Error()).Err()
+		}
 		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
 	}
 	return &pb.Bucket{Name: bucket, Size: 0}, nil
