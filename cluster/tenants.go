@@ -768,6 +768,8 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 
 	// Configuration to store
 	tenantConfig := make(map[string]string)
+	// Enable anonymous scraping of Prometheus metrics
+	tenantConfig["MINIO_PROMETHEUS_AUTH_TYPE"] = "public"
 
 	// if global bucket is enabled, configure the etcd
 	globalBuckets, err := GetConfig(nil, cfgCoreGlobalBuckets, false)

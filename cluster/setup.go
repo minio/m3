@@ -60,6 +60,9 @@ func SetupM3() error {
 	//setup etcd cluster
 	waitEtcdCh := SetupEtcCluster()
 
+	//setup prometheus deployment
+	waitPrometheusCh := SetupPrometheusCluster()
+
 	// setup nginx router
 	log.Println("setting up nginx configmap and service account")
 	waitCh := SetupNginxConfigMap(clientset)
@@ -176,6 +179,13 @@ func SetupM3() error {
 	if err != nil {
 		log.Println(err)
 	}
+
+	// wait on Prometheus deployment to start and check if there were any errors
+	err = <-waitPrometheusCh
+	if err != nil {
+		log.Println(err)
+	}
+
 	// wait on nginx resolver and check if there were any errors
 	log.Println("Waiting on nginx resolver")
 	err = <-waitNginxResolverCh
