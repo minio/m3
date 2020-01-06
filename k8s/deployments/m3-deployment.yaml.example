@@ -91,6 +91,37 @@ spec:
             - containerPort: 50052
               name: private-grpc
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: default
+data:
+  prometheus.yaml: |-
+    global:
+      scrape_interval: 15s
+
+    scrape_configs:
+      - job_name: minio-metrics
+        metrics_path: /minio/prometheus/metrics
+        scheme: http
+        kubernetes_sd_configs:
+        - role: pod
+          namespaces:
+            names:
+            - default
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_label_sg]
+          separator: ;
+          regex: (storage-group.*)
+          replacement: $1
+          action: keep
+        - source_labels: [__meta_kubernetes_pod_label_app]
+          separator: ;
+          regex: (sg-.*)
+          replacement: $1
+          action: keep
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -116,3 +147,4 @@ spec:
           envFrom:
             - configMapRef:
                 name: m3-env
+                
