@@ -33,8 +33,6 @@ func main() {
 		}
 	}()
 
-	//if VAULT_DEV_ROOT_TOKEN_ID is not provided we assume vault server is not running
-	//we proceed to start a new local vault server
 	vaultServiceCh := startVaultService(color.FgYellow)
 
 	err := <-vaultInitAndUnseal()
@@ -109,7 +107,7 @@ func vaultInitAndUnseal() chan error {
 		defer close(doneCh)
 
 		rootToken := ""
-		address := "http://127.0.0.1:8200"
+		address := "https://localhost:8200"
 		client, err := isVaultReadyRetry(address)
 		if err != nil {
 			doneCh <- err
@@ -181,17 +179,21 @@ func vaultInitAndUnseal() chan error {
 			return
 		}
 		log.Println("Vault enabled secrets kv successfully")
-
-		//<-storeConfInK8s(rootToken)
-
 	}()
 	return doneCh
 }
 
 func isVaultReadyRetry(address string) (*vapi.Client, error) {
 	currentTries := 0
+	totalRetries, _ := strconv.Atoi(env.Get("TOTAL_INIT_RETRIES", "5"))
 	for {
-		client, err := vapi.NewClient(&vapi.Config{Address: address})
+		config := &vapi.Config{Address: address}
+		if env.Get("SELF_SIGNED_CERT", "true") == "true" {
+			config.ConfigureTLS(&vapi.TLSConfig{
+				Insecure: true,
+			})
+		}
+		client, err := vapi.NewClient(config)
 		if err != nil {
 			return client, err
 		}
@@ -207,7 +209,7 @@ func isVaultReadyRetry(address string) (*vapi.Client, error) {
 		log.Println("Vault not ready, sleeping 2 seconds.")
 		time.Sleep(time.Second * 2)
 		currentTries++
-		if currentTries >= 5 {
+		if currentTries >= totalRetries {
 			return nil, errors.New("vault was never ready. Unable to complete configuration of the KMS")
 		}
 	}
