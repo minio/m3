@@ -1,5 +1,5 @@
 {
-  "api_addr": "https://127.0.0.1:8200",
+  "api_addr": "http://127.0.0.1:8200",
   "backend": {
     "file": {
       "path": "storage/file"
@@ -10,12 +10,7 @@
   "listener": {
     "tcp": {
       "address": "0.0.0.0:8200",
-      "tls_cert_file": "tls/server.cert",
-      "tls_key_file": "tls/server.key",
-      "tls_skip_verify": true,
-      "tls_require_and_verify_client_cert": false,
-      "tls_disable_client_certs": true,
-      "VAULT_SKIP_VERIFY": true
-    },
+      "tls_disable": true
+    }
   }
 }

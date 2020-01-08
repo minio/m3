@@ -17,7 +17,6 @@ EXPOSE 8200
 
 COPY --from=0 /go/src/github.com/minio/m3-vault/m3-vault    .
 COPY --from=0 /go/src/github.com/minio/m3-vault/vault-config.json    .
-COPY --from=0 /go/src/github.com/minio/m3-vault/tls/    /tls/
 
 ENTRYPOINT []
 CMD ["/m3-vault"]
