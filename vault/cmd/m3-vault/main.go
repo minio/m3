@@ -107,7 +107,7 @@ func vaultInitAndUnseal() chan error {
 		defer close(doneCh)
 
 		rootToken := ""
-		address := "https://localhost:8200"
+		address := "http://localhost:8200"
 		client, err := isVaultReadyRetry(address)
 		if err != nil {
 			doneCh <- err
@@ -188,11 +188,6 @@ func isVaultReadyRetry(address string) (*vapi.Client, error) {
 	totalRetries, _ := strconv.Atoi(env.Get("TOTAL_INIT_RETRIES", "5"))
 	for {
 		config := &vapi.Config{Address: address}
-		if env.Get("SELF_SIGNED_CERT", "true") == "true" {
-			config.ConfigureTLS(&vapi.TLSConfig{
-				Insecure: true,
-			})
-		}
 		client, err := vapi.NewClient(config)
 		if err != nil {
 			return client, err
