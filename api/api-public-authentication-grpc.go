@@ -126,15 +126,22 @@ func (s *server) ValidateInvite(ctx context.Context, in *pb.ValidateInviteReques
 // Login handles the Login request by receiving the user credentials
 // and returning a hashed token.
 func (s *server) Login(ctx context.Context, in *pb.LoginRequest) (res *pb.LoginResponse, err error) {
-	// Create Credentials
-	// TODO: validate credentials: username->email, tenant->shortname?
-	tenantName := in.GetCompany()
-	email := in.GetEmail()
+	if in.Company == "" {
+		return nil, status.New(codes.InvalidArgument, "a company name is needed").Err()
+	}
+	if in.Email == "" {
+		return nil, status.New(codes.InvalidArgument, "an email is needed").Err()
+	}
+	if in.Password == "" {
+		return nil, status.New(codes.InvalidArgument, "a password is needed").Err()
+	}
+	tenantName := in.Company
+	email := in.Email
 
 	// Search for the tenant on the database
 	tenant, err := cluster.GetTenantByDomain(tenantName)
 	if err != nil {
-		return nil, status.New(codes.InvalidArgument, "tenant not valid").Err()
+		return nil, status.New(codes.Unauthenticated, "wrong tenant, email and/or password").Err()
 	}
 	// validate tenant being active
 	if !tenant.Enabled {
