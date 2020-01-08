@@ -70,7 +70,7 @@ service PublicAPI {
 
     // User
     // List Users
-    rpc UserWhoAmI (Empty) returns (User) {
+    rpc UserWhoAmI (Empty) returns (WhoAmIResponse) {
     }
     rpc ListUsers (ListUsersRequest) returns (ListUsersResponse) {
     }
@@ -454,4 +454,9 @@ message MultiAddPermissionToSAsRequest {
 message MultiAddPermissionToSAsResponse {
     string error = 1;
     string status = 2;
+}
+
+message WhoAmIResponse {
+    User user = 1;
+    string company = 2;
 }

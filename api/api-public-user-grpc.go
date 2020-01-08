@@ -36,7 +36,7 @@ const (
 	defaultRequestLimit  = 25
 )
 
-func (s *server) UserWhoAmI(ctx context.Context, in *pb.Empty) (*pb.User, error) {
+func (s *server) UserWhoAmI(ctx context.Context, in *pb.Empty) (*pb.WhoAmIResponse, error) {
 	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, err
@@ -50,10 +50,13 @@ func (s *server) UserWhoAmI(ctx context.Context, in *pb.Empty) (*pb.User, error)
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
-	return &pb.User{
-		Name:  userObj.Name,
-		Email: userObj.Email,
-		Id:    userObj.ID.String()}, nil
+	return &pb.WhoAmIResponse{
+		User: &pb.User{
+			Name:  userObj.Name,
+			Email: userObj.Email,
+			Id:    userObj.ID.String()},
+		Company: appCtx.Tenant.Name,
+	}, nil
 }
 
 // UserAddInvite invites a new user to the tenant's system by sending an email
