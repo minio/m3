@@ -36,6 +36,18 @@ func getKesContainerImage() string {
 	return env.Get(kesImage, "minio/kes:latest")
 }
 
+func getKesRunningPort() string {
+	return env.Get(kesPort, "7373")
+}
+
+func getkesMTlsAuth() string {
+	return env.Get(kesMTlsAuth, "verify")
+}
+
+func getKesConfigPath() string {
+	return env.Get(kesConfigPath, "kes-config/server-config.toml")
+}
+
 func getM3ImagePullPolicy() string {
 	return env.Get(m3ImagePullPolicy, "IfNotPresent")
 }

@@ -59,6 +59,9 @@ data:
   # Uncomment these to enable tenant data encryption using an external KMS
   #KMS_ADDRESS: ""
   #KMS_TOKEN: ""
+  # Uncomment these to allow KES to use self-signed client certificates
+  #KES_M_TLS_AUTH: "ignore"
+  #KES_CONFIG_FILE_PATH: "kes-config/server-config.toml"
 ---
 apiVersion: apps/v1
 kind: Deployment
