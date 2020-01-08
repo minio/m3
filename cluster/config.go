@@ -36,8 +36,12 @@ func getKesContainerImage() string {
 	return env.Get(kesImage, "minio/kes:latest")
 }
 
-func getKesRunningPort() string {
-	return env.Get(kesPort, "7373")
+func getKesRunningPort() int {
+	port, err := strconv.Atoi(env.Get(kesPort, "7373"))
+	if err != nil {
+		port = 7373
+	}
+	return port
 }
 
 func getkesMTlsAuth() string {
