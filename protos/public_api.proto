@@ -83,6 +83,9 @@ service PublicAPI {
     rpc DisableUser (UserActionRequest) returns (UserActionResponse) {
     }
 
+    rpc ForgotPassword (ForgotPasswordRequest) returns (Empty) {
+    }
+
     // Enable a User
     rpc EnableUser (UserActionRequest) returns (UserActionResponse) {
     }
@@ -118,7 +121,7 @@ service PublicAPI {
     rpc InfoServiceAccount (ServiceAccountActionRequest) returns (InfoServiceAccountResponse) {
     }
     // Updates a Service Account with the selected permissions
-    rpc UpdateServiceAccount (UpdateServiceAccountRequest)returns (InfoServiceAccountResponse){
+    rpc UpdateServiceAccount (UpdateServiceAccountRequest) returns (InfoServiceAccountResponse) {
     }
     // Assign multiple permissions to this service account
     rpc AssignPermissionsToServiceAccount (AddPermissionsSARequest) returns (Empty) {
@@ -213,7 +216,7 @@ message MetricsRequest {
 }
 
 // Usage per day 
-message MetricsDayUsage{
+message MetricsDayUsage {
     string time = 1;
     uint64 usage = 2;
 }
@@ -331,7 +334,7 @@ message ListServiceAccountsRequest {
     int32 offset = 2;
     // a query to filter ServiceAccounts with
     string query = 3;
-    int32 limit =4;
+    int32 limit = 4;
 }
 
 // Request a list of ServiceAccounts on the tenant account
@@ -355,7 +358,7 @@ message ServiceAccountActionRequest {
     string id = 1;
 }
 
-message InfoServiceAccountResponse{
+message InfoServiceAccountResponse {
     ServiceAccount service_account = 1;
     repeated Permission permissions = 2;
 }
@@ -371,7 +374,7 @@ message CreateServiceAccountResponse {
     string secret_key = 2;
 }
 
-message UpdateServiceAccountRequest{
+message UpdateServiceAccountRequest {
     string id = 1;
     bool enabled = 2;
     string name = 3;
@@ -394,7 +397,7 @@ message ListPermissionsResponse {
 }
 
 
-message AddPermissionRequest{
+message AddPermissionRequest {
     string name = 1;
     string description = 2;
     string effect = 3;
@@ -402,7 +405,7 @@ message AddPermissionRequest{
     repeated string actions = 5;
 }
 
-message UpdatePermissionRequest{
+message UpdatePermissionRequest {
     string id = 1;
     string name = 2;
     string description = 3;
@@ -428,7 +431,7 @@ message PermissionResource {
     string pattern = 3;
 }
 
-message PermissionAction{
+message PermissionAction {
     string id = 1;
     string type = 2;
 }
@@ -459,4 +462,9 @@ message MultiAddPermissionToSAsResponse {
 message WhoAmIResponse {
     User user = 1;
     string company = 2;
+}
+
+message ForgotPasswordRequest {
+    string company = 1;
+    string email = 2;
 }

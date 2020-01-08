@@ -342,3 +342,40 @@ func (s *server) EnableUser(ctx context.Context, in *pb.UserActionRequest) (*pb.
 	}
 	return &pb.UserActionResponse{Status: "true"}, nil
 }
+
+func (s *server) ForgotPassword(ctx context.Context, in *pb.ForgotPasswordRequest) (*pb.Empty, error) {
+	if in.Company == "" {
+		return nil, status.New(codes.InvalidArgument, "you must provide company name").Err()
+	}
+	if in.Email == "" {
+		return nil, status.New(codes.InvalidArgument, "an email is needed").Err()
+	}
+	// validate tenant
+	tenant, err := cluster.GetTenantByDomain(in.Company)
+	if err != nil {
+		log.Println(err)
+		return &pb.Empty{}, nil
+	}
+	// start context
+	appCtx := cluster.NewCtxWithTenant(&tenant)
+
+	user, err := cluster.GetUserByEmail(appCtx, in.Email)
+	if err != nil {
+		log.Println(err)
+		return &pb.Empty{}, nil
+	}
+
+	// Send email invitation with token
+	err = cluster.InviteUserByEmail(appCtx, cluster.TokenResetPasswordEmail, &user)
+	if err != nil {
+		log.Println(err)
+		return &pb.Empty{}, nil
+	}
+	// if no errors, commit
+	err = appCtx.Commit()
+	if err != nil {
+		log.Println(err)
+		return &pb.Empty{}, nil
+	}
+	return &pb.Empty{}, nil
+}
