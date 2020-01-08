@@ -4,9 +4,18 @@ import Landing from "./landing";
 import Signup from "./signup";
 import history from "./history";
 import Login from "./login";
+import Navigation from "./navigation";
+import storage from 'local-storage-fallback';
 
 
 const App: React.FC = () => {
+
+    const isLoggedIn = () => {
+        return storage.getItem('token') !== undefined &&
+            storage.getItem('token') !== null &&
+            storage.getItem('token') !== '';
+    }
+
     return (
         <Router history={history}>
             <Switch>
@@ -14,8 +23,17 @@ const App: React.FC = () => {
                     <Signup/>
                 </Route>
                 <Route path="/login">
-                    <Login />
+                    <Login/>
                 </Route>
+                {
+                    isLoggedIn() ? (
+                            <Route path="/">
+                                <Navigation/>
+                            </Route>
+                        ) :
+                        {}
+                }
+
                 <Route exact path="/">
                     <Landing/>
                 </Route>
