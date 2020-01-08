@@ -163,7 +163,7 @@ path "kv/%s/*" {
 func getNewKesDeployment(deploymentName string, kesSecretsNames map[string]string) appsv1.Deployment {
 	kesReplicas := int32(1)
 	port := getKesRunningPort()
-	kesMTlsAuth := getkesMTlsAuth()
+	kesMTlsAuth := getKesMTlsAuth()
 	kesConfigPath := getKesConfigPath()
 	kesCommand := fmt.Sprintf("for i in {1..5}; do sleep 3; kes key create app-key -k && break || sleep 1; done & kes server --config=%s --mtls-auth=%s", kesConfigPath, kesMTlsAuth)
 	kesPodSpec := corev1.PodSpec{

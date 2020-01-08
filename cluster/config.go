@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -44,12 +45,24 @@ func getKesRunningPort() int {
 	return port
 }
 
-func getkesMTlsAuth() string {
-	return env.Get(kesMTlsAuth, "verify")
+func getKesMTlsAuth() string {
+	defaultMode := "verify"
+	var re = regexp.MustCompile(`^[a-z]+$`)
+	authMode := env.Get(kesMTlsAuth, defaultMode)
+	if !re.MatchString(authMode) {
+		authMode = defaultMode
+	}
+	return authMode
 }
 
 func getKesConfigPath() string {
-	return env.Get(kesConfigPath, "kes-config/server-config.toml")
+	var re = regexp.MustCompile(`^[a-z_/\-\s0-9\.]+$`)
+	defaultPath := "kes-config/server-config.toml"
+	configPath := env.Get(kesConfigPath, defaultPath)
+	if !re.MatchString(configPath) {
+		configPath = defaultPath
+	}
+	return configPath
 }
 
 func getM3ImagePullPolicy() string {
