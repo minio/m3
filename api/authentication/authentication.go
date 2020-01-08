@@ -69,6 +69,7 @@ func AdminAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 func PublicAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	// exempted calls from the validation
 	if info.FullMethod == "/m3.PublicAPI/Login" ||
+		info.FullMethod == "/m3.PublicAPI/ForgotPassword" ||
 		info.FullMethod == "/m3.PublicAPI/SetPassword" ||
 		info.FullMethod == "/m3.PublicAPI/ValidateInvite" {
 		// log this call
