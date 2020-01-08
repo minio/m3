@@ -37,6 +37,10 @@ spec:
               value: "5"
             - name: SECRET_THRESHOLD
               value: "3"
+            - name: SELF_SIGNED_CERT
+              value: "true"
+            - name: TOTAL_INIT_RETRIES
+              value: "5"
           ports:
             - containerPort: 8200
               name: rest-api
