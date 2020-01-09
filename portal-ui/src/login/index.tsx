@@ -69,7 +69,6 @@ const Login: React.FC = () => {
 
     const formSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        console.log('form submit');
         const url = '/api/v1/users/login';
         request
             .post(url)

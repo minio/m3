@@ -17,35 +17,34 @@
 
 import React from 'react';
 import {makeStyles} from '@material-ui/core/styles';
-import {Route, Router, Switch} from "react-router-dom";
+import {Redirect, Route, Router, Switch} from "react-router-dom";
 import Dashboard from "../dashboard";
 import history from "../history";
 
 const useStyles = makeStyles(theme => ({
-    '@global': {
-        body: {
-            backgroundColor: theme.palette.common.white,
-        },
+  '@global': {
+    body: {
+      backgroundColor: theme.palette.common.white,
     },
+  },
 
-    errorBlock: {
-        color: 'red',
-    }
+  errorBlock: {
+    color: 'red',
+  }
 }));
 const Navigation: React.FC = () => {
 
-    return (
-        <Router history={history}>
-            <Switch>
-                <Route
-                    path={
-                        "/dashboard"
-                    }
-                    component={Dashboard}
-                />
-            </Switch>
-        </Router>
-    );
+  return (
+    <Router history={history}>
+      <Switch>
+        <Route
+          path="/dashboard"
+          component={Dashboard}
+        />
+        <Redirect exact from="/" to="dashboard"/>
+      </Switch>
+    </Router>
+  );
 };
 
 export default Navigation;
