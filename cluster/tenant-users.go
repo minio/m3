@@ -291,8 +291,8 @@ func GetTotalNumberOfUsers(ctx *Context) (int, error) {
 	return count, nil
 }
 
-// InviteUserByEmail creates a temporary token to signup/reset password for service and send an email to the provided user
-func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
+// doInviteUserByEmail creates a temporary token to signup/reset password for service and send an email to the provided user
+func doInviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 
 	// generate a token for the email invite
 	// this token expires in 72 hours
@@ -392,5 +392,19 @@ func MarkInvitationAccepted(ctx *Context, userID *uuid.UUID) error {
 		return err
 	}
 
+	return nil
+}
+
+func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
+	// build task data
+	taskData := InviteUserTaskData{
+		TenantID: ctx.Tenant.ID.String(),
+		UserID:   user.ID.String(),
+		UserFor:  usedFor,
+	}
+	// schedule
+	if err := ScheduleTask(ctx, TaskInviteUserByEmail, taskData); err != nil {
+		return err
+	}
 	return nil
 }
