@@ -162,6 +162,10 @@ path "kv/%s/*" {
 
 func getNewKesDeployment(deploymentName string, kesSecretsNames map[string]string) appsv1.Deployment {
 	kesReplicas := int32(1)
+	port := getKesRunningPort()
+	kesMTlsAuth := getKesMTlsAuth()
+	kesConfigPath := getKesConfigPath()
+	kesCommand := fmt.Sprintf("for i in {1..5}; do sleep 3; kes key create app-key -k && break || sleep 1; done & kes server --config=%s --mtls-auth=%s", kesConfigPath, kesMTlsAuth)
 	kesPodSpec := corev1.PodSpec{
 		Containers: []corev1.Container{
 			{
@@ -169,10 +173,10 @@ func getNewKesDeployment(deploymentName string, kesSecretsNames map[string]strin
 				Image:           getKesContainerImage(),
 				ImagePullPolicy: "IfNotPresent",
 				//start the kes server and at the same time try to create (maximum generateKeyPairAndStoreInSecret5 times) the initial key
-				Command: []string{"/bin/sh", "-c", "for i in {1..5}; do sleep 3; kes key create app-key -k && break || sleep 1; done & kes server --config=kes-config/server-config.toml --mtls-auth=ignore"},
+				Command: []string{"/bin/sh", "-c", kesCommand},
 				Ports: []corev1.ContainerPort{
 					{
-						ContainerPort: 7373,
+						ContainerPort: int32(port),
 					},
 				},
 				Env: []corev1.EnvVar{
@@ -319,6 +323,7 @@ func createNewKesDeployment(clientset *kubernetes.Clientset, deploymentName stri
 
 func createNewKesService(clientset *kubernetes.Clientset, serviceName string) <-chan struct{} {
 	doneCh := make(chan struct{})
+	port := getKesRunningPort()
 	go func() {
 		defer close(doneCh)
 		factory := informers.NewSharedInformerFactory(clientset, 0)
@@ -345,7 +350,7 @@ func createNewKesService(clientset *kubernetes.Clientset, serviceName string) <-
 			Spec: v1.ServiceSpec{
 				Ports: []v1.ServicePort{
 					{
-						Port: 7373,
+						Port: int32(port),
 					},
 				},
 				Selector: map[string]string{
@@ -484,9 +489,9 @@ func createKesConfigurations(KmsClient *vapi.Client, tenant string, roleID strin
 	kesServerKeyPairSecretName := fmt.Sprintf("%s-kes-server-keypair", tenant)
 	appKeys := generateKeyPairAndStoreInSecret(kesAppKeyPairSecretName, tenant)
 	generateKeyPairAndStoreInSecret(kesServerKeyPairSecretName, tenant)
-
+	port := getKesRunningPort()
 	kesServerConfig := fmt.Sprintf(`
-			address = "0.0.0.0:7373"
+			address = "0.0.0.0:%d"
 			root = "disabled"
 			
 			[tls]
@@ -507,7 +512,7 @@ func createKesConfigurations(KmsClient *vapi.Client, tenant string, roleID strin
 			retry  = "15s"
 			[keystore.vault.status]
 			ping = "10s"
-		`, appKeys.certIdentity, kms.Address(), tenant, roleID, roleSecretID)
+		`, port, appKeys.certIdentity, kms.Address(), tenant, roleID, roleSecretID)
 
 	kesServerConfigSecretName := fmt.Sprintf("%s-kes-server-config", tenant)
 	<-storeKeyPairInSecret(kesServerConfigSecretName, map[string]string{

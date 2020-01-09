@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -34,6 +35,34 @@ func getM3ContainerImage() string {
 
 func getKesContainerImage() string {
 	return env.Get(kesImage, "minio/kes:latest")
+}
+
+func getKesRunningPort() int {
+	port, err := strconv.Atoi(env.Get(kesPort, "7373"))
+	if err != nil {
+		port = 7373
+	}
+	return port
+}
+
+func getKesMTlsAuth() string {
+	defaultMode := "verify"
+	var re = regexp.MustCompile(`^[a-z]+$`)
+	authMode := env.Get(kesMTlsAuth, defaultMode)
+	if !re.MatchString(authMode) {
+		authMode = defaultMode
+	}
+	return authMode
+}
+
+func getKesConfigPath() string {
+	var re = regexp.MustCompile(`^[a-z_/\-\s0-9\.]+$`)
+	defaultPath := "kes-config/server-config.toml"
+	configPath := env.Get(kesConfigPath, defaultPath)
+	if !re.MatchString(configPath) {
+		configPath = defaultPath
+	}
+	return configPath
 }
 
 func getM3ImagePullPolicy() string {
