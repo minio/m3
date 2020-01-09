@@ -17,7 +17,9 @@
 package cluster
 
 import (
+	"encoding/json"
 	"errors"
+	"log"
 	"regexp"
 	"time"
 
@@ -65,27 +67,48 @@ func AddAdminAction(ctx *Context, name string, adminEmail string) (*Admin, error
 	}
 
 	// send an email to the admin
+	if err := SendAdminInvite(ctx, &admin, adminToken); err != nil {
+		return nil, err
+	}
+	return &admin, nil
+}
+
+func SendAdminInvite(ctx *Context, admin *Admin, adminToken *uuid.UUID) error {
+	// build task data
+	taskData := SendAdminTaskData{
+		AdminEmail: admin.Email,
+		AdminToken: adminToken.String(),
+	}
+	// schedule
+	if err := ScheduleTask(ctx, TaskSendAdminInvite, taskData); err != nil {
+		return err
+	}
+	return nil
+}
+
+func doSendAdminInvite(admin *Admin, adminToken string) error {
+	// send an email to the admin
 	templateData := struct {
 		Name       string
 		Token      string
 		CliCommand string
 	}{
 		Name:       admin.Name,
-		Token:      adminToken.String(),
+		Token:      adminToken,
 		CliCommand: getCliCommand(),
 	}
 	// Get the mailing template for inviting users
 	body, err := GetTemplate("new-admin", templateData)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// send the email
 	err = SendMail(admin.Name, admin.Email, "Join mkube", *body)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &admin, nil
+	return nil
 }
 
 // InsertAdmin inserts an admin record into the `admins` table
@@ -166,4 +189,37 @@ func GetAdminByEmail(ctx *Context, email string) (*Admin, error) {
 	}
 
 	return &admin, nil
+}
+
+type SendAdminTaskData struct {
+	AdminEmail string
+	AdminToken string
+}
+
+func SendAdminInviteTask(task *Task) error {
+	ctx, err := NewEmptyContext()
+	if err != nil {
+		return err
+	}
+	// hydrate the data from the task
+	var taskData SendAdminTaskData
+	err = json.Unmarshal(task.Data, &taskData)
+	if err != nil {
+		return err
+	}
+
+	admin, err := GetAdminByEmail(ctx, taskData.AdminEmail)
+	if err != nil {
+		return err
+	}
+	// perform invitation
+	err = doSendAdminInvite(admin, taskData.AdminToken)
+	if err != nil {
+		log.Println(err)
+		if err := ctx.Rollback(); err != nil {
+			log.Println(err)
+		}
+		return err
+	}
+	return nil
 }

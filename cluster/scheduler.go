@@ -44,9 +44,11 @@ const (
 )
 
 const (
-	failTask            = "fail"
-	emptyTask           = "empty"
-	TaskProvisionTenant = "provision-tenant"
+	failTask              = "fail"
+	emptyTask             = "empty"
+	TaskProvisionTenant   = "provision-tenant"
+	TaskInviteUserByEmail = "invite-user-by-email"
+	TaskSendAdminInvite   = "send-admin-invite"
 )
 
 type Task struct {
@@ -73,15 +75,19 @@ func StartScheduler() {
 		// if we got a task, schedule it
 		if task != nil {
 			log.Printf("Schedule task %d\n", task.ID)
-			if err := scheduleTaskJob(task); err != nil {
+			if err := scheduleTaskJob(ctx, task); err != nil {
 				log.Println(err)
-				if err = markTask(task, ErrorSchedulingTaskStatus); err != nil {
+				if err = markTask(ctx, task, ErrorSchedulingTaskStatus); err != nil {
 					log.Println(err)
 				}
 			}
-			ctx.Commit()
+			if err := ctx.Commit(); err != nil {
+				log.Println(err)
+			}
 		} else {
-			ctx.Rollback()
+			if err := ctx.Rollback(); err != nil {
+				log.Println(err)
+			}
 			// we got not task, sleep a little
 			time.Sleep(time.Millisecond * 500)
 		}
@@ -116,7 +122,7 @@ func fetchNewTask(ctx *Context) (*Task, error) {
 }
 
 // markTask marks a task as the passes `newStatus` state.
-func markTask(task *Task, newStatus TaskStatus) error {
+func markTask(ctx *Context, task *Task, newStatus TaskStatus) error {
 	// if we are marking the task as scheduled, set the schedule time field
 	extraField := ""
 	if newStatus == ScheduledTaskStatus {
@@ -127,9 +133,12 @@ func markTask(task *Task, newStatus TaskStatus) error {
 		`UPDATE tasks 
 					SET status = $1 %s
 				WHERE id=$2`, extraField)
-
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return err
+	}
 	// Execute Query
-	_, err := db.GetInstance().Db.Exec(query, newStatus, task.ID)
+	_, err = tx.Exec(query, newStatus, task.ID)
 	if err != nil {
 		return err
 	}
@@ -137,18 +146,19 @@ func markTask(task *Task, newStatus TaskStatus) error {
 }
 
 // scheduleTaskJob creates the kubernetes job for the passed task and if successful, it marks the task as scheduled
-func scheduleTaskJob(task *Task) error {
+func scheduleTaskJob(ctx *Context, task *Task) error {
 	// create job
 	err := startJob(task)
 	if err != nil {
 		log.Println(err)
-		if err = markTask(task, ErrorSchedulingTaskStatus); err != nil {
+		if err = markTask(ctx, task, ErrorSchedulingTaskStatus); err != nil {
 			log.Println(err)
 		}
 		return err
 	}
 	// mark the task as scheduled
-	if err = markTask(task, ScheduledTaskStatus); err != nil {
+	if err = markTask(ctx, task, ScheduledTaskStatus); err != nil {
+		log.Println(err)
 		return err
 	}
 	return nil
@@ -216,15 +226,25 @@ func RunTask(id int64) error {
 	if err != nil {
 		return err
 	}
+	ctx, err := NewEmptyContext()
+	if err != nil {
+		return err
+	}
 	// if the task fails, mark it as such
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println(err)
-			if err := markTask(task, FailedTaskStatus); err != nil {
+			if err := markTask(ctx, task, FailedTaskStatus); err != nil {
+				log.Println(err)
+			}
+			if err := ctx.Commit(); err != nil {
 				log.Println(err)
 			}
 			time.Sleep(time.Second * 2)
 			os.Exit(1)
+		}
+		if err := ctx.Rollback(); err != nil {
+			log.Println(err)
 		}
 	}()
 	// check whether the task name is a registered task name or not
@@ -237,15 +257,26 @@ func RunTask(id int64) error {
 		if err := ProvisionTenantTask(task); err != nil {
 			panic(err)
 		}
+	case TaskInviteUserByEmail:
+		if err := InviteUserByEmailTask(task); err != nil {
+			panic(err)
+		}
+	case TaskSendAdminInvite:
+		if err := SendAdminInviteTask(task); err != nil {
+			panic(err)
+		}
 	default:
 		log.Printf("Unknown task name: %s\n", task.Name)
-		if err := markTask(task, UnknownTaskStatus); err != nil {
+		if err := markTask(ctx, task, UnknownTaskStatus); err != nil {
 			log.Println(err)
 		}
 	}
 	// mark the task as complete
-	if err = markTask(task, CompleteTaskStatus); err != nil {
+	if err = markTask(ctx, task, CompleteTaskStatus); err != nil {
 		return err
+	}
+	if err = ctx.Commit(); err != nil {
+		log.Println(err)
 	}
 	os.Exit(0)
 	return nil
