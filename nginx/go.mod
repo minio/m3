@@ -19,3 +19,5 @@ require (
 	k8s.io/client-go v11.0.0+incompatible
 	k8s.io/utils v0.0.0-20190923111123-69764acb6e8e // indirect
 )
+
+replace github.com/gorilla/rpc v1.2.0+incompatible => github.com/gorilla/rpc v1.2.0
