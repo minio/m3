@@ -249,34 +249,27 @@ func InviteUserByEmailTask(task *Task) error {
 	var taskData InviteUserTaskData
 	err := json.Unmarshal(task.Data, &taskData)
 	if err != nil {
-		log.Println("2")
 		return err
 	}
 	tenantID, _ := uuid.FromString(taskData.TenantID)
 	tenant, err := GetTenantByID(&tenantID)
 	if err != nil {
-		log.Println("2")
 		return err
 	}
 	ctx := NewCtxWithTenant(&tenant)
 	userID, err := uuid.FromString(taskData.UserID)
 	if err != nil {
-		log.Println("2")
 		return err
 	}
 	user, err := GetUserByID(ctx, userID)
 	if err != nil {
-		log.Println("1")
 		return err
 	}
-	log.Println("asdasd")
 	// perform invitation
 	err = doInviteUserByEmail(ctx, taskData.UserFor, &user)
 	if err != nil {
-		log.Println("3")
 		log.Println(err)
 		if err := ctx.Rollback(); err != nil {
-			log.Println("4")
 			log.Println(err)
 		}
 		return err
