@@ -240,7 +240,7 @@ func SetEmailTemplate(ctx *Context, templateName, templateBody string) error {
 type InviteUserTaskData struct {
 	TenantID string
 	UserFor  string
-	UserId   string
+	UserID   string
 }
 
 // InviteUserByEmailTask performs the invitation of a tenant by email
@@ -259,7 +259,7 @@ func InviteUserByEmailTask(task *Task) error {
 		return err
 	}
 	ctx := NewCtxWithTenant(&tenant)
-	userID, err := uuid.FromString(taskData.UserId)
+	userID, err := uuid.FromString(taskData.UserID)
 	if err != nil {
 		log.Println("2")
 		return err

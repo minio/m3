@@ -399,7 +399,7 @@ func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 	// build task data
 	taskData := InviteUserTaskData{
 		TenantID: ctx.Tenant.ID.String(),
-		UserId:   user.ID.String(),
+		UserID:   user.ID.String(),
 		UserFor:  usedFor,
 	}
 	// schedule
