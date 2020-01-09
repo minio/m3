@@ -57,6 +57,9 @@ func (c *Context) MainTx() (*sql.Tx, error) {
 
 // TenantDB returns a configured DB connection for the Tenant DB
 func (c *Context) TenantDB() *sql.DB {
+	if c.Tenant == nil {
+		panic("Context requested Tenant DB but context contains no Tenant")
+	}
 	if c.tenantDB == nil {
 		db := db.GetInstance().GetTenantDB(c.Tenant.ShortName)
 		c.tenantDB = db
