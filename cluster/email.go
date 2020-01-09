@@ -20,15 +20,19 @@ import (
 	"bytes"
 	"crypto/tls"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
+	"log"
 	"net"
 	"net/mail"
 	"net/smtp"
 	"os"
 	"regexp"
 	"strings"
+
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/minio/m3/cluster/db"
 
@@ -228,6 +232,53 @@ func SetEmailTemplate(ctx *Context, templateName, templateBody string) error {
 	// Execute query
 	_, err = tx.Exec(query, templateName, templateBody)
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type InviteUserTaskData struct {
+	TenantID string
+	UserFor  string
+	UserID   string
+}
+
+// InviteUserByEmailTask performs the invitation of a tenant by email
+func InviteUserByEmailTask(task *Task) error {
+	// hydrate the data from the task
+	var taskData InviteUserTaskData
+	err := json.Unmarshal(task.Data, &taskData)
+	if err != nil {
+		log.Println("2")
+		return err
+	}
+	tenantID, _ := uuid.FromString(taskData.TenantID)
+	tenant, err := GetTenantByID(&tenantID)
+	if err != nil {
+		log.Println("2")
+		return err
+	}
+	ctx := NewCtxWithTenant(&tenant)
+	userID, err := uuid.FromString(taskData.UserID)
+	if err != nil {
+		log.Println("2")
+		return err
+	}
+	user, err := GetUserByID(ctx, userID)
+	if err != nil {
+		log.Println("1")
+		return err
+	}
+	log.Println("asdasd")
+	// perform invitation
+	err = doInviteUserByEmail(ctx, taskData.UserFor, &user)
+	if err != nil {
+		log.Println("3")
+		log.Println(err)
+		if err := ctx.Rollback(); err != nil {
+			log.Println("4")
+			log.Println(err)
+		}
 		return err
 	}
 	return nil
