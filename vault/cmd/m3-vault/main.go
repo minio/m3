@@ -33,11 +33,17 @@ func main() {
 		}
 	}()
 
-	vaultServiceCh := startVaultService(color.FgYellow)
+	cmd := exec.Command("vault", "server", "-config", "vault-config.json")
+	vaultServiceCh := startVaultService(cmd, color.FgYellow)
 
 	err := <-vaultInitAndUnseal()
 	if err != nil {
 		log.Println(err)
+		if err := cmd.Process.Kill(); err != nil {
+			log.Println("failed to stop vault: ", err)
+		} else {
+			log.Println("vault stopped")
+		}
 		return
 	}
 	log.Println("Vault is ready to use")
@@ -48,7 +54,7 @@ OuterLoop:
 		case <-vaultServiceCh:
 			fmt.Println("Public port forward closed, restarting it after 2 seconds")
 			time.Sleep(time.Second * 2)
-			vaultServiceCh = startVaultService(color.FgYellow)
+			vaultServiceCh = startVaultService(cmd, color.FgYellow)
 		case <-doneCh:
 			break OuterLoop
 		}
@@ -56,22 +62,19 @@ OuterLoop:
 	return
 }
 
-func startVaultService(dcolor color.Attribute) chan interface{} {
+func startVaultService(cmd *exec.Cmd, dcolor color.Attribute) chan interface{} {
 	doneCh := make(chan interface{})
 	go func() {
 		defer close(doneCh)
 		// command to run
-		cmd := exec.Command("vault", "server", "-config", "vault-config.json")
 		// prepare to capture the output
 		var errStdout, errStderr error
 		stdoutIn, _ := cmd.StdoutPipe()
 		stderrIn, _ := cmd.StderrPipe()
-		err := cmd.Start()
-		if err != nil {
+		if err := cmd.Start(); err != nil {
 			log.Fatalf("cmd.Start() failed with '%s'\n", err)
 			return
 		}
-
 		// cmd.Wait() should be called only after we finish reading
 		// from stdoutIn and stderrIn.
 		// wg ensures that we finish
@@ -86,7 +89,7 @@ func startVaultService(dcolor color.Attribute) chan interface{} {
 
 		wg.Wait()
 
-		err = cmd.Wait()
+		err := cmd.Wait()
 		if err != nil {
 			log.Printf("cmd.Run() failed with %s\n", err.Error())
 			return
