@@ -39,21 +39,6 @@ func addMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, acce
 	return nil
 }
 
-func deleteMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, accessKey string) error {
-	// get an admin with operator keys
-	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
-	if pErr != nil {
-		return pErr.Cause
-	}
-	// Add the user
-	err := adminClient.RemoveUser(accessKey)
-	if err != nil {
-		log.Println(err)
-		return tagErrorAsMinio("DeleteUser", err)
-	}
-	return nil
-}
-
 func addMinioCannedPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, accessKey string, policy string) error {
 	// get an admin with operator keys
 	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
@@ -85,20 +70,6 @@ func addMinioIAMPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfigur
 	err = adminClient.SetPolicy(policyName, userAccessKey, false)
 	if err != nil {
 		return tagErrorAsMinio("SetPolicy", err)
-	}
-	return nil
-}
-
-func deleteMinioPolicy(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, policyName string) error {
-	// get an admin with operator keys
-	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
-	if pErr != nil {
-		return pErr.Cause
-	}
-	// Add the canned policy
-	err := adminClient.RemoveCannedPolicy(policyName)
-	if err != nil {
-		return tagErrorAsMinio("RemoveCannedPolicy", err)
 	}
 	return nil
 }

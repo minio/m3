@@ -595,6 +595,10 @@ func DeprovisionTenantTask(task *Task) error {
 	}
 	// fetch tenant from db
 	tenant, err := GetTenantByID(taskData.TenantID)
+	if err != nil {
+		log.Println("Error getting tenant by id:", err)
+		return err
+	}
 	ctx.Tenant = &tenant
 
 	sgt := <-GetTenantStorageGroupByShortName(nil, tenant.ShortName)

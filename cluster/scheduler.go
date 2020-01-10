@@ -48,8 +48,8 @@ const (
 	emptyTask             = "empty"
 	TaskProvisionTenant   = "provision-tenant"
 	TaskDeprovisionTenant = "deprovision-tenant"
-    TaskInviteUserByEmail = "invite-user-by-email"
-    TaskSendAdminInvite   = "send-admin-invite"
+	TaskInviteUserByEmail = "invite-user-by-email"
+	TaskSendAdminInvite   = "send-admin-invite"
 )
 
 type Task struct {
@@ -262,14 +262,14 @@ func RunTask(id int64) error {
 		if err := DeprovisionTenantTask(task); err != nil {
 			panic(err)
 		}
-    case TaskInviteUserByEmail:
-        if err := InviteUserByEmailTask(task); err != nil {
-            panic(err)
-        }
-    case TaskSendAdminInvite:
-        if err := SendAdminInviteTask(task); err != nil {
-            panic(err)
-        }
+	case TaskInviteUserByEmail:
+		if err := InviteUserByEmailTask(task); err != nil {
+			panic(err)
+		}
+	case TaskSendAdminInvite:
+		if err := SendAdminInviteTask(task); err != nil {
+			panic(err)
+		}
 	default:
 		log.Printf("Unknown task name: %s\n", task.Name)
 		if err := markTask(ctx, task, UnknownTaskStatus); err != nil {
