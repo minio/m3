@@ -175,32 +175,6 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 	return bucketInfos, nil
 }
 
-// DeleteAllBuckets gets all buckets and deletes them one by one for a particular tenant
-func DeleteAllBuckets(tenantDomain string) error {
-	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantDomain)
-	if err != nil {
-		return err
-	}
-
-	tCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-	defer cancel()
-
-	var buckets []minio.BucketInfo
-	buckets, err = minioClient.ListBucketsWithContext(tCtx)
-	if err != nil {
-		return tagErrorAsMinio("ListBucketsWithContext", err)
-	}
-
-	for _, bucket := range buckets {
-		err = minioClient.RemoveBucket(bucket.Name)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // Deletes a bucket in the given tenant's MinIO
 func DeleteBucket(tenantShortname, bucket string) error {
 	// Get tenant specific MinIO client
