@@ -40,7 +40,7 @@ func main() {
 	if err != nil {
 		log.Println(err)
 		if err := cmd.Process.Kill(); err != nil {
-			log.Println("failed to vault process: ", err)
+			log.Println("failed to stop vault: ", err)
 		} else {
 			log.Println("vault stopped")
 		}
