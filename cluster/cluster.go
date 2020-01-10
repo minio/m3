@@ -290,25 +290,14 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 }
 
 // DeprovisionTenantOnStorageGroup deletes the tenant from the storage group and deletes all tenant's data from disks
-func DeprovisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) chan error {
+func DeprovisionTenantOnStorageGroup(ctx *Context, sgt *StorageGroupTenantResult) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
-		if tenant == nil || sg == nil {
-			ch <- errors.New("nil Tenant or StorageGroup passed")
-			return
-		}
-
-		sgTenantResult := <-GetTenantStorageGroupByShortName(ctx, tenant.ShortName)
-		if sgTenantResult.Error != nil {
-			ch <- sgTenantResult.Error
-			return
-		}
-
 		// start the jobs that create the tenant folder on each disk on each node of the storage group
 		var jobChs []chan error
 		// get a list of nodes on the cluster
-		nodes, err := GetNodesForStorageGroup(ctx, &sg.ID)
+		nodes, err := GetNodesForStorageGroup(ctx, &sgt.StorageGroupTenant.StorageGroup.ID)
 		if err != nil {
 			ch <- err
 			return
@@ -317,8 +306,9 @@ func DeprovisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGr
 			ch <- errors.New("Nodes not found to deprovision the tenant")
 			return
 		}
+
 		for _, sgNode := range nodes {
-			jobCh := DeleteTenantFolderInDisk(tenant, sg, sgNode)
+			jobCh := RecreateTenantFolderInDisk(sgt.StorageGroupTenant.Tenant, sgt.StorageGroupTenant.StorageGroup, sgNode)
 			jobChs = append(jobChs, jobCh)
 		}
 		// wait for all the jobs to complete
@@ -328,27 +318,6 @@ func DeprovisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGr
 				ch <- err
 				return
 			}
-		}
-
-		//delete service
-		err = <-DeleteTenantServiceInStorageGroup(sgTenantResult.StorageGroupTenant)
-		if err != nil {
-			ch <- err
-			return
-		}
-
-		// delete database records
-		err = <-DeleteTenantRecord(ctx, tenant.ShortName)
-		if err != nil {
-			ch <- err
-			return
-		}
-
-		// call for the storage group to refresh
-		err = <-ReDeployStorageGroup(ctx, sg)
-		if err != nil {
-			ch <- err
-			return
 		}
 
 	}()
@@ -417,8 +386,8 @@ func ProvisionTenantOnStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGrou
 	return ch
 }
 
-// DeleteTenantFolderInDisk Deletes the tenant folder in disk, this will delete all tenant's related data
-func DeleteTenantFolderInDisk(tenant *Tenant, sg *StorageGroup, sgNode *StorageGroupNode) chan error {
+// RecreateTenantFolderInDisk deletes the tenant folder in disk and recreates it
+func RecreateTenantFolderInDisk(tenant *Tenant, sg *StorageGroup, sgNode *StorageGroupNode) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
@@ -482,7 +451,7 @@ func DeleteTenantFolderInDisk(tenant *Tenant, sg *StorageGroup, sgNode *StorageG
 
 			newFolderForDeletion := fmt.Sprintf("%s/%s-to-delete-%s", vol.MountPath, tenant.ShortName, randSringForDeletion)
 			// move current tenant path for one to be deleted and delete if afterwards
-			commands = append(commands, fmt.Sprintf(`mv -v %s/%s %s && rm -rv %s`, vol.MountPath, tenant.ShortName, newFolderForDeletion, newFolderForDeletion))
+			commands = append(commands, fmt.Sprintf(`mv -v %s/%s %s && rm -rv %s && mkdir -p %s/%s`, vol.MountPath, tenant.ShortName, newFolderForDeletion, newFolderForDeletion, vol.MountPath, tenant.ShortName))
 			mount := v1.VolumeMount{
 				Name:      vName,
 				MountPath: vol.MountPath,
@@ -494,19 +463,19 @@ func DeleteTenantFolderInDisk(tenant *Tenant, sg *StorageGroup, sgNode *StorageG
 		jobContainer.VolumeMounts = volumeMounts
 		job.Spec.Template.Spec.Containers = append(job.Spec.Template.Spec.Containers, jobContainer)
 
-		_, err = clientset.BatchV1().Jobs("default").Create(&job)
+		_, err = clientset.BatchV1().Jobs(provisioningNamespace).Create(&job)
 		if err != nil {
 			ch <- err
 			return
 		}
 		//now sit and wait for the job to complete before returning
 		for {
-			status, err := clientset.BatchV1().Jobs("default").Get(jobName, metav1.GetOptions{})
+			status, err := clientset.BatchV1().Jobs(provisioningNamespace).Get(jobName, metav1.GetOptions{})
 			if err != nil {
 				panic(err)
 			}
 			// if completitions above 1 job is complete
-			if *status.Spec.Completions > 0 {
+			if status.Status.Succeeded > 0 {
 				// we are done here
 				//return
 				break
@@ -514,7 +483,7 @@ func DeleteTenantFolderInDisk(tenant *Tenant, sg *StorageGroup, sgNode *StorageG
 			time.Sleep(300 * time.Millisecond)
 		}
 		// job cleanup
-		err = clientset.BatchV1().Jobs("default").Delete(jobName, nil)
+		err = clientset.BatchV1().Jobs(provisioningNamespace).Delete(jobName, nil)
 		if err != nil {
 			ch <- err
 			return
