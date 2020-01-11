@@ -14,23 +14,25 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css';
-import App from './App';
-import * as serviceWorker from './serviceWorker';
+import React from "react";
+import ReactDOM from "react-dom";
+import {Provider} from "react-redux";
+import Routes from "./Routes";
+import configureStore from "./store";
+import * as serviceWorker from "./serviceWorker";
+import {ThemeProvider} from "@material-ui/core/styles";
 
-ReactDOM.render(<App />, document.getElementById('root'));
+import "./index.css";
+import theme from "./theme/main";
 
-if (module.hot) {
-    module.hot.accept('./App', () => {
-        const NextApp = require('./App').default
-        ReactDOM.render(
-            <NextApp />,
-            document.getElementById('root')
-        )
-    })
-}
+ReactDOM.render(
+  <Provider store={configureStore()}>
+    <ThemeProvider theme={theme}>
+      <Routes/>
+    </ThemeProvider>
+  </Provider>,
+  document.getElementById("root")
+);
 
 // If you want your app to work offline and load faster, you can change
 // unregister() to register() below. Note this comes with some pitfalls.

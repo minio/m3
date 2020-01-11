@@ -1,5 +1,5 @@
 // This file is part of MinIO Kubernetes Cloud
-// Copyright (c) 2019 MinIO, Inc.
+// Copyright (c) 2020 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -26,7 +26,7 @@ import Grid from "@material-ui/core/Grid";
 import Box from "@material-ui/core/Box";
 import {makeStyles} from '@material-ui/core/styles';
 import { useHistory } from 'react-router'
-import Copyright from "../copyright";
+import Copyright from "../../components/Copyright";
 
 
 const useStyles = makeStyles(theme => ({
@@ -113,16 +113,6 @@ const footers = [
 const Landing: React.FC = () => {
     const classes = useStyles();
     const { push } = useHistory()
-    const [open, setOpen] = React.useState(false);
-
-    const handleOpen = () => {
-        setOpen(true);
-    };
-
-    const handleClose = () => {
-        setOpen(false);
-    };
-
 
     return (
         <React.Fragment>

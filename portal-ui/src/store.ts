@@ -1,5 +1,5 @@
 // This file is part of MinIO Kubernetes Cloud
-// Copyright (c) 2019 MinIO, Inc.
+// Copyright (c) 2020 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -14,37 +14,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import {createStore, applyMiddleware, combineReducers} from 'redux';
+import thunk from 'redux-thunk';
 
-import React from 'react';
-import {makeStyles} from '@material-ui/core/styles';
-import {Redirect, Route, Router, Switch} from "react-router-dom";
-import Dashboard from "../dashboard";
-import history from "../history";
+const globalReducer = combineReducers({});
 
-const useStyles = makeStyles(theme => ({
-  '@global': {
-    body: {
-      backgroundColor: theme.palette.common.white,
-    },
-  },
-
-  errorBlock: {
-    color: 'red',
-  }
-}));
-const Navigation: React.FC = () => {
-
-  return (
-    <Router history={history}>
-      <Switch>
-        <Route
-          path="/dashboard"
-          component={Dashboard}
-        />
-        <Redirect exact from="/" to="dashboard"/>
-      </Switch>
-    </Router>
+export default function configureStore() {
+  return createStore(
+    globalReducer,
+    applyMiddleware(thunk),
   );
 };
 
-export default Navigation;
+export type AppState = ReturnType<typeof globalReducer>
