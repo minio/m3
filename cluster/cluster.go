@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/minio/minio/pkg/env"
+	uuid "github.com/satori/go.uuid"
 	v12 "k8s.io/client-go/kubernetes/typed/apps/v1"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -402,6 +403,15 @@ func RecreateTenantFolderInDisk(tenant *Tenant, sg *StorageGroup, sgNode *Storag
 			ch <- errors.New("No nodes provided to delete folders in disk")
 			return
 		}
+
+		// Validate that tenant shortname string to avoid
+		// executing undesired commands on the job
+		err = validTenantShortNameString(tenant.ShortName)
+		if err != nil {
+			ch <- err
+			return
+		}
+
 		var backoff int32 = 0
 		var ttlJob int32 = 60
 
@@ -441,25 +451,24 @@ func RecreateTenantFolderInDisk(tenant *Tenant, sg *StorageGroup, sgNode *Storag
 		}
 
 		var commands []string
-		randSringForDeletion := RandomCharString(4)
 		//volumes that will be used by this tenant
 		for _, vol := range sgNode.Node.Volumes {
 			vName := fmt.Sprintf("%s-pv-%d", tenant.ShortName, vol.Num)
 			volumeSource := v1.VolumeSource{HostPath: &v1.HostPathVolumeSource{Path: vol.MountPath}}
 			hostPathVolume := v1.Volume{Name: vName, VolumeSource: volumeSource}
 			job.Spec.Template.Spec.Volumes = append(job.Spec.Template.Spec.Volumes, hostPathVolume)
-
-			newFolderForDeletion := fmt.Sprintf("%s/%s-to-delete-%s", vol.MountPath, tenant.ShortName, randSringForDeletion)
+			// create unique temporary folder for deletion
+			newFolderForDeletion := fmt.Sprintf("%s/%s", vol.MountPath, uuid.NewV4())
 			// move current tenant path for one to be deleted and delete if afterwards
-			commands = append(commands, fmt.Sprintf(`mv -v %s/%s %s && rm -rv %s && mkdir -p %s/%s`, vol.MountPath, tenant.ShortName, newFolderForDeletion, newFolderForDeletion, vol.MountPath, tenant.ShortName))
+			commands = append(commands, fmt.Sprintf(`mv -f %s/%s %s && rm -rf %s && mkdir -p %s/%s`, vol.MountPath, tenant.ShortName, newFolderForDeletion, newFolderForDeletion, vol.MountPath, tenant.ShortName))
 			mount := v1.VolumeMount{
 				Name:      vName,
 				MountPath: vol.MountPath,
 			}
 			volumeMounts = append(volumeMounts, mount)
 		}
-		finalMkdirCommand := strings.Join(commands, " && ")
-		jobContainer.Args = []string{finalMkdirCommand}
+		finalCommand := strings.Join(commands, " && ")
+		jobContainer.Args = []string{finalCommand}
 		jobContainer.VolumeMounts = volumeMounts
 		job.Spec.Template.Spec.Containers = append(job.Spec.Template.Spec.Containers, jobContainer)
 

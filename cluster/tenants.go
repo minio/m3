@@ -316,12 +316,9 @@ func CreateTenantSchema(tenantShortName string) error {
 
 	// Since we cannot parametrize the tenant name into create schema
 	// we are going to validate the tenant name
-	r, err := regexp.Compile(`^[a-z0-9-]{2,64}$`)
+	err := validTenantShortNameString(tenantShortName)
 	if err != nil {
 		return err
-	}
-	if !r.MatchString(tenantShortName) {
-		return errors.New("not a valid tenant name")
 	}
 
 	// format in the tenant name assuming it's safe
@@ -331,33 +328,45 @@ func CreateTenantSchema(tenantShortName string) error {
 	if err != nil {
 		return err
 	}
-
+	if err = tenantDB.Close(); err != nil {
+		return err
+	}
 	return nil
 }
 
 // DestroyTenantSchema will drop the tenant schema from the DB.
-func DestroyTenantSchema(tenantName string) error {
-	// get the DB connection for the tenant
-	tenantDB := db.GetInstance().GetTenantDB(tenantName)
-
+func DestroyTenantSchema(ctx *Context, name string) error {
 	// Since we cannot parametrize the tenant name into create schema
 	// we are going to validate the tenant name
+	err := validTenantShortNameString(name)
+	if err != nil {
+		return err
+	}
+
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+
+	// format in the tenant name assuming it's safe
+	query := fmt.Sprintf(`DROP SCHEMA %s CASCADE`, name)
+
+	_, err = tx.Exec(query)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validTenantShortNameString(domain string) error {
 	r, err := regexp.Compile(`^[a-z0-9-]{2,64}$`)
 	if err != nil {
 		return err
 	}
-	if !r.MatchString(tenantName) {
-		return errors.New("not a valid tenant name")
+	if !r.MatchString(domain) {
+		return errors.New("not a valid short name")
 	}
-
-	// format in the tenant name assuming it's safe
-	query := fmt.Sprintf(`DROP SCHEMA %s CASCADE`, tenantName)
-
-	_, err = tenantDB.Exec(query)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -383,11 +392,11 @@ func ProvisionTenantDB(tenantShortName string) chan error {
 }
 
 // DeleteTenantDB returns a channel that will close once the schema is deleted
-func DeleteTenantDB(tenantName string) chan error {
+func DeleteTenantDB(ctx *Context, tenantName string) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
-		err := DestroyTenantSchema(tenantName)
+		err := DestroyTenantSchema(ctx, tenantName)
 		if err != nil {
 			ch <- err
 			return
@@ -583,13 +592,9 @@ func ScheduleDeprovisionTenantTask(ctx *Context, tenant *Tenant) chan TenantDele
 //   recreated the database schema gets deleted and recreated empty. Then we make the service available
 //   for other new tenants and restart MinIO servers so that they initialize in the new empty mount path.
 func DeprovisionTenantTask(task *Task) error {
-	ctx, err := NewEmptyContext()
-	if err != nil {
-		return err
-	}
 	// hydrate the data from the task
 	var taskData DeprovisionTenantTaskData
-	err = json.Unmarshal(task.Data, &taskData)
+	err := json.Unmarshal(task.Data, &taskData)
 	if err != nil {
 		return err
 	}
@@ -599,7 +604,8 @@ func DeprovisionTenantTask(task *Task) error {
 		log.Println("Error getting tenant by id:", err)
 		return err
 	}
-	ctx.Tenant = &tenant
+	// start context
+	appCtx := NewCtxWithTenant(&tenant)
 
 	sgt := <-GetTenantStorageGroupByShortName(nil, tenant.ShortName)
 	if sgt.Error != nil {
@@ -614,17 +620,21 @@ func DeprovisionTenantTask(task *Task) error {
 	}
 
 	// Deprovision tenant and delete tenant info from disks
-	err = <-DeprovisionTenantOnStorageGroup(ctx, sgt)
+	err = <-DeprovisionTenantOnStorageGroup(appCtx, sgt)
 	if err != nil {
 		log.Println("Error deprovisioning tenant:", err)
 		return errors.New("Error deprovisioning tenant")
 	}
 	// delete tenant schema
 	// wait for schema deletion
-	err = <-DeleteTenantDB(tenant.ShortName)
+	err = <-DeleteTenantDB(appCtx, tenant.ShortName)
 	if err != nil {
 		log.Println("Error deleting schema: ", err)
 		return errors.New("Error deleting tenant's")
+	}
+	// Commit transaction for the deletion of the schema
+	if err := appCtx.Commit(); err != nil {
+		return err
 	}
 
 	// provision the tenant schema and run the migrations
@@ -635,24 +645,22 @@ func DeprovisionTenantTask(task *Task) error {
 		return errors.New("Error creating tenant's db schema")
 	}
 
-	if err = UnClaimTenant(ctx, sgt.StorageGroupTenant.Tenant); err != nil {
+	if err = UnClaimTenant(appCtx, sgt.StorageGroupTenant.Tenant); err != nil {
 		log.Println("Error unclaiming tenant:", err)
 		return errors.New("Error unclaiming tenant")
 	}
-
 	err = RestartTenantServers(sgt)
 	if err != nil {
 		log.Println("Error restarting tenant servers:", err)
 		return errors.New("Error restarting tenant servers")
 	}
-
-	err = <-UpdateNginxConfiguration(ctx)
+	err = <-UpdateNginxConfiguration(appCtx)
 	if err != nil {
 		log.Println("Error updating router: ", err)
 		return errors.New("Error updating router")
 	}
 
-	if err := ctx.Commit(); err != nil {
+	if err := appCtx.Commit(); err != nil {
 		return err
 	}
 	return nil
@@ -843,8 +851,7 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 
 	if getKmsAddress() != "" {
 		kesServiceName := fmt.Sprintf("%s-kes", sgTenant.ShortName)
-		port := getKesRunningPort()
-		kesServiceAddress := fmt.Sprintf("https://%s:%d", kesServiceName, port)
+		kesServiceAddress := fmt.Sprintf("https://%s:7373", kesServiceName)
 		tenantConfig["MINIO_KMS_KES_ENDPOINT"] = kesServiceAddress
 		tenantConfig["MINIO_KMS_KES_KEY_FILE"] = fmt.Sprintf("/kes-config/%s/app/key/key", sgTenant.ShortName)
 		tenantConfig["MINIO_KMS_KES_CERT_FILE"] = fmt.Sprintf("/kes-config/%s/app/cert/cert", sgTenant.ShortName)
