@@ -274,5 +274,8 @@ func InviteUserByEmailTask(task *Task) error {
 		}
 		return err
 	}
+	if err := ctx.Commit(); err != nil {
+		return err
+	}
 	return nil
 }
