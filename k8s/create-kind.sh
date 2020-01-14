@@ -27,7 +27,17 @@ kubectl apply -f deployments/m3-portal-backend-deployment.yaml
 kubectl apply -f deployments/m3-portal-frontend-deployment.yaml
 kubectl apply -f deployments/m3-vault-deployment.yaml
 kubectl apply -f deployments/portal-proxy-deployment.yaml
-echo "done"
 
-# uncomment this if you want to use the static files
-#kubectl apply -f deployments/v3
+# Build mkube
+make k8sdev TAG=minio/m3:dev
+
+# Apply mkube
+kubectl apply -f k8s/deployments/m3-deployment.yaml
+
+# Extract and save vault token into config map
+while [[ $(kubectl get pods -l app=m3-vault -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for pod" && sleep 1; done
+
+VAULT_TOKEN=$(kubectl logs $(kubectl get pods | grep vault | awk '{print $1}') | grep token:| sed 's/^.*: //')
+kubectl get configmaps m3-env -o json | jq --arg vt "$VAULT_TOKEN" '.data["KMS_TOKEN"]=$vt' | kubectl apply -f -
+
+echo "done"
