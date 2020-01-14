@@ -164,10 +164,17 @@ func SetupM3() error {
 		return err
 	}
 
-	// Check wether we are being setup as global bucket, or bucket namespace per tenant
+	// Check whether we are being setup as global bucket, or bucket namespace per tenant
 	useGlobalBuckets := env.Get("SETUP_USE_GLOBAL_BUCKETS", "false")
 	if err = SetConfigWithLock(nil, cfgCoreGlobalBuckets, useGlobalBuckets, "bool", true); err != nil {
 		log.Println("Could not store global bucket configuration.", err)
+		return err
+	}
+
+	// Check whether if we have a setup EC parity value
+	sscEC := env.Get("SETUP_STORAGE_STANDARD_PARITY", "")
+	if err = SetConfigWithLock(nil, cfgStorageStandardParity, sscEC, "string", true); err != nil {
+		log.Println("Could not store storage standard parity configuration.", err)
 		return err
 	}
 
