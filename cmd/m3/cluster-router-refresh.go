@@ -19,8 +19,9 @@ package main
 import (
 	"fmt"
 
+	pb "github.com/minio/m3/api/stubs"
+
 	"github.com/minio/cli"
-	"github.com/minio/m3/cluster"
 )
 
 // list files and folders.
@@ -32,17 +33,18 @@ var routerRefreshCmd = cli.Command{
 
 // Adds a Storage Group to house multiple tenants
 func routerRefresh(ctx *cli.Context) error {
-	fmt.Println("Refreshing Router")
-	appCtx, err := cluster.NewEmptyContext()
+	fmt.Println("Refreshing Router...")
+	cnxs, err := GetGRPCChannel()
 	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer cnxs.Conn.Close()
+	// perform RPC
+	if _, err = cnxs.Client.ClusterRouterRefresh(cnxs.Context, &pb.AdminEmpty{}); err != nil {
 		fmt.Println(err)
 		return nil
 	}
-	err = <-cluster.UpdateNginxConfiguration(appCtx)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-
+	fmt.Println("Done.")
 	return nil
 }
