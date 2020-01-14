@@ -27,6 +27,7 @@ import (
 	"github.com/minio/m3/cluster/db"
 
 	"github.com/golang-migrate/migrate/v4"
+	pb "github.com/minio/m3/api/stubs"
 	"github.com/minio/minio-go/v6"
 	uuid "github.com/satori/go.uuid"
 	corev1 "k8s.io/api/core/v1"
@@ -50,6 +51,10 @@ type AddTenantResult struct {
 type ProvisionTenantTaskData struct {
 	Tenants        []string
 	StorageGroupID uuid.UUID
+}
+
+type DeprovisionTenantTaskData struct {
+	TenantID *uuid.UUID
 }
 
 const (
@@ -123,70 +128,106 @@ func ProvisionTenants(ctx *Context, tenants []string, sg *StorageGroup) error {
 	return nil
 }
 
+type TenantAddActionResult struct {
+	TenantResponse *pb.TenantResponse
+	Error          error
+}
+
 // TenantAddAction adds a tenant to the cluster, if an admin name and email are provided, the user is created and invited
 // via email.
-func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) error {
-	// check if tenant name is available
-	available, err := TenantShortNameAvailable(ctx, domain)
-	if err != nil {
-		log.Println(err)
-		return errors.New("Error validating domain")
-	}
-	if !available {
-		return errors.New("Error tenant's shortname not available")
-	}
+func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) chan TenantAddActionResult {
+	ch := make(chan TenantAddActionResult, 10)
+	go func() {
+		defer close(ch)
+		// check if tenant name is available
+		ch <- TenantAddActionResult{TenantResponse: ProgressStruct(10, "validating tenant")}
 
-	// Find an available tenant
-	tenant, err := GrabAvailableTenant(ctx)
-	if err != nil {
-		return errors.New("No space available")
-	}
-	// now that we have a tenant, designate it as the tenant to be used in context
-	ctx.Tenant = tenant
-	if err = ClaimTenant(ctx, tenant, name, domain); err != nil {
-		return err
-	}
-	// update the context tenant
-	ctx.Tenant.Name = name
-	ctx.Tenant.Domain = domain
-	sgt := <-GetTenantStorageGroupByShortName(ctx, tenant.ShortName)
-	if sgt.Error != nil {
-		return sgt.Error
-	}
-
-	// announce the tenant on the router
-	nginxCh := UpdateNginxConfiguration(ctx)
-	// check if we were able to provision the schema and be done running the migrations
-
-	// wait for router
-	err = <-nginxCh
-	if err != nil {
-		log.Println("Error updating nginx configuration: ", err)
-		return errors.New("Error updating nginx configuration")
-	}
-
-	// if the first admin name and email was provided send them an invitation
-	if userName != "" && userEmail != "" {
-		// wait for MinIO to be ready before creating the first user
-		ready := IsMinioReadyRetry(ctx)
-		if !ready {
-			return errors.New("MinIO was never ready. Unable to complete configuration of tenant")
-		}
-		// insert user to DB with random password
-		newUser := User{Name: userName, Email: userEmail}
-		err := AddUser(ctx, &newUser)
+		available, err := TenantShortNameAvailable(ctx, domain)
 		if err != nil {
-			log.Println("Error adding first tenant's admin user: ", err)
-			return errors.New("Error adding first tenant's admin user")
+			log.Println(err)
+			ch <- TenantAddActionResult{Error: errors.New("Error validating domain")}
+			return
+
 		}
-		// Invite it's first admin
-		err = InviteUserByEmail(ctx, TokenSignupEmail, &newUser)
+		if !available {
+			ch <- TenantAddActionResult{Error: errors.New("Error tenant's shortname not available")}
+			return
+		}
+
+		// Find an available tenant
+		tenant, err := GrabAvailableTenant(ctx)
 		if err != nil {
-			log.Println("Error inviting user by email: ", err.Error())
-			return errors.New("Error inviting user by email")
+			ch <- TenantAddActionResult{Error: errors.New("No space available")}
+			return
 		}
+		// now that we have a tenant, designate it as the tenant to be used in context
+		ctx.Tenant = tenant
+		if err = ClaimTenant(ctx, tenant, name, domain); err != nil {
+			ch <- TenantAddActionResult{Error: err}
+			return
+		}
+		// update the context tenant
+		ctx.Tenant.Name = name
+		ctx.Tenant.Domain = domain
+		sgt := <-GetTenantStorageGroupByShortName(ctx, tenant.ShortName)
+		if sgt.Error != nil {
+			ch <- TenantAddActionResult{Error: sgt.Error}
+			return
+		}
+		ch <- TenantAddActionResult{TenantResponse: ProgressStruct(40, "updating nginx")}
+
+		// announce the tenant on the router
+		nginxCh := UpdateNginxConfiguration(ctx)
+
+		// wait for router
+		err = <-nginxCh
+		if err != nil {
+			log.Println("Error updating nginx configuration: ", err)
+			ch <- TenantAddActionResult{Error: errors.New("Error updating nginx configuration")}
+			return
+		}
+		ch <- TenantAddActionResult{TenantResponse: ProgressStruct(10, "initializing servers")}
+
+		// if the first admin name and email was provided send them an invitation
+		if userName != "" && userEmail != "" {
+			// wait for MinIO to be ready before creating the first user
+			ready := IsMinioReadyRetry(ctx)
+			if !ready {
+				ch <- TenantAddActionResult{Error: errors.New("MinIO was never ready. Unable to complete configuration of tenant")}
+				return
+			}
+			ch <- TenantAddActionResult{TenantResponse: ProgressStruct(10, "adding first admin user")}
+			// insert user to DB with random password
+			newUser := User{Name: userName, Email: userEmail}
+			err := AddUser(ctx, &newUser)
+			if err != nil {
+				log.Println("Error adding first tenant's admin user: ", err)
+				ch <- TenantAddActionResult{Error: errors.New("Error adding first tenant's admin user")}
+				return
+			}
+			ch <- TenantAddActionResult{TenantResponse: ProgressStruct(10, "inviting user by email")}
+			// Invite it's first admin
+			err = InviteUserByEmail(ctx, TokenSignupEmail, &newUser)
+			if err != nil {
+				log.Println("Error inviting user by email: ", err.Error())
+				ch <- TenantAddActionResult{Error: errors.New("Error inviting user by email")}
+				return
+			}
+			ch <- TenantAddActionResult{TenantResponse: ProgressStruct(10, "done inviting user by email")}
+		} else {
+			ch <- TenantAddActionResult{TenantResponse: ProgressStruct(30, "")}
+		}
+		ch <- TenantAddActionResult{TenantResponse: ProgressStruct(10, "done adding tenant")}
+	}()
+	return ch
+}
+
+func ProgressStruct(progressInt int32, message string) *pb.TenantResponse {
+	progress := &pb.TenantResponse{
+		Progress: progressInt,
+		Message:  fmt.Sprintf(" %s", message),
 	}
-	return err
+	return progress
 }
 
 // Creates a tenant in the DB if tenant short name is unique
@@ -271,53 +312,60 @@ func validTenantShortName(ctx *Context, tenantShortName string) error {
 func CreateTenantSchema(tenantShortName string) error {
 
 	// get the DB connection for the tenant
-	db := db.GetInstance().GetTenantDB(tenantShortName)
+	tenantDB := db.GetInstance().GetTenantDB(tenantShortName)
 
 	// Since we cannot parametrize the tenant name into create schema
 	// we are going to validate the tenant name
-	r, err := regexp.Compile(`^[a-z0-9-]{2,64}$`)
+	err := validTenantShortNameString(tenantShortName)
 	if err != nil {
 		return err
-	}
-	if !r.MatchString(tenantShortName) {
-		return errors.New("not a valid tenant name")
 	}
 
 	// format in the tenant name assuming it's safe
 	query := fmt.Sprintf(`CREATE SCHEMA "%s"`, tenantShortName)
 
-	_, err = db.Exec(query)
+	_, err = tenantDB.Exec(query)
 	if err != nil {
 		return err
 	}
-	if err = db.Close(); err != nil {
+	if err = tenantDB.Close(); err != nil {
 		return err
 	}
 	return nil
 }
 
 // DestroyTenantSchema will drop the tenant schema from the DB.
-func DestroyTenantSchema(tenantName string) error {
-
-	// get the DB connection for the tenant
-	db := db.GetInstance().GetTenantDB(tenantName)
-
+func DestroyTenantSchema(ctx *Context, name string) error {
 	// Since we cannot parametrize the tenant name into create schema
 	// we are going to validate the tenant name
+	err := validTenantShortNameString(name)
+	if err != nil {
+		return err
+	}
+
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+
+	// format in the tenant name assuming it's safe
+	query := fmt.Sprintf(`DROP SCHEMA %s CASCADE`, name)
+
+	_, err = tx.Exec(query)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validTenantShortNameString(domain string) error {
 	r, err := regexp.Compile(`^[a-z0-9-]{2,64}$`)
 	if err != nil {
 		return err
 	}
-	if !r.MatchString(tenantName) {
-		return errors.New("not a valid tenant name")
-	}
-
-	// format in the tenant name assuming it's safe
-	query := fmt.Sprintf(`DROP SCHEMA %s CASCADE`, tenantName)
-
-	_, err = db.Exec(query)
-	if err != nil {
-		return err
+	if !r.MatchString(domain) {
+		return errors.New("not a valid short name")
 	}
 	return nil
 }
@@ -331,24 +379,27 @@ func ProvisionTenantDB(tenantShortName string) chan error {
 		err := CreateTenantSchema(tenantShortName)
 		if err != nil {
 			ch <- err
+			return
 		}
 		// second run the migrations
 		err = <-MigrateTenantDB(tenantShortName)
 		if err != nil {
 			ch <- err
+			return
 		}
 	}()
 	return ch
 }
 
 // DeleteTenantDB returns a channel that will close once the schema is deleted
-func DeleteTenantDB(tenantName string) chan error {
+func DeleteTenantDB(ctx *Context, tenantName string) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
-		err := DestroyTenantSchema(tenantName)
+		err := DestroyTenantSchema(ctx, tenantName)
 		if err != nil {
 			ch <- err
+			return
 		}
 	}()
 	return ch
@@ -512,107 +563,105 @@ func GetTenantByDomain(tenantDomain string) (tenant Tenant, err error) {
 	return GetTenantByDomainWithCtx(nil, tenantDomain)
 }
 
-// DeleteTenant runs all the logic to remove a tenant from the cluster.
-// It will delete everything, from schema, to the secrets, all data of that tenant will be lost, except the data on the
-// disk.
-func DeleteTenant(ctx *Context, sgt *StorageGroupTenantResult) error {
-	// StopTenantServers before deprovisioning them.
-	err := StopTenantServers(sgt)
+type TenantDeleteActionResult struct {
+	TenantResponse *pb.TenantResponse
+	Error          error
+}
+
+// ScheduleDeprovisionTenantTask creates a task to be consumed by a kubernetes job
+func ScheduleDeprovisionTenantTask(ctx *Context, tenant *Tenant) chan TenantDeleteActionResult {
+	ch := make(chan TenantDeleteActionResult, 5)
+	go func() {
+		defer close(ch)
+		taskData := DeprovisionTenantTaskData{
+			TenantID: &tenant.ID,
+		}
+		ch <- TenantDeleteActionResult{TenantResponse: ProgressStruct(10, "done scheduling deprovision task")}
+		err := ScheduleTask(ctx, TaskDeprovisionTenant, taskData)
+		if err != nil {
+			log.Printf("WARNING: Could not deprovision tenant: `%s`\n", tenant.Domain)
+		}
+		ch <- TenantDeleteActionResult{TenantResponse: ProgressStruct(80, "done scheduling deprovision task")}
+	}()
+	return ch
+}
+
+// DeprovisionTenantTask runs all the logic to remove a tenant from the cluster.
+//   creates a task for being run inside a kubernetes job which will first move the mount folder to a
+//   provisional folder, then the provisional folder gets deleted and recreated. Once the folders are
+//   recreated the database schema gets deleted and recreated empty. Then we make the service available
+//   for other new tenants and restart MinIO servers so that they initialize in the new empty mount path.
+func DeprovisionTenantTask(task *Task) error {
+	// hydrate the data from the task
+	var taskData DeprovisionTenantTaskData
+	err := json.Unmarshal(task.Data, &taskData)
 	if err != nil {
-		log.Println("Error stopping tenant servers:", err)
-		return errors.New("Error stopping tenant servers")
+		return err
 	}
-	tenantShortName := sgt.StorageGroupTenant.Tenant.ShortName
+	// fetch tenant from db
+	tenant, err := GetTenantByID(taskData.TenantID)
+	if err != nil {
+		log.Println("Error getting tenant by id:", err)
+		return err
+	}
+	// start context
+	appCtx := NewCtxWithTenant(&tenant)
+
+	sgt := <-GetTenantStorageGroupByShortName(nil, tenant.ShortName)
+	if sgt.Error != nil {
+		return errors.New("storage group not found for tenant")
+	}
+	if sgt.StorageGroupTenant == nil {
+		return errors.New("tenant not found in database")
+	}
+
+	if sgt.StorageGroupTenant.Tenant.Enabled {
+		return errors.New("tenant needs to be disabled for deletion")
+	}
+
 	// Deprovision tenant and delete tenant info from disks
-	err = <-DeprovisionTenantOnStorageGroup(ctx, sgt.Tenant, sgt.StorageGroup)
+	err = <-DeprovisionTenantOnStorageGroup(appCtx, sgt)
 	if err != nil {
 		log.Println("Error deprovisioning tenant:", err)
 		return errors.New("Error deprovisioning tenant")
 	}
-
 	// delete tenant schema
 	// wait for schema deletion
-	err = <-DeleteTenantDB(tenantShortName)
+	err = <-DeleteTenantDB(appCtx, tenant.ShortName)
 	if err != nil {
 		log.Println("Error deleting schema: ", err)
 		return errors.New("Error deleting tenant's")
 	}
-	// purge connection from pool
-
-	db.GetInstance().RemoveCnx(tenantShortName)
-
-	//delete namesapce
-	nsDeleteCh := DeleteTenantNamespace(tenantShortName)
-
-	// announce the tenant on the router
-	nginxCh := UpdateNginxConfiguration(ctx)
-
-	//delete secret
-
-	secretCh := DeleteTenantSecrets(tenantShortName)
-
-	// wait for namespace deletion
-	err = <-nsDeleteCh
-	if err != nil {
-		log.Println("Error deleting namespace: ", err)
-		return errors.New("Error deleting namespace")
+	// Commit transaction for the deletion of the schema
+	if err := appCtx.Commit(); err != nil {
+		return err
 	}
 
-	// wait for secret deletion
-	err = <-secretCh
+	// provision the tenant schema and run the migrations
+	err = <-ProvisionTenantDB(tenant.ShortName)
+	// wait for db provisioning
 	if err != nil {
-		log.Println("Error deleting secret: ", err)
-		return errors.New("Error deleting secret")
+		log.Println("Error creating tenant's db schema: ", err)
+		return errors.New("Error creating tenant's db schema")
 	}
-	// wait for router
-	err = <-nginxCh
+
+	if err = UnClaimTenant(appCtx, sgt.StorageGroupTenant.Tenant); err != nil {
+		log.Println("Error unclaiming tenant:", err)
+		return errors.New("Error unclaiming tenant")
+	}
+	err = RestartTenantServers(sgt)
+	if err != nil {
+		log.Println("Error restarting tenant servers:", err)
+		return errors.New("Error restarting tenant servers")
+	}
+	err = <-UpdateNginxConfiguration(appCtx)
 	if err != nil {
 		log.Println("Error updating router: ", err)
-		return errors.New("Error updating router: ")
-	}
-	return err
-}
-
-func DeleteTenantK8sObjects(ctx *Context, tenantShortName string) error {
-	// delete tenant schema
-	// wait for schema deletion
-	err := <-DeleteTenantDB(tenantShortName)
-	if err != nil {
-		log.Println("Error deleting schema: ", err)
-		return errors.New("Error deleting tenant's")
-	}
-	// purge connection from pool
-	db.GetInstance().RemoveCnx(tenantShortName)
-
-	//delete namespace
-	nsDeleteCh := DeleteTenantNamespace(tenantShortName)
-
-	// announce the tenant on the router
-	nginxCh := UpdateNginxConfiguration(ctx)
-
-	//delete secret
-
-	secretCh := DeleteTenantSecrets(tenantShortName)
-
-	// wait for namespace deletion
-	err = <-nsDeleteCh
-	if err != nil {
-		log.Println("Error deleting namespace: ", err)
-		return errors.New("Error deleting namespace")
+		return errors.New("Error updating router")
 	}
 
-	// wait for secret deletion
-	err = <-secretCh
-	if err != nil {
-		log.Println("Error deleting secret: ", err)
-		return errors.New("Error deleting secret")
-	}
-
-	// wait for router
-	err = <-nginxCh
-	if err != nil {
-		log.Println("Error updating router: ", err)
-		return errors.New("Error updating router: ")
+	if err := appCtx.Commit(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -753,8 +802,21 @@ func StopTenantServers(sgt *StorageGroupTenantResult) error {
 	if err != nil {
 		return err
 	}
-	// Delete MinIO's user
 	err = stopMinioTenantServers(sgt.StorageGroupTenant, tenantConf)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// RestartTenantServers restarts MinIO servers for a particular tenant
+func RestartTenantServers(sgt *StorageGroupTenantResult) error {
+	// Get the credentials for a tenant
+	tenantConf, err := GetTenantConfig(sgt.StorageGroupTenant.Tenant)
+	if err != nil {
+		return err
+	}
+	err = restartMinioTenantServers(sgt.StorageGroupTenant, tenantConf)
 	if err != nil {
 		return err
 	}
@@ -789,8 +851,7 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 
 	if getKmsAddress() != "" {
 		kesServiceName := fmt.Sprintf("%s-kes", sgTenant.ShortName)
-		port := getKesRunningPort()
-		kesServiceAddress := fmt.Sprintf("https://%s:%d", kesServiceName, port)
+		kesServiceAddress := fmt.Sprintf("https://%s:7373", kesServiceName)
 		tenantConfig["MINIO_KMS_KES_ENDPOINT"] = kesServiceAddress
 		tenantConfig["MINIO_KMS_KES_KEY_FILE"] = fmt.Sprintf("/kes-config/%s/app/key/key", sgTenant.ShortName)
 		tenantConfig["MINIO_KMS_KES_CERT_FILE"] = fmt.Sprintf("/kes-config/%s/app/cert/cert", sgTenant.ShortName)
@@ -919,6 +980,26 @@ func ClaimTenant(ctx *Context, tenant *Tenant, name, domain string) error {
 		return err
 	}
 	_, err = tx.Exec(query, name, domain, tenant.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// UnClaimTenant unclaims a tenant on the database, marks it as  available and disables it for the router
+func UnClaimTenant(ctx *Context, tenant *Tenant) error {
+	// build the query
+	query :=
+		`UPDATE tenants 
+					SET name = $1, domain = $2, available=TRUE, enabled=FALSE
+				WHERE id=$3`
+
+	// Execute Query
+	tx, err := ctx.MainTx()
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(query, tenant.ShortName, tenant.ShortName, tenant.ID)
 	if err != nil {
 		return err
 	}

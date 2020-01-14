@@ -47,6 +47,7 @@ const (
 	failTask              = "fail"
 	emptyTask             = "empty"
 	TaskProvisionTenant   = "provision-tenant"
+	TaskDeprovisionTenant = "deprovision-tenant"
 	TaskInviteUserByEmail = "invite-user-by-email"
 	TaskSendAdminInvite   = "send-admin-invite"
 )
@@ -255,6 +256,10 @@ func RunTask(id int64) error {
 		log.Println("Empty Task")
 	case TaskProvisionTenant:
 		if err := ProvisionTenantTask(task); err != nil {
+			panic(err)
+		}
+	case TaskDeprovisionTenant:
+		if err := DeprovisionTenantTask(task); err != nil {
 			panic(err)
 		}
 	case TaskInviteUserByEmail:

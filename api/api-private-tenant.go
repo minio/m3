@@ -44,117 +44,18 @@ func (ps *privateServer) TenantAdd(in *pb.TenantAddRequest, stream pb.PrivateAPI
 		}
 		err = appCtx.Commit()
 	}()
-	if err := stream.Send(progressStruct(10, "validating tenant")); err != nil {
-		return err
-	}
 
-	name := in.Name
-	domain := in.ShortName
-	userName := in.UserName
-	userEmail := in.UserEmail
-	// check if tenant name is available
-	available, err := cluster.TenantShortNameAvailable(appCtx, domain)
-	if err != nil {
-		log.Println("Error validating domain:", err)
-		return status.New(codes.Internal, "Error validating domain").Err()
-	}
-	if !available {
-		log.Println("Error tenant's shortname not available")
-		return status.New(codes.Internal, "Error tenant's shortname not available").Err()
-	}
-
-	// Find an available tenant
-	tenant, err := cluster.GrabAvailableTenant(appCtx)
-	if err != nil {
-		log.Println("No tenant space available:", err)
-		return status.New(codes.Internal, "No space available").Err()
-	}
-
-	// now that we have a tenant, designate it as the tenant to be used in context
-	appCtx.Tenant = tenant
-	if err = cluster.ClaimTenant(appCtx, tenant, name, domain); err != nil {
-		log.Println("Error claiming tenant:", err)
-		return status.New(codes.Internal, "Error claiming tenant").Err()
-	}
-
-	// update the context tenant
-	appCtx.Tenant.Name = name
-	appCtx.Tenant.Domain = domain
-	sgt := <-cluster.GetTenantStorageGroupByShortName(appCtx, tenant.ShortName)
-	if sgt.Error != nil {
-		return status.New(codes.Internal, sgt.Error.Error()).Err()
-	}
-	if err := stream.Send(progressStruct(40, "updating nginx")); err != nil {
-		return err
-	}
-
-	// announce the tenant on the router
-	nginxCh := cluster.UpdateNginxConfiguration(appCtx)
-	// check if we were able to provision the schema and be done running the migrations
-
-	// wait for router
-	err = <-nginxCh
-	if err != nil {
-		log.Println("Error updating nginx configuration: ", err)
-		return status.New(codes.Internal, "Error updating nginx configuration").Err()
-	}
-	if err := stream.Send(progressStruct(10, "initializing servers")); err != nil {
-		return err
-	}
-
-	// if the first admin name and email was provided send them an invitation
-	if userName != "" && userEmail != "" {
-		// wait for MinIO to be ready before creating the first user
-		ready := cluster.IsMinioReadyRetry(appCtx)
-		if !ready {
-			return status.New(codes.Internal, "MinIO was never ready. Unable to complete configuration of tenant").Err()
+	// get a list of tenants and run the migrations for each tenant
+	addCh := cluster.TenantAddAction(appCtx, in.Name, in.ShortName, in.UserName, in.UserEmail)
+	for addStep := range addCh {
+		if addStep.Error != nil {
+			return addStep.Error
 		}
-		if err := stream.Send(progressStruct(10, "adding first admin user")); err != nil {
+		if err := stream.Send(addStep.TenantResponse); err != nil {
 			return err
 		}
-		// insert user to DB with random password
-		newUser := cluster.User{Name: userName, Email: userEmail}
-		err := cluster.AddUser(appCtx, &newUser)
-		if err != nil {
-			log.Println("Error adding first tenant's admin user: ", err)
-			return status.New(codes.Internal, "Error adding first tenant's admin user").Err()
-		}
-		if err := stream.Send(progressStruct(10, "inviting user by email")); err != nil {
-			return err
-		}
-
-		// Invite it's first admin
-		err = cluster.InviteUserByEmail(appCtx, cluster.TokenSignupEmail, &newUser)
-		if err != nil {
-			log.Println("Error inviting user by email: ", err.Error())
-			return status.New(codes.Internal, "Error inviting user by email").Err()
-		}
-		if err := stream.Send(progressStruct(10, "done inviting user by email")); err != nil {
-			return err
-		}
-	} else {
-		if err := stream.Send(progressStruct(30, "")); err != nil {
-			return err
-		}
-	}
-
-	// take one, provision one, tolerate failure of this call
-	if err := cluster.SchedulePreProvisionTenantInStorageGroup(appCtx, sgt.StorageGroup); err != nil {
-		log.Println("Warning:", err)
-	}
-
-	if err := stream.Send(progressStruct(10, "done adding tenant")); err != nil {
-		return err
 	}
 	return nil
-}
-
-func progressStruct(progressInt int32, message string) *pb.TenantResponse {
-	progress := &pb.TenantResponse{
-		Progress: progressInt,
-		Message:  fmt.Sprintf(" %s", message),
-	}
-	return progress
 }
 
 // TenantDisable disables a tenant
@@ -269,7 +170,7 @@ func (ps *privateServer) TenantDelete(in *pb.TenantSingleRequest, stream pb.Priv
 		err = appCtx.Commit()
 	}()
 
-	if err := stream.Send(progressStruct(5, "validating tenant")); err != nil {
+	if err := stream.Send(cluster.ProgressStruct(10, "validating tenant")); err != nil {
 		return err
 	}
 
@@ -279,6 +180,9 @@ func (ps *privateServer) TenantDelete(in *pb.TenantSingleRequest, stream pb.Priv
 		return status.New(codes.NotFound, "Tenant not found").Err()
 	}
 
+	appCtx.Tenant = &tenant
+
+	// validate tenant
 	sgt := <-cluster.GetTenantStorageGroupByShortName(nil, tenant.ShortName)
 	if sgt.Error != nil {
 		return status.New(codes.NotFound, "storage group not found for tenant").Err()
@@ -291,48 +195,14 @@ func (ps *privateServer) TenantDelete(in *pb.TenantSingleRequest, stream pb.Priv
 		return status.New(codes.Canceled, "tenant needs to be disabled for deletion").Err()
 	}
 
-	if err := stream.Send(progressStruct(5, "stopping tenant's servers")); err != nil {
-		return err
-	}
-
-	// StopTenantServers before deprovisioning them.
-	err = cluster.StopTenantServers(sgt)
-	if err != nil {
-		log.Println("Error stopping tenant servers:", err)
-		return status.New(codes.Internal, "Error stopping tenant servers").Err()
-	}
-	if err := stream.Send(progressStruct(10, "deprovisioning tenant")); err != nil {
-		return err
-	}
-	tenantShortName := sgt.StorageGroupTenant.Tenant.ShortName
-	// Deprovision tenant and delete tenant info from disks
-	err = <-cluster.DeprovisionTenantOnStorageGroup(appCtx, sgt.Tenant, sgt.StorageGroup)
-	if err != nil {
-		log.Println("Error deprovisioning tenant:", err)
-		return status.New(codes.Internal, "Error deprovisioning tenant").Err()
-	}
-	if err := stream.Send(progressStruct(20, "deleting tenant's k8s objects")); err != nil {
-		return err
-	}
-
-	err = cluster.DeleteTenantK8sObjects(appCtx, tenantShortName)
-	if err != nil {
-		return status.New(codes.Internal, err.Error()).Err()
-	}
-
-	if err := stream.Send(progressStruct(60, "done deleting tenant")); err != nil {
-		return err
-	}
-
-	// if we reach here, all is good, commit
-	if err := appCtx.Commit(); err != nil {
-		log.Println("error committing transaction:", err)
-		return status.New(codes.Internal, "Internal error").Err()
-	}
-
-	// delete one tenant, provision one tenant, tolerate failure of this call
-	if err := cluster.SchedulePreProvisionTenantInStorageGroup(appCtx, sgt.StorageGroup); err != nil {
-		log.Println("Warning:", err)
+	delCh := cluster.ScheduleDeprovisionTenantTask(appCtx, &tenant)
+	for delStep := range delCh {
+		if delStep.Error != nil {
+			return delStep.Error
+		}
+		if err := stream.Send(delStep.TenantResponse); err != nil {
+			return err
+		}
 	}
 	return nil
 }

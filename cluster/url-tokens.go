@@ -68,15 +68,10 @@ func GetTenantTokenDetails(ctx *Context, urlToken *uuid.UUID) (*URLToken, error)
 				url_tokens
 			WHERE id=$1 LIMIT 1`
 
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return nil, err
-	}
-
-	row := tx.QueryRow(queryUser, urlToken)
+	row := ctx.TenantDB().QueryRow(queryUser, urlToken)
 
 	// Save the resulted query on the URLToken struct
-	err = row.Scan(&token.ID, &token.UserID, &token.Expiration, &token.UsedFor, &token.Consumed)
+	err := row.Scan(&token.ID, &token.UserID, &token.Expiration, &token.UsedFor, &token.Consumed)
 	if err != nil {
 		return nil, err
 	}

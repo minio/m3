@@ -95,5 +95,6 @@ func tenantDelete(ctx *cli.Context) error {
 		bar.Add(int(resp.Progress))
 		fmt.Print(resp.Message)
 	}
+	fmt.Println()
 	return nil
 }
