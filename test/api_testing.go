@@ -130,7 +130,7 @@ func main() {
 	// check if list count incremented correctly
 	if (listBucketRes.TotalBuckets - initialBucketsCount) != 1 {
 		fmt.Println("x")
-		fmt.Println("total buckets: %d not match with previous bucket added", listBucketRes.TotalBuckets)
+		fmt.Printf("total buckets: %d not match with previous bucket added\n", listBucketRes.TotalBuckets)
 	} else {
 		fmt.Println("✓")
 	}
@@ -202,7 +202,7 @@ func main() {
 	// check if list count incremented correctly
 	if (listPermRes.Total - initialPermissionsCount) != 1 {
 		fmt.Println("x")
-		fmt.Println("total permissions: %d not match with previous permission added", listPermRes.Total)
+		fmt.Printf("total permissions: %d not match with previous permission added\n", listPermRes.Total)
 	} else {
 		fmt.Println("✓")
 	}
@@ -248,7 +248,7 @@ func main() {
 	// check if list count incremented correctly
 	if (listSaRes.Total - initialSaCount) != 1 {
 		fmt.Println("x")
-		fmt.Println("total service_accounts: %d not match with previous service_account added", listSaRes.Total)
+		fmt.Printf("total service_accounts: %d not match with previous service_account added\n", listSaRes.Total)
 	} else {
 		fmt.Println("✓")
 	}
@@ -399,19 +399,19 @@ func doDelete(url string, sessionID string) (res []byte, err error) {
 func validatePermissionResponse(permRes *pb.Permission, jsonData map[string]interface{}) {
 	if permRes.Name != jsonData["name"] {
 		fmt.Println("x")
-		fmt.Println("values not created correctly: %s\n", permRes.Name)
+		fmt.Printf("values not created correctly: %s\n", permRes.Name)
 	} else if permRes.Description != jsonData["description"] {
 		fmt.Println("x")
-		fmt.Println("values not created correctly value:%s, expected: %s\n", permRes.Description, jsonData["description"])
+		fmt.Printf("values not created correctly value:%s, expected: %s\n", permRes.Description, jsonData["description"])
 	} else if permRes.Effect != cluster.EffectFromString(jsonData["effect"].(string)).String() {
 		fmt.Println("x")
-		fmt.Println("values not created correctly value:%s, expected: %s\n", permRes.Effect, cluster.EffectFromString(jsonData["effect"].(string)).String())
+		fmt.Printf("values not created correctly value:%s, expected: %s\n", permRes.Effect, cluster.EffectFromString(jsonData["effect"].(string)).String())
 	} else {
 		for i, action := range permRes.Actions {
 			for _, expectedAction := range jsonData["actions"].([]string)[i:] {
 				if action.Type != expectedAction {
 					fmt.Println("x")
-					fmt.Println("values not created correctly value: %s, expected: %s\n", action.Type, expectedAction)
+					fmt.Printf("values not created correctly value: %s, expected: %s\n", action.Type, expectedAction)
 				}
 				break
 			}
@@ -424,7 +424,7 @@ func validatePermissionResponse(permRes *pb.Permission, jsonData map[string]inte
 func validateServiceAccountResponse(saRes *pb.CreateServiceAccountResponse, jsonData map[string]interface{}) {
 	if saRes.ServiceAccount.Name != jsonData["name"] {
 		fmt.Println("x")
-		fmt.Println("values not created correctly value:%s, expected: %s\n", saRes.ServiceAccount.Name, jsonData["name"])
+		fmt.Printf("values not created correctly value:%s, expected: %s\n", saRes.ServiceAccount.Name, jsonData["name"])
 	}
 	if saRes.ServiceAccount.Id == "" {
 		fmt.Println("x")
@@ -434,7 +434,7 @@ func validateServiceAccountResponse(saRes *pb.CreateServiceAccountResponse, json
 		fmt.Println("x")
 		fmt.Println("access_key not in response")
 	}
-	if saRes.ServiceAccount.Enabled != true {
+	if !saRes.ServiceAccount.Enabled {
 		fmt.Println("x")
 		fmt.Println("enabled is not `true`")
 	}
