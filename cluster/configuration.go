@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"database/sql"
-	"errors"
 	"log"
 
 	"github.com/minio/m3/cluster/db"
@@ -31,12 +30,12 @@ type Configuration struct {
 	locked    bool
 }
 
-func (c *Configuration) ValString() (*string, error) {
+func (c *Configuration) ValString() *string {
 	if c.ValueType == "string" {
 		val := c.Value.(string)
-		return &val, nil
+		return &val
 	}
-	return nil, errors.New("Invalid value type")
+	return nil
 }
 
 func (c *Configuration) ValBool() bool {
@@ -101,9 +100,13 @@ func GetConfig(ctx *Context, key string, fallback interface{}) (*Configuration, 
 	// Save the resulted query on the User struct
 	err := row.Scan(&config.Key, &config.Value, &config.ValueType, &config.locked)
 	if err != nil {
-		//TODO: remove before checkin
-		log.Println("missing config")
-		log.Println(err)
+		if err == sql.ErrNoRows {
+			log.Println("missing config")
+			log.Println(err)
+			config.Value = fallback
+			config.ValueType = "string"
+			return &config, err
+		}
 		return nil, err
 	}
 	return &config, nil

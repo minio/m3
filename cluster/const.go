@@ -61,7 +61,8 @@ const (
 	maxReadinessTries           = 120 // This should allow for 4 minutes of attempts
 
 	// configurations
-	cfgCoreGlobalBuckets = "core.global_buckets"
+	cfgCoreGlobalBuckets     = "core.global_buckets"
+	cfgStorageStandardParity = "core.storage_standard_parity"
 
 	// Development Flags
 	devUseEmptyDir = "DEV_EMPTY_DIR"
