@@ -833,6 +833,17 @@ func createTenantConfigMap(sgTenant *StorageGroupTenant) error {
 	// Enable anonymous scraping of Prometheus metrics
 	tenantConfig["MINIO_PROMETHEUS_AUTH_TYPE"] = "public"
 
+	// get ssc EC parity value, en empty will cause MinIO to do disksPerSet / 2 as default (half the disks)
+	sscCfg, err := GetConfig(nil, cfgStorageStandardParity, "")
+	sscVal := ""
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	if sscCfg.ValString() != nil {
+		sscVal = *sscCfg.ValString()
+	}
+	tenantConfig["MINIO_STORAGE_CLASS_STANDARD"] = sscVal
+
 	// if global bucket is enabled, configure the etcd
 	globalBuckets, err := GetConfig(nil, cfgCoreGlobalBuckets, false)
 	if err != nil {
