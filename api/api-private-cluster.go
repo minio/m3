@@ -132,3 +132,19 @@ func (ps *privateServer) ClusterStorageGroupAdd(ctx context.Context, in *pb.Stor
 
 	return &pb.StorageGroupAddResponse{}, nil
 }
+
+// ClusterRouterRefresh has mkube refresh the routing rules on nginx config map
+func (ps *privateServer) ClusterRouterRefresh(ctx context.Context, in *pb.AdminEmpty) (*pb.AdminEmpty, error) {
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	// announce the bucket on the router
+	err = <-cluster.UpdateNginxConfiguration(appCtx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Error updating nginx. Check the logs.").Err()
+	}
+	return &pb.AdminEmpty{}, nil
+}
