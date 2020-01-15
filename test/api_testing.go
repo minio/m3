@@ -167,13 +167,12 @@ func main() {
 	fmt.Print("AddPermission Duplicated, expect error... ")
 	randDupPermission := "dup-perm" + RandomCharString(5)
 	jsonData = map[string]interface{}{"name": randDupPermission, "description": "allows access to buckets", "effect": "allow", "resources": []string{randBucket}, "actions": []string{"write"}}
-	res, err = doPost(urlPath+"/api/v1/permissions", jsonData, loginRes.JwtToken, 5)
+	_, err = doPost(urlPath+"/api/v1/permissions", jsonData, loginRes.JwtToken, 5)
 	if err == nil {
 		fmt.Println("duplicate permission didn't failed")
 		return
-	} else {
-		fmt.Println("✓")
 	}
+	fmt.Println("✓")
 
 	// UpdatePermission
 	fmt.Print("UpdatePermission... ")
