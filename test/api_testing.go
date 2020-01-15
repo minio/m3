@@ -163,6 +163,18 @@ func main() {
 	json.Unmarshal([]byte(res), &addPermRes)
 	validatePermissionResponse(&addPermRes, jsonData)
 
+	// AddPermission Duplicate
+	fmt.Print("AddPermission Duplicated, expect error... ")
+	randDupPermission := "dup-perm" + RandomCharString(5)
+	jsonData = map[string]interface{}{"name": randDupPermission, "description": "allows access to buckets", "effect": "allow", "resources": []string{randBucket}, "actions": []string{"write"}}
+	res, err = doPost(urlPath+"/api/v1/permissions", jsonData, loginRes.JwtToken, 5)
+	if err == nil {
+		fmt.Println("duplicate permission didn't failed")
+		return
+	} else {
+		fmt.Println("✓")
+	}
+
 	// UpdatePermission
 	fmt.Print("UpdatePermission... ")
 	randNewPermission := "perm" + RandomCharString(5)

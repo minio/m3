@@ -198,7 +198,13 @@ func AppendPermissionActionObj(perm *Permission, actions []string) error {
 	return nil
 }
 
+// AddPermissionToDB insers a effect-resources-actions combination to the DB after validating that it's not duplicated.
+// It also makes sure a valid slug gets assigned to the permission.
 func AddPermissionToDB(ctx *Context, name, description string, effect Effect, resources, actions []string) (*Permission, error) {
+	// validate it's not a duplicate permission (same effect-resources-actions)
+	if err := validatePermissionUniqueness(ctx, effect, resources, actions); err != nil {
+		return nil, err
+	}
 	// generate permission
 	perm, err := NewPermissionObj(name, description, effect, resources, actions)
 	if err != nil {
@@ -901,4 +907,61 @@ func MapPermissionsToIDs(ctx *Context, permissions []string) (map[string]*uuid.U
 	}
 	return permToID, nil
 
+}
+
+var ErrDuplicatedPermission = errors.New("Another permission for those actions, effect and resources already exists")
+
+func validatePermissionUniqueness(ctx *Context, effect Effect, resources, actions []string) error {
+	// we are going to query for matching permissions, if the following query returns at least 1 result, there's another
+	// permission with these capabilities (effect-actions-resources)
+
+	var buckets []string
+	var completeResources []string
+	for _, res := range resources {
+		parts := strings.Split(res, "/")
+		r := Resource{}
+		if len(parts) > 0 {
+			buckets = append(buckets, parts[0])
+			r.BucketName = parts[0]
+		}
+		if len(parts) > 1 {
+			r.Pattern = parts[1]
+		} else {
+			r.Pattern = "*"
+		}
+		completeResources = append(completeResources, r.String())
+	}
+
+	query := `SELECT p.id
+FROM permissions p
+         LEFT JOIN (SELECT pr.permission_id, COUNT(*) AS resource_count
+                    FROM permissions_resources pr
+                             LEFT JOIN (SELECT prs.id, (prs.bucket_name || '/' || prs.pattern) AS resource
+                                        FROM permissions_resources prs
+                                        WHERE bucket_name = ANY($1)) spr ON spr.id = pr.id
+                    WHERE spr.resource = ANY($2)
+                    GROUP BY pr.permission_id) AS pc ON p.id = pc.permission_id
+         LEFT JOIN (SELECT pr.permission_id, COUNT(*) AS total_resource_count
+                    FROM permissions_resources pr
+                    GROUP BY pr.permission_id) AS pc_total ON p.id = pc_total.permission_id
+         LEFT JOIN (SELECT pa.permission_id, COUNT(*) AS actions_count
+                    FROM permissions_actions pa
+                    WHERE action = ANY($3)
+                    GROUP BY pa.permission_id) pac ON p.id = pac.permission_id
+         LEFT JOIN (SELECT pa.permission_id, COUNT(*) AS total_actions_count
+                    FROM permissions_actions pa
+                    GROUP BY pa.permission_id) pac_total ON p.id = pac_total.permission_id
+WHERE p.effect = $4
+  AND pc_total.total_resource_count = pc.resource_count
+  AND pac_total.total_actions_count = pac.actions_count`
+	row := ctx.TenantDB().QueryRow(query, pq.Array(buckets), pq.Array(completeResources), pq.Array(actions), effect.String())
+	var count *uuid.UUID
+	err := row.Scan(&count)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
+		return err
+	}
+	return ErrDuplicatedPermission
 }

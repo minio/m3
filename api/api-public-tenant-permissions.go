@@ -92,8 +92,10 @@ func (s *server) AddPermission(ctx context.Context, in *pb.AddPermissionRequest)
 
 	permissionObj, err := cluster.AddPermissionToDB(appCtx, permissionName, description, effect, resources, actions)
 	if err != nil {
-		appCtx.Rollback()
-		return nil, err
+		if err == cluster.ErrDuplicatedPermission {
+			return nil, status.New(codes.InvalidArgument, "Duplicate permission.").Err()
+		}
+		return nil, status.New(codes.Internal, "There was an error creating the permission").Err()
 	}
 	// if we reach here, all is good, commit
 	if err := appCtx.Commit(); err != nil {
