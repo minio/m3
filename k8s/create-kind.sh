@@ -3,7 +3,7 @@
 echo "Provisioning Kind"
 kind create cluster --name m3cluster --config kind-cluster.yaml
 echo "installing dashboard"
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta8/aio/deploy/recommended.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-rc1/aio/deploy/recommended.yaml
 echo "creating service account"
 kubectl create serviceaccount dashboard -n default
 kubectl create clusterrolebinding dashboard-admin -n default --clusterrole=cluster-admin --serviceaccount=default:dashboard
@@ -32,7 +32,7 @@ kubectl apply -f deployments/portal-proxy-deployment.yaml
 make k8sdev TAG=minio/m3:dev
 
 # Apply mkube
-kubectl apply -f k8s/deployments/m3-deployment.yaml
+kubectl apply -f deployments/m3-deployment.yaml
 
 # Extract and save vault token into config map
 while [[ $(kubectl get pods -l app=m3-vault -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for pod" && sleep 1; done
