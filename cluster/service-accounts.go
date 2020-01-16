@@ -103,11 +103,6 @@ func AddServiceAccount(ctx *Context, tenantShortName string, name string, descri
 		return nil, nil, err
 	}
 	serviceAccount.AccessKey = saCred.AccessKey
-	// if no error happened to this point commit transaction
-	err = ctx.Commit()
-	if err != nil {
-		return nil, nil, err
-	}
 	return serviceAccount, saCred, nil
 }
 
@@ -320,7 +315,6 @@ func UpdateMinioPolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, t
 				}
 			}
 			statement.Actions = aSet
-
 			policy.Statements = append(policy.Statements, statement)
 		}
 		// for debug
@@ -395,7 +389,6 @@ func AssignMultiplePermissionsToSA(ctx *Context, serviceAccount *uuid.UUID, perm
 	for _, permID := range permissions {
 		// if the permission is not set yet, save it
 		if _, ok := haveItSet[*permID]; !ok {
-			//do something here
 			finalListPermissionIDs = append(finalListPermissionIDs, permID)
 		}
 	}
@@ -646,12 +639,21 @@ func DeleteServiceAccountDB(ctx *Context, serviceAccount *ServiceAccount) error 
 	return nil
 }
 
-// RemoveMinioServiceAccount deletes a serviceAccount related to a particular tenant
-func RemoveMinioServiceAccount(ctx *Context, serviceAccount *ServiceAccount) error {
+// RemoveServiceAccount deletes a serviceAccount related to a particular tenant
+func RemoveServiceAccount(ctx *Context, serviceAccount *ServiceAccount) error {
 	err := UpdateServiceAccountDB(ctx, serviceAccount)
 	if err != nil {
 		return err
 	}
+	err = RemoveMinioUser(ctx, serviceAccount)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// RemoveMinioUser deletes a Minio User assigned to a particular service account
+func RemoveMinioUser(ctx *Context, serviceAccount *ServiceAccount) error {
 	// Get in which SG is the tenant located
 	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
 	if sgt.Error != nil {
