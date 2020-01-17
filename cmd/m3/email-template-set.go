@@ -38,7 +38,7 @@ var emailSetCmd = cli.Command{
 		cli.StringFlag{
 			Name:  "name",
 			Value: "",
-			Usage: "template name (forgot-password |  invite | new_admin)",
+			Usage: "template name (forgot-password | reset-password |  invite | new_admin)",
 		},
 		cli.StringFlag{
 			Name:  "template",
