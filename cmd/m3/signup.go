@@ -88,8 +88,8 @@ func signup(ctx *cli.Context) error {
 
 	err = cluster.ValidateURLToken(urlToken)
 	if err != nil {
-		fmt.Println(err)
-		return err
+		log.Println("error validating url token:", err)
+		return errors.New("invalid URL Token")
 	}
 
 	fmt.Println("Completing user signup process")
