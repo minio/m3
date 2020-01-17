@@ -45,7 +45,6 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 
 	defer func() {
 		if err != nil {
-			log.Println(err.Error())
 			appCtx.Rollback()
 			return
 		}
@@ -63,14 +62,25 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 	for _, idString := range permisionsIDs {
 		permUUID, err := uuid.FromString(idString)
 		if err != nil {
-			return nil, status.New(codes.Internal, "permission uuid not valid").Err()
+			log.Println("permission uuid not valid")
+			log.Println("removing MinIO User")
+			err := cluster.RemoveMinioUser(appCtx, serviceAccount)
+			if err != nil {
+				log.Println("Error removing Minio User: ", err.Error())
+			}
+			return nil, status.New(codes.Internal, "Internal error").Err()
 		}
 		permissionIDsArr = append(permissionIDsArr, &permUUID)
 	}
 	// perform actions
 	err = cluster.AssignMultiplePermissionsToSA(appCtx, &serviceAccount.ID, permissionIDsArr)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println("Error assigning permissions to service account:", err.Error())
+		log.Println("removing MinIO User")
+		err := cluster.RemoveMinioUser(appCtx, serviceAccount)
+		if err != nil {
+			log.Println("Error removing Minio User: ", err.Error())
+		}
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
@@ -346,7 +356,7 @@ func (s *server) RemoveServiceAccount(ctx context.Context, in *pb.ServiceAccount
 		return nil, status.New(codes.Internal, "Error deleting Service Account").Err()
 	}
 
-	err = cluster.RemoveMinioServiceAccount(appCtx, serviceAccount)
+	err = cluster.RemoveServiceAccount(appCtx, serviceAccount)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, status.New(codes.Internal, "Error deleting Service Account").Err()
