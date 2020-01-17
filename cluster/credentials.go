@@ -204,10 +204,15 @@ func GetCredentialsForServiceAccount(ctx *Context, serviceAccountID *uuid.UUID) 
 				LEFT JOIN service_accounts sa ON c.service_account_id = sa.id
 			WHERE sa.id=$1 LIMIT 1`
 
-	row := ctx.TenantDB().QueryRow(queryUser, serviceAccountID)
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return nil, err
+	}
+
+	row := tx.QueryRow(queryUser, serviceAccountID)
 	sac := ServiceAccountCredentials{}
 	// Save the resulted query on the User struct
-	err := row.Scan(&sac.AccessKey)
+	err = row.Scan(&sac.AccessKey)
 	if err != nil {
 		return nil, err
 	}

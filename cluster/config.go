@@ -86,7 +86,7 @@ func getPublishNotReadyAddress() bool {
 }
 
 func getMinIOImage() string {
-	return env.Get(minIOImage, "minio/minio:RELEASE.2019-12-30T05-45-39Z")
+	return env.Get(minIOImage, "minio/minio:RELEASE.2020-01-16T22-40-29Z")
 }
 
 func getMinIOImagePullPolicy() string {
