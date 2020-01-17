@@ -25,14 +25,20 @@ import (
 
 // sets the template for an email behind an identifier
 var emailSetCmd = cli.Command{
-	Name:   "set",
-	Usage:  "Sets an email template by id",
+	Name: "set",
+	Usage: `Sets an email template on the cluster's database
+EXAMPLE: 
+	1. Set invite email template from string.
+		m3 email-template set invite "<html><body><p><b>Forgot email body here</b></p></body></html>" 
+	2. Set forgot-password email template from path.
+		m3 email-template set forgot-password "$(< [FILEPATH])"
+	`,
 	Action: emailTemplateSet,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "name",
 			Value: "",
-			Usage: "template name",
+			Usage: "template name (forgot-password | reset-password | invite | new_admin)",
 		},
 		cli.StringFlag{
 			Name:  "template",
