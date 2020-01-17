@@ -62,6 +62,8 @@ data:
   # Uncomment these to allow KES to use self-signed client certificates
   #KES_M_TLS_AUTH: "ignore"
   #KES_CONFIG_FILE_PATH: "kes-config/server-config.toml"
+  # Uncomment to configure the data parity that will be used in the cluster as a whole
+  #SETUP_STORAGE_STANDARD_PARITY: "EC:4"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -150,4 +152,3 @@ spec:
           envFrom:
             - configMapRef:
                 name: m3-env
-                

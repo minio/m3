@@ -21,6 +21,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/gosimple/slug"
@@ -204,10 +205,18 @@ func AddPermissionToDB(ctx *Context, name, description string, effect Effect, re
 	if err != nil {
 		return nil, err
 	}
+
+	err = validatePermissionName(ctx, name)
+	if err != nil {
+		log.Println("error validating permission:", err)
+		return nil, fmt.Errorf("permission name: `%s` not valid or already exists", name)
+	}
+
 	permSlug, err := getValidPermSlug(ctx, name)
 	if err != nil {
 		return nil, err
 	}
+
 	perm.Slug = *permSlug
 	// insert to db
 	err = InsertPermission(ctx, perm)
@@ -380,78 +389,26 @@ func buildPermissionsForRows(ctx *Context, rows *sql.Rows) ([]*Permission, error
 		return nil, err
 	}
 	// get the actions
-	actionsCh := getActionsForPermissions(ctx, permissionsHash)
-	// get the resources
-	resourcesCh := getResourcesForPermissions(ctx, permissionsHash)
-	// wait for both
-	err = <-actionsCh
+	err = getActionsForPermissions(ctx, permissionsHash)
 	if err != nil {
 		return nil, err
 	}
-	err = <-resourcesCh
+	// get the resources
+	err = getResourcesForPermissions(ctx, permissionsHash)
 	if err != nil {
 		return nil, err
 	}
 	return permissions, nil
 }
 
-// getResourcesForPermissions retrieves the resources for all the permissions in the provided map and stores them on the
-// references provided in the map.
-func getResourcesForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) chan error {
-	ch := make(chan error)
-	go func() {
-		defer close(ch)
-		// build a list of ids
-		var ids []uuid.UUID
-		for id := range permsMap {
-			ids = append(ids, id)
-		}
-		// Get all the permissions for the provided list of ids
-		query := `
-		SELECT 
-			p.id, p.permission_id, p.bucket_name, p.pattern
-		FROM 
-			permissions_resources p 
-		WHERE 
-		      permission_id = ANY($1)`
-
-		rows, err := ctx.TenantDB().Query(query, pq.Array(ids))
-		if err != nil {
-			ch <- err
-			return
-		}
-		defer rows.Close()
-		for rows.Next() {
-			resource := Resource{}
-			var pID uuid.UUID
-			err := rows.Scan(&resource.ID, &pID, &resource.BucketName, &resource.Pattern)
-			if err != nil {
-				ch <- err
-				return
-			}
-			permsMap[pID].Resources = append(permsMap[pID].Resources, resource)
-		}
-		err = rows.Err()
-		if err != nil {
-			ch <- err
-			return
-		}
-
-	}()
-	return ch
-}
-
-func getActionsForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) chan error {
-	ch := make(chan error)
-	go func() {
-		defer close(ch)
-		// build a list of ids
-		var ids []uuid.UUID
-		for id := range permsMap {
-			ids = append(ids, id)
-		}
-		// Get all the permissions for the provided list of ids
-		query := `
+func getActionsForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) error {
+	// build a list of ids
+	var ids []uuid.UUID
+	for id := range permsMap {
+		ids = append(ids, id)
+	}
+	// Get all the permissions for the provided list of ids
+	query := `
 		SELECT 
 			p.id, p.permission_id, p.action
 		FROM 
@@ -459,33 +416,78 @@ func getActionsForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) 
 		WHERE 
 		      permission_id = ANY($1)`
 
-		rows, err := ctx.TenantDB().Query(query, pq.Array(ids))
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	rows, err := tx.Query(query, pq.Array(ids))
+	// rows, err := ctx.TenantDB().Query(query, pq.Array(ids))
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		action := Action{}
+		var pID uuid.UUID
+		var actionStr string
+		err := rows.Scan(&action.ID, &pID, &actionStr)
+		at := ActionTypeFromString(actionStr)
+		action.ActionType = at
 		if err != nil {
-			ch <- err
-			return
+			return err
 		}
-		defer rows.Close()
-		for rows.Next() {
-			action := Action{}
-			var pID uuid.UUID
-			var actionStr string
-			err := rows.Scan(&action.ID, &pID, &actionStr)
-			at := ActionTypeFromString(actionStr)
-			action.ActionType = at
-			if err != nil {
-				ch <- err
-				return
-			}
-			permsMap[pID].Actions = append(permsMap[pID].Actions, action)
-		}
-		err = rows.Err()
-		if err != nil {
-			ch <- err
-			return
-		}
+		permsMap[pID].Actions = append(permsMap[pID].Actions, action)
+	}
+	err = rows.Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
-	}()
-	return ch
+// getResourcesForPermissions retrieves the resources for all the permissions in the provided map and stores them on the
+// references provided in the map.
+func getResourcesForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) error {
+	// build a list of ids
+	var ids []uuid.UUID
+	for id := range permsMap {
+		log.Println(id.String())
+		ids = append(ids, id)
+	}
+	// Get all the permissions for the provided list of ids
+	query := `
+		SELECT 
+			p.id, p.permission_id, p.bucket_name, p.pattern
+		FROM 
+			permissions_resources p 
+		WHERE 
+		      permission_id = ANY($1)`
+
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+
+	rows, err := tx.Query(query, pq.Array(ids))
+	// rows, err := ctx.TenantDB().Query(query, pq.Array(ids))
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		resource := Resource{}
+		var pID uuid.UUID
+		err := rows.Scan(&resource.ID, &pID, &resource.BucketName, &resource.Pattern)
+		if err != nil {
+			return err
+		}
+		permsMap[pID].Resources = append(permsMap[pID].Resources, resource)
+	}
+	err = rows.Err()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Validates a permission by it's id-name (slug)
@@ -574,7 +576,6 @@ func UpdatePoliciesForMultipleServiceAccount(ctx *Context, serviceAccountIDs []*
 
 // assignPermissionToMultipleSAsOnDB assigns a single permission to multiple service accounts
 func assignPermissionToMultipleSAsOnDB(ctx *Context, permission *uuid.UUID, serviceAccountIDs []*uuid.UUID) error {
-
 	// create records
 	tx, err := ctx.TenantTx()
 	if err != nil {
@@ -680,6 +681,8 @@ func GetAllServiceAccountsForPermission(ctx *Context, permissionID *uuid.UUID) (
 		FROM service_accounts_permissions sap
 		WHERE sap.permission_id = $1`
 
+	// TODO: use current transaction to query instead of a connection to the db
+
 	rows, err := ctx.TenantDB().Query(queryUser, permissionID)
 	if err != nil {
 		return nil, err
@@ -709,7 +712,7 @@ func GetAllServiceAccountsForPermission(ctx *Context, permissionID *uuid.UUID) (
 func getValidPermSlug(ctx *Context, permName string) (*string, error) {
 	permSlug := slug.Make(permName)
 	// Count the users
-	queryUser := `
+	query := `
 		SELECT 
 			COUNT(*)
 		FROM 
@@ -717,9 +720,13 @@ func getValidPermSlug(ctx *Context, permName string) (*string, error) {
 		WHERE 
 		    slug = $1`
 
-	row := ctx.TenantDB().QueryRow(queryUser, permSlug)
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return nil, err
+	}
+	row := tx.QueryRow(query, permSlug)
 	var count int
-	err := row.Scan(&count)
+	err = row.Scan(&count)
 	if err != nil {
 		return nil, err
 	}
@@ -731,6 +738,33 @@ func getValidPermSlug(ctx *Context, permName string) (*string, error) {
 	return &permSlug, nil
 }
 
+// validatePermissionName verifies that a permission name is valid
+func validatePermissionName(ctx *Context, name string) error {
+	query := `
+		SELECT 
+			COUNT(*)
+		FROM 
+			permissions
+		WHERE 
+		    name = $1`
+
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	row := tx.QueryRow(query, name)
+	var count int
+	err = row.Scan(&count)
+	if err != nil {
+		return err
+	}
+	// if count is > 0 it means there is a permission already with that name
+	if count > 0 {
+		return fmt.Errorf("permission name: %s, already exists", name)
+	}
+	return nil
+}
+
 // GetPermissionBySlug retrieves a permission by it's id-name
 func GetPermissionBySlug(ctx *Context, slug string) (*Permission, error) {
 	// Get user from tenants database
@@ -740,7 +774,7 @@ func GetPermissionBySlug(ctx *Context, slug string) (*Permission, error) {
 			FROM 
 				permissions p
 			WHERE p.slug=$1 LIMIT 1`
-
+	// TODO: use current transaction to query instead of a connection to the db
 	rows, err := ctx.TenantDB().Query(queryUser, slug)
 	if err != nil {
 		return nil, err
@@ -753,7 +787,6 @@ func GetPermissionBySlug(ctx *Context, slug string) (*Permission, error) {
 	if len(perms) > 0 {
 		return perms[0], nil
 	}
-
 	return nil, errors.New("permission not found")
 }
 
@@ -766,7 +799,7 @@ func GetPermissionByID(ctx *Context, id string) (*Permission, error) {
 			FROM 
 				permissions p
 			WHERE id=$1 LIMIT 1`
-
+	// TODO: use current transaction to query instead of a connection to the db
 	rows, err := ctx.TenantDB().Query(query, id)
 	if err != nil {
 		return nil, err
@@ -837,7 +870,11 @@ func filterPermissionsWithServiceAccount(ctx *Context, permissions []*uuid.UUID,
 		FROM service_accounts_permissions sap
 		WHERE sap.service_account_id = $1 AND sap.permission_id = ANY($2)`
 
-	rows, err := ctx.TenantDB().Query(queryUser, serviceAccount, pq.Array(permissions))
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := tx.Query(queryUser, serviceAccount, pq.Array(permissions))
 	if err != nil {
 		return nil, err
 	}
@@ -845,15 +882,15 @@ func filterPermissionsWithServiceAccount(ctx *Context, permissions []*uuid.UUID,
 
 	var permWithSA []*uuid.UUID
 	for rows.Next() {
-		var saID uuid.UUID
-		err := rows.Scan(&saID)
+		var pID uuid.UUID
+		err := rows.Scan(&pID)
 		if err != nil {
 			return nil, err
 		}
-		permWithSA = append(permWithSA, &saID)
+		permWithSA = append(permWithSA, &pID)
 	}
 
-	err = rows.Close()
+	err = rows.Err()
 	if err != nil {
 		return nil, err
 	}
@@ -871,6 +908,7 @@ func MapPermissionsToIDs(ctx *Context, permissions []string) (map[string]*uuid.U
 			permissions p 
 		WHERE 
 		      p.slug = ANY ($1)`
+	// TODO: use current transaction to query instead of a connection to the db
 
 	rows, err := ctx.TenantDB().Query(queryUser, pq.Array(permissions))
 	defer rows.Close()

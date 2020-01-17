@@ -116,10 +116,23 @@ func stopMinioTenantServers(sgt *StorageGroupTenant, tenantConf *TenantConfigura
 	if pErr != nil {
 		return pErr.Cause
 	}
-	// Restart minios after setting configuration
+	// Stop MinIO servers
 	err := adminClient.ServiceStop()
 	if err != nil {
 		return tagErrorAsMinio("ServiceStop", err)
+	}
+	return nil
+}
+
+func restartMinioTenantServers(sgt *StorageGroupTenant, tenantConf *TenantConfiguration) error {
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	if pErr != nil {
+		return pErr.Cause
+	}
+	// Restart MinIO servers
+	err := adminClient.ServiceRestart()
+	if err != nil {
+		return tagErrorAsMinio("ServiceRestart", err)
 	}
 	return nil
 }

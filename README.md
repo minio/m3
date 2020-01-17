@@ -67,7 +67,7 @@ make m3
 - Build `m3` local docker image and push it to your local kubernetes
 
 ```
-make k8sdev
+make k8sdev TAG=minio/m3:dev
 ```
 - Copy the template located at `./k8s/deployments/m3-deployment.yaml.example` into `./k8s/deployments/m3-deployment.yaml`
 - Modify `./k8s/deployments/m3-deployment.yaml`

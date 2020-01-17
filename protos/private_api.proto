@@ -94,6 +94,9 @@ service PrivateAPI {
     }
     rpc ClusterStorageGroupAdd (StorageGroupAddRequest) returns (StorageGroupAddResponse) {
     }
+    // Asks the backend to refresh the nginx routing rules.
+    rpc ClusterRouterRefresh(AdminEmpty) returns (AdminEmpty) {
+    }
     // Sets Email Template
     rpc SetEmailTemplate (SetEmailTemplateRequest) returns (SetEmailTemplateResponse) {
     }

@@ -55,7 +55,7 @@ func StartPortal() error {
 
 	//Set CORS allowed origins
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:5050"},
+		AllowedOrigins: []string{"http://localhost:5050", "http://localdev"},
 		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPatch},
 		// AllowCredentials indicates whether the request can include user credentials like
 		// cookies, HTTP authentication or client side SSL certificates.
