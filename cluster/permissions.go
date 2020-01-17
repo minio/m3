@@ -205,10 +205,18 @@ func AddPermissionToDB(ctx *Context, name, description string, effect Effect, re
 	if err != nil {
 		return nil, err
 	}
+
+	err = validatePermissionName(ctx, name)
+	if err != nil {
+		log.Println("error validating permission:", err)
+		return nil, fmt.Errorf("permission name: `%s` not valid or already exists", name)
+	}
+
 	permSlug, err := getValidPermSlug(ctx, name)
 	if err != nil {
 		return nil, err
 	}
+
 	perm.Slug = *permSlug
 	// insert to db
 	err = InsertPermission(ctx, perm)
@@ -704,7 +712,7 @@ func GetAllServiceAccountsForPermission(ctx *Context, permissionID *uuid.UUID) (
 func getValidPermSlug(ctx *Context, permName string) (*string, error) {
 	permSlug := slug.Make(permName)
 	// Count the users
-	queryUser := `
+	query := `
 		SELECT 
 			COUNT(*)
 		FROM 
@@ -712,11 +720,13 @@ func getValidPermSlug(ctx *Context, permName string) (*string, error) {
 		WHERE 
 		    slug = $1`
 
-	// TODO: use current transaction to query instead of a connection to the db
-
-	row := ctx.TenantDB().QueryRow(queryUser, permSlug)
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return nil, err
+	}
+	row := tx.QueryRow(query, permSlug)
 	var count int
-	err := row.Scan(&count)
+	err = row.Scan(&count)
 	if err != nil {
 		return nil, err
 	}
@@ -726,6 +736,33 @@ func getValidPermSlug(ctx *Context, permName string) (*string, error) {
 		permSlug = fmt.Sprintf("%s-%s", permSlug, RandomCharString(4))
 	}
 	return &permSlug, nil
+}
+
+// validatePermissionName verifies that a permission name is valid
+func validatePermissionName(ctx *Context, name string) error {
+	query := `
+		SELECT 
+			COUNT(*)
+		FROM 
+			permissions
+		WHERE 
+		    name = $1`
+
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	row := tx.QueryRow(query, name)
+	var count int
+	err = row.Scan(&count)
+	if err != nil {
+		return err
+	}
+	// if count is > 0 it means there is a permission already with that name
+	if count > 0 {
+		return fmt.Errorf("permission name: %s, already exists", name)
+	}
+	return nil
 }
 
 // GetPermissionBySlug retrieves a permission by it's id-name
@@ -750,7 +787,6 @@ func GetPermissionBySlug(ctx *Context, slug string) (*Permission, error) {
 	if len(perms) > 0 {
 		return perms[0], nil
 	}
-
 	return nil, errors.New("permission not found")
 }
 

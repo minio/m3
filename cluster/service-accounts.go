@@ -70,10 +70,17 @@ func getValidSASlug(ctx *Context, saName string) (*string, error) {
 // It generates the credentials and store them kon k8s, the returns a complete struct with secret and access key.
 // This is the only time the secret is returned.
 func AddServiceAccount(ctx *Context, tenantShortName string, name string, description *string) (serviceAccount *ServiceAccount, credentials *ServiceAccountCredentials, err error) {
+	err = validateServiceAccountName(ctx, name)
+	if err != nil {
+		log.Println(err)
+		return nil, nil, fmt.Errorf("service account name: `%s` not valid or already exists", name)
+	}
+
 	// generate slug
 	saSlug, err := getValidSASlug(ctx, name)
 	if err != nil {
-		return nil, nil, err
+		log.Println(err)
+		return nil, nil, fmt.Errorf("error creating service account")
 	}
 	serviceAccount = &ServiceAccount{
 		Name:        name,
@@ -89,21 +96,51 @@ func AddServiceAccount(ctx *Context, tenantShortName string, name string, descri
 				($1, $2, $3, $4, $5, $6)`
 	tx, err := ctx.TenantTx()
 	if err != nil {
-		return nil, nil, err
+		log.Println(err)
+		return nil, nil, fmt.Errorf("error creating service account")
 	}
 	// Execute query
 	_, err = tx.Exec(query, serviceAccount.ID, serviceAccount.Name, serviceAccount.Slug, &serviceAccount.Description, serviceAccount.Enabled, ctx.WhoAmI)
 	if err != nil {
-		return nil, nil, err
+		log.Println(err)
+		return nil, nil, fmt.Errorf("error creating service account")
 	}
 
 	// Create this user's credentials so he can interact with it's own buckets/data
 	saCred, err := createServiceAccountCredentials(ctx, tenantShortName, serviceAccount.ID)
 	if err != nil {
-		return nil, nil, err
+		log.Println(err)
+		return nil, nil, fmt.Errorf("error creating service account")
 	}
 	serviceAccount.AccessKey = saCred.AccessKey
 	return serviceAccount, saCred, nil
+}
+
+// validateServiceAccountName verifies that a service account name is valid
+func validateServiceAccountName(ctx *Context, name string) error {
+	query := `
+		SELECT 
+			COUNT(*)
+		FROM 
+			service_accounts
+		WHERE 
+		    name = $1`
+
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	row := tx.QueryRow(query, name)
+	var count int
+	err = row.Scan(&count)
+	if err != nil {
+		return err
+	}
+	// if count is > 0 it means there is a service account already with that name
+	if count > 0 {
+		return fmt.Errorf("service account name: %s, already exists", name)
+	}
+	return nil
 }
 
 // GetServiceAccountList returns a page of services accounts for the provided tenant
