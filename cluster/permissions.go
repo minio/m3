@@ -739,7 +739,7 @@ func getValidPermSlug(ctx *Context, permName string) (*string, error) {
 }
 
 // validatePermissionName verifies that a permission name is valid
-func validatePermissionName(ctx *Context, permissionName string) error {
+func validatePermissionName(ctx *Context, name string) error {
 	query := `
 		SELECT 
 			COUNT(*)
@@ -752,7 +752,7 @@ func validatePermissionName(ctx *Context, permissionName string) error {
 	if err != nil {
 		return err
 	}
-	row := tx.QueryRow(query, permissionName)
+	row := tx.QueryRow(query, name)
 	var count int
 	err = row.Scan(&count)
 	if err != nil {
@@ -760,7 +760,7 @@ func validatePermissionName(ctx *Context, permissionName string) error {
 	}
 	// if count is > 0 it means there is a permission already with that name
 	if count > 0 {
-		return fmt.Errorf("permission name: %s, already exists", permissionName)
+		return fmt.Errorf("permission name: %s, already exists", name)
 	}
 	return nil
 }
