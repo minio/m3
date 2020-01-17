@@ -291,8 +291,8 @@ func GetTotalNumberOfUsers(ctx *Context) (int, error) {
 	return count, nil
 }
 
-// doInviteUserByEmail creates a temporary token to signup/reset password for service and send an email to the provided user
-func doInviteUserByEmail(ctx *Context, usedFor string, user *User) error {
+// doSendEmailToUser creates a temporary token to signup/reset password for service and send an email to the provided user
+func doSendEmailToUser(ctx *Context, usedFor string, user *User) error {
 
 	// generate a token for the email invite
 	// this token expires in 72 hours
@@ -325,11 +325,22 @@ func doInviteUserByEmail(ctx *Context, usedFor string, user *User) error {
 		Name: user.Name,
 		URL:  signupURL,
 	}
-	emailTemplate := "invite"
-	subject := fmt.Sprintf("Signup for %s Storage", tenant.Name)
-	if usedFor == TokenResetPasswordEmail {
+
+	var emailTemplate string
+	var subject string
+
+	switch usedFor {
+	case TokenSignupEmail:
+		emailTemplate = "invite"
+		subject = fmt.Sprintf("Signup for %s Storage", tenant.Name)
+	case TokenResetPasswordEmail:
+		emailTemplate = "reset-password"
+		subject = fmt.Sprintf("Reset Password -  %s Storage", tenant.Name)
+	case TokenForgotPasswordEmail:
 		emailTemplate = "forgot-password"
 		subject = fmt.Sprintf("Forgot Password -  %s Storage", tenant.Name)
+	default:
+		return fmt.Errorf("Not valid email token: %s", usedFor)
 	}
 
 	// Get the mailing template for inviting users
@@ -395,15 +406,16 @@ func MarkInvitationAccepted(ctx *Context, userID *uuid.UUID) error {
 	return nil
 }
 
-func InviteUserByEmail(ctx *Context, usedFor string, user *User) error {
+// SendEmailToUser schedules a task to send an email to a user with the defined data
+func SendEmailToUser(ctx *Context, usedFor string, user *User) error {
 	// build task data
-	taskData := InviteUserTaskData{
+	taskData := EmailUserTaskData{
 		TenantID: ctx.Tenant.ID.String(),
 		UserID:   user.ID.String(),
-		UserFor:  usedFor,
+		UsedFor:  usedFor,
 	}
 	// schedule
-	if err := ScheduleTask(ctx, TaskInviteUserByEmail, taskData); err != nil {
+	if err := ScheduleTask(ctx, TaskSendEmailToUser, taskData); err != nil {
 		return err
 	}
 	return nil
