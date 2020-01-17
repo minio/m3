@@ -94,7 +94,7 @@ func (s *server) UserAddInvite(ctx context.Context, in *pb.InviteRequest) (*pb.E
 	}
 
 	// Send email invitation with token
-	err = cluster.InviteUserByEmail(appCtx, cluster.TokenSignupEmail, &newUser)
+	err = cluster.SendEmailToUser(appCtx, cluster.TokenSignupEmail, &newUser)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -126,7 +126,7 @@ func (s *server) UserResetPasswordInvite(ctx context.Context, in *pb.InviteReque
 	}
 
 	// Send email invitation with token
-	err = cluster.InviteUserByEmail(appCtx, cluster.TokenResetPasswordEmail, &user)
+	err = cluster.SendEmailToUser(appCtx, cluster.TokenResetPasswordEmail, &user)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -366,7 +366,7 @@ func (s *server) ForgotPassword(ctx context.Context, in *pb.ForgotPasswordReques
 	}
 
 	// Send email invitation with token
-	err = cluster.InviteUserByEmail(appCtx, cluster.TokenResetPasswordEmail, &user)
+	err = cluster.SendEmailToUser(appCtx, cluster.TokenForgotPasswordEmail, &user)
 	if err != nil {
 		log.Println(err)
 		return &pb.Empty{}, nil

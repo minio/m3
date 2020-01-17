@@ -48,17 +48,18 @@ const (
 	mailPassword                   = "MAIL_PASSWORD"
 	mailFromName                   = "MAIL_FROM_NAME"
 	// constants
-	TokenSignupEmail            = "signup-email"
-	TokenResetPasswordEmail     = "reset-password-email"
-	AdminTokenSetPassword       = "admin-set-password"
-	NginxConfiguration          = "nginx-configuration"
-	AdminIDKey              key = iota
-	UserIDKey               key = iota
-	TenantIDKey             key = iota
-	TenantShortNameKey      key = iota
-	SessionIDKey            key = iota
-	WhoAmIKey               key = iota
-	maxReadinessTries           = 120 // This should allow for 4 minutes of attempts
+	TokenSignupEmail             = "signup-email"
+	TokenResetPasswordEmail      = "reset-password-email"
+	TokenForgotPasswordEmail     = "forgot-password-email"
+	AdminTokenSetPassword        = "admin-set-password"
+	NginxConfiguration           = "nginx-configuration"
+	AdminIDKey               key = iota
+	UserIDKey                key = iota
+	TenantIDKey              key = iota
+	TenantShortNameKey       key = iota
+	SessionIDKey             key = iota
+	WhoAmIKey                key = iota
+	maxReadinessTries            = 120 // This should allow for 4 minutes of attempts
 
 	// configurations
 	cfgCoreGlobalBuckets     = "core.global_buckets"
