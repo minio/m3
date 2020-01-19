@@ -9,16 +9,17 @@ RUN go mod download
 ADD . /go/src/github.com/minio/m3/
 WORKDIR /go/src/github.com/minio/m3/
 
+ENV CGO_ENABLED=0
 
-RUN apt-get install -y ca-certificates
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-w -s" -a -o m3 ./cmd/m3
+RUN apt-get update -y && apt-get install -y ca-certificates
+RUN go build -ldflags "-w -s" -a -o m3 ./cmd/m3
 
 FROM scratch
 MAINTAINER MinIO Development "dev@min.io"
 EXPOSE 9009
 
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=0 /go/src/github.com/minio/m3/m3    .
+COPY --from=0 /go/src/github.com/minio/m3/m3 .
 ADD ./cluster/templates /cluster/templates
 ADD ./cluster/migrations /cluster/migrations
 ADD ./cluster/tenant-migrations /cluster/tenant-migrations

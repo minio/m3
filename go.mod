@@ -17,9 +17,9 @@ require (
 	github.com/hashicorp/vault/api v1.0.4
 	github.com/lib/pq v1.2.0
 	github.com/minio/cli v1.22.0
-	github.com/minio/mc v0.0.0-20191231192759-9663319e9e8f
-	github.com/minio/minio v0.0.0-20200109170841-89d1221217e1
-	github.com/minio/minio-go/v6 v6.0.45-0.20191213193129-a5786a9c2a5b
+	github.com/minio/mc v0.0.0-20200117220212-28aae43c8c95
+	github.com/minio/minio v0.0.0-20200118222113-b849fd7a756d
+	github.com/minio/minio-go/v6 v6.0.45-0.20200117140906-66cf57d21ba4
 	github.com/pelletier/go-toml v1.6.0
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
 	github.com/rs/cors v1.6.0
@@ -37,6 +37,3 @@ require (
 	k8s.io/client-go v0.16.4
 	k8s.io/utils v0.0.0-20190923111123-69764acb6e8e // indirect
 )
-
-// Added for go1.13 migration https://github.com/golang/go/issues/32805
-replace github.com/gorilla/rpc v1.2.0+incompatible => github.com/gorilla/rpc v1.2.0
