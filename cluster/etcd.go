@@ -319,7 +319,9 @@ func WatcEtcdBucketCreation() {
 				}
 				err = processMessage(ctx, event)
 				if err != nil {
-					log.Println("error processing event", err)
+					if err != ErrInvalidEtcdKey {
+						log.Println("error processing event", err)
+					}
 					ctx.Rollback()
 					return
 				}
