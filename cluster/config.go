@@ -101,6 +101,18 @@ func getKmsToken() string {
 	return env.Get(kmsToken, "")
 }
 
+func getKmsCACertConfigMap() string {
+	return env.Get(KmsCACertConfigMap, "")
+}
+
+func getKmsCACertFileName() string {
+	return env.Get(KmsCACertFileName, "")
+}
+
+func getCACertDefaultMounPath() string {
+	return env.Get(CACertDefaultMountPath, "/usr/local/share/ca-certificates")
+}
+
 func getDevUseEmptyDir() bool {
 	return strings.ToLower(env.Get(devUseEmptyDir, "false")) == "true"
 }

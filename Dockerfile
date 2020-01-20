@@ -9,8 +9,9 @@ RUN go mod download
 ADD . /go/src/github.com/minio/m3/
 WORKDIR /go/src/github.com/minio/m3/
 
-
-RUN apt-get install -y ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates
+COPY ca-certificates /usr/local/share/ca-certificates/
+RUN update-ca-certificates
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-w -s" -a -o m3 ./cmd/m3
 
 FROM scratch
