@@ -337,6 +337,8 @@ type EventBucketTenant struct {
 	BucketName        string
 }
 
+var ErrInvalidEtcdKey = errors.New("invalid etcd key")
+
 func processEtcdKey(event *clientv3.Event) (*EventBucketTenant, error) {
 	// key looks like `/skydns/m3/tenantShortName/bucketName/Pod.IP.bla.bla`
 	// so we want the 5th for the new bucket name and 6th for the tenant service name
@@ -362,6 +364,10 @@ func processEtcdKey(event *clientv3.Event) (*EventBucketTenant, error) {
 		if val, ok := eventValue["host"]; ok {
 			tenantSvcName = val.(string)
 		}
+	}
+	// we expect the service name to contain the keyword `-sg-`, if it doesn't it's probably an IP.
+	if !strings.Contains(tenantSvcName, "-sg-") {
+		return nil, ErrInvalidEtcdKey
 	}
 
 	return &EventBucketTenant{
