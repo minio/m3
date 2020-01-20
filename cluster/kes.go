@@ -70,7 +70,18 @@ func connectToKms() chan kmsCnxResult {
 			return
 		}
 
-		client, err := vapi.NewClient(&vapi.Config{Address: kmsAddress})
+		config := &vapi.Config{Address: kmsAddress}
+
+		kmsCACertConfigMap := getKmsCACertConfigMap()
+		kmsCACertFileName := getKmsCACertFileName()
+
+		if kmsCACertConfigMap != "" && kmsCACertFileName != "" {
+			config.ConfigureTLS(&vapi.TLSConfig{
+				CACert: fmt.Sprintf("%s/%s", getCACertDefaultMounPath(), kmsCACertFileName),
+			})
+		}
+
+		client, err := vapi.NewClient(config)
 		if err != nil {
 			ch <- kmsCnxResult{Error: err}
 			return
