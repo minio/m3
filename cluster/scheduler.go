@@ -208,6 +208,32 @@ func startJob(task *Task) error {
 			},
 		},
 	}
+
+	kmsCACertConfigMap := getKmsCACertConfigMap()
+	kmsCACertFileName := getKmsCACertFileName()
+	//If a CA certificate is present we mount the file
+	if kmsCACertConfigMap != "" && kmsCACertFileName != "" && len(job.Spec.Template.Spec.Containers) > 0 {
+		job.Spec.Template.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{
+			{
+				Name:      "kms-ca-volume",
+				MountPath: getCACertDefaultMounPath(),
+				ReadOnly:  true,
+			},
+		}
+		job.Spec.Template.Spec.Volumes = []v1.Volume{
+			{
+				Name: "kms-ca-volume",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: kmsCACertConfigMap,
+						},
+					},
+				},
+			},
+		}
+	}
+
 	// schedule job in k8s
 	clientset, err := k8sClient()
 	if err != nil {
