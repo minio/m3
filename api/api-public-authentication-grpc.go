@@ -64,7 +64,7 @@ func (s *server) SetPassword(ctx context.Context, in *pb.SetPasswordRequest) (*p
 
 	err = cluster.ValidateURLToken(urlToken)
 	if err != nil {
-		log.Println(err)
+		log.Println("error validating url token:", err)
 		return nil, status.New(codes.Unauthenticated, "invalid URL Token").Err()
 	}
 

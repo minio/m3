@@ -69,7 +69,7 @@ func (ps *privateServer) TenantUserAdd(ctx context.Context, in *pb.TenantUserAdd
 
 	// If no password, invite via email
 	if in.Invite {
-		err = cluster.InviteUserByEmail(appCtx, cluster.TokenSignupEmail, &user)
+		err = cluster.SendEmailToUser(appCtx, cluster.TokenSignupEmail, &user)
 		if err != nil {
 			log.Println(err)
 			appCtx.Rollback()
@@ -153,7 +153,7 @@ func (ps *privateServer) TenantUserForgotPassword(ctx context.Context, in *pb.Te
 	}
 
 	// Send email invitation with token
-	err = cluster.InviteUserByEmail(appCtx, cluster.TokenResetPasswordEmail, &user)
+	err = cluster.SendEmailToUser(appCtx, cluster.TokenForgotPasswordEmail, &user)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}

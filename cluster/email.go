@@ -237,16 +237,16 @@ func SetEmailTemplate(ctx *Context, templateName, templateBody string) error {
 	return nil
 }
 
-type InviteUserTaskData struct {
+type EmailUserTaskData struct {
 	TenantID string
-	UserFor  string
+	UsedFor  string
 	UserID   string
 }
 
-// InviteUserByEmailTask performs the invitation of a tenant by email
-func InviteUserByEmailTask(task *Task) error {
+// SendEmailToUserTask creates a task to send an email to a user
+func SendEmailToUserTask(task *Task) error {
 	// hydrate the data from the task
-	var taskData InviteUserTaskData
+	var taskData EmailUserTaskData
 	err := json.Unmarshal(task.Data, &taskData)
 	if err != nil {
 		return err
@@ -265,8 +265,8 @@ func InviteUserByEmailTask(task *Task) error {
 	if err != nil {
 		return err
 	}
-	// perform invitation
-	err = doInviteUserByEmail(ctx, taskData.UserFor, &user)
+	// send email to user
+	err = doSendEmailToUser(ctx, taskData.UsedFor, &user)
 	if err != nil {
 		log.Println(err)
 		if err := ctx.Rollback(); err != nil {

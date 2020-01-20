@@ -54,8 +54,7 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 
 	serviceAccount, saCred, err := cluster.AddServiceAccount(appCtx, appCtx.Tenant.ShortName, name, &name)
 	if err != nil {
-		log.Println(err.Error())
-		return nil, status.New(codes.Internal, "error creating service account").Err()
+		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
 	var permissionIDsArr []*uuid.UUID

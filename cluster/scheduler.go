@@ -48,7 +48,7 @@ const (
 	emptyTask             = "empty"
 	TaskProvisionTenant   = "provision-tenant"
 	TaskDeprovisionTenant = "deprovision-tenant"
-	TaskInviteUserByEmail = "invite-user-by-email"
+	TaskSendEmailToUser   = "send-email-to-user"
 	TaskSendAdminInvite   = "send-admin-invite"
 )
 
@@ -262,8 +262,8 @@ func RunTask(id int64) error {
 		if err := DeprovisionTenantTask(task); err != nil {
 			panic(err)
 		}
-	case TaskInviteUserByEmail:
-		if err := InviteUserByEmailTask(task); err != nil {
+	case TaskSendEmailToUser:
+		if err := SendEmailToUserTask(task); err != nil {
 			panic(err)
 		}
 	case TaskSendAdminInvite:

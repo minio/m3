@@ -207,7 +207,7 @@ func TenantAddAction(ctx *Context, name, domain, userName, userEmail string) cha
 			}
 			ch <- TenantAddActionResult{TenantResponse: ProgressStruct(10, "inviting user by email")}
 			// Invite it's first admin
-			err = InviteUserByEmail(ctx, TokenSignupEmail, &newUser)
+			err = SendEmailToUser(ctx, TokenSignupEmail, &newUser)
 			if err != nil {
 				log.Println("Error inviting user by email: ", err.Error())
 				ch <- TenantAddActionResult{Error: errors.New("Error inviting user by email")}
