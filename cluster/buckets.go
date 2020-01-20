@@ -184,8 +184,8 @@ func DeleteBucket(ctx *Context, bucket string) error {
 		return err
 	}
 	// Verify if bucket is being used within a permission.
-	// 	If bucket is being used, we don't allow the deletion.
-	//  The permission needs to be updated first.
+	//	If bucket is being used, we don't allow the deletion.
+	//	The permission needs to be updated first.
 	bucketUsed, err := bucketInPermission(ctx, bucket)
 	if err != nil {
 		return err
@@ -200,27 +200,26 @@ func DeleteBucket(ctx *Context, bucket string) error {
 func bucketInPermission(ctx *Context, bucketName string) (bool, error) {
 	query := `
 		SELECT 
-			COUNT(*)
+			bucket_name
 		FROM 
 			permissions_resources
 		WHERE 
-		    bucket_name = $1`
+		    bucket_name = $1 LIMIT 1`
 
 	tx, err := ctx.TenantTx()
 	if err != nil {
 		return false, err
 	}
 	row := tx.QueryRow(query, bucketName)
-	var count int
-	err = row.Scan(&count)
-	if err != nil {
+	var bucket string
+	switch err := row.Scan(&bucket); err {
+	case sql.ErrNoRows:
+		return false, nil
+	case nil:
+		return true, nil
+	default:
 		return false, err
 	}
-	// if count is > 0 it means there is a permission_resource using that bucket
-	if count > 0 {
-		return true, nil
-	}
-	return false, nil
 
 }
 
