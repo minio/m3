@@ -261,6 +261,26 @@ func getNewKesDeployment(deploymentName string, kesSecretsNames map[string]strin
 			},
 		},
 	}
+	kmsCACertConfigMap := getKmsCACertConfigMap()
+	kmsCACertFileName := getKmsCACertFileName()
+	//If a CA certificate is present we mount the file as a volume for KES
+	if kmsCACertConfigMap != "" && kmsCACertFileName != "" {
+		kesPodSpec.Containers[0].VolumeMounts = append(kesPodSpec.Containers[0].VolumeMounts, corev1.VolumeMount{
+			Name:      "kms-ca-volume",
+			MountPath: "/kes-config/ca",
+			ReadOnly:  true,
+		})
+		kesPodSpec.Volumes = append(kesPodSpec.Volumes, corev1.Volume{
+			Name: "kms-ca-volume",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: kmsCACertConfigMap,
+					},
+				},
+			},
+		})
+	}
 	return appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: deploymentName,
@@ -490,6 +510,14 @@ func createKesConfigurations(KmsClient *vapi.Client, tenant string, roleID strin
 	appKeys := generateKeyPairAndStoreInSecret(kesAppKeyPairSecretName, tenant)
 	generateKeyPairAndStoreInSecret(kesServerKeyPairSecretName, tenant)
 	port := getKesRunningPort()
+
+	pathToCA := ""
+	kmsCACertConfigMap := getKmsCACertConfigMap()
+	kmsCACertFileName := getKmsCACertFileName()
+	if kmsCACertConfigMap != "" && kmsCACertFileName != "" {
+		pathToCA = fmt.Sprintf("/kes-config/ca/%s", kmsCACertFileName)
+	}
+
 	kesServerConfig := fmt.Sprintf(`
 			address = "0.0.0.0:%d"
 			root = "disabled"
@@ -504,7 +532,10 @@ func createKesConfigurations(KmsClient *vapi.Client, tenant string, roleID strin
 			
 			[keystore.vault]
 			address = "%s"
-			name = "%s" 			
+			name = "%s"
+
+			[keystore.vault.tls]
+			ca = "%s"
 
 			[keystore.vault.approle]
 			id     = "%s"
@@ -512,7 +543,7 @@ func createKesConfigurations(KmsClient *vapi.Client, tenant string, roleID strin
 			retry  = "15s"
 			[keystore.vault.status]
 			ping = "10s"
-		`, port, appKeys.certIdentity, kms.Address(), tenant, roleID, roleSecretID)
+		`, port, appKeys.certIdentity, kms.Address(), tenant, pathToCA, roleID, roleSecretID)
 
 	kesServerConfigSecretName := fmt.Sprintf("%s-kes-server-config", tenant)
 	<-storeKeyPairInSecret(kesServerConfigSecretName, map[string]string{
