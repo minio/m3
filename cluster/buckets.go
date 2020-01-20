@@ -20,6 +20,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -175,15 +176,52 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 	return bucketInfos, nil
 }
 
-// Deletes a bucket in the given tenant's MinIO
-func DeleteBucket(tenantShortname, bucket string) error {
+// DeleteBucket Deletes a bucket in the given tenant's MinIO
+func DeleteBucket(ctx *Context, bucket string) error {
 	// Get tenant specific MinIO client
-	minioClient, err := newTenantMinioClient(nil, tenantShortname)
+	minioClient, err := newTenantMinioClient(ctx, ctx.Tenant.ShortName)
 	if err != nil {
 		return err
 	}
-
+	// Verify if bucket is being used within a permission.
+	// 	If bucket is being used, we don't allow the deletion.
+	//  The permission needs to be updated first.
+	bucketUsed, err := bucketInPermission(ctx, bucket)
+	if err != nil {
+		return err
+	}
+	if bucketUsed {
+		return fmt.Errorf("bucket is being used in at least one permission")
+	}
 	return minioClient.RemoveBucket(bucket)
+}
+
+// bucketInPermission returns wether a bucket is being used within a permission or not
+func bucketInPermission(ctx *Context, bucketName string) (bool, error) {
+	query := `
+		SELECT 
+			COUNT(*)
+		FROM 
+			permissions_resources
+		WHERE 
+		    bucket_name = $1`
+
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return false, err
+	}
+	row := tx.QueryRow(query, bucketName)
+	var count int
+	err = row.Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	// if count is > 0 it means there is a permission_resource using that bucket
+	if count > 0 {
+		return true, nil
+	}
+	return false, nil
+
 }
 
 func registerBucketForTenant(ctx *Context, bucketName string, tenantID *uuid.UUID) error {

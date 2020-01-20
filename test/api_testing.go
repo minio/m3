@@ -254,9 +254,10 @@ func main() {
 	}
 
 	// DeleteBucket
+	// TestDescription: If bucket is being used within a permission, deletion should not be allowed.
 	fmt.Print("DeleteBucket... ")
 	deleteBucketRes := pb.Bucket{}
-	res, err = doDelete(urlPath+"/api/v1/buckets/"+randBucket, loginRes.JwtToken)
+	res, err = doDelete(urlPath+"/api/v1/buckets/"+randBucket, loginRes.JwtToken, 500)
 	if err != nil {
 		fmt.Println("x")
 		fmt.Printf("The HTTP request failed with error %s\n", err)
@@ -268,7 +269,7 @@ func main() {
 	// RemovePermission
 	fmt.Print("RemovePermission... ")
 	removePerRes := pb.Empty{}
-	res, err = doDelete(urlPath+"/api/v1/permissions/"+addPermRes.Id, loginRes.JwtToken)
+	res, err = doDelete(urlPath+"/api/v1/permissions/"+addPermRes.Id, loginRes.JwtToken, 200)
 	if err != nil {
 		fmt.Println("x")
 		fmt.Printf("The HTTP request failed with error %s\n", err)
@@ -277,10 +278,23 @@ func main() {
 	json.Unmarshal([]byte(res), &removePerRes)
 	fmt.Println("✓")
 
+	// DeleteBucket
+	// TestDescription: Once permission has been deleted, bucket can now be deleted.
+	fmt.Print("DeleteBucket... ")
+	deleteBucketRes = pb.Bucket{}
+	res, err = doDelete(urlPath+"/api/v1/buckets/"+randBucket, loginRes.JwtToken, 200)
+	if err != nil {
+		fmt.Println("x")
+		fmt.Printf("The HTTP request failed with error %s\n", err)
+		return
+	}
+	json.Unmarshal([]byte(res), &deleteBucketRes)
+	fmt.Println("✓")
+
 	// RemoveServiceAccount
 	fmt.Print("RemoveServiceAccount... ")
 	removeSaRes := pb.Empty{}
-	res, err = doDelete(urlPath+"/api/v1/service_accounts/"+createSA.ServiceAccount.Id, loginRes.JwtToken)
+	res, err = doDelete(urlPath+"/api/v1/service_accounts/"+createSA.ServiceAccount.Id, loginRes.JwtToken, 200)
 	if err != nil {
 		fmt.Println("x")
 		fmt.Printf("The HTTP request failed with error %s\n", err)
@@ -371,7 +385,7 @@ func doPut(url string, input map[string]interface{}, sessionID string) (res []by
 	return []byte(data), nil
 }
 
-func doDelete(url string, sessionID string) (res []byte, err error) {
+func doDelete(url string, sessionID string, expectedCode int) (res []byte, err error) {
 	var myClient = &http.Client{Timeout: 5 * time.Second}
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
@@ -389,7 +403,7 @@ func doDelete(url string, sessionID string) (res []byte, err error) {
 	}
 	defer cRes.Body.Close()
 	data, _ := ioutil.ReadAll(cRes.Body)
-	if cRes.StatusCode != 200 {
+	if cRes.StatusCode != expectedCode {
 		return nil, fmt.Errorf("response status not ok: \n%s, %s, %s", url, cRes.Status, string(data))
 	}
 	return []byte(data), nil
