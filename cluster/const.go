@@ -71,3 +71,11 @@ const (
 	// Development Flags
 	devUseEmptyDir = "DEV_EMPTY_DIR"
 )
+
+// A query wrapper is a type to mark wether a query should be run inside a transaction or using only the DB
+type QueryWrapper int8
+
+const (
+	InTx QueryWrapper = iota
+	PureDB
+)

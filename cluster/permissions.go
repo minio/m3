@@ -372,11 +372,11 @@ func ListPermissions(ctx *Context, offset int64, limit int32) ([]*Permission, er
 }
 
 func buildPermissionsForRows(ctx *Context, rows *sql.Rows) ([]*Permission, error) {
-	return buildPermissionsForRowsInTx(ctx, rows, true)
+	return buildPermissionsForRowsInTx(ctx, rows, InTx)
 }
 
 // buildPermissionsForRows returns a list of permissions with their actions and resources for a given set of rows
-func buildPermissionsForRowsInTx(ctx *Context, rows *sql.Rows, inTx bool) ([]*Permission, error) {
+func buildPermissionsForRowsInTx(ctx *Context, rows *sql.Rows, queryWrapper QueryWrapper) ([]*Permission, error) {
 	var permissions []*Permission
 	permissionsHash := make(map[uuid.UUID]*Permission)
 	for rows.Next() {
@@ -395,19 +395,19 @@ func buildPermissionsForRowsInTx(ctx *Context, rows *sql.Rows, inTx bool) ([]*Pe
 		return nil, err
 	}
 	// get the actions
-	err = getActionsForPermissionsInTx(ctx, permissionsHash, inTx)
+	err = getActionsForPermissionsWithQueryWrapper(ctx, permissionsHash, queryWrapper)
 	if err != nil {
 		return nil, err
 	}
 	// get the resources
-	err = getResourcesForPermissionsInTx(ctx, permissionsHash, inTx)
+	err = getResourcesForPermissionsWithQueryWrapper(ctx, permissionsHash, queryWrapper)
 	if err != nil {
 		return nil, err
 	}
 	return permissions, nil
 }
 
-func getActionsForPermissionsInTx(ctx *Context, permsMap map[uuid.UUID]*Permission, inTx bool) error {
+func getActionsForPermissionsWithQueryWrapper(ctx *Context, permsMap map[uuid.UUID]*Permission, queryWrapper QueryWrapper) error {
 	// build a list of ids
 	var ids []uuid.UUID
 	for id := range permsMap {
@@ -422,7 +422,7 @@ func getActionsForPermissionsInTx(ctx *Context, permsMap map[uuid.UUID]*Permissi
 		WHERE 
 		      permission_id = ANY($1)`
 	var rows *sql.Rows
-	if inTx {
+	if queryWrapper == InTx {
 		tx, err := ctx.TenantTx()
 		if err != nil {
 			return err
@@ -461,9 +461,9 @@ func getActionsForPermissionsInTx(ctx *Context, permsMap map[uuid.UUID]*Permissi
 	return nil
 }
 
-// getResourcesForPermissionsInTx retrieves the resources for all the permissions in the provided map and stores them on the
+// getResourcesForPermissionsWithQueryWrapper retrieves the resources for all the permissions in the provided map and stores them on the
 // references provided in the map.
-func getResourcesForPermissionsInTx(ctx *Context, permsMap map[uuid.UUID]*Permission, inTx bool) error {
+func getResourcesForPermissionsWithQueryWrapper(ctx *Context, permsMap map[uuid.UUID]*Permission, queryWrapper QueryWrapper) error {
 	// build a list of ids
 	var ids []uuid.UUID
 	for id := range permsMap {
@@ -479,7 +479,7 @@ func getResourcesForPermissionsInTx(ctx *Context, permsMap map[uuid.UUID]*Permis
 		WHERE 
 		      permission_id = ANY($1)`
 	var rows *sql.Rows
-	if inTx {
+	if queryWrapper == InTx {
 		tx, err := ctx.TenantTx()
 		if err != nil {
 			return err
@@ -675,11 +675,11 @@ func DeleteMultiplePermissionsOnSADB(ctx *Context, serviceAccountID *uuid.UUID, 
 
 // GetAllThePermissionForServiceAccount returns a list of permissions that are assigned to a service account
 func GetAllThePermissionForServiceAccount(ctx *Context, serviceAccountID *uuid.UUID) ([]*Permission, error) {
-	return GetAllThePermissionForServiceAccountInTx(ctx, serviceAccountID, true)
+	return GetAllThePermissionForServiceAccountWithQueryWrapper(ctx, serviceAccountID, InTx)
 }
 
-// GetAllThePermissionForServiceAccountInTx returns a list of permissions that are assigned to a service account
-func GetAllThePermissionForServiceAccountInTx(ctx *Context, serviceAccountID *uuid.UUID, inTx bool) ([]*Permission, error) {
+// GetAllThePermissionForServiceAccountWithQueryWrapper returns a list of permissions that are assigned to a service account
+func GetAllThePermissionForServiceAccountWithQueryWrapper(ctx *Context, serviceAccountID *uuid.UUID, queryWrapper QueryWrapper) ([]*Permission, error) {
 	// Get permissions associated with the provided service account
 	queryUser := `
 		SELECT 
@@ -691,7 +691,7 @@ func GetAllThePermissionForServiceAccountInTx(ctx *Context, serviceAccountID *uu
 			      sap.service_account_id = $1
 				`
 	var rows *sql.Rows
-	if inTx {
+	if queryWrapper == InTx {
 		tx, err := ctx.TenantTx()
 		if err != nil {
 			return nil, err
@@ -710,7 +710,7 @@ func GetAllThePermissionForServiceAccountInTx(ctx *Context, serviceAccountID *uu
 
 	defer rows.Close()
 
-	return buildPermissionsForRowsInTx(ctx, rows, inTx)
+	return buildPermissionsForRowsInTx(ctx, rows, queryWrapper)
 }
 
 // GetAllServiceAccountsForPermission returns a list of all service accounts using a permission
