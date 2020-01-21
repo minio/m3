@@ -1045,8 +1045,6 @@ WHERE p.effect = $4
 		// if the same ID, no error
 		if uuid.Equal(*ignoreID, *foundPermID) {
 			return nil
-		} else {
-			return ErrDuplicatedPermission
 		}
 	}
 	return ErrDuplicatedPermission
