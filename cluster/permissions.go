@@ -461,7 +461,7 @@ func getActionsForPermissionsInTx(ctx *Context, permsMap map[uuid.UUID]*Permissi
 	return nil
 }
 
-// getResourcesForPermissions retrieves the resources for all the permissions in the provided map and stores them on the
+// getResourcesForPermissionsInTx retrieves the resources for all the permissions in the provided map and stores them on the
 // references provided in the map.
 func getResourcesForPermissionsInTx(ctx *Context, permsMap map[uuid.UUID]*Permission, inTx bool) error {
 	// build a list of ids
@@ -678,7 +678,7 @@ func GetAllThePermissionForServiceAccount(ctx *Context, serviceAccountID *uuid.U
 	return GetAllThePermissionForServiceAccountInTx(ctx, serviceAccountID, true)
 }
 
-// GetAllThePermissionForServiceAccount returns a list of permissions that are assigned to a service account
+// GetAllThePermissionForServiceAccountInTx returns a list of permissions that are assigned to a service account
 func GetAllThePermissionForServiceAccountInTx(ctx *Context, serviceAccountID *uuid.UUID, inTx bool) ([]*Permission, error) {
 	// Get permissions associated with the provided service account
 	queryUser := `
@@ -710,7 +710,7 @@ func GetAllThePermissionForServiceAccountInTx(ctx *Context, serviceAccountID *uu
 
 	defer rows.Close()
 
-	return buildPermissionsForRowsInTx(ctx, rows, false)
+	return buildPermissionsForRowsInTx(ctx, rows, inTx)
 }
 
 // GetAllServiceAccountsForPermission returns a list of all service accounts using a permission
