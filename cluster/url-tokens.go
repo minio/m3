@@ -203,19 +203,16 @@ func ValidateURLToken(urlToken *URLToken) (err error) {
 	// make sure this jwtToken is not already used
 	if urlToken.Consumed {
 		err = errors.New("this token has already been consumed")
-		fmt.Println(err)
 		return err
 	}
-	// make sure this jwtToken is intended for signup
-	if urlToken.UsedFor != TokenSignupEmail && urlToken.UsedFor != TokenResetPasswordEmail {
+	// make sure this jwtToken is intended for signup/reset/forgot
+	if urlToken.UsedFor != TokenSignupEmail && urlToken.UsedFor != TokenResetPasswordEmail && urlToken.UsedFor != TokenForgotPasswordEmail {
 		err = errors.New("invalid token")
-		fmt.Println(err)
 		return err
 	}
 	// make sure this jwtToken is not expired
 	if !urlToken.Expiration.After(time.Now()) {
 		err = errors.New("expired token")
-		fmt.Println(err)
 		return err
 	}
 	return nil

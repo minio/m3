@@ -48,7 +48,7 @@ const (
 	emptyTask             = "empty"
 	TaskProvisionTenant   = "provision-tenant"
 	TaskDeprovisionTenant = "deprovision-tenant"
-	TaskInviteUserByEmail = "invite-user-by-email"
+	TaskSendEmailToUser   = "send-email-to-user"
 	TaskSendAdminInvite   = "send-admin-invite"
 )
 
@@ -208,6 +208,32 @@ func startJob(task *Task) error {
 			},
 		},
 	}
+
+	kmsCACertConfigMap := getKmsCACertConfigMap()
+	kmsCACertFileName := getKmsCACertFileName()
+	//If a CA certificate is present we mount the file
+	if kmsCACertConfigMap != "" && kmsCACertFileName != "" && len(job.Spec.Template.Spec.Containers) > 0 {
+		job.Spec.Template.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{
+			{
+				Name:      "kms-ca-volume",
+				MountPath: getCACertDefaultMounPath(),
+				ReadOnly:  true,
+			},
+		}
+		job.Spec.Template.Spec.Volumes = []v1.Volume{
+			{
+				Name: "kms-ca-volume",
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: kmsCACertConfigMap,
+						},
+					},
+				},
+			},
+		}
+	}
+
 	// schedule job in k8s
 	clientset, err := k8sClient()
 	if err != nil {
@@ -262,8 +288,8 @@ func RunTask(id int64) error {
 		if err := DeprovisionTenantTask(task); err != nil {
 			panic(err)
 		}
-	case TaskInviteUserByEmail:
-		if err := InviteUserByEmailTask(task); err != nil {
+	case TaskSendEmailToUser:
+		if err := SendEmailToUserTask(task); err != nil {
 			panic(err)
 		}
 	case TaskSendAdminInvite:

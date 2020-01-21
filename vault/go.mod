@@ -1,4 +1,4 @@
-module m3/vault
+module github.com/minio/m3-vault
 
 go 1.13
 
@@ -8,7 +8,5 @@ require (
 	github.com/hashicorp/vault/api v1.0.5-0.20191216174727-9d51b36f3ae4
 	github.com/hashicorp/vault/sdk v0.1.14-0.20191218020134-06959d23b502 // indirect
 	github.com/mattn/go-colorable v0.1.2 // indirect
-	github.com/minio/minio v0.0.0-20200103192852-6695fd6a61af
+	github.com/minio/minio v0.0.0-20200118222113-b849fd7a756d
 )
-
-replace github.com/gorilla/rpc v1.2.0+incompatible => github.com/gorilla/rpc v1.2.0

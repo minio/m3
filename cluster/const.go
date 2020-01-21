@@ -35,6 +35,9 @@ const (
 	kesPort                        = "KES_PORT"
 	kesMTlsAuth                    = "KES_M_TLS_AUTH"
 	kesConfigPath                  = "KES_CONFIG_FILE_PATH"
+	KmsCACertConfigMap             = "KMS_CA_CERT_CONFIG_MAP"
+	KmsCACertFileName              = "KMS_CA_CERT_FILE_NAME"
+	CACertDefaultMountPath         = "CA_CERT_DEFAULT_MOUNT_PATH"
 	m3ImagePullPolicy              = "M3_IMAGE_PULL_POLICY"
 	minIOImage                     = "MINIO_IMAGE"
 	minIOImagePullPolicy           = "MINIO_IMAGE_PULL_POLICY"
@@ -48,17 +51,18 @@ const (
 	mailPassword                   = "MAIL_PASSWORD"
 	mailFromName                   = "MAIL_FROM_NAME"
 	// constants
-	TokenSignupEmail            = "signup-email"
-	TokenResetPasswordEmail     = "reset-password-email"
-	AdminTokenSetPassword       = "admin-set-password"
-	NginxConfiguration          = "nginx-configuration"
-	AdminIDKey              key = iota
-	UserIDKey               key = iota
-	TenantIDKey             key = iota
-	TenantShortNameKey      key = iota
-	SessionIDKey            key = iota
-	WhoAmIKey               key = iota
-	maxReadinessTries           = 120 // This should allow for 4 minutes of attempts
+	TokenSignupEmail             = "signup-email"
+	TokenResetPasswordEmail      = "reset-password-email"
+	TokenForgotPasswordEmail     = "forgot-password-email"
+	AdminTokenSetPassword        = "admin-set-password"
+	NginxConfiguration           = "nginx-configuration"
+	AdminIDKey               key = iota
+	UserIDKey                key = iota
+	TenantIDKey              key = iota
+	TenantShortNameKey       key = iota
+	SessionIDKey             key = iota
+	WhoAmIKey                key = iota
+	maxReadinessTries            = 120 // This should allow for 4 minutes of attempts
 
 	// configurations
 	cfgCoreGlobalBuckets     = "core.global_buckets"

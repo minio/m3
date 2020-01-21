@@ -111,11 +111,8 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 
 	var buckets []*pb.Bucket
 	for _, bucketInfo := range bucketInfos {
-		size, ok := bucketsSizes[bucketInfo.Name]
-		if !ok {
-			// if !ok size is 0 by default
-			log.Println("size not available for bucket: ", bucketInfo.Name)
-		}
+		size := bucketsSizes[bucketInfo.Name]
+		// if !ok size is 0 by default
 		buckets = append(buckets, &pb.Bucket{
 			Name:   bucketInfo.Name,
 			Access: getAccessType(bucketInfo.Access),
@@ -142,13 +139,14 @@ func (s *server) ChangeBucketAccessControl(ctx context.Context, in *pb.AccessCon
 }
 
 // DeleteBucket deletes bucket in the tenant's MinIO
-// N B sessionId is expected to be present in the grpc headers
 func (s *server) DeleteBucket(ctx context.Context, in *pb.DeleteBucketRequest) (*pb.Bucket, error) {
-	// get tenant short name from context
-	tenantShortName := ctx.Value(cluster.TenantShortNameKey).(string)
-	// TODO: Update to use context
 	bucket := in.GetName()
-	err := cluster.DeleteBucket(tenantShortName, bucket)
+	// start app context
+	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = cluster.DeleteBucket(appCtx, bucket)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
