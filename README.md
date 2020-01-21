@@ -99,6 +99,23 @@ kubectl apply -f k8s/deployments/m3-deployment.yaml
 ./m3 login
 ```
 
+## Using a custom CA for the KMS
+
+Mkube supports the use of custom CA for the kms if need it.
+Load the custom `ca certificate` using a `configmap`
+
+```
+kubectl create configmap kms-ca-cert --from-file=customCA.crt
+```
+
+Then set the `configmap` name and `certificate file name` on `m3-deployment.yaml` by uncommenting the following env variables
+``` 
+KMS_CA_CERT_CONFIG_MAP: "kms-ca-cert"
+KMS_CA_CERT_FILE_NAME: "customCA.crt"
+```
+
+Apply changes for `mkube` running `kubectl apply -f k8s/deployment/m3-deployment.yaml`
+
 ## Creating a new Storage Cluster
 
 ```

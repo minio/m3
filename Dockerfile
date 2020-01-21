@@ -12,9 +12,6 @@ WORKDIR /go/src/github.com/minio/m3/
 ENV CGO_ENABLED=0
 
 RUN apt-get update -y && apt-get install -y ca-certificates
-COPY ca-certificates /usr/local/share/ca-certificates/
-RUN update-ca-certificates
-
 RUN go build -ldflags "-w -s" -a -o m3 ./cmd/m3
 
 FROM scratch
