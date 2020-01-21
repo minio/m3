@@ -76,8 +76,6 @@ func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType Buc
 		return tagErrorAsMinio("SetBucketAccess", err)
 	}
 
-	// announce the bucket on the router
-	<-UpdateNginxConfiguration(ctx)
 	return nil
 }
 

@@ -17,7 +17,7 @@ require (
 	github.com/hashicorp/vault/api v1.0.4
 	github.com/lib/pq v1.2.0
 	github.com/minio/cli v1.22.0
-	github.com/minio/mc v0.0.0-20200117220212-28aae43c8c95
+	github.com/minio/mc v0.0.0-20200119010100-6a2da1a6ef6a
 	github.com/minio/minio v0.0.0-20200118222113-b849fd7a756d
 	github.com/minio/minio-go/v6 v6.0.45-0.20200117140906-66cf57d21ba4
 	github.com/pelletier/go-toml v1.6.0
