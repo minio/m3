@@ -319,7 +319,9 @@ func WatcEtcdBucketCreation() {
 				}
 				err = processMessage(ctx, event)
 				if err != nil {
-					log.Println("error processing event", err)
+					if err != ErrInvalidEtcdKey {
+						log.Println("error processing event", err)
+					}
 					ctx.Rollback()
 					return
 				}
@@ -333,36 +335,51 @@ func WatcEtcdBucketCreation() {
 
 // EventBucketTenant stores structure parsed from etc event key.
 type EventBucketTenant struct {
-	TenantShortName string
-	BucketName      string
+	TenantServiceName string
+	BucketName        string
 }
+
+var ErrInvalidEtcdKey = errors.New("invalid etcd key")
 
 func processEtcdKey(event *clientv3.Event) (*EventBucketTenant, error) {
 	// key looks like `/skydns/m3/tenantShortName/bucketName/Pod.IP.bla.bla`
-	// so we want the 4th item for tenant short name and  the 5th
-	// for the new bucket name
+	// so we want the 5th for the new bucket name and 6th for the tenant service name
 	keyParts := strings.Split(string(event.Kv.Key), "/")
 	if len(keyParts) < 5 {
 		return nil, errors.New("etcd: Invalid key")
 	}
 	bucketName := keyParts[4]
 
-	var eventValue map[string]interface{}
-	err := json.Unmarshal(event.Kv.Value, &eventValue)
-	if err != nil {
-		return nil, err
+	// DELETE events don't have a value, so attempt to extract the service from the key
+	var tenantSvcName string
+	if len(keyParts) >= 6 {
+		tenantSvcName = keyParts[5]
 	}
-	var tenantShortName string
-	if val, ok := eventValue["host"]; ok {
-		//do something here
-		tenantShortName = val.(string)
+
+	// if we get a json, use that for the value
+	if event.Kv.Value != nil {
+		var eventValue map[string]interface{}
+		err := json.Unmarshal(event.Kv.Value, &eventValue)
+		if err != nil {
+			return nil, err
+		}
+		if val, ok := eventValue["host"]; ok {
+			tenantSvcName = val.(string)
+		}
 	}
-	return &EventBucketTenant{TenantShortName: tenantShortName, BucketName: bucketName}, nil
+	// we expect the service name to contain the keyword `-sg-`, if it doesn't it's probably an IP.
+	if !strings.Contains(tenantSvcName, "-sg-") {
+		return nil, ErrInvalidEtcdKey
+	}
+
+	return &EventBucketTenant{
+		TenantServiceName: tenantSvcName,
+		BucketName:        bucketName,
+	}, nil
 }
 
 // processMessage takes an etcd Event
 func processMessage(ctx *Context, event *clientv3.Event) error {
-	log.Println(event.Kv.Key, "-", event.Kv.Value)
 	switch event.Type {
 	case mvccpb.PUT:
 		// process the key from the etcd event
@@ -370,7 +387,7 @@ func processMessage(ctx *Context, event *clientv3.Event) error {
 		if err != nil {
 			return err
 		}
-		tenant, err := GetTenantWithCtxByServiceName(nil, keyParts.TenantShortName)
+		tenant, err := GetTenantWithCtxByServiceName(nil, keyParts.TenantServiceName)
 		if err != nil {
 			return err
 		}
@@ -378,15 +395,13 @@ func processMessage(ctx *Context, event *clientv3.Event) error {
 		if err != nil {
 			return err
 		}
-
 	case mvccpb.DELETE:
 		// process the key from the etcd event
 		keyParts, err := processEtcdKey(event)
 		if err != nil {
 			return err
 		}
-
-		tenant, err := GetTenantWithCtxByServiceName(nil, keyParts.TenantShortName)
+		tenant, err := GetTenantWithCtxByServiceName(nil, keyParts.TenantServiceName)
 		if err != nil {
 			return err
 		}
@@ -394,7 +409,6 @@ func processMessage(ctx *Context, event *clientv3.Event) error {
 		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }
