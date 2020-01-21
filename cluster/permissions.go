@@ -372,11 +372,12 @@ func ListPermissions(ctx *Context, offset int64, limit int32) ([]*Permission, er
 }
 
 func buildPermissionsForRows(ctx *Context, rows *sql.Rows) ([]*Permission, error) {
-	return buildPermissionsForRowsInTx(ctx, rows, InTx)
+	return buildPermissionsForRowsWithQueryWrapper(ctx, rows, InTx)
 }
 
-// buildPermissionsForRows returns a list of permissions with their actions and resources for a given set of rows
-func buildPermissionsForRowsInTx(ctx *Context, rows *sql.Rows, queryWrapper QueryWrapper) ([]*Permission, error) {
+// buildPermissionsForRowsWithQueryWrapper returns a list of permissions with their actions and resources for a given
+// set of rows
+func buildPermissionsForRowsWithQueryWrapper(ctx *Context, rows *sql.Rows, queryWrapper QueryWrapper) ([]*Permission, error) {
 	var permissions []*Permission
 	permissionsHash := make(map[uuid.UUID]*Permission)
 	for rows.Next() {
@@ -710,7 +711,7 @@ func GetAllThePermissionForServiceAccountWithQueryWrapper(ctx *Context, serviceA
 
 	defer rows.Close()
 
-	return buildPermissionsForRowsInTx(ctx, rows, queryWrapper)
+	return buildPermissionsForRowsWithQueryWrapper(ctx, rows, queryWrapper)
 }
 
 // GetAllServiceAccountsForPermission returns a list of all service accounts using a permission
