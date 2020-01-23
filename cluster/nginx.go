@@ -146,40 +146,6 @@ func CreateNginxResolverDeployment(clientset *kubernetes.Clientset, deploymentNa
 	return doneCh
 }
 
-func UpdateNginxResolverService(clientset *kubernetes.Clientset, deploymentVersionName string) <-chan struct{} {
-	doneCh := make(chan struct{})
-	go func() {
-		defer close(doneCh)
-
-		factory := informers.NewSharedInformerFactory(clientset, 0)
-		serviceInformer := factory.Core().V1().Services().Informer()
-		serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-			UpdateFunc: func(oldObj, obj interface{}) {
-				service := obj.(*corev1.Service)
-				if service.GetLabels()["name"] == "nginx-resolver" && service.Spec.Selector["app"] == deploymentVersionName {
-					fmt.Println("nginx-resolver service updated correctly")
-					// signal caller to proceed.
-					doneCh <- struct{}{}
-				}
-			},
-		})
-
-		go serviceInformer.Run(doneCh)
-
-		//Update nginx-resolver service to route traffic to the new nginx pods
-		nginxService, err := clientset.CoreV1().Services("default").Get("nginx-resolver", metav1.GetOptions{})
-		if err != nil {
-			log.Println(err)
-		}
-		nginxService.Spec.Selector["app"] = deploymentVersionName
-		_, err = clientset.CoreV1().Services("default").Update(nginxService)
-		if err != nil {
-			log.Println(err)
-		}
-	}()
-	return doneCh
-}
-
 // DeployNginxResolver creates a new nginx-resolver deployment with the updated
 // rules.
 //
@@ -286,7 +252,7 @@ func getLocalBucketNamespaceConfiguration(ctx *Context) string {
 					}
 				}
 		`)
-	appDomain := getS3Domain()
+	s3Domain := getS3Domain()
 	tenantRoutes := <-GetAllTenantRoutes(ctx)
 	for index := 0; index < len(tenantRoutes); index++ {
 		tenantRoute := tenantRoutes[index]
@@ -305,7 +271,7 @@ func getLocalBucketNamespaceConfiguration(ctx *Context) string {
 					}
 				}
 
-			`, tenantRoute.Domain, appDomain, tenantRoute.ServiceName, tenantRoute.Port)
+			`, tenantRoute.Domain, s3Domain, tenantRoute.ServiceName, tenantRoute.Port)
 		nginxConfiguration.WriteString(serverBlock)
 	}
 	nginxConfiguration.WriteString(`
@@ -382,7 +348,7 @@ func getGlobalBucketNamespaceConfiguration(ctx *Context) string {
 		
 			# map to different upstream backends based on header
 			map $access_destination $pool {
-				"" "portalproxy";
+				"" "returnbad";
 `, tenantUpstreams.String()))
 
 	nginxConfiguration.WriteString(destinationMapping.String())

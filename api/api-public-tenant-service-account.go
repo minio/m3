@@ -43,15 +43,6 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 		return nil, err
 	}
 
-	defer func() {
-		if err != nil {
-			appCtx.Rollback()
-			return
-		}
-		// if no error happened to this point commit transaction
-		err = appCtx.Commit()
-	}()
-
 	serviceAccount, saCred, err := cluster.AddServiceAccount(appCtx, appCtx.Tenant.ShortName, name, &name)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
@@ -80,6 +71,12 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 		if err != nil {
 			log.Println("Error removing Minio User: ", err.Error())
 		}
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
+	// if no error happened to this point commit transaction
+	if err = appCtx.Commit(); err != nil {
+		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
