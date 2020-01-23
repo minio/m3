@@ -90,10 +90,17 @@ func (s *server) AddPermission(ctx context.Context, in *pb.AddPermissionRequest)
 		return nil, err
 	}
 
+	// validate it's not a duplicate permission (same effect-resources-actions)
+	if err := cluster.ValidatePermissionUniqueness(appCtx, effect, resources, actions, nil); err != nil {
+		if err == cluster.ErrDuplicatedPermission {
+			return nil, status.New(codes.InvalidArgument, "Duplicate permission.").Err()
+		}
+		return nil, status.New(codes.Internal, "There was an error creating the permission").Err()
+	}
+
 	permissionObj, err := cluster.AddPermissionToDB(appCtx, permissionName, description, effect, resources, actions)
 	if err != nil {
-		appCtx.Rollback()
-		return nil, err
+		return nil, status.New(codes.Internal, "There was an error creating the permission").Err()
 	}
 	// if we reach here, all is good, commit
 	if err := appCtx.Commit(); err != nil {
@@ -161,6 +168,14 @@ func (s *server) UpdatePermission(ctx context.Context, in *pb.UpdatePermissionRe
 	// Nullified values if they are empty
 	if description == "" {
 		permission.Description = nil
+	}
+
+	// validate it's not a duplicate permission (same effect-resources-actions)
+	if err := cluster.ValidatePermissionUniqueness(appCtx, effect, resourcesBucketNames, actionTypes, &permission.ID); err != nil {
+		if err == cluster.ErrDuplicatedPermission {
+			return nil, status.New(codes.InvalidArgument, "Duplicate permission.").Err()
+		}
+		return nil, status.New(codes.Internal, "There was an error creating the permission").Err()
 	}
 
 	// -- Update Permission RESOURCES

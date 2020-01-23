@@ -304,7 +304,7 @@ func UpdateMinioPolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, t
 	go func() {
 		defer close(ch)
 		// get all the permissions for the service account
-		perms, err := GetAllThePermissionForServiceAccount(ctx, serviceAccountID)
+		perms, err := GetAllThePermissionForServiceAccountWithQueryWrapper(ctx, serviceAccountID, PureDB)
 		if err != nil {
 			ch <- err
 			return
