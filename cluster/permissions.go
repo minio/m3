@@ -199,6 +199,8 @@ func AppendPermissionActionObj(perm *Permission, actions []string) error {
 	return nil
 }
 
+// AddPermissionToDB insers a effect-resources-actions combination to the DB after validating that it's not duplicated.
+// It also makes sure a valid slug gets assigned to the permission.
 func AddPermissionToDB(ctx *Context, name, description string, effect Effect, resources, actions []string) (*Permission, error) {
 	// generate permission
 	perm, err := NewPermissionObj(name, description, effect, resources, actions)
@@ -369,8 +371,13 @@ func ListPermissions(ctx *Context, offset int64, limit int32) ([]*Permission, er
 	return buildPermissionsForRows(ctx, rows)
 }
 
-// buildPermissionsForRows returns a list of permissions with their actions and resources for a given set of rows
 func buildPermissionsForRows(ctx *Context, rows *sql.Rows) ([]*Permission, error) {
+	return buildPermissionsForRowsWithQueryWrapper(ctx, rows, InTx)
+}
+
+// buildPermissionsForRowsWithQueryWrapper returns a list of permissions with their actions and resources for a given
+// set of rows
+func buildPermissionsForRowsWithQueryWrapper(ctx *Context, rows *sql.Rows, queryWrapper QueryWrapper) ([]*Permission, error) {
 	var permissions []*Permission
 	permissionsHash := make(map[uuid.UUID]*Permission)
 	for rows.Next() {
@@ -389,19 +396,19 @@ func buildPermissionsForRows(ctx *Context, rows *sql.Rows) ([]*Permission, error
 		return nil, err
 	}
 	// get the actions
-	err = getActionsForPermissions(ctx, permissionsHash)
+	err = getActionsForPermissionsWithQueryWrapper(ctx, permissionsHash, queryWrapper)
 	if err != nil {
 		return nil, err
 	}
 	// get the resources
-	err = getResourcesForPermissions(ctx, permissionsHash)
+	err = getResourcesForPermissionsWithQueryWrapper(ctx, permissionsHash, queryWrapper)
 	if err != nil {
 		return nil, err
 	}
 	return permissions, nil
 }
 
-func getActionsForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) error {
+func getActionsForPermissionsWithQueryWrapper(ctx *Context, permsMap map[uuid.UUID]*Permission, queryWrapper QueryWrapper) error {
 	// build a list of ids
 	var ids []uuid.UUID
 	for id := range permsMap {
@@ -415,16 +422,26 @@ func getActionsForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) 
 			permissions_actions p 
 		WHERE 
 		      permission_id = ANY($1)`
+	var rows *sql.Rows
+	if queryWrapper == InTx {
+		tx, err := ctx.TenantTx()
+		if err != nil {
+			return err
+		}
+		rows, err = tx.Query(query, pq.Array(ids))
+		if err != nil {
+			return err
+		}
+	} else {
+		var err error
+		rows, err = ctx.TenantDB().Query(query, pq.Array(ids))
+		if err != nil {
+			return err
+		}
+	}
 
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
-	rows, err := tx.Query(query, pq.Array(ids))
 	// rows, err := ctx.TenantDB().Query(query, pq.Array(ids))
-	if err != nil {
-		return err
-	}
+
 	defer rows.Close()
 	for rows.Next() {
 		action := Action{}
@@ -438,16 +455,16 @@ func getActionsForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) 
 		}
 		permsMap[pID].Actions = append(permsMap[pID].Actions, action)
 	}
-	err = rows.Err()
+	err := rows.Err()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-// getResourcesForPermissions retrieves the resources for all the permissions in the provided map and stores them on the
+// getResourcesForPermissionsWithQueryWrapper retrieves the resources for all the permissions in the provided map and stores them on the
 // references provided in the map.
-func getResourcesForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission) error {
+func getResourcesForPermissionsWithQueryWrapper(ctx *Context, permsMap map[uuid.UUID]*Permission, queryWrapper QueryWrapper) error {
 	// build a list of ids
 	var ids []uuid.UUID
 	for id := range permsMap {
@@ -462,16 +479,24 @@ func getResourcesForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission
 			permissions_resources p 
 		WHERE 
 		      permission_id = ANY($1)`
+	var rows *sql.Rows
+	if queryWrapper == InTx {
+		tx, err := ctx.TenantTx()
+		if err != nil {
+			return err
+		}
 
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return err
-	}
-
-	rows, err := tx.Query(query, pq.Array(ids))
-	// rows, err := ctx.TenantDB().Query(query, pq.Array(ids))
-	if err != nil {
-		return err
+		rows, err = tx.Query(query, pq.Array(ids))
+		// rows, err := ctx.TenantDB().Query(query, pq.Array(ids))
+		if err != nil {
+			return err
+		}
+	} else {
+		var err error
+		rows, err = ctx.TenantDB().Query(query, pq.Array(ids))
+		if err != nil {
+			return err
+		}
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -483,7 +508,7 @@ func getResourcesForPermissions(ctx *Context, permsMap map[uuid.UUID]*Permission
 		}
 		permsMap[pID].Resources = append(permsMap[pID].Resources, resource)
 	}
-	err = rows.Err()
+	err := rows.Err()
 	if err != nil {
 		return err
 	}
@@ -651,6 +676,11 @@ func DeleteMultiplePermissionsOnSADB(ctx *Context, serviceAccountID *uuid.UUID, 
 
 // GetAllThePermissionForServiceAccount returns a list of permissions that are assigned to a service account
 func GetAllThePermissionForServiceAccount(ctx *Context, serviceAccountID *uuid.UUID) ([]*Permission, error) {
+	return GetAllThePermissionForServiceAccountWithQueryWrapper(ctx, serviceAccountID, InTx)
+}
+
+// GetAllThePermissionForServiceAccountWithQueryWrapper returns a list of permissions that are assigned to a service account
+func GetAllThePermissionForServiceAccountWithQueryWrapper(ctx *Context, serviceAccountID *uuid.UUID, queryWrapper QueryWrapper) ([]*Permission, error) {
 	// Get permissions associated with the provided service account
 	queryUser := `
 		SELECT 
@@ -661,16 +691,27 @@ func GetAllThePermissionForServiceAccount(ctx *Context, serviceAccountID *uuid.U
 			WHERE 
 			      sap.service_account_id = $1
 				`
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return nil, err
+	var rows *sql.Rows
+	if queryWrapper == InTx {
+		tx, err := ctx.TenantTx()
+		if err != nil {
+			return nil, err
+		}
+		rows, err = tx.Query(queryUser, serviceAccountID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		var err error
+		rows, err = ctx.TenantDB().Query(queryUser, serviceAccountID)
+		if err != nil {
+			return nil, err
+		}
 	}
-	rows, err := tx.Query(queryUser, serviceAccountID)
+
 	defer rows.Close()
-	if err != nil {
-		return nil, err
-	}
-	return buildPermissionsForRows(ctx, rows)
+
+	return buildPermissionsForRowsWithQueryWrapper(ctx, rows, queryWrapper)
 }
 
 // GetAllServiceAccountsForPermission returns a list of all service accounts using a permission
@@ -939,4 +980,73 @@ func MapPermissionsToIDs(ctx *Context, permissions []string) (map[string]*uuid.U
 	}
 	return permToID, nil
 
+}
+
+var ErrDuplicatedPermission = errors.New("Another permission for those actions, effect and resources already exists")
+
+func ValidatePermissionUniqueness(ctx *Context, effect Effect, resources, actions []string, ignoreID *uuid.UUID) error {
+	// we are going to query for matching permissions, if the following query returns at least 1 result, there's another
+	// permission with these capabilities (effect-actions-resources)
+
+	var buckets []string
+	var completeResources []string
+	for _, res := range resources {
+		parts := strings.Split(res, "/")
+		r := Resource{}
+		if len(parts) > 0 {
+			buckets = append(buckets, parts[0])
+			r.BucketName = parts[0]
+		}
+		if len(parts) > 1 {
+			r.Pattern = parts[1]
+		} else {
+			r.Pattern = "*"
+		}
+		completeResources = append(completeResources, r.String())
+	}
+
+	query := `SELECT p.id
+FROM permissions p
+         LEFT JOIN (SELECT pr.permission_id, COUNT(*) AS resource_count
+                    FROM permissions_resources pr
+                             LEFT JOIN (SELECT prs.id, (prs.bucket_name || '/' || prs.pattern) AS resource
+                                        FROM permissions_resources prs
+                                        WHERE bucket_name = ANY($1)) spr ON spr.id = pr.id
+                    WHERE spr.resource = ANY($2)
+                    GROUP BY pr.permission_id) AS pc ON p.id = pc.permission_id
+         LEFT JOIN (SELECT pr.permission_id, COUNT(*) AS total_resource_count
+                    FROM permissions_resources pr
+                    GROUP BY pr.permission_id) AS pc_total ON p.id = pc_total.permission_id
+         LEFT JOIN (SELECT pa.permission_id, COUNT(*) AS actions_count
+                    FROM permissions_actions pa
+                    WHERE action = ANY($3)
+                    GROUP BY pa.permission_id) pac ON p.id = pac.permission_id
+         LEFT JOIN (SELECT pa.permission_id, COUNT(*) AS total_actions_count
+                    FROM permissions_actions pa
+                    GROUP BY pa.permission_id) pac_total ON p.id = pac_total.permission_id
+WHERE p.effect = $4
+  AND pc_total.total_resource_count = pc.resource_count
+  AND pac_total.total_actions_count = pac.actions_count`
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return err
+	}
+	row := tx.QueryRow(query, pq.Array(buckets), pq.Array(completeResources), pq.Array(actions), effect.String())
+	var foundPermID *uuid.UUID
+	err = row.Scan(&foundPermID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
+		return err
+	}
+
+	// if we are editing, we pass the perm id, ignore if it's itself (case when editing name of permission only)
+	if ignoreID != nil {
+		// if the same ID, no error
+		if uuid.Equal(*ignoreID, *foundPermID) {
+			return nil
+		}
+	}
+	return ErrDuplicatedPermission
 }

@@ -71,3 +71,16 @@ const (
 	// Development Flags
 	devUseEmptyDir = "DEV_EMPTY_DIR"
 )
+
+// A query wrapper is a type to mark whether a query should be run inside a transaction or using only the DB.
+//
+// When working with concurrent operations, a transaction will fail with the error `pq: unexpected Parse response 'D'`
+// this is due to the fact that transactions are not concurrent safe, therefore if a piece of code needs concurrency, it
+// should query it's tables in `PureDB` mode, expose/use this flag to control access to the DB. InTx is preferred due to
+// it's rollback capabilities.
+type QueryWrapper int8
+
+const (
+	InTx QueryWrapper = iota
+	PureDB
+)
