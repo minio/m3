@@ -66,6 +66,9 @@ data:
   #KES_CONFIG_FILE_PATH: "kes-config/server-config.toml"
   # Uncomment to configure the data parity that will be used in the cluster as a whole
   #SETUP_STORAGE_STANDARD_PARITY: "EC:4"
+  # Specific Images (uncomment to use instead of default ones):
+  #PROMETHEUS_IMAGE : ""
+  #ETCD_OPERATOR_IMAGE: ""
 ---
 apiVersion: apps/v1
 kind: Deployment

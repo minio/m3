@@ -41,6 +41,8 @@ const (
 	m3ImagePullPolicy              = "M3_IMAGE_PULL_POLICY"
 	minIOImage                     = "MINIO_IMAGE"
 	minIOImagePullPolicy           = "MINIO_IMAGE_PULL_POLICY"
+	etcdImage                      = "ETCD_OPERATOR_IMAGE"
+	prometheusImage                = "PROMETHEUS_IMAGE"
 	maxLivenessInitialSecondsDelay = "LIVENESS_MAX_INITIAL_SECONDS_DELAY"
 	pubNotReadyAddress             = "PUBLISH_NOT_READY_ADDRESS"
 	kmsAddress                     = "KMS_ADDRESS"
