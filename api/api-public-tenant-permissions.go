@@ -348,16 +348,17 @@ func (s *server) RemovePermission(ctx context.Context, in *pb.PermissionActionRe
 		return nil, status.New(codes.Internal, "failed deleting permission").Err()
 	}
 
+	serviceAccountIDs, err := cluster.GetAllServiceAccountsForPermission(appCtx, &permission.ID)
+	if err != nil {
+		return nil, status.New(codes.Internal, "error updating service accounts").Err()
+	}
+
 	// if we reach here, all is good, commit
 	if err := appCtx.Commit(); err != nil {
 		return nil, err
 	}
 
 	// UPDATE All Service Accounts that were using the deleted permission
-	serviceAccountIDs, err := cluster.GetAllServiceAccountsForPermission(appCtx, &permission.ID)
-	if err != nil {
-		return nil, status.New(codes.Internal, "error updating service accounts").Err()
-	}
 	err = cluster.UpdatePoliciesForMultipleServiceAccount(appCtx, serviceAccountIDs)
 	if err != nil {
 		return nil, status.New(codes.Internal, "error updating service accounts").Err()

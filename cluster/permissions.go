@@ -568,7 +568,6 @@ func AssignPermissionAction(ctx *Context, permission *uuid.UUID, serviceAccountI
 }
 
 func UpdatePoliciesForMultipleServiceAccount(ctx *Context, serviceAccountIDs []*uuid.UUID) error {
-
 	// Get in which SG is the tenant located
 	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
 
@@ -576,16 +575,10 @@ func UpdatePoliciesForMultipleServiceAccount(ctx *Context, serviceAccountIDs []*
 		return sgt.Error
 	}
 
-	// Get the credentials for a tenant
-	tenantConf, err := GetTenantConfig(ctx.Tenant)
-	if err != nil {
-		return err
-	}
-
 	// update the policy for each SA
 	var saChs []chan error
 	for _, sa := range serviceAccountIDs {
-		ch := UpdateMinioPolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, sa)
+		ch := UpdateMinioPolicyForServiceAccount(ctx, sgt.StorageGroupTenant, sa)
 		saChs = append(saChs, ch)
 	}
 	// wait for all to finish
