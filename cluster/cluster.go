@@ -613,10 +613,6 @@ func ReDeployStorageGroup(ctx *Context, sg *StorageGroup) <-chan error {
 
 	go func() {
 		defer close(ch)
-		//if sgTenant == nil {
-		//	ch <- errors.New("invalid empty Storage group Tenant")
-		//}
-		//sg := sgTenant.StorageGroup
 		tenants := <-GetListOfTenantsForStorageGroup(ctx, sg)
 
 		// we build a set to keep track of existing tenants in this SG
