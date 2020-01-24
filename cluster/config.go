@@ -139,3 +139,11 @@ func getAppURL() string {
 func getCliCommand() string {
 	return env.Get("CLI_COMMAND", "m3")
 }
+
+func getEtcdOperatorImage() string {
+	return env.Get(etcdImage, "quay.io/coreos/etcd-operator:v0.9.4")
+}
+
+func getPrometheusImage() string {
+	return env.Get(prometheusImage, "quay.io/prometheus/prometheus:v2.14.0")
+}

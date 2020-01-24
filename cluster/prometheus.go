@@ -17,7 +17,6 @@
 package cluster
 
 import (
-	"fmt"
 	"log"
 	"strings"
 
@@ -170,7 +169,7 @@ func getPrometheusDep(name, configMapName string, replicas int32) *appsv1.Deploy
 					Containers: []corev1.Container{
 						{
 							Name:  name,
-							Image: fmt.Sprintf("quay.io/prometheus/prometheus:%s", prometheusVersion),
+							Image: getPrometheusImage(),
 							Args: []string{
 								"--config.file=/etc/prometheus/prometheus.yaml",
 								"--storage.tsdb.path=/prometheus/",
