@@ -29,10 +29,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-const (
-	prometheusVersion = "v2.14.0"
-)
-
 // SetupPrometheusCluster performs the setup of the m3 main Prometheus cluster.
 //
 // This will setup `prometheus` by parts, the cluster roles, cluster role bindings and finally
