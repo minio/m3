@@ -59,14 +59,8 @@ func (ps *privateServer) TenantServiceAccountUpdatePolicy(ctx context.Context, i
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
-	// Get the credentials for a tenant
-	tenantConf, err := cluster.GetTenantConfig(appCtx.Tenant)
-	if err != nil {
-		return nil, status.New(codes.Internal, "Internal error").Err()
-	}
-
 	// perform actions
-	err = <-cluster.UpdateMinioPolicyForServiceAccount(appCtx, sgt.StorageGroupTenant, tenantConf, saID)
+	err = <-cluster.UpdateMinioPolicyForServiceAccount(appCtx, sgt.StorageGroupTenant, saID)
 	if err != nil {
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
@@ -131,10 +125,25 @@ func (ps *privateServer) TenantServiceAccountAssign(ctx context.Context, in *pb.
 		appCtx.Rollback()
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
+
 	// if no errors, commit
 	err = appCtx.Commit()
 	if err != nil {
 		log.Println(err)
+		return nil, status.New(codes.InvalidArgument, err.Error()).Err()
+	}
+
+	// Get in which SG is the tenant located
+	sgt := <-cluster.GetTenantStorageGroupByShortName(appCtx, appCtx.Tenant.ShortName)
+	if err = sgt.Error; err != nil {
+		log.Println(err)
+		return nil, status.New(codes.InvalidArgument, err.Error()).Err()
+	}
+
+	// update the policy for the SA
+	err = <-cluster.UpdateMinioPolicyForServiceAccount(appCtx, sgt.StorageGroupTenant, &serviceAccount.ID)
+	if err != nil {
+		log.Println("error updating policy on service account:", err)
 		return nil, status.New(codes.InvalidArgument, err.Error()).Err()
 	}
 
