@@ -260,8 +260,9 @@ func getEtcdCRDDeployment(clusterName string) *unstructured.Unstructured {
 				"name": clusterName,
 			},
 			"spec": map[string]interface{}{
-				"size":    3,
-				"version": "3.4.0",
+				"size":       3,
+				"version":    getEtcdImageTag(),
+				"repository": getEtcdImageRepository(),
 			},
 		},
 	}
