@@ -69,6 +69,7 @@ data:
   # Specific Images (uncomment to use instead of default ones):
   #PROMETHEUS_IMAGE : ""
   #ETCD_OPERATOR_IMAGE: ""
+  #ETCD_IMAGE: ""
 ---
 apiVersion: apps/v1
 kind: Deployment
