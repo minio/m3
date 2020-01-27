@@ -299,7 +299,7 @@ func MapServiceAccountsIDsToSlugs(ctx *Context, serviceAccountIDs []*uuid.UUID) 
 
 // UpdateMinioPolicyForServiceAccount will retrieve all the permissions associated with the provided service account, build
 // an IAM policy and submit it to the tenant's MinIO instance
-func UpdateMinioPolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, tenantConf *TenantConfiguration, serviceAccountID *uuid.UUID) chan error {
+func UpdateMinioPolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, serviceAccountID *uuid.UUID) chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
@@ -367,6 +367,14 @@ func UpdateMinioPolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, t
 			ch <- err
 			return
 		}
+
+		// Get the credentials for a tenant
+		tenantConf, err := GetTenantConfig(ctx.Tenant)
+		if err != nil {
+			ch <- err
+			return
+		}
+
 		// send the new policy to MinIO
 		policyName := fmt.Sprintf("%s-policy", serviceAccountID.String())
 		err = addMinioIAMPolicyToUser(sgt, tenantConf, policyName, string(policyJSON), sac.AccessKey)
@@ -411,7 +419,7 @@ func filterServiceAccountsWithPermission(ctx *Context, serviceAccounts []*uuid.U
 	return saWithPerm, nil
 }
 
-// AssignMultiplePermissions takes a list of permissions and assigns them to a single service account
+// AssignMultiplePermissionsToSA takes a list of permissions and assigns them to a single service account
 func AssignMultiplePermissionsToSA(ctx *Context, serviceAccount *uuid.UUID, permissions []*uuid.UUID) error {
 	alreadyHaveIt, err := filterPermissionsWithServiceAccount(ctx, permissions, serviceAccount)
 	if err != nil {
@@ -434,19 +442,6 @@ func AssignMultiplePermissionsToSA(ctx *Context, serviceAccount *uuid.UUID, perm
 		return nil
 	}
 
-	// Get in which SG is the tenant located
-	sgt := <-GetTenantStorageGroupByShortName(ctx, ctx.Tenant.ShortName)
-
-	if sgt.Error != nil {
-		return sgt.Error
-	}
-
-	// Get the credentials for a tenant
-	tenantConf, err := GetTenantConfig(ctx.Tenant)
-	if err != nil {
-		return err
-	}
-
 	// assign all the permissions to the service account
 	singleSAList := []*uuid.UUID{serviceAccount}
 	for _, permID := range finalListPermissionIDs {
@@ -455,10 +450,6 @@ func AssignMultiplePermissionsToSA(ctx *Context, serviceAccount *uuid.UUID, perm
 			return err
 		}
 	}
-
-	// update the policy for the SA
-	err = <-UpdateMinioPolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, serviceAccount)
-
 	return err
 }
 
@@ -616,8 +607,9 @@ func UpdateMinioServiceAccountPoliciesAndStatus(ctx *Context, serviceAccount *Se
 	if err != nil {
 		return err
 	}
+
 	// update the policy for a single SA
-	err = <-UpdateMinioPolicyForServiceAccount(ctx, sgt.StorageGroupTenant, tenantConf, &serviceAccount.ID)
+	err = <-UpdateMinioPolicyForServiceAccount(ctx, sgt.StorageGroupTenant, &serviceAccount.ID)
 	if err != nil {
 		return err
 	}

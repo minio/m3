@@ -21,12 +21,16 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/minio/m3/cluster/db"
 
 	uuid "github.com/satori/go.uuid"
 )
+
+// fixed allowed ports for tenants in an storage group
+var storageGroupPorts = []string{"9001", "9002", "9003", "9004", "9005", "9006", "9007", "9008", "9009", "9010", "9011", "9012", "9013", "9014", "9015", "9016"}
 
 // Represents a group of machines with attached storage in which multiple storage groups reside
 type StorageCluster struct {
@@ -423,36 +427,49 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) 
 			return
 		}
 		serviceName := fmt.Sprintf("%s-sg-%d", tenant.ShortName, sg.Num)
-		var port int32 = 9001
+		var port int
 
 		// Search for available port for tenant on storage group
-		for port <= 9016 {
-			queryUser := `
-				SELECT EXISTS(
-					SELECT *
-						FROM provisioning.tenants_storage_groups tsg
-					WHERE tsg.storage_group_id=$1 AND tsg.port=$2)`
+		query := `
+				SELECT port
+					FROM provisioning.tenants_storage_groups tsg
+				WHERE tsg.storage_group_id=$1 `
 
-			row := tx.QueryRow(queryUser, sg.ID, port)
-			// Whether the port is already assigned to the storage group
-			var exists bool
-			err := row.Scan(&exists)
+		rows, err := tx.Query(query, sg.ID)
+		if err != nil {
+			ch <- &StorageGroupTenantResult{Error: err}
+			return
+		}
+		defer rows.Close()
+		var portsUsed []string
+		for rows.Next() {
+			var id string
+			err := rows.Scan(&id)
 			if err != nil {
 				ch <- &StorageGroupTenantResult{Error: err}
 				return
 			}
-
-			if exists {
-				log.Println(fmt.Sprintf("Port:%d already assigned to storage_group_id=%s, trying next port available", port, sg.ID))
-			} else {
-				log.Println(fmt.Sprintf("Port:%d available for storage_group_id=%s", port, sg.ID))
-				break
+			portsUsed = append(portsUsed, id)
+		}
+		if err := rows.Err(); err != nil {
+			ch <- &StorageGroupTenantResult{Error: err}
+			return
+		}
+		// check for available ports
+		availablePorts := DifferenceArrays(storageGroupPorts, portsUsed)
+		if len(availablePorts) > 0 {
+			port, err = strconv.Atoi(availablePorts[0])
+			if err != nil {
+				ch <- &StorageGroupTenantResult{Error: fmt.Errorf("port %s not valid to be assigned", availablePorts[0])}
+				return
 			}
-			port++
+		} else {
+			ch <- &StorageGroupTenantResult{Error: fmt.Errorf("No available ports for storage group: %s", sg.ID)}
+			return
 		}
 
 		// insert a new Storage Group with the optional name
-		query :=
+		query =
 			`INSERT INTO
 				tenants_storage_groups (
 				                "tenant_id",
@@ -473,7 +490,7 @@ func createTenantInStorageGroup(ctx *Context, tenant *Tenant, sg *StorageGroup) 
 			StorageGroupTenant: &StorageGroupTenant{
 				Tenant:       tenant,
 				StorageGroup: sg,
-				Port:         port,
+				Port:         int32(port),
 				ServiceName:  serviceName,
 			},
 		}

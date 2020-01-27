@@ -220,7 +220,7 @@ func getEtcdDeployment() *appsv1.Deployment {
 					Containers: []corev1.Container{
 						{
 							Name:  "etcd-operator",
-							Image: "quay.io/coreos/etcd-operator:v0.9.4",
+							Image: getEtcdOperatorImage(),
 							Command: []string{
 								"etcd-operator",
 							},
@@ -260,8 +260,9 @@ func getEtcdCRDDeployment(clusterName string) *unstructured.Unstructured {
 				"name": clusterName,
 			},
 			"spec": map[string]interface{}{
-				"size":    3,
-				"version": "3.4.0",
+				"size":       3,
+				"version":    getEtcdImageTag(),
+				"repository": getEtcdImageRepository(),
 			},
 		},
 	}

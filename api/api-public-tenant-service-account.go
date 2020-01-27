@@ -48,16 +48,22 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 
-	var permissionIDsArr []*uuid.UUID
-	for _, idString := range permisionsIDs {
-		permUUID, err := uuid.FromString(idString)
+	defer func() {
 		if err != nil {
-			log.Println("permission uuid not valid")
 			log.Println("removing MinIO User")
 			err := cluster.RemoveMinioUser(appCtx, serviceAccount)
 			if err != nil {
 				log.Println("Error removing Minio User: ", err.Error())
 			}
+			return
+		}
+	}()
+
+	var permissionIDsArr []*uuid.UUID
+	for _, idString := range permisionsIDs {
+		permUUID, err := uuid.FromString(idString)
+		if err != nil {
+			log.Println("permission uuid not valid")
 			return nil, status.New(codes.Internal, "Internal error").Err()
 		}
 		permissionIDsArr = append(permissionIDsArr, &permUUID)
@@ -66,11 +72,6 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 	err = cluster.AssignMultiplePermissionsToSA(appCtx, &serviceAccount.ID, permissionIDsArr)
 	if err != nil {
 		log.Println("Error assigning permissions to service account:", err.Error())
-		log.Println("removing MinIO User")
-		err := cluster.RemoveMinioUser(appCtx, serviceAccount)
-		if err != nil {
-			log.Println("Error removing Minio User: ", err.Error())
-		}
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 
@@ -82,6 +83,19 @@ func (s *server) CreateServiceAccount(ctx context.Context, in *pb.CreateServiceA
 
 	// update nginx
 	<-cluster.UpdateNginxConfiguration(appCtx)
+
+	// Get in which SG is the tenant located
+	sgt := <-cluster.GetTenantStorageGroupByShortName(appCtx, appCtx.Tenant.ShortName)
+	if err = sgt.Error; err != nil {
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
+	// update the policy for the SA
+	err = <-cluster.UpdateMinioPolicyForServiceAccount(appCtx, sgt.StorageGroupTenant, &serviceAccount.ID)
+	if err != nil {
+		log.Println("error updating policy on service account:", err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 
 	return &pb.CreateServiceAccountResponse{
 		ServiceAccount: &pb.ServiceAccount{
