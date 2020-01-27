@@ -141,9 +141,29 @@ func getCliCommand() string {
 }
 
 func getEtcdOperatorImage() string {
-	return env.Get(etcdImage, "quay.io/coreos/etcd-operator:v0.9.4")
+	return env.Get(etcdOperatorImage, "quay.io/coreos/etcd-operator:v0.9.4")
 }
 
 func getPrometheusImage() string {
 	return env.Get(prometheusImage, "quay.io/prometheus/prometheus:v2.14.0")
+}
+
+func getEtcdImage() string {
+	return env.Get(etcdImage, "quay.io/coreos/etcd:3.4.0")
+}
+
+func getEtcdImageRepository() string {
+	parts := strings.Split(getEtcdImage(), ":")
+	if len(parts) > 0 {
+		return parts[0]
+	}
+	return ""
+}
+
+func getEtcdImageTag() string {
+	parts := strings.Split(getEtcdImage(), ":")
+	if len(parts) > 1 {
+		return parts[1]
+	}
+	return "latest"
 }
