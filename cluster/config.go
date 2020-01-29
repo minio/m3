@@ -123,7 +123,7 @@ func getMaxNumberOfTenantsPerSg() int {
 		var err error
 		maxTenantsPerSg, err = strconv.Atoi(v)
 		if err != nil {
-			return 16
+			return maxTenantsPerSg
 		}
 	}
 	return maxTenantsPerSg
