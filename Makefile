@@ -1,4 +1,6 @@
-VERSION ?= $(shell git describe --tags)
+# Sets the build version based on the output of the following command, if we are building for a tag, that's the build else it uses the current git branch as the build
+BUILD_VERSION:=$(shell git describe --exact-match --tags $(git log -n1 --pretty='%h') || git rev-parse --abbrev-ref HEAD)
+BUILD_TIME:=$(shell date)
 TAG ?= "minio/m3:$(VERSION)-dev"
 
 default: m3
@@ -28,9 +30,9 @@ clean:
 	@rm -rvf m3
 
 docker:
-	@docker build -t minio/m3 .
+	@docker build -t minio/m3 --build-arg build_version=$(BUILD_VERSION) --build-arg build_time='$(BUILD_TIME)' .
 
 k8sdev:
-	@docker build -t $(TAG) .
+	@docker build -t $(TAG) --build-arg build_version=$(BUILD_VERSION) --build-arg build_time='$(BUILD_TIME)' .
 	@kind load docker-image $(TAG) --name m3cluster
 	@echo "Done, now restart your m3 deployment"
