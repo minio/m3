@@ -118,15 +118,15 @@ func getDevUseEmptyDir() bool {
 }
 
 func getMaxNumberOfTenantsPerSg() int {
-	var maxSeconds int
+	var maxTenantsPerSg = 16
 	if v := env.Get(maxNumberOfTenantsPerSg, "16"); v != "" {
 		var err error
-		maxSeconds, err = strconv.Atoi(v)
+		maxTenantsPerSg, err = strconv.Atoi(v)
 		if err != nil {
-			return 16
+			return maxTenantsPerSg
 		}
 	}
-	return maxSeconds
+	return maxTenantsPerSg
 }
 
 // AppURL returns the main application url
