@@ -21,6 +21,10 @@ import (
 	"log"
 	"syscall"
 
+	"google.golang.org/grpc/codes"
+
+	"google.golang.org/grpc/status"
+
 	"github.com/minio/cli"
 	pb "github.com/minio/m3/api/stubs"
 	"golang.org/x/crypto/ssh/terminal"
@@ -101,7 +105,19 @@ func setPassword(ctx *cli.Context) error {
 	})
 
 	if err != nil {
-		log.Println(err)
+		if e, ok := status.FromError(err); ok {
+			switch e.Code() {
+			case codes.PermissionDenied:
+				log.Println(e.Message())
+			case codes.Internal:
+				log.Println("The server found an internal error")
+			case codes.Aborted:
+				log.Println("the connection Aborted the call")
+			default:
+				log.Printf("(%s) %s\n", e.Code(), e.Message())
+			}
+		}
+
 		return nil
 	}
 
