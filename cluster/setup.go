@@ -66,18 +66,13 @@ func SetupM3() error {
 	// setup nginx router
 	log.Println("setting up nginx configmap and service account")
 	waitCh := SetupNginxConfigMap(clientset)
-	nginxSACh := setupNginxServiceAccount()
 	<-waitCh
-	<-nginxSACh
 	//// Setup Jwt Secret
 	log.Println("Setting up jwt secret")
 	waitJwtCh := SetupJwtSecrets(clientset)
 
 	log.Println("setting up nginx service")
 	<-SetupNginxLoadBalancer(clientset)
-
-	log.Println("setting up nginx deployment")
-	waitNginxResolverCh := DeployNginxResolver()
 
 	// Wait for the m3 NS to install postgres
 	<-waitNsM3Ch
@@ -193,13 +188,6 @@ func SetupM3() error {
 		log.Println(err)
 	}
 
-	// wait on nginx resolver and check if there were any errors
-	log.Println("Waiting on nginx resolver")
-	err = <-waitNginxResolverCh
-	if err != nil {
-		log.Println(err)
-		return err
-	}
 	// wait for things that we had no rush to wait on
 	// provisioning namespace
 	<-waitNsProvisioninCh
