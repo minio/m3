@@ -847,6 +847,15 @@ func request_PublicAPI_AssignPermissionToMultipleServiceAccounts_0(ctx context.C
 
 }
 
+func request_PublicAPI_Version_0(ctx context.Context, marshaler runtime.Marshaler, client PublicAPIClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq Empty
+	var metadata runtime.ServerMetadata
+
+	msg, err := client.Version(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+
+}
+
 // RegisterPublicAPIHandlerFromEndpoint is same as RegisterPublicAPIHandler but
 // automatically dials to "endpoint" and closes the connection when "ctx" gets done.
 func RegisterPublicAPIHandlerFromEndpoint(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error) {
@@ -1585,6 +1594,26 @@ func RegisterPublicAPIHandlerClient(ctx context.Context, mux *runtime.ServeMux, 
 
 	})
 
+	mux.Handle("GET", pattern_PublicAPI_Version_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		rctx, err := runtime.AnnotateContext(ctx, mux, req)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_PublicAPI_Version_0(rctx, inboundMarshaler, client, req, pathParams)
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_PublicAPI_Version_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
 	return nil
 }
 
@@ -1658,6 +1687,8 @@ var (
 	pattern_PublicAPI_InfoPermission_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"api", "v1", "permissions", "id"}, ""))
 
 	pattern_PublicAPI_AssignPermissionToMultipleServiceAccounts_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3, 2, 4}, []string{"api", "v1", "permissions", "id", "assign_to_service_accounts"}, ""))
+
+	pattern_PublicAPI_Version_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"api", "v1", "version"}, ""))
 )
 
 var (
@@ -1730,4 +1761,6 @@ var (
 	forward_PublicAPI_InfoPermission_0 = runtime.ForwardResponseMessage
 
 	forward_PublicAPI_AssignPermissionToMultipleServiceAccounts_0 = runtime.ForwardResponseMessage
+
+	forward_PublicAPI_Version_0 = runtime.ForwardResponseMessage
 )
