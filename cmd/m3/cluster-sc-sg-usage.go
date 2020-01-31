@@ -117,7 +117,7 @@ func storageGroupUsage(ctx *cli.Context) error {
 		return nil
 	}
 
-	var tableHeader = []string{"Date", "Account Holder", "Tenant", "Customer", "Bucket", "Region", "AVG Usage [TB]"}
+	var tableHeader = []string{"Date", "Tenant", "Bucket", "AVG Usage [TB]"}
 
 	var tableData [][]string
 	var writer *csv.Writer
@@ -140,11 +140,8 @@ func storageGroupUsage(ctx *cli.Context) error {
 
 		var row = []string{
 			fmt.Sprintf("%s-%s", yearString, monthString),
-			"",
 			metric.Tenant,
-			"",
 			metric.Bucket,
-			"",
 			fmt.Sprintf("%f", metric.Usage),
 		}
 		tableData = append(tableData, row)
