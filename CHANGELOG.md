@@ -13,5 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `nginx-resolver` service and deployment are now exposed on the `m3-deployment.yaml`
+
 ### Removed
 

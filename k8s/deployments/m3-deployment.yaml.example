@@ -19,6 +19,71 @@ subjects:
   namespace: default
 ---
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nginx-user
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k8s-nginx-cm-view-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: k8s-nginx-cm-svc-account
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: k8s-nginx-cm-view-role
+subjects:
+- kind: ServiceAccount
+  name: nginx-user
+  namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx-resolver
+    type: nginx-resolver
+  name: nginx-resolver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-resolver
+      type: nginx-resolver
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nginx-resolver
+        type: nginx-resolver
+    spec:
+      containers:
+      - image: minio/m3-nginx:edge
+        imagePullPolicy: IfNotPresent
+        name: nginx-resolver
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+      serviceAccount: nginx-user
+      serviceAccountName: nginx-user
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: m3
