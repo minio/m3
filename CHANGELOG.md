@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Start using "changelog" file.
+- Cli command to get storage group tenant's bucket's average usage in a defined period `./m3 cluster sc sg usage`.
 
 ### Changed
 
