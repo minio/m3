@@ -51,6 +51,20 @@ subjects:
   name: nginx-user
   namespace: default
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: nginx-resolver
+  name: nginx-resolver
+spec:
+  ports:
+  - name: http
+    port: 80
+  selector:
+    app: nginx-resolver
+  type: ClusterIP
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -105,7 +119,14 @@ metadata:
 data:
   ADMIN_NAME: <ADMIN_NAME>
   ADMIN_EMAIL: <ADMIN_EMAIL>
-  DB_HOSTNAME: "postgres.m3"
+  DB_HOSTNAME: "<POSTGRES_HOSTNAME>"
+  # DB Configuration Parameters
+  #DB_PORT: "<DB_PORT>"
+  #DB_USER: "<DB_USER>"
+  #DB_PASSWORD: "<DB_PASSWORD>"
+  #DB_NAME: "<DB_NAME>"
+  #DB_SSL: "<DB_SSL>"
+  #DB_SCHEMA: "<DB_SCHEMA>"
   MAIL_ACCOUNT: <MAIL_ACCOUNT>
   MAIL_SERVER: <MAIL_SERVER>
   MAIL_PASSWORD: <MAIL_PASSWORD>

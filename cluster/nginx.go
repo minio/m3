@@ -288,60 +288,6 @@ func getGlobalBucketNamespaceConfiguration(ctx *Context) string {
 	return nginxConfiguration.String()
 }
 
-// SetupNginxLoadBalancer setups the loadbalancer/reverse proxy used to resolve the tenants subdomains
-func SetupNginxLoadBalancer(clientset *kubernetes.Clientset) <-chan struct{} {
-	doneCh := make(chan struct{})
-	nginxServiceName := "nginx-resolver"
-
-	go func() {
-		_, nginxServiceExists := clientset.CoreV1().Services("default").Get(nginxServiceName, metav1.GetOptions{})
-		if nginxServiceExists == nil {
-			log.Println("nginx service already exists... skip create")
-			close(doneCh)
-		} else {
-			factory := informers.NewSharedInformerFactory(clientset, 0)
-			serviceInformer := factory.Core().V1().Services().Informer()
-			serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {
-					service := obj.(*corev1.Service)
-					if service.Name == nginxServiceName {
-						log.Println("nginx service created correctly")
-						close(doneCh)
-					}
-				},
-			})
-
-			go serviceInformer.Run(doneCh)
-
-			nginxService := corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nginxServiceName,
-					Labels: map[string]string{
-						"name": nginxServiceName,
-					},
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{
-						{
-							Name: "http",
-							Port: 80,
-						},
-					},
-					Selector: map[string]string{
-						"app": nginxServiceName,
-					},
-				},
-			}
-			_, err := clientset.CoreV1().Services("default").Create(&nginxService)
-			if err != nil {
-				log.Println(err)
-				close(doneCh)
-			}
-		}
-	}()
-	return doneCh
-}
-
 func SetupNginxConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
 	doneCh := make(chan struct{})
 	nginxConfigMapName := NginxConfiguration

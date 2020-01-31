@@ -23,6 +23,7 @@ make --directory="../portal-ui" k8sdev
 make --directory="../nginx" k8sdev
 make --directory="../vault" k8sdev
 
+kubectl apply -f deployments/postgres-dev.yaml
 kubectl apply -f deployments/m3-portal-backend-deployment.yaml
 kubectl apply -f deployments/m3-portal-frontend-deployment.yaml
 kubectl apply -f deployments/m3-vault-deployment.yaml
