@@ -1,0 +1,52 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: postgres
+  name: postgres
+spec:
+  ports:
+    - name: http
+      port: 5432
+  selector:
+    app: postgres
+  type: ClusterIP
+---
+apiVersion: v1
+data:
+  POSTGRES_DB: m3
+  POSTGRES_PASSWORD: postgres
+kind: ConfigMap
+metadata:
+  labels:
+    app: postgres
+  name: postgres-env
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: postgres
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - envFrom:
+            - configMapRef:
+                name: postgres-env
+          image: postgres:12
+          imagePullPolicy: IfNotPresent
+          name: postgres
+          ports:
+            - containerPort: 5432
+              name: http
+              protocol: TCP

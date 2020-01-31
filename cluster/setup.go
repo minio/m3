@@ -39,7 +39,6 @@ import (
 
 	// the file driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -71,52 +70,8 @@ func SetupM3() error {
 	log.Println("Setting up jwt secret")
 	waitJwtCh := SetupJwtSecrets(clientset)
 
-	log.Println("setting up nginx service")
-	<-SetupNginxLoadBalancer(clientset)
-
 	// Wait for the m3 NS to install postgres
 	<-waitNsM3Ch
-	// setup postgres service
-	log.Println("Setting up postgres service")
-	waitPgSvcCh := setupPostgresService(clientset)
-
-	// setup postgres configmap
-	log.Println("Setting up postgres configmap")
-	waitCh = setupPostgresConfigMap(clientset)
-	<-waitCh
-
-	// let's wait on postgres to finish setting up the database and first admin
-	// setup postgres deployment
-	log.Println("Setting up postgres deployment")
-	waitPgCh := setupPostgresDeployment(clientset)
-
-	// informer factory
-	doneCh := make(chan struct{})
-	factory := informers.NewSharedInformerFactory(clientset, 0)
-
-	postReadyCh := make(chan struct{})
-
-	podInformer := factory.Core().V1().Pods().Informer()
-	podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			pod := obj.(*v1.Pod)
-			// monitor for postgres pods
-			if strings.HasPrefix(pod.ObjectMeta.Name, "postgres") {
-				log.Println("Postgres Pod created:", pod.ObjectMeta.Name)
-				close(postReadyCh)
-				close(doneCh)
-			}
-		},
-	})
-
-	go podInformer.Run(doneCh)
-	<-waitPgSvcCh
-	<-waitPgCh
-	// wait for the informer to detect postgres being done
-	<-doneCh
-	<-postReadyCh
-
-	log.Println("Postgres is created")
 
 	// ping postgres until it's ready
 	// Wait for the DB connection
@@ -124,7 +79,6 @@ func SetupM3() error {
 
 	// Get the m3 Database configuration
 	config := db.GetM3DbConfig()
-
 	for {
 		// try to connect
 		cnxResult := <-db.ConnectToDb(ctx, config)
@@ -256,184 +210,6 @@ func setupNameSpace(clientset *kubernetes.Clientset, namespaceName string) <-cha
 				},
 			}
 			_, err := clientset.CoreV1().Namespaces().Create(&namespace)
-			if err != nil {
-				log.Println(err)
-				close(doneCh)
-			}
-		}
-	}()
-	return doneCh
-}
-
-func setupPostgresConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
-	doneCh := make(chan struct{})
-	configMapName := "postgres-env"
-	go func() {
-		_, configMapExists := clientset.CoreV1().ConfigMaps(m3SystemNamespace).Get(configMapName, metav1.GetOptions{})
-		if configMapExists == nil {
-			log.Println("postgres configmap already exists... skip create")
-			close(doneCh)
-		} else {
-			factory := informers.NewSharedInformerFactory(clientset, 0)
-			configMapInformer := factory.Core().V1().ConfigMaps().Informer()
-			configMapInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {
-					configMap := obj.(*v1.ConfigMap)
-					if configMap.Name == configMapName {
-						log.Println("postgres configmap created correctly")
-						close(doneCh)
-					}
-				},
-			})
-
-			go configMapInformer.Run(doneCh)
-
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: configMapName,
-					Labels: map[string]string{
-						"app": "postgres",
-					},
-				},
-				Data: map[string]string{
-					"POSTGRES_PASSWORD": "postgres",
-					"POSTGRES_DB":       "m3",
-				},
-			}
-			_, err := clientset.CoreV1().ConfigMaps(m3SystemNamespace).Create(&configMap)
-			if err != nil {
-				log.Println(err)
-				close(doneCh)
-			}
-		}
-	}()
-	return doneCh
-}
-
-func setupPostgresDeployment(clientset *kubernetes.Clientset) <-chan struct{} {
-	doneCh := make(chan struct{})
-	deploymentName := "postgres"
-	go func() {
-		_, deploymentExists := clientset.AppsV1().Deployments(m3SystemNamespace).Get(deploymentName, metav1.GetOptions{})
-		if deploymentExists == nil {
-			log.Println("postgres deployment already exists... skip create")
-			close(doneCh)
-		} else {
-			factory := informers.NewSharedInformerFactory(clientset, 0)
-			deploymentInformer := factory.Apps().V1().Deployments().Informer()
-			deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-				UpdateFunc: func(oldObj, newObj interface{}) {
-					deployment := newObj.(*appsv1.Deployment)
-					if deployment.Name == deploymentName && len(deployment.Status.Conditions) > 0 && deployment.Status.Conditions[0].Status == "True" {
-						log.Println("postgres deployment created correctly")
-						close(doneCh)
-					}
-				},
-			})
-
-			go deploymentInformer.Run(doneCh)
-
-			var replicas int32 = 1
-			mainPodSpec := v1.PodSpec{
-				Containers: []v1.Container{
-					{
-						Name:            "postgres",
-						Image:           "postgres:12",
-						ImagePullPolicy: "IfNotPresent",
-						Ports: []v1.ContainerPort{
-							{
-								Name:          "http",
-								ContainerPort: 5432,
-							},
-						},
-						EnvFrom: []v1.EnvFromSource{
-							{
-								ConfigMapRef: &v1.ConfigMapEnvSource{
-									LocalObjectReference: v1.LocalObjectReference{Name: "postgres-env"},
-								},
-							},
-						},
-					},
-				},
-			}
-
-			deployment := appsv1.Deployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: deploymentName,
-					Labels: map[string]string{
-						"app": deploymentName,
-					},
-				},
-				Spec: appsv1.DeploymentSpec{
-					Replicas: &replicas,
-					Selector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{"app": "postgres"},
-					},
-					Template: v1.PodTemplateSpec{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: map[string]string{
-								"app": deploymentName,
-							},
-						},
-						Spec: mainPodSpec,
-					},
-				},
-			}
-
-			_, err := appsV1API(clientset).Deployments(m3SystemNamespace).Create(&deployment)
-			if err != nil {
-				log.Println(err)
-				close(doneCh)
-			}
-		}
-	}()
-	return doneCh
-}
-
-// setupPostgres sets up a postgres used by the provisioning service
-func setupPostgresService(clientset *kubernetes.Clientset) <-chan struct{} {
-	doneCh := make(chan struct{})
-	serviceName := "postgres"
-	go func() {
-		_, postgresServiceExists := clientset.CoreV1().Services(m3SystemNamespace).Get(serviceName, metav1.GetOptions{})
-		if postgresServiceExists == nil {
-			log.Println("postgres service already exists... skip create")
-			close(doneCh)
-		} else {
-			factory := informers.NewSharedInformerFactory(clientset, 0)
-			serviceInformer := factory.Core().V1().Services().Informer()
-			serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-				AddFunc: func(obj interface{}) {
-					service := obj.(*v1.Service)
-					if service.Name == serviceName {
-						log.Println("postgres service created correctly")
-						close(doneCh)
-					}
-				},
-			})
-
-			go serviceInformer.Run(doneCh)
-
-			pgSvc := v1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: serviceName,
-					Labels: map[string]string{
-						"name": serviceName,
-					},
-				},
-				Spec: v1.ServiceSpec{
-					Ports: []v1.ServicePort{
-						{
-							Name: "http",
-							Port: 5432,
-						},
-					},
-					Selector: map[string]string{
-						"app": serviceName,
-					},
-				},
-			}
-			_, err := clientset.CoreV1().Services(m3SystemNamespace).Create(&pgSvc)
 			if err != nil {
 				log.Println(err)
 				close(doneCh)
