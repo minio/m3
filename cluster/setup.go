@@ -56,9 +56,6 @@ func SetupM3() error {
 	waitNsM3Ch := setupNameSpace(clientset, m3SystemNamespace)
 	waitNsProvisioninCh := setupNameSpace(clientset, provisioningNamespace)
 
-	//setup etcd cluster
-	waitEtcdCh := SetupEtcCluster()
-
 	//setup prometheus deployment
 	waitPrometheusCh := SetupPrometheusCluster()
 
@@ -130,11 +127,6 @@ func SetupM3() error {
 	// wait for all other servicess
 	log.Println("Waiting on JWT")
 	<-waitJwtCh
-	log.Println("Waiting on etcd cluster")
-	err = <-waitEtcdCh
-	if err != nil {
-		log.Println(err)
-	}
 
 	// wait on Prometheus deployment to start and check if there were any errors
 	err = <-waitPrometheusCh
