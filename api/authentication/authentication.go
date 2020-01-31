@@ -71,6 +71,7 @@ func PublicAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unar
 	if info.FullMethod == "/m3.PublicAPI/Login" ||
 		info.FullMethod == "/m3.PublicAPI/ForgotPassword" ||
 		info.FullMethod == "/m3.PublicAPI/SetPassword" ||
+		info.FullMethod == "/m3.PublicAPI/Version" ||
 		info.FullMethod == "/m3.PublicAPI/ValidateInvite" {
 		// log this call
 		log.Printf("%s", info.FullMethod)

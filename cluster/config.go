@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/minio/m3/version"
+
 	"github.com/minio/minio/pkg/env"
 )
 
@@ -146,6 +148,22 @@ func getEtcdOperatorImage() string {
 
 func getPrometheusImage() string {
 	return env.Get(prometheusImage, "quay.io/prometheus/prometheus:v2.14.0")
+}
+
+func GetBuildVersion() string {
+	defVersion := "DEVELOPMENT"
+	if version.BuildVersion != "" {
+		defVersion = version.BuildVersion
+	}
+	return defVersion
+}
+
+func GetBuildTime() string {
+	defVersion := ""
+	if version.BuildTime != "" {
+		defVersion = version.BuildTime
+	}
+	return defVersion
 }
 
 func getEtcdImage() string {
