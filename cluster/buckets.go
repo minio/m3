@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/minio/minio-go/v6/pkg/s3utils"
 
 	"github.com/minio/m3/cluster/db"
@@ -79,7 +80,7 @@ func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType Buc
 	return nil
 }
 
-type TenantBucketInfo struct {
+type BucketInfo struct {
 	Name   string
 	Access BucketAccess
 }
@@ -148,11 +149,11 @@ func GetBucketAccess(minioClient *minio.Client, bucketName string) (BucketAccess
 }
 
 // ListBuckets for the given tenant's short name
-func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
+func ListBuckets(tenantShortname string) ([]*BucketInfo, error) {
 	// Get tenant specific MinIO client
 	minioClient, err := newTenantMinioClient(nil, tenantShortname)
 	if err != nil {
-		return []TenantBucketInfo{}, err
+		return []*BucketInfo{}, err
 	}
 
 	tCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
@@ -161,14 +162,14 @@ func ListBuckets(tenantShortname string) ([]TenantBucketInfo, error) {
 	var buckets []minio.BucketInfo
 	buckets, err = minioClient.ListBucketsWithContext(tCtx)
 	if err != nil {
-		return []TenantBucketInfo{}, tagErrorAsMinio("ListBucketsWithContext", err)
+		return []*BucketInfo{}, tagErrorAsMinio("ListBucketsWithContext", err)
 	}
 
 	var (
-		bucketInfos []TenantBucketInfo
+		bucketInfos []*BucketInfo
 	)
 	for _, bucket := range buckets {
-		bucketInfos = append(bucketInfos, TenantBucketInfo{Name: bucket.Name})
+		bucketInfos = append(bucketInfos, &BucketInfo{Name: bucket.Name})
 	}
 
 	return bucketInfos, nil
@@ -366,35 +367,50 @@ func GetTenantUsageCostMultiplier(ctx *Context) (cost float32, err error) {
 }
 
 // GetLatestBucketsSizes return latest buckets sizes map
-func GetLatestBucketsSizes(ctx *Context) (bucketsSizes map[string]uint64, err error) {
+func GetLatestBucketsSizes(ctx *Context, bucketsInfo []*BucketInfo) (bucketsSizes map[string]uint64, err error) {
+	var bucketNames []string
+	bucketsSizes = make(map[string]uint64)
+
+	for _, bucket := range bucketsInfo {
+		bucketNames = append(bucketNames, bucket.Name)
+	}
+
+	// Fetch latest size per bucket
 	query := `SELECT
-					buckets_sizes
-				FROM bucket_metrics s
-				ORDER BY last_update DESC`
+					bucket_name, bucket_size
+				FROM bucket_metrics m
+				WHERE m.bucket_name = ANY($1)
+				ORDER BY last_update DESC
+				LIMIT $2`
 	tx, err := ctx.TenantTx()
 	if err != nil {
 		return bucketsSizes, err
 	}
-	// Get first result of the query which contains the latest number of
-	// buckets during the selected period one Month
-	var sizesRow []byte
-	row := tx.QueryRow(query)
+	rows, err := tx.Query(query, pq.Array(bucketNames), len(bucketNames))
 	if err != nil {
-		return bucketsSizes, err
-	}
-	err = row.Scan(&sizesRow)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return bucketsSizes, nil
-		}
 		log.Println("error getting latest buckets sizes:", err)
 		return bucketsSizes, err
 	}
+	defer rows.Close()
+	for rows.Next() {
+		var bucketName string
+		var bucketSize uint64
 
-	err = json.Unmarshal(sizesRow, &bucketsSizes)
+		err := rows.Scan(&bucketName, &bucketSize)
+		if err != nil {
+			log.Println("error getting latest buckets sizes:", err)
+			return bucketsSizes, err
+		}
+		// Only insert value if not in map
+		if _, ok := bucketsSizes[bucketName]; !ok {
+			bucketsSizes[bucketName] = bucketSize
+		}
+	}
+	err = rows.Close()
 	if err != nil {
 		return bucketsSizes, err
 	}
+
 	return bucketsSizes, nil
 }
 
@@ -495,13 +511,10 @@ func GetDailyAvgBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric
 							    EXTRACT (YEAR FROM s.last_update) AS YEAR,
 							    EXTRACT (MONTH FROM s.last_update) AS MONTH,
 							    EXTRACT (DAY FROM s.last_update) AS DAY,
-								s.total_objects,
-								s.total_buckets,
-								s.total_usage,
-								s.total_cost
+								s.total_usage
 							 FROM (
 							 	SELECT 
-									s.last_update, s.total_objects, s.total_buckets, s.total_usage, s.total_cost
+									s.last_update, s.total_usage
 								FROM 
 									bucket_metrics s
 								WHERE s.last_update >= $1 AND s.last_update <= $2
@@ -622,14 +635,14 @@ func GetTenantsBucketUsageDb(db *sql.DB, fromDate time.Time, toDate time.Time) (
 			avg(usage) as daily_avg_usage
 			FROM(
 				SELECT 
-					 EXTRACT (YEAR FROM a.last_update) as year,
-					 EXTRACT (MONTH FROM a.last_update) as month,
-					 EXTRACT (DAY FROM a.last_update) as day,
-					 bsize.key as bucket,
-					 bsize.value::FLOAT as usage
-				FROM bucket_metrics as a
-				JOIN json_each_text(a.buckets_sizes) bsize on true
-				WHERE a.last_update >= $1 AND a.last_update <= $2
+				 EXTRACT (YEAR FROM bm.last_update) as year,
+				 EXTRACT (MONTH FROM bm.last_update) as month,
+				 EXTRACT (DAY FROM bm.last_update) as day,
+				 bm.bucket_name as bucket,
+				 bm.bucket_size::FLOAT as usage
+				FROM bucket_metrics as bm
+				WHERE bm.last_update >= $1 AND bm.last_update <= $2 
+					AND (bm.bucket_name IS NOT NULL AND bm.bucket_name <> '')
 			) l
 			GROUP BY 
 				year, month, day, bucket
@@ -733,6 +746,7 @@ func CalculateTenantsMetrics() error {
 	return nil
 }
 
+// getTenantMetrics fetch Usage Info from MinIO servers and dumps it to the database
 func getTenantMetrics(ctx *Context, tenant *Tenant) error {
 	ctx.Tenant = tenant
 	// Get in which SG is the tenant located
@@ -748,7 +762,7 @@ func getTenantMetrics(ctx *Context, tenant *Tenant) error {
 
 	// insert the node in the DB
 	query := `INSERT INTO
-					bucket_metrics ("last_update", "total_objects", "buckets_sizes", "total_buckets", "total_usage", "total_cost")
+					bucket_metrics ("last_update", "total_objects", "total_buckets", "total_usage", "bucket_name", "bucket_size")
 			  	  VALUES
 					($1, $2, $3, $4, $5, $6)`
 
@@ -756,18 +770,33 @@ func getTenantMetrics(ctx *Context, tenant *Tenant) error {
 	if err != nil {
 		return err
 	}
+	// Using prepared statements to optimize query
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		return err
+	}
+	// Since Prepared statement is use inside a transaction it is safe to use it,
+	// 	because actions map directly to the one and only one connection underlying it.
+	//  Statement should always be closed before the transaction is committed.
+	defer stmt.Close()
+
 	dataUsageInfo, err := getMinioDataUsageInfo(sgt.StorageGroupTenant, tenantConf)
 	if err != nil {
 		return err
 	}
-	bucketSizes, err := json.Marshal(dataUsageInfo.BucketsSizes)
-	if err != nil {
-		return err
-	}
-	// Execute query
-	_, err = tx.Exec(query, dataUsageInfo.LastUpdate, dataUsageInfo.ObjectsCount, bucketSizes, dataUsageInfo.BucketsCount, dataUsageInfo.ObjectsTotalSize, 0)
-	if err != nil {
-		return err
+	// prepare stmt for bulk insert
+	if len(dataUsageInfo.BucketsSizes) > 0 {
+		for bucketName, bucketSize := range dataUsageInfo.BucketsSizes {
+			_, err = stmt.Exec(dataUsageInfo.LastUpdate, dataUsageInfo.ObjectsCount, dataUsageInfo.BucketsCount, dataUsageInfo.ObjectsTotalSize, bucketName, bucketSize)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		_, err = stmt.Exec(dataUsageInfo.LastUpdate, dataUsageInfo.ObjectsCount, dataUsageInfo.BucketsCount, dataUsageInfo.ObjectsTotalSize, "", 0)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
