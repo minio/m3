@@ -106,7 +106,7 @@ func storageGroupUsage(ctx *cli.Context) error {
 	}
 	defer cnxs.Conn.Close()
 	// perform RPC
-	res, err := cnxs.Client.ClusterStorageGroupUsage(cnxs.Context, &pb.StorageGroupUsageRequest{
+	res, err := cnxs.Client.ClusterStorageGroupUsage(cnxs.Context, &pb.StorageGroupReportRequest{
 		StorageCluster: storageCluster,
 		StorageGroup:   storageGroup,
 		FromDate:       fromDate,

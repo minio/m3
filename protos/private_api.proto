@@ -98,7 +98,10 @@ service PrivateAPI {
     rpc ClusterRouterRefresh(AdminEmpty) returns (AdminEmpty) {
     }
     // ClusterStorageGroupUsage returns a storage group usage report for all tenants
-    rpc ClusterStorageGroupUsage(StorageGroupUsageRequest) returns (StorageGroupUsageResponse){
+    rpc ClusterStorageGroupUsage(StorageGroupReportRequest) returns (StorageGroupUsageResponse){
+    }
+    // ClusterStorageGroupSummary returns a storage group summary report for all tenants
+    rpc ClusterStorageGroupSummary(StorageGroupReportRequest) returns (StorageGroupSummaryResponse){
     }
     // Sets Email Template
     rpc SetEmailTemplate (SetEmailTemplateRequest) returns (SetEmailTemplateResponse) {
@@ -323,7 +326,7 @@ message StorageClusterAddResponse {
     StorageCluster storage_cluster = 1;
 }
 
-message StorageGroupUsageRequest{
+message StorageGroupReportRequest{
     string storage_cluster = 1;
     string storage_group = 2;
     string from_date = 3;
@@ -339,4 +342,16 @@ message TenantBucketUsage {
 
 message StorageGroupUsageResponse {
     repeated TenantBucketUsage usage = 1;
+}
+
+message StorageGroupSummary{
+    string date = 1;
+    string tenant = 2;
+    int32 total_users = 3;
+    int32 total_service_accounts = 4;
+    int32 total_buckets = 5;
+    double usage = 6;
+}
+message StorageGroupSummaryResponse {
+    repeated StorageGroupSummary summary = 1;
 }
