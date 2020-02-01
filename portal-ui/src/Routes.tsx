@@ -23,6 +23,7 @@ import LandingPage from "./screens/LandingPage";
 import Dashboard from './screens/Dashboard';
 import NotFoundPage from './screens/NotFoundPage'
 import storage from "local-storage-fallback";
+import CreatePassword from "./screens/CreatePassword";
 
 const isLoggedIn = () => {
   return storage.getItem('token') !== undefined &&
@@ -33,6 +34,7 @@ const isLoggedIn = () => {
 const Routes: React.FC = () => (
   <Router history={history}>
     <Switch>
+      <Route exact path="/create-password" component={CreatePassword}/>
       <Route exact path="/login" component={Login}/>
       <Route exact path="/signup" component={Signup}/>
       {
