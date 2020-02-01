@@ -56,9 +56,6 @@ func SetupM3() error {
 	waitNsM3Ch := setupNameSpace(clientset, m3SystemNamespace)
 	waitNsProvisioninCh := setupNameSpace(clientset, provisioningNamespace)
 
-	//setup prometheus deployment
-	waitPrometheusCh := SetupPrometheusCluster()
-
 	// setup nginx router
 	log.Println("setting up nginx configmap and service account")
 	waitCh := SetupNginxConfigMap(clientset)
@@ -127,12 +124,6 @@ func SetupM3() error {
 	// wait for all other servicess
 	log.Println("Waiting on JWT")
 	<-waitJwtCh
-
-	// wait on Prometheus deployment to start and check if there were any errors
-	err = <-waitPrometheusCh
-	if err != nil {
-		log.Println(err)
-	}
 
 	// wait for things that we had no rush to wait on
 	// provisioning namespace
