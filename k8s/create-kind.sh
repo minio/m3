@@ -96,7 +96,6 @@ sleep 30
 kubectl apply -f deployments/m3-autocert-deployment.yaml
 kubectl run autocert-init -it --rm --image alevsk/autocert-init:dev --env="AUTO_START=true" --restart Never
 kubectl label namespace default autocert.step.sm=enabled
-kubectl label namespace m3 autocert.step.sm=enabled
 
 sleep 5
 

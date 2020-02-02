@@ -59,8 +59,8 @@ metadata:
   name: nginx-resolver
 spec:
   ports:
-  - name: http
-    port: 80
+  - name: https
+    port: 443
   selector:
     app: nginx-resolver
   type: ClusterIP
@@ -85,14 +85,16 @@ spec:
       labels:
         app: nginx-resolver
         type: nginx-resolver
+      annotations:
+        autocert.step.sm/name: nginx-resolver.default.svc.cluster.local
     spec:
       containers:
       - image: minio/m3-nginx:edge
         imagePullPolicy: IfNotPresent
         name: nginx-resolver
         ports:
-        - containerPort: 80
-          name: http
+        - containerPort: 443
+          name: https
           protocol: TCP
       serviceAccount: nginx-user
       serviceAccountName: nginx-user
@@ -154,11 +156,7 @@ data:
   # Uncomment to configure the data parity that will be used in the cluster as a whole
   #SETUP_STORAGE_STANDARD_PARITY: "EC:4"
   # Specific Images (uncomment to use instead of default ones):
-  #PROMETHEUS_IMAGE : ""
-  #ETCD_OPERATOR_IMAGE: ""
-  #ETCD_IMAGE: ""
   #KES_IMAGE: ""
-  #NGINX_RESOLVER_IMAGE: ""
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -173,6 +171,8 @@ spec:
     metadata:
       labels:
         app: m3
+      annotations:
+        autocert.step.sm/name: m3.default.svc.cluster.local
     spec:
       serviceAccountName: m3-user
       containers:
@@ -204,6 +204,8 @@ spec:
     metadata:
       labels:
         app: m3-scheduler
+      annotations:
+        autocert.step.sm/name: m3-scheduler.default.svc.cluster.local
     spec:
       serviceAccountName: m3-user
       containers:

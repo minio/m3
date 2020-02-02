@@ -7,7 +7,7 @@ metadata:
   name: postgres
 spec:
   ports:
-    - name: http
+    - name: postgres
       port: 5432
   selector:
     app: postgres
@@ -38,6 +38,8 @@ spec:
     metadata:
       labels:
         app: postgres
+      annotations:
+        autocert.step.sm/name: postgres.default.svc.cluster.local
     spec:
       containers:
         - envFrom:
@@ -48,5 +50,5 @@ spec:
           name: postgres
           ports:
             - containerPort: 5432
-              name: http
+              name: postgres
               protocol: TCP
