@@ -18,6 +18,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"log"
 
 	"google.golang.org/grpc/codes"
@@ -63,8 +64,10 @@ func (ps *privateServer) SetPassword(ctx context.Context, in *pb.SetAdminPasswor
 	}
 	err = cluster.SetAdminPasswordAction(appCtx, &tokenID, in.Password)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, status.New(codes.InvalidArgument, "Invalid token").Err()
+		}
 		log.Println(err)
-		appCtx.Rollback()
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
 

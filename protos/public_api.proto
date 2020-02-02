@@ -152,6 +152,10 @@ service PublicAPI {
     rpc AssignPermissionToMultipleServiceAccounts (MultiAddPermissionToSAsRequest) returns (MultiAddPermissionToSAsResponse) {
     }
 
+    // Version returns the current version of the system components and storage groups
+    rpc Version (Empty) returns (VersionResponse) {
+    }
+
 }
 // Empty message for services that rely on headers
 message Empty {
@@ -467,4 +471,8 @@ message WhoAmIResponse {
 message ForgotPasswordRequest {
     string company = 1;
     string email = 2;
+}
+
+message VersionResponse {
+    map<string, string> components = 1;
 }

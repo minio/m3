@@ -1,4 +1,4 @@
-FROM golang:1.13.4
+FROM golang:1.13.7
 
 ADD go.mod /go/src/github.com/minio/m3/go.mod
 ADD go.sum /go/src/github.com/minio/m3/go.sum
@@ -11,8 +11,13 @@ WORKDIR /go/src/github.com/minio/m3/
 
 ENV CGO_ENABLED=0
 
+ARG build_version
+ARG build_time
+ENV env_build_version=$build_version
+ENV env_build_time=$build_time
+
 RUN apt-get update -y && apt-get install -y ca-certificates
-RUN go build -ldflags "-w -s" -a -o m3 ./cmd/m3
+RUN go build -ldflags "-w -s -X 'github.com/minio/m3/version.BuildTime=$env_build_time' -X 'github.com/minio/m3/version.BuildVersion=$env_build_version'" -a -o m3 ./cmd/m3
 
 FROM scratch
 MAINTAINER MinIO Development "dev@min.io"

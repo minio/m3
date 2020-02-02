@@ -102,3 +102,6 @@ http:
     - selector: m3.PublicAPI.AssignPermissionToMultipleServiceAccounts
       post: /api/v1/permissions/{id}/assign_to_service_accounts
       body: "*"
+    # Versioning
+    - selector: m3.PublicAPI.Version
+      get: /api/v1/version

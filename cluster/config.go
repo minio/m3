@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/minio/m3/version"
+
 	"github.com/minio/minio/pkg/env"
 )
 
@@ -118,15 +120,15 @@ func getDevUseEmptyDir() bool {
 }
 
 func getMaxNumberOfTenantsPerSg() int {
-	var maxSeconds int
+	var maxTenantsPerSg = 16
 	if v := env.Get(maxNumberOfTenantsPerSg, "16"); v != "" {
 		var err error
-		maxSeconds, err = strconv.Atoi(v)
+		maxTenantsPerSg, err = strconv.Atoi(v)
 		if err != nil {
-			return 16
+			return maxTenantsPerSg
 		}
 	}
-	return maxSeconds
+	return maxTenantsPerSg
 }
 
 // AppURL returns the main application url
@@ -140,38 +142,18 @@ func getCliCommand() string {
 	return env.Get("CLI_COMMAND", "m3")
 }
 
-func getEtcdOperatorImage() string {
-	return env.Get(etcdOperatorImage, "quay.io/coreos/etcd-operator:v0.9.4")
-}
-
-func getPrometheusImage() string {
-	return env.Get(prometheusImage, "quay.io/prometheus/prometheus:v2.14.0")
-}
-
-func getEtcdImage() string {
-	return env.Get(etcdImage, "quay.io/coreos/etcd:3.4.0")
-}
-
-func getNginxResolverImage() string {
-	return env.Get(nginxResolverImage, "minio/m3-nginx:edge")
-}
-
-func getNginxResolverPullPolicy() string {
-	return env.Get(nginxResolvermagePullPolicy, "IfNotPresent")
-}
-
-func getEtcdImageRepository() string {
-	parts := strings.Split(getEtcdImage(), ":")
-	if len(parts) > 0 {
-		return parts[0]
+func GetBuildVersion() string {
+	defVersion := "DEVELOPMENT"
+	if version.BuildVersion != "" {
+		defVersion = version.BuildVersion
 	}
-	return ""
+	return defVersion
 }
 
-func getEtcdImageTag() string {
-	parts := strings.Split(getEtcdImage(), ":")
-	if len(parts) > 1 {
-		return parts[1]
+func GetBuildTime() string {
+	defVersion := ""
+	if version.BuildTime != "" {
+		defVersion = version.BuildTime
 	}
-	return "latest"
+	return defVersion
 }
