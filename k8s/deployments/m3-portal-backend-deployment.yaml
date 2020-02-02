@@ -8,7 +8,7 @@ metadata:
 spec:
   ports:
     - port: 5050
-      name: webserver
+      name: https
   selector:
     app: m3-portal-backend
 ---
@@ -25,6 +25,8 @@ spec:
     metadata:
       labels:
         app: m3-portal-backend
+      annotations:
+        autocert.step.sm/name: m3-portal-backend.default.svc.cluster.local
     spec:
       containers:
         - name: m3-portal-backend
@@ -35,9 +37,9 @@ spec:
             - portal
           env:
             - name: M3_HOSTNAME
-              value: "m3"
+              value: "m3.default.svc.cluster.local"
             - name: M3_PUBLIC_PORT
               value: "50051"
           ports:
             - containerPort: 5050
-              name: webserver
+              name: https

@@ -44,6 +44,8 @@ const (
 	etcdOperatorImage              = "ETCD_OPERATOR_IMAGE"
 	etcdImage                      = "ETCD_IMAGE"
 	prometheusImage                = "PROMETHEUS_IMAGE"
+	nginxResolverImage             = "NGINX_RESOLVER_IMAGE"
+	nginxResolvermagePullPolicy    = "NGINX_RESOLVER_IMAGE_PULL_POLICY"
 	maxLivenessInitialSecondsDelay = "LIVENESS_MAX_INITIAL_SECONDS_DELAY"
 	pubNotReadyAddress             = "PUBLISH_NOT_READY_ADDRESS"
 	kmsAddress                     = "KMS_ADDRESS"

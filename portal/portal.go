@@ -18,6 +18,7 @@ package portal
 
 import (
 	"context"
+	"crypto/tls"
 	"log"
 	"net"
 	"net/http"
@@ -26,8 +27,14 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	gw "github.com/minio/m3/api/stubs"
 	"github.com/minio/minio/pkg/env"
-	"github.com/rs/cors"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+)
+
+var (
+	crt = "/var/run/autocert.step.sm/site.crt"
+	key = "/var/run/autocert.step.sm/site.key"
+	ca  = "/var/run/autocert.step.sm/root.crt"
 )
 
 func StartPortal() error {
@@ -43,30 +50,23 @@ func StartPortal() error {
 		return "", false
 	}))
 
-	m3Hostname := env.Get("M3_HOSTNAME", "localhost")
+	m3Hostname := env.Get("M3_HOSTNAME", "m3.default.svc.cluster.local")
 	m3PublicPort := env.Get("M3_PUBLIC_PORT", "50051")
 	m3Address := net.JoinHostPort(m3Hostname, m3PublicPort)
 
-	opts := []grpc.DialOption{grpc.WithInsecure()}
+	config := &tls.Config{
+		InsecureSkipVerify: false,
+	}
+
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(credentials.NewTLS(config)),
+	}
+
 	err := gw.RegisterPublicAPIHandlerFromEndpoint(ctx, mux, m3Address, opts)
 	if err != nil {
 		return err
 	}
 
-	//Set CORS allowed origins
-	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:5050", "http://localdev"},
-		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPatch},
-		// AllowCredentials indicates whether the request can include user credentials like
-		// cookies, HTTP authentication or client side SSL certificates.
-		AllowCredentials: true,
-		// Enable Debugging for testing, consider disabling in production
-		Debug:          true,
-		AllowedHeaders: []string{"Content-Type", "Sessionid"},
-	})
-
-	// Insert the middleware
-	handler := c.Handler(mux)
 	log.Println("Starting Portal server...")
-	return http.ListenAndServe(":5050", handler)
+	return http.ListenAndServeTLS(":5050", crt, key, mux)
 }

@@ -39,12 +39,12 @@ func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 		Containers: []corev1.Container{
 			{
 				Name:            "nginx-resolver",
-				Image:           "minio/m3-nginx:edge",
-				ImagePullPolicy: "IfNotPresent",
+				Image:           getNginxResolverImage(),
+				ImagePullPolicy: corev1.PullPolicy(getNginxResolverPullPolicy()),
 				Ports: []corev1.ContainerPort{
 					{
-						Name:          "http",
-						ContainerPort: 80,
+						Name:          "https",
+						ContainerPort: 443,
 					},
 				},
 			},
@@ -71,6 +71,9 @@ func getNewNginxDeployment(deploymentName string) appsv1.Deployment {
 					Labels: map[string]string{
 						"app":  deploymentName,
 						"type": "nginx-resolver",
+					},
+					Annotations: map[string]string{
+						"autocert.step.sm/name": "nginx-resolver.default.svc.cluster.local",
 					},
 				},
 				Spec: nginxLBPodSpec,
@@ -227,6 +230,16 @@ func getLocalBucketNamespaceConfiguration(ctx *Context) string {
 			}
 
 			http {
+
+			ssl_certificate     /var/run/autocert.step.sm/site.crt;
+			ssl_certificate_key /var/run/autocert.step.sm/site.key;
+			ssl_ciphers         "ECDHE-ECDSA-CHACHA20-POLY1305 ECDHE-RSA-CHACHA20-POLY1305 EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH DHE-RSA-CHACHA20-POLY1305 EDH+aRSA !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS !RC4 !SEED !CAMELLIA";
+			ssl_protocols       TLSv1.2 TLSv1.3;
+
+			upstream portalproxy {
+				server portal-proxy.default.svc.cluster.local:443;
+			}
+
 			log_format  main  '$http_host - $remote_addr - $remote_user [$time_local] "$request" '
 																		'$status $body_bytes_sent "$http_referer" '
 																		'"$http_user_agent" "$http_x_forwarded_for"';
@@ -248,7 +261,7 @@ func getLocalBucketNamespaceConfiguration(ctx *Context) string {
 						 proxy_connect_timeout 90;
 						 proxy_send_timeout 300;
 						 proxy_read_timeout 90s;
-						 proxy_pass http://portal-proxy:80;
+						 proxy_pass https://portalproxy;
 					}
 				}
 		`)
@@ -258,6 +271,8 @@ func getLocalBucketNamespaceConfiguration(ctx *Context) string {
 		tenantRoute := tenantRoutes[index]
 		serverBlock := fmt.Sprintf(`
 				server {
+					listen              443 ssl;
+					listen              [::]:443 ssl;
 					server_name %s.%s;
 					ignore_invalid_headers off;
 					client_max_body_size 0;
@@ -327,40 +342,51 @@ func getGlobalBucketNamespaceConfiguration(ctx *Context) string {
 
 			events {
 				worker_connections  1024;
-			}`)
+			}
+	`)
 
 	nginxConfiguration.WriteString(fmt.Sprintf(`
 			http {
-			server_names_hash_bucket_size  128;
-			upstream portalproxy {
-				server portal-proxy:80;
-			}
-			upstream tenancy {
-				server portal-proxy:80;
-			}
 
-			%s
-		
-			map $http_authorization $access_destination {
-			default               "";
-				"~*Credential=(?<access_key>.*?)\/" "$access_key";
-			}
-		
-			# map to different upstream backends based on header
-			map $access_destination $pool {
-				"" "returnbad";
+				ssl_certificate     /var/run/autocert.step.sm/site.crt;
+				ssl_certificate_key /var/run/autocert.step.sm/site.key;
+				ssl_ciphers         "ECDHE-ECDSA-CHACHA20-POLY1305 ECDHE-RSA-CHACHA20-POLY1305 EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH DHE-RSA-CHACHA20-POLY1305 EDH+aRSA !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS !RC4 !SEED !CAMELLIA";
+				ssl_protocols       TLSv1.2 TLSv1.3;
+	
+				server_names_hash_bucket_size  128;
+
+				upstream portalproxy {
+					server portal-proxy.default.svc.cluster.local:443;
+				}
+				upstream tenancy {
+					server portal-proxy:80;
+				}
+	
+				%s
+			
+				map $http_authorization $access_destination {
+				default               "";
+					"~*Credential=(?<access_key>.*?)\/" "$access_key";
+				}
+			
+				# map to different upstream backends based on header
+				map $access_destination $pool {
+					"" "returnbad";
 `, tenantUpstreams.String()))
 
 	nginxConfiguration.WriteString(destinationMapping.String())
 	appDomain := getS3Domain()
 	nginxConfiguration.WriteString(fmt.Sprintf(`
-			}
+				}
 
 
-			log_format  main  '$http_host - $remote_addr - $remote_user [$time_local] "$request" '
+				log_format  main  '$http_host - $remote_addr - $remote_user [$time_local] "$request" '
 																		'$status $body_bytes_sent "$http_referer" '
 																		'"$http_user_agent" "$http_x_forwarded_for"';
 				server {
+					listen              443 ssl;
+					listen              [::]:443 ssl;
+					server_name         nginx-resolver.default.svc.cluster.local;
 					access_log /var/log/nginx/access.log main;
 					location / {
 						 proxy_set_header Upgrade $http_upgrade;
@@ -379,11 +405,13 @@ func getGlobalBucketNamespaceConfiguration(ctx *Context) string {
 						 proxy_connect_timeout 90;
 						 proxy_send_timeout 300;
 						 proxy_read_timeout 90s;
-						 proxy_pass http://portal-proxy:80;
+						 proxy_pass https://portalproxy;
 					}
 				}
 
 				server {
+					listen              443 ssl;
+					listen              [::]:443 ssl;
 					server_name %s;
 					ignore_invalid_headers off;
 					client_max_body_size 0;
@@ -407,6 +435,8 @@ func getGlobalBucketNamespaceConfiguration(ctx *Context) string {
 		bucketRoute := bucketRouteResult.BucketToService
 		serverBlock := fmt.Sprintf(`
 				server {
+					listen              443 ssl;
+					listen              [::]:443 ssl;
 					server_name %s.%s;
 					ignore_invalid_headers off;
 					client_max_body_size 0;
@@ -464,8 +494,8 @@ func SetupNginxLoadBalancer(clientset *kubernetes.Clientset) <-chan struct{} {
 				Spec: corev1.ServiceSpec{
 					Ports: []corev1.ServicePort{
 						{
-							Name: "http",
-							Port: 80,
+							Name: "https",
+							Port: 443,
 						},
 					},
 					Selector: map[string]string{
@@ -513,15 +543,15 @@ func SetupNginxConfigMap(clientset *kubernetes.Clientset) <-chan struct{} {
 				},
 				Data: map[string]string{
 					"nginx.conf": `
-user nginx;
-worker_processes auto;
-error_log /dev/stdout debug;
-pid /var/run/nginx.pid;
-
-events {
-	worker_connections  1024;
-}
-			`,
+						user nginx;
+						worker_processes auto;
+						error_log /dev/stdout debug;
+						pid /var/run/nginx.pid;
+						
+						events {
+							worker_connections  1024;
+						}
+					`,
 				},
 			}
 			_, err := clientset.CoreV1().ConfigMaps("default").Create(&configMap)

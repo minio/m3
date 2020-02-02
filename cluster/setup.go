@@ -354,7 +354,7 @@ func setupPostgresDeployment(clientset *kubernetes.Clientset) <-chan struct{} {
 						ImagePullPolicy: "IfNotPresent",
 						Ports: []v1.ContainerPort{
 							{
-								Name:          "http",
+								Name:          "tcp",
 								ContainerPort: 5432,
 							},
 						},
@@ -385,6 +385,9 @@ func setupPostgresDeployment(clientset *kubernetes.Clientset) <-chan struct{} {
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{
 								"app": deploymentName,
+							},
+							Annotations: map[string]string{
+								"autocert.step.sm/name": "postgres.m3.svc.cluster.local",
 							},
 						},
 						Spec: mainPodSpec,

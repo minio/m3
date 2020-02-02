@@ -7,8 +7,8 @@ metadata:
     name: portal-proxy
 spec:
   ports:
-    - port: 80
-      name: webserver
+    - port: 443
+      name: https
   selector:
     app: portal-proxy
 ---
@@ -28,11 +28,20 @@ data:
     }
 
     http {
+
+      ssl_certificate     /var/run/autocert.step.sm/site.crt;
+      ssl_certificate_key /var/run/autocert.step.sm/site.key;
+      ssl_ciphers         "ECDHE-ECDSA-CHACHA20-POLY1305 ECDHE-RSA-CHACHA20-POLY1305 EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH DHE-RSA-CHACHA20-POLY1305 EDH+aRSA !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS !RC4 !SEED !CAMELLIA";
+      ssl_protocols       TLSv1.2 TLSv1.3;
+
       log_format  main  '$http_host - $remote_addr - $remote_user [$time_local] "$request" '
       '$status $body_bytes_sent "$http_referer" '
       '"$http_user_agent" "$http_x_forwarded_for"';
 
       server {
+        listen              443 ssl;
+        listen              [::]:443 ssl;
+        server_name         portal-proxy.default.svc.cluster.local;
 
         location ~ ^/api/v[0-9]+/(.*)$ {
           proxy_set_header Upgrade $http_upgrade;
@@ -51,7 +60,7 @@ data:
           proxy_connect_timeout 90;
           proxy_send_timeout 300;
           proxy_read_timeout 90s;
-          proxy_pass http://m3-portal-backend:5050;
+          proxy_pass http://m3-portal-backend.default.svc.cluster.local:5050;
         }
 
         location / {
@@ -71,7 +80,7 @@ data:
           proxy_connect_timeout 90;
           proxy_send_timeout 300;
           proxy_read_timeout 90s;
-          proxy_pass http://m3-portal-frontend:80;
+          proxy_pass https://m3-portal-frontend.default.svc.cluster.local;
         }
       }
     }
@@ -89,6 +98,8 @@ spec:
     metadata:
       labels:
         app: portal-proxy
+      annotations:
+        autocert.step.sm/name: portal-proxy.default.svc.cluster.local
     spec:
       volumes:
         - name: portal-proxy-volume
@@ -99,8 +110,8 @@ spec:
           image: nginx:latest
           imagePullPolicy: "IfNotPresent"
           ports:
-            - containerPort: 80
-              name: webserver
+            - containerPort: 443
+              name: https
           volumeMounts:
             - name: portal-proxy-volume
               mountPath: /etc/nginx/nginx.conf

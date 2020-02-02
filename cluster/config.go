@@ -152,6 +152,14 @@ func getEtcdImage() string {
 	return env.Get(etcdImage, "quay.io/coreos/etcd:3.4.0")
 }
 
+func getNginxResolverImage() string {
+	return env.Get(nginxResolverImage, "minio/m3-nginx:edge")
+}
+
+func getNginxResolverPullPolicy() string {
+	return env.Get(nginxResolvermagePullPolicy, "IfNotPresent")
+}
+
 func getEtcdImageRepository() string {
 	parts := strings.Split(getEtcdImage(), ":")
 	if len(parts) > 0 {

@@ -7,10 +7,49 @@ metadata:
     name: m3-portal-frontend
 spec:
   ports:
-    - port: 80
-      name: webserver
+    - port: 443
+      name: https
   selector:
     app: m3-portal-frontend
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: m3-portal-frontend-config
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /dev/stdout debug;
+    pid /var/run/nginx.pid;
+
+    events {
+      worker_connections  1024;
+    }
+
+    http {
+
+      ssl_certificate     /var/run/autocert.step.sm/site.crt;
+      ssl_certificate_key /var/run/autocert.step.sm/site.key;
+      ssl_ciphers         "ECDHE-ECDSA-CHACHA20-POLY1305 ECDHE-RSA-CHACHA20-POLY1305 EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH DHE-RSA-CHACHA20-POLY1305 EDH+aRSA !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS !RC4 !SEED !CAMELLIA";
+      ssl_protocols       TLSv1.2 TLSv1.3;
+
+      include mime.types;
+      log_format  main  '$http_host - $remote_addr - $remote_user [$time_local] "$request" '
+      '$status $body_bytes_sent "$http_referer" '
+      '"$http_user_agent" "$http_x_forwarded_for"';
+      server {
+        listen              443 ssl;
+        listen              [::]:443 ssl;
+        server_name         m3-portal-frontend.default.svc.cluster.local;
+        access_log /var/log/nginx/access.log main;
+        root /usr/share/nginx/html/;
+        index index.html;
+        location / {
+          try_files $uri /index.html;
+        }
+      }
+    }
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -25,11 +64,21 @@ spec:
     metadata:
       labels:
         app: m3-portal-frontend
+      annotations:
+        autocert.step.sm/name: m3-portal-frontend.default.svc.cluster.local
     spec:
+      volumes:
+        - name: m3-portal-frontend-volume
+          configMap:
+            name: m3-portal-frontend-config
       containers:
         - name: m3-portal-frontend
           image: minio/m3-portal-frontend:dev
           imagePullPolicy: "IfNotPresent"
           ports:
-            - containerPort: 80
-              name: webserver
+            - containerPort: 443
+              name: https
+          volumeMounts:
+            - name: m3-portal-frontend-volume
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf

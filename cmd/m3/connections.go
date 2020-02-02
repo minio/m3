@@ -18,10 +18,12 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
 
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 
 	pb "github.com/minio/m3/api/stubs"
@@ -40,10 +42,15 @@ func GetGRPCChannel() (*GrpcClientConn, error) {
 	host := env.Get(OperatorHostEnv, "localhost")
 	port := env.Get(OperatorPrivatePortEnv, "50052")
 	address := net.JoinHostPort(host, port)
+
+	config := &tls.Config{
+		InsecureSkipVerify: false,
+	}
+
 	// Set up a connection to the server.
-	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(credentials.NewTLS(config)), grpc.WithBlock())
 	if err != nil {
-		log.Printf("did not connect: %s", err.Error())
+		log.Fatalf("did not connect: %s", err.Error())
 		return nil, err
 	}
 

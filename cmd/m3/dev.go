@@ -86,7 +86,7 @@ func dev(ctx *cli.Context) error {
 
 	publicCh := servicePortForwardPort(m3PFCtx, "m3", "50051", color.FgYellow)
 	privateCh := servicePortForwardPort(m3PFCtx, "m3", "50052", color.FgGreen)
-	nginxCh := servicePortForwardPort(nginxCtx, "nginx-resolver", "9000:80", color.FgCyan)
+	nginxCh := servicePortForwardPort(nginxCtx, "nginx-resolver", "9000:443", color.FgCyan)
 	portalCh := servicePortForwardPort(m3PFCtx, "m3-portal-backend", "5050", color.FgMagenta)
 	initialized := false
 	nginxInitialized := false

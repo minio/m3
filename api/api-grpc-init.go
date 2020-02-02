@@ -23,6 +23,7 @@ import (
 	"github.com/minio/m3/api/authentication"
 	pb "github.com/minio/m3/api/stubs"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 const (
@@ -60,6 +61,12 @@ func InitPublicAPIServiceGRPCServer() chan interface{} {
 	return doneCh
 }
 
+var (
+	crt = "/var/run/autocert.step.sm/site.crt"
+	key = "/var/run/autocert.step.sm/site.key"
+	ca  = "/var/run/autocert.step.sm/root.crt"
+)
+
 // InitPrivateAPIServiceGRPCServer starts the Private Portal server within a goroutine, the returned channel will close
 // when the server fails or shuts down
 func InitPrivateAPIServiceGRPCServer() chan interface{} {
@@ -69,9 +76,15 @@ func InitPrivateAPIServiceGRPCServer() chan interface{} {
 		lis, err := net.Listen("tcp", privatePort)
 		if err != nil {
 			log.Fatalf("failed to listen: %v", err)
+			return
+		}
+		tlsConf, err := credentials.NewServerTLSFromFile(crt, key)
+		if err != nil {
+			log.Fatalf("could not load TLS keys for grpc server: %v", err)
+			return
 		}
 		// We will intercept all grpc incoming calls and validate their token unless exempted
-		s := grpc.NewServer(grpc.UnaryInterceptor(authentication.AdminAuthInterceptor))
+		s := grpc.NewServer(grpc.Creds(tlsConf), grpc.UnaryInterceptor(authentication.AdminAuthInterceptor))
 		pb.RegisterPrivateAPIServer(s, &privateServer{})
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("failed to serve: %v", err)
