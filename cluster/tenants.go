@@ -36,11 +36,13 @@ import (
 )
 
 type Tenant struct {
-	ID        uuid.UUID
-	Name      string
-	ShortName string
-	Domain    string
-	Enabled   bool
+	ID             uuid.UUID
+	Name           string
+	ShortName      string
+	Domain         string
+	Enabled        bool
+	Available      bool
+	CostMultiplier float32
 }
 
 type AddTenantResult struct {

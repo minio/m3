@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Enabled TLS communication (`gRPC` and `HTTPS`) between `nginx-resolver`, `portal-proxy`, `m3-portal-frontend`, `m3-portal-backend` and `m3` services using [autocert](https://github.com/smallstep/autocert)
-- Start using "changelog" file
+- Cli command to get storage group tenant's bucket's average usage in a defined period `./m3 cluster sc sg usage`.
+- Start using "changelog" file.
 
 ### Changed
 

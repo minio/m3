@@ -97,6 +97,9 @@ service PrivateAPI {
     // Asks the backend to refresh the nginx routing rules.
     rpc ClusterRouterRefresh(AdminEmpty) returns (AdminEmpty) {
     }
+    // ClusterStorageGroupUsage returns a storage group usage report for all tenants
+    rpc ClusterStorageGroupUsage(StorageGroupUsageRequest) returns (StorageGroupUsageResponse){
+    }
     // Sets Email Template
     rpc SetEmailTemplate (SetEmailTemplateRequest) returns (SetEmailTemplateResponse) {
     }
@@ -318,4 +321,22 @@ message StorageClusterAddRequest {
 
 message StorageClusterAddResponse {
     StorageCluster storage_cluster = 1;
+}
+
+message StorageGroupUsageRequest{
+    string storage_cluster = 1;
+    string storage_group = 2;
+    string from_date = 3;
+    string to_date = 4;
+}
+
+message TenantBucketUsage {
+    string date = 1;
+    string bucket = 2;
+    double usage = 3;
+    string tenant = 4;
+}
+
+message StorageGroupUsageResponse {
+    repeated TenantBucketUsage usage = 1;
 }
