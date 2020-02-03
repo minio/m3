@@ -14,11 +14,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import { USER_LOGGED } from "./types";
+import { MENU_OPEN, USER_LOGGED } from "./types";
 
 export function userLoggedIn(loggedIn: boolean) {
   return {
     type: USER_LOGGED,
     logged: loggedIn
+  };
+}
+
+export function setMenuOpen(open: boolean) {
+  return {
+    type: MENU_OPEN,
+    open: open
   };
 }

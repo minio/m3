@@ -14,31 +14,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import {MENU_OPEN, SystemActionTypes, SystemState, USER_LOGGED} from "./types";
+import storage from "local-storage-fallback";
+import request from "superagent";
 
-const initialState: SystemState = {
-  loggedIn: false,
-  session: "",
-  userName: "",
-  sidebarOpen:true,
-};
+export class API {
+  invoke(method: string, url: string, data?: object) {
+    const token: string = storage.getItem("token")!;
+    return request(method, url)
+      .set("sessionId", token)
+      .send(data)
+      .then(res => res.body)
+      .catch(err => this.onError(err));
+  }
 
-export function systemReducer(
-  state = initialState,
-  action: SystemActionTypes
-): SystemState {
-  switch (action.type) {
-    case USER_LOGGED:
-      return {
-        ...state,
-        loggedIn: action.logged
-      };
-    case MENU_OPEN:
-      return {
-        ...state,
-        sidebarOpen: action.open
-      };
-    default:
-      return state;
+  onError(err: any) {
+    if (err.status) {
+      const errMessage: string =
+        (err.response.body && err.response.body.error) ||
+        err.status.toString(10);
+      return Promise.reject(errMessage);
+    } else {
+      return Promise.reject("Unknown error");
+    }
   }
 }
+const api = new API();
+export default api;

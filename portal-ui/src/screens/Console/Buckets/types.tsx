@@ -14,31 +14,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import {MENU_OPEN, SystemActionTypes, SystemState, USER_LOGGED} from "./types";
+export interface Bucket {
+    name: string;
+    size: string;
+}
 
-const initialState: SystemState = {
-  loggedIn: false,
-  session: "",
-  userName: "",
-  sidebarOpen:true,
-};
-
-export function systemReducer(
-  state = initialState,
-  action: SystemActionTypes
-): SystemState {
-  switch (action.type) {
-    case USER_LOGGED:
-      return {
-        ...state,
-        loggedIn: action.logged
-      };
-    case MENU_OPEN:
-      return {
-        ...state,
-        sidebarOpen: action.open
-      };
-    default:
-      return state;
-  }
+export interface BucketList {
+    buckets: Bucket[];
 }
