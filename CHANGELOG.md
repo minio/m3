@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Start using "changelog" file.
+- Enabled TLS communication (`gRPC` and `HTTPS`) between `nginx-resolver`, `portal-proxy`, `m3-portal-frontend`, `m3-portal-backend` and `m3` services using [autocert](https://github.com/smallstep/autocert)
+- Start using "changelog" file
 
 ### Changed
 
@@ -18,4 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `nginx-resolver` service and deployment are now exposed on the `m3-deployment.yaml`
 
 ### Removed
+
+- Removed `CORS` settings from `mkube portal backend`, if you wish to develop locally please set the `proxy` directive in your react app
 
