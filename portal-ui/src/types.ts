@@ -16,15 +16,22 @@
 
 export interface SystemState {
   loggedIn: boolean;
+  sidebarOpen: boolean;
   session: string;
   userName: string;
 }
 
 export const USER_LOGGED = "USER_LOGGED";
+export const MENU_OPEN = "MENU_OPEN";
 
 interface UserLoggedAction {
   type: typeof USER_LOGGED;
   logged: boolean;
 }
 
-export type SystemActionTypes = UserLoggedAction;
+interface SetMenuOpenAction {
+  type: typeof MENU_OPEN;
+  open: boolean;
+}
+
+export type SystemActionTypes = UserLoggedAction | SetMenuOpenAction;

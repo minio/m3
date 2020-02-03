@@ -24,12 +24,7 @@ import Grid from "@material-ui/core/Grid";
 import Box from "@material-ui/core/Box";
 import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
 import Typography from "@material-ui/core/Typography";
-import {
-  createStyles,
-  makeStyles,
-  Theme,
-  withStyles
-} from "@material-ui/core/styles";
+import { createStyles, Theme, withStyles } from "@material-ui/core/styles";
 import Container from "@material-ui/core/Container";
 import Copyright from "../../components/Copyright";
 import request from "superagent";
