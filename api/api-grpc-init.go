@@ -64,7 +64,6 @@ func InitPublicAPIServiceGRPCServer() chan interface{} {
 var (
 	crt = "/var/run/autocert.step.sm/site.crt"
 	key = "/var/run/autocert.step.sm/site.key"
-	ca  = "/var/run/autocert.step.sm/root.crt"
 )
 
 // InitPrivateAPIServiceGRPCServer starts the Private Portal server within a goroutine, the returned channel will close

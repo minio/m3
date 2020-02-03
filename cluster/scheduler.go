@@ -170,12 +170,13 @@ func startJob(task *Task) error {
 	var backoff int32 = 0
 	var ttlJob int32 = 60
 	log.Println("Scheduling job:", fmt.Sprintf("task-%d-%s-job", task.ID, task.Name))
+	taskName := fmt.Sprintf("task-%d-%s-job", task.ID, task.Name)
 	job := batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Job",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("task-%d-%s-job", task.ID, task.Name),
+			Name: taskName,
 		},
 		Spec: batchv1.JobSpec{
 			TTLSecondsAfterFinished: &ttlJob,

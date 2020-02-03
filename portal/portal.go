@@ -34,7 +34,6 @@ import (
 var (
 	crt = "/var/run/autocert.step.sm/site.crt"
 	key = "/var/run/autocert.step.sm/site.key"
-	ca  = "/var/run/autocert.step.sm/root.crt"
 )
 
 func StartPortal() error {
