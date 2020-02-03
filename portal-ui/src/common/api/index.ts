@@ -1,5 +1,5 @@
 // This file is part of MinIO Kubernetes Cloud
-// Copyright (c) 2020 MinIO, Inc.
+// Copyright (c) 2019 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -14,24 +14,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import { applyMiddleware, combineReducers, compose, createStore } from "redux";
-import thunk from "redux-thunk";
-import { systemReducer } from "./reducer";
+import storage from "local-storage-fallback";
+import request from "superagent";
 
-const globalReducer = combineReducers({
-  system: systemReducer
-});
+export class API {
+  invoke(method: string, url: string, data?: object) {
+    const token: string = storage.getItem("token")!;
+    return request(method, url)
+      .set("sessionId", token)
+      .send(data)
+      .then(res => res.body)
+      .catch(err => this.onError(err));
+  }
 
-declare global {
-  interface Window {
-    __REDUX_DEVTOOLS_EXTENSION_COMPOSE__?: typeof compose;
+  onError(err: any) {
+    if (err.status) {
+      const errMessage: string =
+        (err.response.body && err.response.body.error) ||
+        err.status.toString(10);
+      return Promise.reject(errMessage);
+    } else {
+      return Promise.reject("Unknown error");
+    }
   }
 }
-
-const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
-
-export type AppState = ReturnType<typeof globalReducer>;
-
-export default function configureStore() {
-  return createStore(globalReducer, composeEnhancers(applyMiddleware(thunk)));
-}
+const api = new API();
+export default api;
