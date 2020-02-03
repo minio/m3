@@ -15,6 +15,12 @@
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 DROP INDEX IF EXISTS permissions_sys_created_date_index;
+
 DROP INDEX IF EXISTS service_accounts_sys_created_date_index;
+
 DROP INDEX IF EXISTS users_sys_created_date_index;
+
 DROP INDEX IF EXISTS bucket_metrics_sys_created_date_index;
+
+ALTER TABLE bucket_metrics
+	DROP COLUMN sys_created_date;

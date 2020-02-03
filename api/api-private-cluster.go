@@ -221,72 +221,74 @@ func (ps *privateServer) ClusterStorageGroupUsage(ctx context.Context, in *pb.St
 	return &pb.StorageGroupUsageResponse{Usage: metrics}, nil
 }
 
-// // ClusterStorageGroupSummary returns Storage Group Tenant's summary in a defined period of time
-// // 	It includes, total number of users, total number of service accounts, total number of buckets and Average Usage per bucket
-// func (ps *privateServer) ClusterStorageGroupSummary(ctx context.Context, in *pb.StorageGroupReportRequest) (*pb.StorageGroupSummaryResponse, error) {
-// 	scName := in.GetStorageCluster()
-// 	sgName := in.GetStorageGroup()
-// 	fromDate := in.GetFromDate()
-// 	toDate := in.GetToDate()
+// ClusterStorageGroupSummary returns Storage Group Tenant's summary in a defined period of time
+// 	It includes, total number of users, total number of service accounts, total number of buckets and Average Usage per bucket
+func (ps *privateServer) ClusterStorageGroupSummary(ctx context.Context, in *pb.StorageGroupReportRequest) (*pb.StorageGroupSummaryResponse, error) {
+	scName := in.GetStorageCluster()
+	sgName := in.GetStorageGroup()
+	fromDate := in.GetFromDate()
+	toDate := in.GetToDate()
 
-// 	// Validate dates
-// 	layout := cluster.PostgresShortTimeLayout
-// 	fromDateFormatted, err := time.Parse(layout, fromDate)
-// 	if err != nil {
-// 		log.Println("Wrong date format:", err)
-// 		return nil, status.New(codes.InvalidArgument, "wrong date format").Err()
-// 	}
-// 	toDateFormatted, err := time.Parse(layout, toDate)
-// 	if err != nil {
-// 		log.Println("Wrong date format:", err)
-// 		return nil, status.New(codes.InvalidArgument, "wrong date format").Err()
-// 	}
+	// Validate dates
+	layout := cluster.PostgresShortTimeLayout
+	fromDateFormatted, err := time.Parse(layout, fromDate)
+	if err != nil {
+		log.Println("Wrong date format:", err)
+		return nil, status.New(codes.InvalidArgument, "wrong date format").Err()
+	}
+	toDateFormatted, err := time.Parse(layout, toDate)
+	if err != nil {
+		log.Println("Wrong date format:", err)
+		return nil, status.New(codes.InvalidArgument, "wrong date format").Err()
+	}
 
-// 	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
-// 	if err != nil {
-// 		log.Println(err)
-// 		return nil, status.New(codes.Internal, "Internal error").Err()
-// 	}
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 
-// 	// fetch storage cluster and storage group
-// 	storageCluster, err := cluster.GetStorageClusterByName(appCtx, scName)
-// 	if err != nil {
-// 		log.Println("Error getting storage cluster by name:", err)
-// 		if err == sql.ErrNoRows {
-// 			return nil, status.New(codes.NotFound, "Storage Cluster not found").Err()
-// 		}
-// 		return nil, status.New(codes.Internal, "Internal error").Err()
-// 	}
-// 	storageGroup, err := cluster.GetStorageGroupByNameNStorageCLuster(appCtx, sgName, storageCluster)
-// 	if err != nil {
-// 		log.Println("Error getting storage group by name:", err)
-// 		if err == sql.ErrNoRows {
-// 			return nil, status.New(codes.NotFound, "Storage Group not found").Err()
-// 		}
-// 		return nil, status.New(codes.Internal, "Internal error").Err()
-// 	}
+	// fetch storage cluster and storage group
+	storageCluster, err := cluster.GetStorageClusterByName(appCtx, scName)
+	if err != nil {
+		log.Println("Error getting storage cluster by name:", err)
+		if err == sql.ErrNoRows {
+			return nil, status.New(codes.NotFound, "Storage Cluster not found").Err()
+		}
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	storageGroup, err := cluster.GetStorageGroupByNameNStorageCLuster(appCtx, sgName, storageCluster)
+	if err != nil {
+		log.Println("Error getting storage group by name:", err)
+		if err == sql.ErrNoRows {
+			return nil, status.New(codes.NotFound, "Storage Group not found").Err()
+		}
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
 
-// 	// Get all services(tenants) of a storage group and only get the tenant bucket usage if the service has been claimed
-// 	tenants := <-cluster.GetListOfTenantsForStorageGroup(appCtx, storageGroup)
-// 	var metrics []*pb.TenantBucketUsage
-// 	for _, tenant := range tenants {
-// 		if !tenant.Available {
-// 			tenantDB := db.GetInstance().GetTenantDB(tenant.Tenant.ShortName)
-// 			bucketUsageMetrics, err := cluster.GetTenantsBucketUsageDb(tenantDB, fromDateFormatted, toDateFormatted)
-// 			if err != nil {
-// 				log.Println("error getting daily bucket metrics:", err)
-// 				return nil, status.New(codes.Internal, "Internal error").Err()
-// 			}
-// 			for _, bm := range bucketUsageMetrics {
-// 				metric := &pb.TenantBucketUsage{
-// 					Date:   bm.Time.String(),
-// 					Bucket: bm.Name,
-// 					Usage:  bm.AverageUsage,
-// 					Tenant: tenant.Tenant.Name,
-// 				}
-// 				metrics = append(metrics, metric)
-// 			}
-// 		}
-// 	}
-// 	return &pb.StorageGroupSummaryResponse{Summary: metrics}, nil
-// }
+	// Get all services(tenants) of a storage group and only get the tenant bucket usage if the service has been claimed
+	tenants := <-cluster.GetListOfTenantsForStorageGroup(appCtx, storageGroup)
+	var metrics []*pb.StorageGroupSummary
+	for _, tenant := range tenants {
+		if !tenant.Available {
+			tenantDB := db.GetInstance().GetTenantDB(tenant.Tenant.ShortName)
+			bucketUsageMetrics, err := cluster.GetTenantsSummaryDb(tenantDB, fromDateFormatted, toDateFormatted)
+			if err != nil {
+				log.Println("error getting daily bucket metrics:", err)
+				return nil, status.New(codes.Internal, "Internal error").Err()
+			}
+			for _, sm := range bucketUsageMetrics {
+				metric := &pb.StorageGroupSummary{
+					Date:                 sm.Time.String(),
+					Tenant:               tenant.Tenant.Name,
+					TotalUsers:           sm.UsersCount,
+					TotalServiceAccounts: sm.ServiceAccountsCount,
+					TotalBuckets:         sm.BucketsCount,
+					Usage:                sm.Usage,
+				}
+				metrics = append(metrics, metric)
+			}
+		}
+	}
+	return &pb.StorageGroupSummaryResponse{Summary: metrics}, nil
+}

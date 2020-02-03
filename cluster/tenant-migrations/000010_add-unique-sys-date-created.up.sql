@@ -23,5 +23,8 @@ CREATE INDEX service_accounts_sys_created_date_index
 CREATE INDEX users_sys_created_date_index
     ON users (sys_created_date);
 
+ALTER TABLE bucket_metrics
+    ADD COLUMN sys_created_date TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL;
+
 CREATE INDEX bucket_metrics_sys_created_date_index
-    ON bucket_metrics (last_update);
+    ON bucket_metrics (sys_created_date);
