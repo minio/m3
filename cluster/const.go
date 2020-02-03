@@ -63,6 +63,8 @@ const (
 	SessionIDKey             key = iota
 	WhoAmIKey                key = iota
 	maxReadinessTries            = 120 // This should allow for 4 minutes of attempts
+	PostgresShortTimeLayout      = "2006-01-02"
+	PostgresLongTimeLayout       = "2006-01-02 15:04:05 -0700 MST"
 
 	// configurations
 	cfgCoreGlobalBuckets     = "core.global_buckets"

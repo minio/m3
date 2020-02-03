@@ -18,11 +18,14 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"regexp"
+	"time"
 
 	pb "github.com/minio/m3/api/stubs"
 	"github.com/minio/m3/cluster"
+	"github.com/minio/m3/cluster/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -147,4 +150,73 @@ func (ps *privateServer) ClusterRouterRefresh(ctx context.Context, in *pb.AdminE
 		return nil, status.New(codes.Internal, "Error updating nginx. Check the logs.").Err()
 	}
 	return &pb.AdminEmpty{}, nil
+}
+
+// ClusterStorageGroupUsage returns Storage Group Tenant's bucket usage report in a defined period of time
+func (ps *privateServer) ClusterStorageGroupUsage(ctx context.Context, in *pb.StorageGroupUsageRequest) (*pb.StorageGroupUsageResponse, error) {
+	scName := in.GetStorageCluster()
+	sgName := in.GetStorageGroup()
+	fromDate := in.GetFromDate()
+	toDate := in.GetToDate()
+
+	// Validate dates
+	layout := cluster.PostgresShortTimeLayout
+	fromDateFormatted, err := time.Parse(layout, fromDate)
+	if err != nil {
+		log.Println("Wrong date format:", err)
+		return nil, status.New(codes.InvalidArgument, "wrong date format").Err()
+	}
+	toDateFormatted, err := time.Parse(layout, toDate)
+	if err != nil {
+		log.Println("Wrong date format:", err)
+		return nil, status.New(codes.InvalidArgument, "wrong date format").Err()
+	}
+
+	appCtx, err := cluster.NewEmptyContextWithGrpcContext(ctx)
+	if err != nil {
+		log.Println(err)
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
+	// fetch storage cluster and storage group
+	storageCluster, err := cluster.GetStorageClusterByName(appCtx, scName)
+	if err != nil {
+		log.Println("Error getting storage cluster by name:", err)
+		if err == sql.ErrNoRows {
+			return nil, status.New(codes.NotFound, "Storage Cluster not found").Err()
+		}
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+	storageGroup, err := cluster.GetStorageGroupByNameNStorageCluster(appCtx, sgName, storageCluster)
+	if err != nil {
+		log.Println("Error getting storage group by name:", err)
+		if err == sql.ErrNoRows {
+			return nil, status.New(codes.NotFound, "Storage Group not found").Err()
+		}
+		return nil, status.New(codes.Internal, "Internal error").Err()
+	}
+
+	// Get all services(tenants) of a storage group and only get the tenant bucket usage if the service has been claimed
+	tenants := <-cluster.GetListOfTenantsForStorageGroup(appCtx, storageGroup)
+	var metrics []*pb.TenantBucketUsage
+	for _, tenant := range tenants {
+		if !tenant.Available {
+			tenantDB := db.GetInstance().GetTenantDB(tenant.Tenant.ShortName)
+			bucketUsageMetrics, err := cluster.GetTenantsBucketUsageDb(tenantDB, fromDateFormatted, toDateFormatted)
+			if err != nil {
+				log.Println("error getting daily bucket metrics:", err)
+				return nil, status.New(codes.Internal, "Internal error").Err()
+			}
+			for _, bm := range bucketUsageMetrics {
+				metric := &pb.TenantBucketUsage{
+					Date:   bm.Time.String(),
+					Bucket: bm.Name,
+					Usage:  bm.AverageUsage,
+					Tenant: tenant.Tenant.Name,
+				}
+				metrics = append(metrics, metric)
+			}
+		}
+	}
+	return &pb.StorageGroupUsageResponse{Usage: metrics}, nil
 }
