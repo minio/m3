@@ -19,6 +19,7 @@ package portal
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -51,6 +52,8 @@ func StartPortal() error {
 
 	m3Hostname := env.Get("M3_HOSTNAME", "m3.default.svc.cluster.local")
 	m3PublicPort := env.Get("M3_PUBLIC_PORT", "50051")
+	m3PortalPort := env.Get("M3_PORTAL_PORT", "5050")
+	port := fmt.Sprintf(":%s", m3PortalPort)
 	m3Address := net.JoinHostPort(m3Hostname, m3PublicPort)
 
 	config := &tls.Config{
@@ -67,5 +70,5 @@ func StartPortal() error {
 	}
 
 	log.Println("Starting Portal server...")
-	return http.ListenAndServeTLS(":5050", crt, key, mux)
+	return http.ListenAndServeTLS(port, crt, key, mux)
 }
