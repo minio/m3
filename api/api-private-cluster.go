@@ -257,7 +257,7 @@ func (ps *privateServer) ClusterStorageGroupSummary(ctx context.Context, in *pb.
 		}
 		return nil, status.New(codes.Internal, "Internal error").Err()
 	}
-	storageGroup, err := cluster.GetStorageGroupByNameNStorageCLuster(appCtx, sgName, storageCluster)
+	storageGroup, err := cluster.GetStorageGroupByNameNStorageCluster(appCtx, sgName, storageCluster)
 	if err != nil {
 		log.Println("Error getting storage group by name:", err)
 		if err == sql.ErrNoRows {
