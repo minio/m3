@@ -15,44 +15,68 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import React from "react";
-import {Router, Switch, Route, Redirect, RouteProps} from "react-router-dom";
+import { Redirect, Route, Router, Switch } from "react-router-dom";
 import history from "./history";
 import Login from "./screens/LoginPage";
 import Signup from "./screens/SignupPage";
 import LandingPage from "./screens/LandingPage";
-import Dashboard from './screens/Dashboard';
-import NotFoundPage from './screens/NotFoundPage'
+import Dashboard from "./screens/Dashboard";
+import NotFoundPage from "./screens/NotFoundPage";
 import storage from "local-storage-fallback";
 import CreatePassword from "./screens/CreatePassword";
+import { connect } from "react-redux";
+import { AppState } from "./store";
+import { userLoggedIn } from "./actions";
 
 const isLoggedIn = () => {
-  return storage.getItem('token') !== undefined &&
-    storage.getItem('token') !== null &&
-    storage.getItem('token') !== '';
+  return (
+    storage.getItem("token") !== undefined &&
+    storage.getItem("token") !== null &&
+    storage.getItem("token") !== ""
+  );
+};
+
+const mapState = (state: AppState) => ({
+  loggedIn: state.system.loggedIn
+});
+
+const connector = connect(mapState, { userLoggedIn });
+
+interface LoginProps {
+  loggedIn: boolean;
+  userLoggedIn: typeof userLoggedIn;
 }
 
-const Routes: React.FC = () => (
-  <Router history={history}>
-    <Switch>
-      <Route exact path="/create-password" component={CreatePassword}/>
-      <Route exact path="/login" component={Login}/>
-      <Route exact path="/signup" component={Signup}/>
-      {
-        isLoggedIn() ? (
-          <Switch>
-            <Route exact path="/dashboard" component={Dashboard}/>
-            <Redirect exact from="/" to="dashboard"/>
-            <Route component={NotFoundPage} />
-          </Switch>
-        ) : (
-          <Switch>
-            <Route exact path="/" component={LandingPage}/>
-            <Route component={NotFoundPage} />
-          </Switch>
-        )
-      }
-    </Switch>
-  </Router>
-);
+class Routes extends React.Component<LoginProps> {
+  componentDidMount(): void {
+    if (isLoggedIn()) {
+      this.props.userLoggedIn(true);
+    }
+  }
 
-export default Routes;
+  render() {
+    return (
+      <Router history={history}>
+        <Switch>
+          <Route exact path="/create-password" component={CreatePassword} />
+          <Route exact path="/login" component={Login} />
+          <Route exact path="/signup" component={Signup} />
+          {this.props.loggedIn ? (
+            <Switch>
+              <Route exact path="/dashboard" component={Dashboard} />
+              <Redirect exact from="/" to="dashboard" />
+              <Route component={NotFoundPage} />
+            </Switch>
+          ) : (
+            <Switch>
+              <Route exact path="/" component={LandingPage} />
+              <Route component={NotFoundPage} />
+            </Switch>
+          )}
+        </Switch>
+      </Router>
+    );
+  }
+}
+
+export default connector(Routes);
