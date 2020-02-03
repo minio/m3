@@ -1,5 +1,5 @@
 // This file is part of MinIO Kubernetes Cloud
-// Copyright (c) 2020 MinIO, Inc.
+// Copyright (c) 2019 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -14,24 +14,25 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import { applyMiddleware, combineReducers, compose, createStore } from "redux";
-import thunk from "redux-thunk";
-import { systemReducer } from "./reducer";
+import { SystemActionTypes, SystemState, USER_LOGGED } from "./types";
 
-const globalReducer = combineReducers({
-  system: systemReducer
-});
+const initialState: SystemState = {
+  loggedIn: false,
+  session: "",
+  userName: ""
+};
 
-declare global {
-  interface Window {
-    __REDUX_DEVTOOLS_EXTENSION_COMPOSE__?: typeof compose;
+export function systemReducer(
+  state = initialState,
+  action: SystemActionTypes
+): SystemState {
+  switch (action.type) {
+    case USER_LOGGED:
+      return {
+        ...state,
+        loggedIn: action.logged
+      };
+    default:
+      return state;
   }
-}
-
-const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
-
-export type AppState = ReturnType<typeof globalReducer>;
-
-export default function configureStore() {
-  return createStore(globalReducer, composeEnhancers(applyMiddleware(thunk)));
 }
