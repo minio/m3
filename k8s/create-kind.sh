@@ -41,6 +41,8 @@ done
 
 echo "Provisioning Kind"
 kind create cluster --name m3cluster --config kind-cluster.yaml
+echo "install metrics server"
+kubectl apply -f deployments/metrics-dev.yaml
 echo "installing dashboard"
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-rc1/aio/deploy/recommended.yaml
 echo "creating service account"
