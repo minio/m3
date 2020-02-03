@@ -87,6 +87,8 @@ fi
 kubectl apply -f deployments/postgres-dev.yaml
 # install etcd-operator
 kubectl apply -f deployments/etcd-dev.yaml
+# install prometheus
+kubectl apply -f deployments/prometheus-dev.yaml
 kubectl apply -f deployments/m3-portal-backend-deployment.yaml
 kubectl apply -f deployments/m3-portal-frontend-deployment.yaml
 kubectl apply -f deployments/m3-vault-deployment.yaml

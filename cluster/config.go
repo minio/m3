@@ -142,10 +142,6 @@ func getCliCommand() string {
 	return env.Get("CLI_COMMAND", "m3")
 }
 
-func getPrometheusImage() string {
-	return env.Get(prometheusImage, "quay.io/prometheus/prometheus:v2.14.0")
-}
-
 func GetBuildVersion() string {
 	defVersion := "DEVELOPMENT"
 	if version.BuildVersion != "" {
