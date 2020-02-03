@@ -91,6 +91,14 @@ else
 	kind load docker-image minio/m3-vault:edge --name m3cluster
 fi
 
+# Whether or not to build the m3 container and load it to kind or just load it
+if [[ $M3_DOCKER == "true" ]]; then
+	# Build mkube
+  make --directory=".." k8sdev TAG=minio/m3:dev
+else
+	kind load docker-image minio/m3:dev --name m3cluster
+fi
+
 # install autocert
 sleep 30
 
@@ -111,15 +119,6 @@ kubectl apply -f deployments/m3-portal-backend-deployment.yaml
 kubectl apply -f deployments/m3-portal-frontend-deployment.yaml
 kubectl apply -f deployments/m3-vault-deployment.yaml
 kubectl apply -f deployments/portal-proxy-deployment.yaml
-
-# Whether or not to build the m3 container and load it to kind or just load it
-if [[ $M3_DOCKER == "true" ]]; then
-	# Build mkube
-  make --directory=".." k8sdev TAG=minio/m3:dev
-else
-	kind load docker-image minio/m3:dev --name m3cluster
-fi
-
 
 # Wait for etcd-operator custom resource to be ready, then create the etcd cluster
 CR_COUNT=0

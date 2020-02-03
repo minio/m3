@@ -215,7 +215,7 @@ func SendAdminInviteTask(task *Task) error {
 	// perform invitation
 	err = doSendAdminInvite(admin, taskData.AdminToken)
 	if err != nil {
-		log.Println(err)
+		log.Println("Error when sending admin invitation", err)
 		if err := ctx.Rollback(); err != nil {
 			log.Println(err)
 		}

@@ -92,11 +92,13 @@ func SendMail(toName, toEmail, subject, body string) error {
 	// from the very beginning (no starttls)
 	conn, err := tls.Dial("tcp", servername, tlsconfig)
 	if err != nil {
+		log.Println("Error while trying to tls dial", err)
 		return err
 	}
 
 	c, err := smtp.NewClient(conn, host)
 	if err != nil {
+		log.Println("Error while trying to get new smtp client", err)
 		return err
 	}
 
