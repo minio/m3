@@ -159,8 +159,8 @@ func GetStorageGroupByID(ctx *Context, id *uuid.UUID) (*StorageGroup, error) {
 	return &sg, nil
 }
 
-// GetStorageGroupByNameNStorageCLuster returns a storage group by name for a particular storage group
-func GetStorageGroupByNameNStorageCLuster(ctx *Context, name string, storageCluster *StorageCluster) (*StorageGroup, error) {
+// GetStorageGroupByNameNStorageCluster returns a storage group by name for a particular storage group
+func GetStorageGroupByNameNStorageCluster(ctx *Context, name string, storageCluster *StorageCluster) (*StorageGroup, error) {
 	sg := StorageGroup{}
 	// For now, let's select a storage group at random
 	query := `
