@@ -558,69 +558,6 @@ func GetDailyAvgBucketUsageFromDB(ctx *Context, date time.Time) ([]*BucketMetric
 	return bucketMetrics, nil
 }
 
-// GetTenantsBucketUsage gets the tenant's bucket's usage in a defined period
-func GetTenantsBucketUsage(ctx *Context, fromDate time.Time, toDate time.Time) ([]*BucketMetric, error) {
-	query := `
-		SELECT year, month,
-		bucket, 
-		avg(daily_avg_usage) / pow(1024.0, 4.0) as monthly_avg_usage
-		FROM (
-			SELECT 
-			year, month, day,
-			bucket,
-			avg(usage) as daily_avg_usage
-			FROM(
-				SELECT 
-					 EXTRACT (YEAR FROM a.last_update) as year,
-					 EXTRACT (MONTH FROM a.last_update) as month,
-					 EXTRACT (DAY FROM a.last_update) as day,
-					 bsize.key as bucket,
-					 bsize.value::FLOAT as usage
-				FROM bucket_metrics as a
-				JOIN json_each_text(a.buckets_sizes) bsize on true
-				WHERE a.last_update >= $1 AND a.last_update <= $2
-			) l
-			GROUP BY 
-				year, month, day, bucket
-		) d
-		GROUP BY
-			year, month, bucket
-	`
-	tx, err := ctx.TenantTx()
-	if err != nil {
-		return nil, err
-	}
-
-	// Execute query search one Month after `date`
-	rows, err := tx.Query(query, fromDate, toDate)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var bucketMetrics []*BucketMetric
-	for rows.Next() {
-		bm := BucketMetric{}
-		var year int
-		var month time.Month
-		err = rows.Scan(&year, &month, &bm.Name, &bm.AverageUsage)
-		if err != nil {
-			return nil, err
-		}
-		bm.Time = time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
-		bucketMetrics = append(bucketMetrics, &bm)
-	}
-	err = rows.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	if err != nil {
-		log.Println("error getting tenant's bucket's usage:", err)
-		return nil, err
-	}
-	return bucketMetrics, nil
-}
-
 // GetTenantsBucketUsageDb gets the tenant's bucket's usage in a defined period similar to GetTenantsBucketUsage
 // 	but it creates a new connection to the database instead of performing the query on a tenants transaction
 func GetTenantsBucketUsageDb(db *sql.DB, fromDate time.Time, toDate time.Time) ([]*BucketMetric, error) {
