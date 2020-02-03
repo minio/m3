@@ -25,6 +25,7 @@
     "react-router-dom": "^5.1.2",
     "react-scripts": "3.2.0",
     "recharts": "^2.0.0-beta.1",
+    "recompose": "^0.30.0",
     "redux": "^4.0.4",
     "redux-thunk": "^2.3.0",
     "superagent": "^5.1.0",
