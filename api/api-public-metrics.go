@@ -31,7 +31,7 @@ import (
 func (s *server) Metrics(ctx context.Context, in *pb.MetricsRequest) (res *pb.MetricsResponse, err error) {
 	date := in.GetQuery()
 	// incomming date should be like layout
-	layout := "2006-01-02"
+	layout := cluster.PostgresShortTimeLayout
 	dateFormatted, err := time.Parse(layout, date)
 	if err != nil {
 		log.Println("Wrong date format:", err)
@@ -71,7 +71,7 @@ func (s *server) Metrics(ctx context.Context, in *pb.MetricsRequest) (res *pb.Me
 	var dailyMetrics []*pb.MetricsDayUsage
 	for _, bm := range bucketDailyMetrics {
 		metric := &pb.MetricsDayUsage{
-			Time:  bm.Date.String(),
+			Time:  bm.Time.String(),
 			Usage: uint64(bm.AverageUsage),
 		}
 		dailyMetrics = append(dailyMetrics, metric)

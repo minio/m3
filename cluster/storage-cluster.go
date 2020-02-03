@@ -137,7 +137,7 @@ func AddStorageGroup(ctx *Context, storageClusterID *uuid.UUID, sgName string) c
 	return ch
 }
 
-// GetStorageGroupByID returns a storage group by name
+// GetStorageGroupByID returns a storage group by id
 func GetStorageGroupByID(ctx *Context, id *uuid.UUID) (*StorageGroup, error) {
 	sg := StorageGroup{}
 	// For now, let's select a storage group at random
@@ -151,6 +151,38 @@ func GetStorageGroupByID(ctx *Context, id *uuid.UUID) (*StorageGroup, error) {
 	if err := db.GetInstance().Db.QueryRow(query, id).Scan(&sg.ID, &sg.Name, &sg.Num, &sg.StorageClusterID); err != nil {
 		return nil, err
 	}
+
+	err := GetStorageGroupDetails(ctx, &sg)
+	if err != nil {
+		return nil, err
+	}
+	return &sg, nil
+}
+
+// GetStorageGroupByNameNStorageCluster returns a storage group by name for a particular storage group
+func GetStorageGroupByNameNStorageCluster(ctx *Context, name string, storageCluster *StorageCluster) (*StorageGroup, error) {
+	sg := StorageGroup{}
+	// For now, let's select a storage group at random
+	query := `
+			SELECT 
+			     sg.id, sg.name, sg.num, sg.storage_cluster_id
+			FROM 
+			     storage_groups sg
+			WHERE sg.name=$1 AND sg.storage_cluster_id=$2  LIMIT 1;`
+	// non-transactional query as there cannot be a storage group insert along with a read
+	if err := db.GetInstance().Db.QueryRow(query, name, storageCluster.ID).Scan(&sg.ID, &sg.Name, &sg.Num, &sg.StorageClusterID); err != nil {
+		return nil, err
+	}
+
+	err := GetStorageGroupDetails(ctx, &sg)
+	if err != nil {
+		return nil, err
+	}
+	return &sg, nil
+}
+
+// GetStorageGroupDetails gets storage cluster nodes, volumes and total number of tenants for a particular storage group
+func GetStorageGroupDetails(ctx *Context, storageGroup *StorageGroup) error {
 	// get volume counts and host counts
 	queryNodes := `
 			SELECT 
@@ -158,8 +190,8 @@ func GetStorageGroupByID(ctx *Context, id *uuid.UUID) (*StorageGroup, error) {
 			FROM storage_cluster_nodes sgn 
 			WHERE sgn.storage_cluster_id=$1`
 	// non-transactional query as there cannot be a storage group insert along with a read
-	if err := db.GetInstance().Db.QueryRow(queryNodes, sg.StorageClusterID).Scan(&sg.TotalNodes); err != nil {
-		return nil, err
+	if err := db.GetInstance().Db.QueryRow(queryNodes, storageGroup.StorageClusterID).Scan(&storageGroup.TotalNodes); err != nil {
+		return err
 	}
 
 	queryVolumes := `
@@ -171,8 +203,8 @@ func GetStorageGroupByID(ctx *Context, id *uuid.UUID) (*StorageGroup, error) {
 			GROUP BY nv.node_id
 			LIMIT 1) AS ct`
 	// non-transactional query as there cannot be a storage group insert along with a read
-	if err := db.GetInstance().Db.QueryRow(queryVolumes, sg.StorageClusterID).Scan(&sg.TotalVolumes); err != nil {
-		return nil, err
+	if err := db.GetInstance().Db.QueryRow(queryVolumes, storageGroup.StorageClusterID).Scan(&storageGroup.TotalVolumes); err != nil {
+		return err
 	}
 
 	queryTenants := `
@@ -181,12 +213,11 @@ func GetStorageGroupByID(ctx *Context, id *uuid.UUID) (*StorageGroup, error) {
 			FROM tenants_storage_groups tsg 
 			WHERE tsg.storage_group_id=$1`
 	// non-transactional query as there cannot be a storage group insert along with a read
-	if err := db.GetInstance().Db.QueryRow(queryTenants, sg.ID).Scan(&sg.TotalTenants); err != nil {
-		return nil, err
+	if err := db.GetInstance().Db.QueryRow(queryTenants, storageGroup.ID).Scan(&storageGroup.TotalTenants); err != nil {
+		return err
 	}
 
-	return &sg, nil
-
+	return nil
 }
 
 // provisions the storage group supporting services that point to each node in the storage group
@@ -291,7 +322,15 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*Sto
 		}
 		query := `
 			SELECT
-			       t1.tenant_id, t1.port, t1.service_name, t2.name, t2.short_name
+			       t1.tenant_id,
+			       t1.port,
+			       t1.service_name,
+			       t2.name,
+			       t2.short_name,
+			       t2.enabled,
+			       t2.cost_multiplier,
+			       t2.available,
+			       t2.domain
 			FROM
 			     tenants_storage_groups t1
 			LEFT JOIN tenants t2
@@ -311,26 +350,24 @@ func GetListOfTenantsForStorageGroup(ctx *Context, sg *StorageGroup) chan []*Sto
 		defer rows.Close()
 		var tenants []*StorageGroupTenant
 		for rows.Next() {
-			var tenantID uuid.UUID
-			var tenantName string
-			var tenantShortName string
-			var port int32
-			var serviceName string
-			err = rows.Scan(&tenantID, &port, &serviceName, &tenantName, &tenantShortName)
+			sgTenant := StorageGroupTenant{StorageGroup: sg}
+			tenant := Tenant{}
+			err = rows.Scan(&tenant.ID,
+				&sgTenant.Port,
+				&sgTenant.ServiceName,
+				&tenant.Name,
+				&tenant.ShortName,
+				&tenant.Enabled,
+				&tenant.CostMultiplier,
+				&tenant.Available,
+				&tenant.Domain,
+			)
+			sgTenant.Tenant = &tenant
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
+				continue
 			}
-
-			tenants = append(tenants, &StorageGroupTenant{
-				Tenant: &Tenant{
-					ID:        tenantID,
-					Name:      tenantName,
-					ShortName: tenantShortName,
-				},
-				Port:         port,
-				ServiceName:  serviceName,
-				StorageGroup: sg})
-
+			tenants = append(tenants, &sgTenant)
 		}
 		if err := rows.Err(); err != nil {
 			log.Println(err)

@@ -97,22 +97,23 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 
 	// TODO: Update List bucket to use context so the tenant is read automatically
 	// List buckets in the tenant's MinIO
-	var bucketInfos []cluster.TenantBucketInfo
+	var bucketInfos []*cluster.BucketInfo
 	bucketInfos, err = cluster.ListBuckets(appCtx.Tenant.ShortName)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.Internal, "Failed to list buckets").Err()
 	}
 
-	bucketsSizes, err := cluster.GetLatestBucketsSizes(appCtx)
+	// Get latest bucket sizes, if an error occurs, continue listing the buckets
+	bucketsSizes, err := cluster.GetLatestBucketsSizes(appCtx, bucketInfos)
 	if err != nil {
 		log.Println("error getting buckets sizes:", err)
 	}
 
 	var buckets []*pb.Bucket
 	for _, bucketInfo := range bucketInfos {
+		// if size not in bucketsSizes Default size is 0
 		size := bucketsSizes[bucketInfo.Name]
-		// if !ok size is 0 by default
 		buckets = append(buckets, &pb.Bucket{
 			Name:   bucketInfo.Name,
 			Access: getAccessType(bucketInfo.Access),
