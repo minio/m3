@@ -26,13 +26,13 @@ import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
 import Typography from "@material-ui/core/Typography";
 import { createStyles, Theme, withStyles } from "@material-ui/core/styles";
 import Container from "@material-ui/core/Container";
-import Copyright from "../../components/Copyright";
 import request from "superagent";
 import storage from "local-storage-fallback";
-import history from "./../../history";
 import { connect, ConnectedProps } from "react-redux";
-import { userLoggedIn } from "../../actions";
-import { SystemState } from "../../types";
+import Copyright from "../common/Copyright";
+import { SystemState } from "../types";
+import { userLoggedIn } from "../actions";
+import history from "../history";
 
 const styles = (theme: Theme) =>
   createStyles({

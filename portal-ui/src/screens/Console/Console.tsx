@@ -37,8 +37,8 @@ import Link from "@material-ui/core/Link";
 import MenuIcon from "@material-ui/icons/Menu";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
 import NotificationsIcon from "@material-ui/icons/Notifications";
-import { mainListItems, secondaryListItems } from "./ListItems";
-import Dashboard from "./Dashboard";
+import { mainListItems, secondaryListItems } from "./Menu";
+
 import history from "../../history";
 import {
   Route,
@@ -51,14 +51,16 @@ import { connect } from "react-redux";
 import { AppState } from "../../store";
 import {setMenuOpen, userLoggedIn} from "../../actions";
 import { ThemedComponentProps } from "@material-ui/core/styles/withTheme";
-import Buckets from "./Buckets";
+import Buckets from "./Buckets/Buckets";
+import Dashboard from "./Dashboard/Dashboard";
+
 
 function Copyright() {
   return (
     <Typography variant="body2" color="textSecondary" align="center">
       {"Copyright © "}
       <Link color="inherit" href="https://material-ui.com/">
-        Your Website
+        MinIO
       </Link>{" "}
       {new Date().getFullYear()}
       {"."}

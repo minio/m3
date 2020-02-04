@@ -19,7 +19,7 @@ import { Route, Router, Switch } from "react-router-dom";
 import history from "./history";
 import Login from "./screens/LoginPage";
 import Signup from "./screens/SignupPage";
-import Console from "./screens/Console";
+import Console from "./screens/Console/Console";
 import NotFoundPage from "./screens/NotFoundPage";
 import storage from "local-storage-fallback";
 import CreatePassword from "./screens/CreatePassword";

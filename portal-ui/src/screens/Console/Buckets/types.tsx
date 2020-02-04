@@ -15,10 +15,11 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 export interface Bucket {
-    name: string;
-    size: string;
+  name: string;
+  size: string;
 }
 
 export interface BucketList {
-    buckets: Bucket[];
+  buckets: Bucket[];
+  total_buckets: number;
 }
