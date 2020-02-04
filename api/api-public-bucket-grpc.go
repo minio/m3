@@ -156,7 +156,7 @@ func (s *server) DeleteBucket(ctx context.Context, in *pb.DeleteBucketRequest) (
 		return nil, status.New(codes.Internal, "Internal Error").Err()
 	}
 	if bucketUsed {
-		log.Println("Bucket is being used in at least one permission")
+		log.Println("Error deleting bucket: Bucket is being used in at least one permission")
 		return nil, status.New(codes.FailedPrecondition, "Bucket is being used in at least one permission").Err()
 	}
 
