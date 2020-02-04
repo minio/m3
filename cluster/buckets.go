@@ -755,13 +755,6 @@ func RecurrentTenantMetricsCalculation() chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
-		// Do at start
-		err := CalculateTenantsMetrics()
-		if err != nil {
-			log.Println(err)
-			ch <- err
-			return
-		}
 		for {
 			select {
 			case <-ticker.C:
