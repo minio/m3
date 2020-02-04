@@ -31,6 +31,7 @@ var storageGroupCmd = cli.Command{
 	Subcommands: []cli.Command{
 		addStorageGroupCmd,
 		storageGroupUsageCmd,
+		storageGroupSummaryCmd,
 	},
 }
 
