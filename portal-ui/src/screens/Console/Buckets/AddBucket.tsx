@@ -91,7 +91,7 @@ class AddBucket extends React.Component<IAddBucketProps, IAddBucketState> {
       >
         <Grid container>
           <Grid item xs={12}>
-            <Title>Add Buckets</Title>
+            <Title>Add Bucket</Title>
           </Grid>
           {addError !== "" && (
             <Grid item xs={12}>
