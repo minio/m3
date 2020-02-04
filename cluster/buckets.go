@@ -762,7 +762,7 @@ func GetTenantsSummaryDb(db *sql.DB, fromDate time.Time, toDate time.Time) ([]*S
 // RecurrentTenantMetricsCalculation loop that calculates bucket usage metrics for all tenants and saves them on the db
 func RecurrentTenantMetricsCalculation() chan error {
 	// How often will this function run
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTicker(6 * time.Hour)
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
