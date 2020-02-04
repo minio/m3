@@ -267,6 +267,13 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
       this.setState({ deleteOpen: true, selectedBucket: bucket });
     };
 
+      const bytesToSize = (bytes) => {
+          var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+          if (bytes == 0) return '0 Byte';
+          var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+          return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+      }
+
     return (
       <React.Fragment>
         <Drawer
@@ -324,7 +331,7 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
                 {records.map(row => (
                   <TableRow key={row.name}>
                     <TableCell>{row.name}</TableCell>
-                    <TableCell>{row.size}</TableCell>
+                    <TableCell>{bytesToSize(row.size)}</TableCell>
                     <TableCell align="right">
                       <IconButton
                         aria-label="delete"
