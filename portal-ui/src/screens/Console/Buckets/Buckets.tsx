@@ -267,11 +267,15 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
       this.setState({ deleteOpen: true, selectedBucket: bucket });
     };
 
-      const bytesToSize = (bytes) => {
-          var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-          if (bytes == 0) return '0 Byte';
-          var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
-          return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+      const bytesToSize = (bytesStr:string) => {
+          const bytes = parseInt(bytesStr,10)
+          if (isNaN(bytes)) {
+              return '0 Byte';
+          }
+          const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+          if (bytes === 0) return '0 Byte';
+          const i = Math.floor(Math.log(bytes) / Math.log(1024));
+          return Math.round(bytes / Math.pow(1024, i)) + ' ' + sizes[i];
       }
 
     return (
