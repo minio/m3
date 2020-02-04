@@ -20,7 +20,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -182,21 +181,11 @@ func DeleteBucket(ctx *Context, bucket string) error {
 	if err != nil {
 		return err
 	}
-	// Verify if bucket is being used within a permission.
-	//	If bucket is being used, we don't allow the deletion.
-	//	The permission needs to be updated first.
-	bucketUsed, err := bucketInPermission(ctx, bucket)
-	if err != nil {
-		return err
-	}
-	if bucketUsed {
-		return fmt.Errorf("bucket is being used in at least one permission")
-	}
 	return minioClient.RemoveBucket(bucket)
 }
 
-// bucketInPermission returns wether a bucket is being used within a permission or not
-func bucketInPermission(ctx *Context, bucketName string) (bool, error) {
+// BucketInPermission returns wether a bucket is being used within a permission or not
+func BucketInPermission(ctx *Context, bucketName string) (bool, error) {
 	query := `
 		SELECT 
 			bucket_name
