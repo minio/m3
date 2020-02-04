@@ -135,4 +135,7 @@ sleep 5
 VAULT_TOKEN=$(kubectl logs $(kubectl get pods | grep vault | awk '{print $1}') -c m3-vault | grep token: | sed 's/^.*: //')
 kubectl get configmaps m3-env -o json | jq --arg vt "$VAULT_TOKEN" '.data["KMS_TOKEN"]=$vt' | kubectl apply -f -
 
+# Extracts cluster CA certificate (the one used by autocert), you need to install manually this in your system in order to issue m3 commands
+kubectl get configmap -n step certs -o json | jq -r '.data["root_ca.crt"]' > ../cluster-ca.crt
+
 echo "done"

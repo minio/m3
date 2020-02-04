@@ -3,6 +3,8 @@ MinIO Kubernetes Cloud
 
 ## Prerequisites
 
+- [jq](https://stedolan.github.io/jq/)
+
 - [Docker](https://docs.docker.com/install/)
 
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
@@ -37,6 +39,19 @@ inside `/k8s` run:
 ```
 cd k8s/; ./create-kind.sh
 ```
+Add the following host names to your `/etc/hosts` file
+
+``` 
+127.0.0.1    nginx-resolver.default.svc.cluster.local
+127.0.0.1    m3.default.svc.cluster.local
+```
+Add `m3.default.svc.cluster.local` to your env variables, setting this configuration in your `.bashrc` or equivalent file is recommended.
+
+```
+export OPERATOR_HOST=m3.default.svc.cluster.local
+```
+
+Install the custom ca certificate in your system. The certificate should be generated on the root of your project `cluster-ca.crt` after the cluster setup is done.
 
 ## Access Kubernetes dashboard
 

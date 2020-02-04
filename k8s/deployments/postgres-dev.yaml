@@ -38,8 +38,6 @@ spec:
     metadata:
       labels:
         app: postgres
-      annotations:
-        autocert.step.sm/name: postgres.default.svc.cluster.local
     spec:
       containers:
         - envFrom:
