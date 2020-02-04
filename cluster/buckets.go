@@ -867,7 +867,6 @@ func getTenantMetrics(ctx *Context, tenant *Tenant) error {
 	if err != nil {
 		return err
 	}
-	log.Println("len(dataUsageInfo.BucketsSizes): ", len(dataUsageInfo.BucketsSizes), "dataUsageInfo.BucketsCount:", dataUsageInfo.BucketsCount)
 	// prepare stmt for bulk insert
 	if len(dataUsageInfo.BucketsSizes) > 0 {
 		for bucketName, bucketSize := range dataUsageInfo.BucketsSizes {
