@@ -110,7 +110,7 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 	limit := in.Limit
 	var bucketSliced []*cluster.BucketInfo
 	// if no limit, send all buckets
-	if limit == 0 {
+	if limit <= 0 {
 		bucketSliced = bucketInfos
 	} else {
 		toMax := in.Offset + limit
