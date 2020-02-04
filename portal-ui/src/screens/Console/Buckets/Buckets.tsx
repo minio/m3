@@ -210,6 +210,18 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
             totalRecords: res.total_buckets,
             error: ""
           });
+          // if we get 0 results, and page > 0 , go down 1 page
+          if (
+            (res.buckets === undefined ||
+              res.buckets == null ||
+              res.buckets.length === 0) &&
+            page > 0
+          ) {
+            const newPage = page - 1;
+            this.setState({ page: newPage }, () => {
+              this.fetchRecords();
+            });
+          }
         })
         .catch(err => {
           this.setState({ loading: false, error: err });
