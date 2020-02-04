@@ -147,6 +147,19 @@ func (s *server) DeleteBucket(ctx context.Context, in *pb.DeleteBucketRequest) (
 	if err != nil {
 		return nil, err
 	}
+	// Verify if bucket is being used within a permission.
+	//	If bucket is being used, we don't allow the deletion.
+	//	The permission needs to be updated first.
+	bucketUsed, err := cluster.BucketInPermission(appCtx, bucket)
+	if err != nil {
+		log.Println("Error checking buckets used in permissions:", err)
+		return nil, status.New(codes.Internal, "Internal Error").Err()
+	}
+	if bucketUsed {
+		log.Println("Error deleting bucket: Bucket is being used in at least one permission")
+		return nil, status.New(codes.FailedPrecondition, "Bucket is being used in at least one permission").Err()
+	}
+
 	err = cluster.DeleteBucket(appCtx, bucket)
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
