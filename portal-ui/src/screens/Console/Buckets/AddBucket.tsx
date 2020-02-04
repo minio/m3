@@ -21,7 +21,6 @@ import Typography from "@material-ui/core/Typography";
 import { Button, LinearProgress, TextField } from "@material-ui/core";
 import { createStyles, Theme, withStyles } from "@material-ui/core/styles";
 import api from "../../../common/api";
-import { BucketList } from "./types";
 
 const styles = (theme: Theme) =>
   createStyles({

@@ -18,70 +18,89 @@ import React from "react";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemIcon from "@material-ui/core/ListItemIcon";
 import ListItemText from "@material-ui/core/ListItemText";
-import ListSubheader from "@material-ui/core/ListSubheader";
 import DashboardIcon from "@material-ui/icons/Dashboard";
-import PeopleIcon from "@material-ui/icons/People";
 import BarChartIcon from "@material-ui/icons/BarChart";
 import LayersIcon from "@material-ui/icons/Layers";
-import AssignmentIcon from "@material-ui/icons/Assignment";
 import ArchiveIcon from "@material-ui/icons/Archive";
 import { Link } from "react-router-dom";
+import { Divider } from "@material-ui/core";
+import { ExitToApp } from "@material-ui/icons";
+import { AppState } from "../../store";
+import { connect } from "react-redux";
+import { userLoggedIn } from "../../actions";
+import List from "@material-ui/core/List";
+import storage from "local-storage-fallback";
+import history from "../../history";
+import LockIcon from "@material-ui/icons/Lock";
 
-export const mainListItems = (
-  <div>
-    <ListItem button component={Link} to="/">
-      <ListItemIcon>
-        <DashboardIcon />
-      </ListItemIcon>
-      <ListItemText primary="Dashboard" />
-    </ListItem>
-    <ListItem button component={Link} to="/buckets">
-      <ListItemIcon>
-        <ArchiveIcon />
-      </ListItemIcon>
-      <ListItemText primary="Buckets" />
-    </ListItem>
-    <ListItem button>
-      <ListItemIcon>
-        <PeopleIcon />
-      </ListItemIcon>
-      <ListItemText primary="Customers" />
-    </ListItem>
-    <ListItem button>
-      <ListItemIcon>
-        <BarChartIcon />
-      </ListItemIcon>
-      <ListItemText primary="Reports" />
-    </ListItem>
-    <ListItem button>
-      <ListItemIcon>
-        <LayersIcon />
-      </ListItemIcon>
-      <ListItemText primary="Integrations" />
-    </ListItem>
-  </div>
-);
+const mapState = (state: AppState) => ({
+  open: state.system.loggedIn
+});
 
-export const secondaryListItems = (
-  <div>
-    <ListSubheader inset>Saved reports</ListSubheader>
-    <ListItem button>
-      <ListItemIcon>
-        <AssignmentIcon />
-      </ListItemIcon>
-      <ListItemText primary="Current month" />
-    </ListItem>
-    <ListItem button>
-      <ListItemIcon>
-        <AssignmentIcon />
-      </ListItemIcon>
-      <ListItemText primary="Last quarter" />
-    </ListItem>
-    <ListItem button>
-      <ListItemIcon>
-        <AssignmentIcon />
-      </ListItemIcon>
-      <ListItemText primary="Year-end sale" />
-    </ListItem>
-  </div>
-);
+const connector = connect(mapState, { userLoggedIn });
+
+interface MenuProps {
+  userLoggedIn: typeof userLoggedIn;
+}
+
+class Menu extends React.Component<MenuProps> {
+  logout() {
+    storage.removeItem("token");
+    this.props.userLoggedIn(false);
+    history.push("/");
+  }
+
+  render() {
+    return (
+      <List>
+        {}
+        <div>
+          <ListItem button component={Link} to="/">
+            <ListItemIcon>
+              <DashboardIcon />
+            </ListItemIcon>
+            <ListItemText primary="Dashboard" />
+          </ListItem>
+          <ListItem button component={Link} to="/buckets">
+            <ListItemIcon>
+              <ArchiveIcon />
+            </ListItemIcon>
+            <ListItemText primary="Buckets" />
+          </ListItem>
+          <ListItem button component={Link} to="/permissions">
+            <ListItemIcon>
+              <LockIcon />
+            </ListItemIcon>
+            <ListItemText primary="Permissions" />
+          </ListItem>
+          <ListItem button>
+            <ListItemIcon>
+              <BarChartIcon />
+            </ListItemIcon>
+            <ListItemText primary="Reports" />
+          </ListItem>
+          <ListItem button>
+            <ListItemIcon>
+              <LayersIcon />
+            </ListItemIcon>
+            <ListItemText primary="Integrations" />
+          </ListItem>
+          <Divider />
+          <ListItem
+            button
+            onClick={() => {
+              this.logout();
+            }}
+          >
+            <ListItemIcon>
+              <ExitToApp />
+            </ListItemIcon>
+            <ListItemText primary="Logout" />
+          </ListItem>
+        </div>
+      </List>
+    );
+  }
+}
+
+export default connector(Menu);

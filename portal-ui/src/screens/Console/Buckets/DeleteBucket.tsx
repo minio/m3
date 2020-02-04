@@ -25,10 +25,8 @@ import {
   DialogTitle,
   LinearProgress
 } from "@material-ui/core";
-import { Delete } from "@material-ui/icons";
 import api from "../../../common/api";
 import { BucketList } from "./types";
-import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
 
 const styles = (theme: Theme) =>
