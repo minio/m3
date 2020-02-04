@@ -28,27 +28,22 @@ import (
 // list files and folders.
 var tenantDeleteCmd = cli.Command{
 	Name:   "delete",
-	Usage:  "delete a tenant",
+	Usage:  "deletes a disabled tenant with all tenant's related data",
 	Action: tenantDelete,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "short-name",
 			Value: "",
-			Usage: "short Name of the tenant",
-		},
-		cli.BoolFlag{
-			Name:  "confirm",
-			Usage: "Confirm you want to delete the tenant",
+			Usage: "short name of the tenant",
 		},
 	},
 }
 
-// Command to delete a tenant and all tenant's related data, it has a mandatory parameter for the tenant name and confirm flag
-//     m3 tenant delete tenant-1 --confirm
-//     m3 tenant delete --short-name tenant-1 --confirm
+// Command to delete a tenant and all tenant's related data
+//     m3 tenant delete tenant-1
+//     m3 tenant delete --short-name tenant-1
 func tenantDelete(ctx *cli.Context) error {
 	shortName := ctx.String("short-name")
-	confirm := ctx.Bool("confirm")
 	if shortName == "" && ctx.Args().Get(0) != "" {
 		shortName = ctx.Args().Get(0)
 	}
@@ -56,8 +51,15 @@ func tenantDelete(ctx *cli.Context) error {
 		fmt.Println("You must provide short tenant name")
 		return nil
 	}
-	if !confirm {
-		fmt.Println("You must pass the confirm flag")
+	fmt.Print("Please retype short tenant name for confirmation: ")
+	var retype string
+	_, err := fmt.Scanln(&retype)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if retype != shortName {
+		fmt.Println("Short names should match to complete deletion")
 		return nil
 	}
 	fmt.Println("Deleting tenant:", shortName)

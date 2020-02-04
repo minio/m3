@@ -45,7 +45,7 @@ func AdminAuthInterceptor(ctx context.Context, req interface{}, info *grpc.Unary
 
 	token, err := grpc_auth.AuthFromMD(ctx, "Token")
 	if err != nil {
-		log.Println("No token")
+		log.Println("Unauthenticated request: ", err)
 		return nil, err
 	}
 
