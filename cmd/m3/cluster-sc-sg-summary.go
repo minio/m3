@@ -29,11 +29,11 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-// get storage group usage report
-var storageGroupUsageCmd = cli.Command{
-	Name:   "usage",
-	Usage:  "Get storage group average usage per tenant per period \n",
-	Action: storageGroupUsage,
+// get storage group summary report
+var storageGroupSummaryCmd = cli.Command{
+	Name:   "summary",
+	Usage:  "Get storage group summary info per tenant \n Includes number of users, service accounts, buckets and average usage\n",
+	Action: storageGroupSummary,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "storage-cluster",
@@ -58,7 +58,7 @@ var storageGroupUsageCmd = cli.Command{
 	},
 }
 
-func storageGroupUsage(ctx *cli.Context) error {
+func storageGroupSummary(ctx *cli.Context) error {
 	storageCluster := ctx.String("storage-cluster")
 	storageGroup := ctx.String("storage-group")
 	fromDate := ctx.String("from-date")
@@ -106,7 +106,7 @@ func storageGroupUsage(ctx *cli.Context) error {
 	}
 	defer cnxs.Conn.Close()
 	// perform RPC
-	res, err := cnxs.Client.ClusterStorageGroupUsage(cnxs.Context, &pb.StorageGroupReportRequest{
+	res, err := cnxs.Client.ClusterStorageGroupSummary(cnxs.Context, &pb.StorageGroupReportRequest{
 		StorageCluster: storageCluster,
 		StorageGroup:   storageGroup,
 		FromDate:       fromDate,
@@ -117,7 +117,7 @@ func storageGroupUsage(ctx *cli.Context) error {
 		return nil
 	}
 
-	var tableHeader = []string{"Period", "Account Holder", "Tenant", "Customer", "Bucket", "Region", "AVG Usage [TB]"}
+	var tableHeader = []string{"Period", "Tenant", "Total Users", "Total Service Accounts", " Total Buckets", "AVG Usage [TB]"}
 
 	var tableData [][]string
 	var writer *csv.Writer
@@ -125,7 +125,7 @@ func storageGroupUsage(ctx *cli.Context) error {
 	// Add Header
 	tableData = append(tableData, tableHeader)
 	// Build rows for table
-	for _, metric := range res.Usage {
+	for _, metric := range res.Summary {
 		var yearString = "NA"
 		var monthString = "NA"
 		longTimelayout := cluster.PostgresLongTimeLayout
@@ -140,11 +140,10 @@ func storageGroupUsage(ctx *cli.Context) error {
 
 		var row = []string{
 			fmt.Sprintf("%s-%s", yearString, monthString),
-			"",
 			metric.Tenant,
-			"",
-			metric.Bucket,
-			"",
+			fmt.Sprintf("%d", metric.TotalUsers),
+			fmt.Sprintf("%d", metric.TotalServiceAccounts),
+			fmt.Sprintf("%d", metric.TotalBuckets),
 			fmt.Sprintf("%f", metric.Usage),
 		}
 		tableData = append(tableData, row)
@@ -152,7 +151,8 @@ func storageGroupUsage(ctx *cli.Context) error {
 
 	if toCsvBool {
 		// Open file to create
-		file, err := os.Create(fmt.Sprintf("./cluster-usage-report-%s-to-%s.csv", fromDate, toDate))
+		fileName := fmt.Sprintf("./cluster-summary-report-%s-to-%s.csv", fromDate, toDate)
+		file, err := os.Create(fileName)
 		if err != nil {
 			fmt.Println("Failed creating file:", err)
 			return nil
@@ -165,7 +165,7 @@ func storageGroupUsage(ctx *cli.Context) error {
 			fmt.Println("error writing on the file:", err)
 			return nil
 		}
-		fmt.Printf("File created: ./cluster-usage-report-%s-to-%s.csv\n", fromDate, toDate)
+		fmt.Printf("File created: %s\n", fileName)
 		return nil
 	}
 

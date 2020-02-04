@@ -589,7 +589,6 @@ func GetTenantsBucketUsageDb(db *sql.DB, fromDate time.Time, toDate time.Time) (
 		ORDER BY
 			year, month, monthly_avg_usage DESC
 	`
-	// Execute query search one Month after `date`
 	rows, err := db.Query(query, fromDate, toDate)
 	if err != nil {
 		return nil, err
@@ -620,6 +619,146 @@ func GetTenantsBucketUsageDb(db *sql.DB, fromDate time.Time, toDate time.Time) (
 	return bucketMetrics, nil
 }
 
+type SummaryMetric struct {
+	UsersCount           int32
+	ServiceAccountsCount int32
+	BucketsCount         int32
+	Time                 time.Time
+	Usage                float64
+}
+
+type SQLSummaryMetric struct {
+	UsersCount           sql.NullInt32
+	ServiceAccountsCount sql.NullInt32
+	BucketsCount         sql.NullInt32
+	Time                 sql.NullTime
+	Usage                sql.NullFloat64
+}
+
+// GetTenantsSummaryDb gets the tenant's summary info, includes; number of users, number of service accounts,
+//  total number of nbuckets and average usage in a defined period.
+// It creates a new connection to the database instead of performing the query on a tenants transaction.
+func GetTenantsSummaryDb(db *sql.DB, fromDate time.Time, toDate time.Time) ([]*SummaryMetric, error) {
+	// This query gets sub queries to get the total number of buckets, total number of users, total number of
+	// service accounts and average usage per period. It performs first a query that will rule the months of the period
+	// so that the latters can do left join.
+	query := `
+		SELECT  dp.year, dp.month, monthly_avg_usage, total_users, total_service_accounts, max_total_buckets
+		FROM (
+			SELECT 
+				EXTRACT (YEAR FROM dp.dates_in_period) as year,
+				EXTRACT (MONTH FROM dp.dates_in_period) as month
+			FROM (
+				SELECT
+					GENERATE_SERIES($1::TIMESTAMP, $2, '1 month') as dates_in_period
+			) dp
+		) dp
+		LEFT JOIN (
+			SELECT
+				year, month,
+				avg(daily_avg_usage) / pow(1024.0, 4.0) as monthly_avg_usage
+			FROM (
+				SELECT
+					EXTRACT (YEAR FROM bm.sys_created_date) as year,
+					EXTRACT (MONTH FROM bm.sys_created_date) as month,
+					EXTRACT (DAY FROM bm.sys_created_date) as day,
+					avg(bm.total_usage::FLOAT) as daily_avg_usage
+				FROM bucket_metrics as bm
+					WHERE bm.sys_created_date >= $1 AND bm.sys_created_date <= $2
+				GROUP BY
+					year, month, day
+			) d
+			GROUP BY
+				year, month
+			ORDER BY
+				year, month, monthly_avg_usage DESC
+		) bu ON dp.year = bu.year AND dp.month = bu.month
+		LEFT JOIN (
+			SELECT 
+				year,
+				month,
+				COUNT(c.email) total_users
+			FROM(
+				SELECT 
+					EXTRACT(YEAR from u.sys_created_date) as year,
+					EXTRACT(MONTH from u.sys_created_date) as month,
+					u.email
+				FROM users u
+				WHERE u.sys_created_date >= $1 AND u.sys_created_date <= $2
+			) c
+			GROUP BY
+				year, month
+		) u ON u.year = dp.year AND u.month = dp.month
+		LEFT JOIN (
+			SELECT 
+				year,
+				month,
+				COUNT(c.slug) total_service_accounts
+			FROM(
+				SELECT 
+					EXTRACT(YEAR from sa.sys_created_date) as year,
+					EXTRACT(MONTH from sa.sys_created_date) as month,
+					sa.slug
+				FROM service_accounts sa
+				WHERE sa.sys_created_date >= $1 AND sa.sys_created_date <= $2
+			) c
+			GROUP BY
+				year, month
+		) sa ON dp.year = sa.year AND dp.month = sa.month
+		LEFT JOIN (
+			SELECT
+				EXTRACT (YEAR FROM bm.sys_created_date) as year,
+				EXTRACT (MONTH FROM bm.sys_created_date) as month,
+				MAX(bm.total_buckets) as max_total_buckets
+			FROM bucket_metrics as bm
+				WHERE bm.sys_created_date >= $1 AND bm.sys_created_date <= $2
+			GROUP BY
+				year, month
+		) tb ON dp.year = tb.year AND dp.month = tb.month`
+	rows, err := db.Query(query, fromDate, toDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var summaryMetrics []*SummaryMetric
+	for rows.Next() {
+		sqlsm := SQLSummaryMetric{}
+		var year int
+		var month time.Month
+		err = rows.Scan(&year, &month, &sqlsm.Usage, &sqlsm.UsersCount, &sqlsm.ServiceAccountsCount, &sqlsm.BucketsCount)
+		if err != nil {
+			return nil, err
+		}
+		sm := SummaryMetric{Usage: 0.0, UsersCount: 0, ServiceAccountsCount: 0, BucketsCount: 0}
+		// build bucket Time record, day is fixed to 1 since the query only cares about year and month
+		sm.Time = time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+		// If rows have not null values, assign actual values.
+		if sqlsm.Usage.Valid {
+			sm.Usage = sqlsm.Usage.Float64
+		}
+		if sqlsm.UsersCount.Valid {
+			sm.UsersCount = sqlsm.UsersCount.Int32
+		}
+		if sqlsm.ServiceAccountsCount.Valid {
+			sm.ServiceAccountsCount = sqlsm.ServiceAccountsCount.Int32
+		}
+		if sqlsm.BucketsCount.Valid {
+			sm.BucketsCount = sqlsm.BucketsCount.Int32
+		}
+		summaryMetrics = append(summaryMetrics, &sm)
+	}
+	err = rows.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	if err != nil {
+		log.Println("error getting tenant's summary:", err)
+		return nil, err
+	}
+	return summaryMetrics, nil
+}
+
 // RecurrentTenantMetricsCalculation loop that calculates bucket usage metrics for all tenants and saves them on the db
 func RecurrentTenantMetricsCalculation() chan error {
 	// How often will this function run
@@ -627,6 +766,13 @@ func RecurrentTenantMetricsCalculation() chan error {
 	ch := make(chan error)
 	go func() {
 		defer close(ch)
+		// Do at start
+		err := CalculateTenantsMetrics()
+		if err != nil {
+			log.Println(err)
+			ch <- err
+			return
+		}
 		for {
 			select {
 			case <-ticker.C:
