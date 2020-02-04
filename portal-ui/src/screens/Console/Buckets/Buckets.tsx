@@ -33,26 +33,21 @@ import api from "../../../common/api";
 import { Bucket, BucketList } from "./types";
 import {
   Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   Drawer,
   IconButton,
   LinearProgress,
   TableFooter,
   TablePagination,
-  TextField,
   Toolbar
 } from "@material-ui/core";
-import Title from "../../../common/Title";
 import Typography from "@material-ui/core/Typography";
 import DeleteIcon from "@material-ui/icons/Delete";
 import { KeyboardArrowLeft, KeyboardArrowRight } from "@material-ui/icons";
 import { TablePaginationActionsProps } from "@material-ui/core/TablePagination/TablePaginationActions";
 import FirstPageIcon from "@material-ui/icons/FirstPage";
 import LastPageIcon from "@material-ui/icons/LastPage";
+import AddBucket from "./AddBucket";
+import DeleteBucket from "./DeleteBucket";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -166,13 +161,9 @@ interface IBucketsState {
   records: Bucket[];
   totalRecords: number;
   loading: boolean;
-  addLoading: boolean;
-  deleteLoading: boolean;
   error: string;
-  addError: string;
   deleteError: string;
   addScreenOpen: boolean;
-  bucketName: string;
   page: number;
   rowsPerPage: number;
   deleteOpen: boolean;
@@ -184,13 +175,9 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
     records: [],
     totalRecords: 0,
     loading: false,
-    addLoading: false,
-    deleteLoading: false,
     error: "",
-    addError: "",
     deleteError: "",
     addScreenOpen: false,
-    bucketName: "",
     page: 0,
     rowsPerPage: 10,
     deleteOpen: false,
@@ -229,68 +216,17 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
     });
   }
 
-  addRecord(event: React.FormEvent) {
-    event.preventDefault();
-    const { bucketName, addLoading } = this.state;
-    if (addLoading) {
-      return;
-    }
-    this.setState({ addLoading: true }, () => {
-      api
-        .invoke("POST", "/api/v1/buckets", {
-          name: bucketName
-        })
-        .then((res: BucketList) => {
-          this.setState(
-            {
-              addLoading: false,
-              records: res.buckets,
-              addError: "",
-              addScreenOpen: false
-            },
-            () => {
-              this.fetchRecords();
-            }
-          );
-        })
-        .catch(err => {
-          this.setState({
-            addLoading: false,
-            addError: err
-          });
-        });
+  closeAddModalAndRefresh() {
+    this.setState({ addScreenOpen: false }, () => {
+      this.fetchRecords();
     });
   }
 
-  removeRecord() {
-    const { selectedBucket, deleteLoading } = this.state;
-    if (deleteLoading) {
-      return;
-    }
-    this.setState({ deleteLoading: true }, () => {
-      api
-        .invoke("DELETE", `/api/v1/buckets/${selectedBucket}`, {
-          name: selectedBucket
-        })
-        .then((res: BucketList) => {
-          this.setState(
-            {
-              deleteLoading: false,
-              records: res.buckets,
-              deleteError: "",
-              deleteOpen: false
-            },
-            () => {
-              this.fetchRecords();
-            }
-          );
-        })
-        .catch(err => {
-          this.setState({
-            deleteLoading: false,
-            deleteError: err
-          });
-        });
+  closeDeleteModalAndRefresh(refresh: boolean) {
+    this.setState({ deleteOpen: false }, () => {
+      if (refresh) {
+        this.fetchRecords();
+      }
     });
   }
 
@@ -305,9 +241,6 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
       totalRecords,
       addScreenOpen,
       loading,
-      addLoading,
-      deleteLoading,
-      addError,
       page,
       rowsPerPage,
       deleteOpen,
@@ -344,59 +277,11 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
           }}
         >
           <div className={classes.addSideBar}>
-            <form
-              noValidate
-              autoComplete="off"
-              onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
-                this.addRecord(e);
+            <AddBucket
+              closeModalAndRefresh={() => {
+                this.closeAddModalAndRefresh();
               }}
-            >
-              <Grid container>
-                <Grid item xs={12}>
-                  <Title>Add Buckets</Title>
-                </Grid>
-                {addError !== "" && (
-                  <Grid item xs={12}>
-                    <Typography
-                      component="p"
-                      variant="body1"
-                      className={classes.errorBlock}
-                    >
-                      {`${addError}`}
-                    </Typography>
-                  </Grid>
-                )}
-                <Grid item xs={12}>
-                  <TextField
-                    id="standard-basic"
-                    fullWidth
-                    label="Bucket Name"
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      this.setState({ bucketName: e.target.value });
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <br />
-                </Grid>
-                <Grid item xs={12}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    disabled={addLoading}
-                  >
-                    Save
-                  </Button>
-                </Grid>
-                {addLoading && (
-                  <Grid item xs={12}>
-                    <LinearProgress />
-                  </Grid>
-                )}
-              </Grid>
-            </form>
+            />
           </div>
         </Drawer>
 
@@ -481,43 +366,13 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
             <div>No Buckets</div>
           )}
         </Paper>
-        <Dialog
-          open={deleteOpen}
-          onClose={() => {
-            this.setState({ deleteOpen: false });
+        <DeleteBucket
+          deleteOpen={deleteOpen}
+          selectedBucket={selectedBucket}
+          closeDeleteModalAndRefresh={(refresh: boolean) => {
+            this.closeDeleteModalAndRefresh(refresh);
           }}
-          aria-labelledby="alert-dialog-title"
-          aria-describedby="alert-dialog-description"
-        >
-          <DialogTitle id="alert-dialog-title">Delete Bucket</DialogTitle>
-          <DialogContent>
-            {deleteLoading && <LinearProgress />}
-            <DialogContentText id="alert-dialog-description">
-              Are you sure you want to delete bucket <b>{selectedBucket}</b>?{" "}
-              <br />A bucket can only be deleted if it's empty.
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() => {
-                this.setState({ deleteOpen: false });
-              }}
-              color="primary"
-              disabled={deleteLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                this.removeRecord();
-              }}
-              color="secondary"
-              autoFocus
-            >
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
+        />
       </React.Fragment>
     );
   }

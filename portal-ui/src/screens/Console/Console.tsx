@@ -27,7 +27,6 @@ import Drawer from "@material-ui/core/Drawer";
 import Box from "@material-ui/core/Box";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
-import List from "@material-ui/core/List";
 import Typography from "@material-ui/core/Typography";
 import Divider from "@material-ui/core/Divider";
 import IconButton from "@material-ui/core/IconButton";
@@ -37,7 +36,6 @@ import Link from "@material-ui/core/Link";
 import MenuIcon from "@material-ui/icons/Menu";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
 import NotificationsIcon from "@material-ui/icons/Notifications";
-import { mainListItems, secondaryListItems } from "./Menu";
 
 import history from "../../history";
 import {
@@ -49,11 +47,14 @@ import {
 } from "react-router-dom";
 import { connect } from "react-redux";
 import { AppState } from "../../store";
-import {setMenuOpen, userLoggedIn} from "../../actions";
+import { setMenuOpen } from "../../actions";
 import { ThemedComponentProps } from "@material-ui/core/styles/withTheme";
 import Buckets from "./Buckets/Buckets";
 import Dashboard from "./Dashboard/Dashboard";
-
+import Menu from "./Menu";
+import api from "../../common/api";
+import storage from "local-storage-fallback";
+import NotFoundPage from "../NotFoundPage";
 
 function Copyright() {
   return (
@@ -160,16 +161,26 @@ interface ConsoleProps {
   open: boolean;
   title: string;
   classes: any;
-    setMenuOpen: typeof setMenuOpen;
+  setMenuOpen: typeof setMenuOpen;
 }
 
-// const Console = withRouter(
-//     class Console extends React.Component<ConsoleProps & RouteComponentProps & StyledProps & ThemedComponentProps> {
 class Console extends React.Component<
   ConsoleProps & RouteComponentProps & StyledProps & ThemedComponentProps
 > {
+  componentDidMount(): void {
+    api
+      .invoke("GET", `/api/v1/users/whoami`)
+      .then(res => {
+        console.log(res);
+      })
+      .catch(err => {
+        storage.removeItem("token");
+        history.push("/");
+      });
+  }
+
   render() {
-    const { classes, open} = this.props;
+    const { classes, open } = this.props;
     return (
       <div className={classes.root}>
         <CssBaseline />
@@ -190,9 +201,8 @@ class Console extends React.Component<
             </IconButton>
           </div>
           <Divider />
-          <List>{mainListItems}</List>
-          <Divider />
-          <List>{secondaryListItems}</List>
+
+          <Menu />
         </Drawer>
         <AppBar
           position="absolute"
@@ -204,7 +214,7 @@ class Console extends React.Component<
               color="inherit"
               aria-label="open drawer"
               onClick={() => {
-                  this.props.setMenuOpen(true);
+                this.props.setMenuOpen(true);
               }}
               className={clsx(
                 classes.menuButton,
@@ -251,6 +261,7 @@ class Console extends React.Component<
                 <Route exact path="/buckets" component={Buckets} />
                 <Route exact path="/dashboard" component={Dashboard} />
                 <Route exact path="/" component={Dashboard} />
+                <Route component={NotFoundPage} />
               </Switch>
             </Router>
 
