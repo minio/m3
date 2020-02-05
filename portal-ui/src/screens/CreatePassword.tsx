@@ -25,11 +25,11 @@ import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
 import Typography from "@material-ui/core/Typography";
 import { makeStyles } from "@material-ui/core/styles";
 import Container from "@material-ui/core/Container";
-import Copyright from "../../components/Copyright";
 import request from "superagent";
 import { useHistory } from "react-router";
 import { CircularProgress } from "@material-ui/core";
 import storage from "local-storage-fallback";
+import Copyright from "../common/Copyright";
 
 const useStyles = makeStyles(theme => ({
   "@global": {

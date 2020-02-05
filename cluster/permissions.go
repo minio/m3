@@ -1005,24 +1005,24 @@ FROM permissions p
                                         WHERE bucket_name = ANY($1)) spr ON spr.id = pr.id
                     WHERE spr.resource = ANY($2)
                     GROUP BY pr.permission_id) AS pc ON p.id = pc.permission_id
-         LEFT JOIN (SELECT pr.permission_id, COUNT(*) AS total_resource_count
-                    FROM permissions_resources pr
-                    GROUP BY pr.permission_id) AS pc_total ON p.id = pc_total.permission_id
          LEFT JOIN (SELECT pa.permission_id, COUNT(*) AS actions_count
                     FROM permissions_actions pa
                     WHERE action = ANY($3)
                     GROUP BY pa.permission_id) pac ON p.id = pac.permission_id
-         LEFT JOIN (SELECT pa.permission_id, COUNT(*) AS total_actions_count
-                    FROM permissions_actions pa
-                    GROUP BY pa.permission_id) pac_total ON p.id = pac_total.permission_id
 WHERE p.effect = $4
-  AND pc_total.total_resource_count = pc.resource_count
-  AND pac_total.total_actions_count = pac.actions_count`
+  AND pc.resource_count = $5
+  AND pac.actions_count = $6`
 	tx, err := ctx.TenantTx()
 	if err != nil {
 		return err
 	}
-	row := tx.QueryRow(query, pq.Array(buckets), pq.Array(completeResources), pq.Array(actions), effect.String())
+	row := tx.QueryRow(query,
+		pq.Array(buckets),
+		pq.Array(completeResources),
+		pq.Array(actions),
+		effect.String(),
+		len(resources),
+		len(actions))
 	var foundPermID *uuid.UUID
 	err = row.Scan(&foundPermID)
 	if err != nil {

@@ -251,6 +251,7 @@ message ListBucketsRequest {
     int32 offset = 2;
     // a query to filter buckets with
     string query = 3;
+    int32 limit = 4;
 }
 
 message ListBucketsResponse {
