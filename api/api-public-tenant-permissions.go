@@ -345,6 +345,18 @@ func (s *server) RemovePermission(ctx context.Context, in *pb.PermissionActionRe
 		return nil, status.New(codes.InvalidArgument, "permission not found").Err()
 	}
 
+	// check that Service Accounts will not end up with no permissions.
+	solelyUsed, err := cluster.ServiceAccountSolePermission(appCtx, &permission.ID)
+	if err != nil {
+		log.Println("error deleting permission:", err)
+		return nil, status.New(codes.Internal, "error deleting permission").Err()
+	}
+	// If the permission to be deleted is the only assigned to one or more Service Accounts,
+	// the request is denied.
+	if solelyUsed {
+		return nil, status.New(codes.FailedPrecondition, "permission is uniquely assigned to one or more Service Accounts").Err()
+	}
+
 	// delete permission
 	err = cluster.DeletePermissionDB(appCtx, permission)
 	if err != nil {

@@ -1001,21 +1001,21 @@ func ValidatePermissionUniqueness(ctx *Context, effect Effect, resources, action
 	}
 
 	query := `SELECT p.id
-FROM permissions p
-         LEFT JOIN (SELECT pr.permission_id, COUNT(*) AS resource_count
-                    FROM permissions_resources pr
-                             LEFT JOIN (SELECT prs.id, (prs.bucket_name || '/' || prs.pattern) AS resource
-                                        FROM permissions_resources prs
-                                        WHERE bucket_name = ANY($1)) spr ON spr.id = pr.id
-                    WHERE spr.resource = ANY($2)
-                    GROUP BY pr.permission_id) AS pc ON p.id = pc.permission_id
-         LEFT JOIN (SELECT pa.permission_id, COUNT(*) AS actions_count
-                    FROM permissions_actions pa
-                    WHERE action = ANY($3)
-                    GROUP BY pa.permission_id) pac ON p.id = pac.permission_id
-WHERE p.effect = $4
-  AND pc.resource_count = $5
-  AND pac.actions_count = $6`
+				FROM permissions p
+				         LEFT JOIN (SELECT pr.permission_id, COUNT(*) AS resource_count
+				                    FROM permissions_resources pr
+				                             LEFT JOIN (SELECT prs.id, (prs.bucket_name || '/' || prs.pattern) AS resource
+				                                        FROM permissions_resources prs
+				                                        WHERE bucket_name = ANY($1)) spr ON spr.id = pr.id
+				                    WHERE spr.resource = ANY($2)
+				                    GROUP BY pr.permission_id) AS pc ON p.id = pc.permission_id
+				         LEFT JOIN (SELECT pa.permission_id, COUNT(*) AS actions_count
+				                    FROM permissions_actions pa
+				                    WHERE action = ANY($3)
+				                    GROUP BY pa.permission_id) pac ON p.id = pac.permission_id
+				WHERE p.effect = $4
+				  AND pc.resource_count = $5
+				  AND pac.actions_count = $6`
 	tx, err := ctx.TenantTx()
 	if err != nil {
 		return err
@@ -1044,4 +1044,47 @@ WHERE p.effect = $4
 		}
 	}
 	return ErrDuplicatedPermission
+}
+
+// ServiceAccountSolePermission returns whether one or more
+//   Service Accounts have only that permission assigned
+func ServiceAccountSolePermission(ctx *Context, permissionID *uuid.UUID) (exists bool, err error) {
+	query := `SELECT 
+					sap.service_account_id,
+					sap.permission_id,
+					sac.permissions_count
+				FROM service_accounts_permissions sap
+				LEFT JOIN (
+					-- Get count of permissions per service account
+					SELECT
+						sa.service_account_id,
+						COUNT(sa.permission_id) as permissions_count
+					FROM service_accounts_permissions sa
+					GROUP BY 
+						sa.service_account_id
+				) sac ON sac.service_account_id = sap.service_account_id
+				WHERE sap.permission_id = $1 
+					AND sac.permissions_count = 1`
+
+	tx, err := ctx.TenantTx()
+	if err != nil {
+		return false, err
+	}
+	row := tx.QueryRow(query, permissionID)
+
+	var foundServAccID *uuid.UUID
+	var foundPermID *uuid.UUID
+	var permissionCount int32
+	err = row.Scan(&foundServAccID, &foundPermID, &permissionCount)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	// If foundServAccID means there are Service Accounts using only that permission
+	if foundServAccID != nil {
+		return true, nil
+	}
+	return false, nil
 }
