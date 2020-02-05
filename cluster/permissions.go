@@ -468,7 +468,6 @@ func getResourcesForPermissionsWithQueryWrapper(ctx *Context, permsMap map[uuid.
 	// build a list of ids
 	var ids []uuid.UUID
 	for id := range permsMap {
-		log.Println(id.String())
 		ids = append(ids, id)
 	}
 	// Get all the permissions for the provided list of ids
@@ -487,7 +486,6 @@ func getResourcesForPermissionsWithQueryWrapper(ctx *Context, permsMap map[uuid.
 		}
 
 		rows, err = tx.Query(query, pq.Array(ids))
-		// rows, err := ctx.TenantDB().Query(query, pq.Array(ids))
 		if err != nil {
 			return err
 		}

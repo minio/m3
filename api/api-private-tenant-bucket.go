@@ -18,7 +18,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"google.golang.org/grpc/codes"
@@ -60,8 +59,7 @@ func (ps *privateServer) TenantBucketAdd(ctx context.Context, in *pb.TenantBucke
 
 	err = cluster.MakeBucket(appCtx, tenant.ShortName, in.BucketName, cluster.BucketPrivate)
 	if err != nil {
-		fmt.Println("Error creating bucket:", err.Error())
-		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
+		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 	return &pb.TenantBucketAddResponse{}, nil
 }

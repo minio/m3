@@ -20,12 +20,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"log"
 	"strconv"
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/minio/minio-go/v6/pkg/s3utils"
 
 	"github.com/minio/m3/cluster/db"
 
@@ -47,17 +47,11 @@ const (
 // MakeBucket will get the credentials for a given tenant and use the operator keys to create a bucket using minio-go
 // TODO: allow to spcify the user performing the action (like in the API/gRPC case)
 func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType BucketAccess) error {
-	// validate bucket name
-	if bucketName != "" {
-		if err := s3utils.CheckValidBucketNameStrict(bucketName); err != nil {
-			return err
-		}
-	}
-
 	// Get tenant specific MinIO client
 	minioClient, err := newTenantMinioClient(nil, tenantShortname)
 	if err != nil {
-		return err
+		log.Println("Error creating MinIO Client", err)
+		return errors.New("Error while creating bucket")
 	}
 
 	// make it so this timeouts after only 20 seconds
@@ -66,14 +60,14 @@ func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType Buc
 
 	// Create Bucket on tenant's MinIO
 	if err = minioClient.MakeBucketWithContext(timeoutCtx, bucketName, "us-east-1"); err != nil {
-		log.Println(err)
-		return tagErrorAsMinio("MakeBucketWithContext", err)
+		log.Println(tagErrorAsMinio("MakeBucketWithContext", err))
+		return err
 	}
 
 	err = SetBucketAccess(minioClient, bucketName, accessType)
 	if err != nil {
-		log.Println(err)
-		return tagErrorAsMinio("SetBucketAccess", err)
+		log.Println(tagErrorAsMinio("SetBucketAccess", err))
+		return err
 	}
 
 	return nil
