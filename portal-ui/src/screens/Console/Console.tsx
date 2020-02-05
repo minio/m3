@@ -30,12 +30,10 @@ import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
 import Divider from "@material-ui/core/Divider";
 import IconButton from "@material-ui/core/IconButton";
-import Badge from "@material-ui/core/Badge";
 import Container from "@material-ui/core/Container";
 import Link from "@material-ui/core/Link";
 import MenuIcon from "@material-ui/icons/Menu";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
-import NotificationsIcon from "@material-ui/icons/Notifications";
 
 import history from "../../history";
 import {
@@ -50,6 +48,7 @@ import { AppState } from "../../store";
 import { setMenuOpen } from "../../actions";
 import { ThemedComponentProps } from "@material-ui/core/styles/withTheme";
 import Buckets from "./Buckets/Buckets";
+import Permissions from "./Permissions/Permissions";
 import Dashboard from "./Dashboard/Dashboard";
 import Menu from "./Menu";
 import api from "../../common/api";
@@ -244,12 +243,6 @@ class Console extends React.Component<
                 </Switch>
               </Router>
             </Typography>
-
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="secondary">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
           </Toolbar>
         </AppBar>
 
@@ -259,6 +252,7 @@ class Console extends React.Component<
             <Router history={history}>
               <Switch>
                 <Route exact path="/buckets" component={Buckets} />
+                <Route exact path="/permissions" component={Permissions} />
                 <Route exact path="/dashboard" component={Dashboard} />
                 <Route exact path="/" component={Dashboard} />
                 <Route component={NotFoundPage} />
