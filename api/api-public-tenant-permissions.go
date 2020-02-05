@@ -137,9 +137,6 @@ func (s *server) UpdatePermission(ctx context.Context, in *pb.UpdatePermissionRe
 	if permissionName == "" {
 		return nil, status.New(codes.InvalidArgument, "a valid permission name  is needed").Err()
 	}
-	if description == "" {
-		return nil, status.New(codes.InvalidArgument, "a valid description is needed").Err()
-	}
 	effect := cluster.EffectFromString(permissionEffect)
 	if err := effect.IsValid(); err != nil {
 		return nil, status.New(codes.InvalidArgument, "invalid effect").Err()

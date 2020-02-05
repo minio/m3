@@ -53,6 +53,7 @@ import IconButton from "@material-ui/core/IconButton";
 import Tooltip from "@material-ui/core/Tooltip";
 import FilterListIcon from "@material-ui/icons/FilterList";
 import { Bucket, BucketList } from "../Buckets/types";
+import { Permission } from "./types";
 
 const useToolbarStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -126,6 +127,7 @@ const styles = (theme: Theme) =>
 interface IAddPermissionProps {
   classes: any;
   closeModalAndRefresh: () => void;
+  selectedPermission: Permission | null;
 }
 
 interface IAddPermissionState {
@@ -178,9 +180,20 @@ class AddPermission extends React.Component<
           this.setState({ loadingBuckets: false, bucketsError: err });
         });
     });
+
+    const { selectedPermission } = this.props;
+    if (selectedPermission !== null) {
+      this.setState({
+        name: selectedPermission.name,
+        description: selectedPermission.description,
+        effect: selectedPermission.effect,
+        resources: selectedPermission.resources.map(r => r.bucket_name),
+        action: selectedPermission.actions[0].type
+      });
+    }
   }
 
-  addRecord(event: React.FormEvent) {
+  saveRecord(event: React.FormEvent) {
     event.preventDefault();
     const {
       name,
@@ -190,41 +203,70 @@ class AddPermission extends React.Component<
       effect,
       action
     } = this.state;
-    console.log(resources);
+    const { selectedPermission } = this.props;
     if (addLoading) {
       return;
     }
     this.setState({ addLoading: true }, () => {
-      api
-        .invoke("POST", "/api/v1/permissions", {
-          name: name,
-          description: description,
-          effect: effect,
-          resources: resources,
-          actions: [action]
-        })
-        .then(res => {
-          this.setState(
-            {
+      if (selectedPermission !== null) {
+        api
+          .invoke("PUT", `/api/v1/permissions/${selectedPermission.id}`, {
+            id: selectedPermission.id,
+            name: name,
+            description: description,
+            effect: effect,
+            resources: resources,
+            actions: [action]
+          })
+          .then(res => {
+            this.setState(
+              {
+                addLoading: false,
+                addError: ""
+              },
+              () => {
+                this.props.closeModalAndRefresh();
+              }
+            );
+          })
+          .catch(err => {
+            this.setState({
               addLoading: false,
-              addError: ""
-            },
-            () => {
-              this.props.closeModalAndRefresh();
-            }
-          );
-        })
-        .catch(err => {
-          this.setState({
-            addLoading: false,
-            addError: err
+              addError: err
+            });
           });
-        });
+      } else {
+        api
+          .invoke("POST", "/api/v1/permissions", {
+            name: name,
+            description: description,
+            effect: effect,
+            resources: resources,
+            actions: [action]
+          })
+          .then(res => {
+            this.setState(
+              {
+                addLoading: false,
+                addError: ""
+              },
+              () => {
+                this.props.closeModalAndRefresh();
+              }
+            );
+          })
+          .catch(err => {
+            this.setState({
+              addLoading: false,
+              addError: err
+            });
+          });
+      }
     });
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, selectedPermission } = this.props;
     const {
       addLoading,
       addError,
@@ -232,6 +274,8 @@ class AddPermission extends React.Component<
       page,
       rowsPerPage,
       buckets,
+      name,
+      description,
       effect,
       action
     } = this.state;
@@ -287,12 +331,16 @@ class AddPermission extends React.Component<
         noValidate
         autoComplete="off"
         onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
-          this.addRecord(e);
+          this.saveRecord(e);
         }}
       >
         <Grid container>
           <Grid item xs={12}>
-            <Title>Add Permission</Title>
+            {selectedPermission !== null ? (
+              <Title>Edit Permission</Title>
+            ) : (
+              <Title>Add Permission</Title>
+            )}
           </Grid>
           {addError !== "" && (
             <Grid item xs={12}>
@@ -310,6 +358,7 @@ class AddPermission extends React.Component<
               id="standard-basic"
               fullWidth
               label="Name"
+              value={name}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 this.setState({ name: e.target.value });
               }}
@@ -322,6 +371,7 @@ class AddPermission extends React.Component<
               fullWidth
               multiline
               rows="4"
+              value={description}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 this.setState({ description: e.target.value });
               }}

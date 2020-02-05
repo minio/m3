@@ -39,6 +39,7 @@ import { Permission, PermissionList } from "./types";
 import AddPermission from "./AddPermission";
 import DeletePermission from "./DeletePermission";
 import { MinTablePaginationActions } from "../../../common/MinTablePaginationActions";
+import EditIcon from "@material-ui/icons/Edit";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -188,6 +189,13 @@ class Permissions extends React.Component<
       });
     };
 
+    const editPermission = (selectedPermission: Permission) => {
+      this.setState({
+        addScreenOpen: true,
+        selectedPermission: selectedPermission
+      });
+    };
+
     return (
       <React.Fragment>
         <Drawer
@@ -199,6 +207,7 @@ class Permissions extends React.Component<
         >
           <div className={classes.addSideBar}>
             <AddPermission
+              selectedPermission={selectedPermission}
               closeModalAndRefresh={() => {
                 this.closeAddModalAndRefresh();
               }}
@@ -223,7 +232,10 @@ class Permissions extends React.Component<
                   variant="contained"
                   color="primary"
                   onClick={() => {
-                    this.setState({ addScreenOpen: true });
+                    this.setState({
+                      addScreenOpen: true,
+                      selectedPermission: null
+                    });
                   }}
                 >
                   Add Permission
@@ -255,6 +267,14 @@ class Permissions extends React.Component<
                     </TableCell>
                     <TableCell>{row.actions[0].type}</TableCell>
                     <TableCell align="right">
+                      <IconButton
+                        aria-label="edit"
+                        onClick={() => {
+                          editPermission(row);
+                        }}
+                      >
+                        <EditIcon />
+                      </IconButton>
                       <IconButton
                         aria-label="delete"
                         onClick={() => {
