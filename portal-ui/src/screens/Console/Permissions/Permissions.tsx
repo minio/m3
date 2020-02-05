@@ -109,7 +109,6 @@ class Permissions extends React.Component<
           `/api/v1/permissions?offset=${offset}&limit=${rowsPerPage}`
         )
         .then((res: PermissionList) => {
-          console.log(res);
           this.setState({
             loading: false,
             records: res.permissions,
@@ -176,7 +175,6 @@ class Permissions extends React.Component<
       event: React.ChangeEvent<HTMLInputElement>
     ) => {
       const rPP = parseInt(event.target.value, 10);
-      console.log(rPP);
       this.setState({ page: 0, rowsPerPage: rPP }, () => {
         this.fetchRecords();
       });
@@ -195,6 +193,19 @@ class Permissions extends React.Component<
         selectedPermission: selectedPermission
       });
     };
+
+    const actionLabel = (action:string)=> {
+      switch (action) {
+        case 'readwrite':
+          return 'All Actions'
+        case 'read':
+          return 'Read Only'
+        case 'write':
+          return 'Write Only'
+        default:
+            return 'n/a'
+      }
+    }
 
     return (
       <React.Fragment>
@@ -265,7 +276,7 @@ class Permissions extends React.Component<
                     <TableCell>
                       {row.resources.map(r => r.bucket_name).join(", ")}
                     </TableCell>
-                    <TableCell>{row.actions[0].type}</TableCell>
+                    <TableCell>{actionLabel(row.actions[0].type)}</TableCell>
                     <TableCell align="right">
                       <IconButton
                         aria-label="edit"

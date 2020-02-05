@@ -168,7 +168,6 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
       event: React.ChangeEvent<HTMLInputElement>
     ) => {
       const rPP = parseInt(event.target.value, 10);
-      console.log(rPP);
       this.setState({ page: 0, rowsPerPage: rPP }, () => {
         this.fetchRecords();
       });
