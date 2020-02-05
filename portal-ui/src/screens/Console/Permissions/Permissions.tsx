@@ -278,7 +278,7 @@ class Permissions extends React.Component<
                     <TableCell className={classes.wrapCell}>{row.name}</TableCell>
                     <TableCell className={classes.wrapCell}>{row.description}</TableCell>
                     <TableCell>{row.effect}</TableCell>
-                    <TableCell>
+                    <TableCell className={classes.wrapCell}>
                       {row.resources.map(r => r.bucket_name).join(", ")}
                     </TableCell>
                     <TableCell>{actionLabel(row.actions[0].type)}</TableCell>
