@@ -51,7 +51,6 @@ import Toolbar from "@material-ui/core/Toolbar";
 import Checkbox from "@material-ui/core/Checkbox";
 import IconButton from "@material-ui/core/IconButton";
 import Tooltip from "@material-ui/core/Tooltip";
-import DeleteIcon from "@material-ui/icons/Delete";
 import FilterListIcon from "@material-ui/icons/FilterList";
 import { Bucket, BucketList } from "../Buckets/types";
 
