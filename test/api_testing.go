@@ -40,44 +40,50 @@ const (
 	adminCompany = "acme"
 	// Invite url gotten after adding a tenant
 	inviteURLToken = "http://localhost:1337/create-password?t=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlIjoiZWRiODVlOGEtMTlhYy00MDhmLWIxYmQtYmU5NmM4OGFmYmRiIiwidCI6IjhlYTEzY2Q4LWEzMDMtNGE0Ni04NWVhLWE3MjM5MjlkMDkzMiJ9.VhI8kDC6OouPGyztfKyzQT9tEXkOjDA1-I-Ai3naIMs"
+	// Whether starting tests by signing up or just login.
+	fromSignUp = false
+	// user test password used for login
+	testPassword = "TestP4ss"
 )
 
 func main() {
 	fmt.Println("Testing mkube REST APIs...")
 
-	urlToken := inviteURLToken[len(urlPath+"/create-password?t="):]
-	// ValidateInvite
-	fmt.Print("ValidateInvite... ")
-	jsonData := map[string]interface{}{"url_token": urlToken}
-	inviteResp := pb.ValidateEmailInviteResponse{}
-	res, err := doPost(urlPath+"/api/v1/validate_invite", jsonData, "", 5)
-	if err != nil {
-		fmt.Println("x")
-		fmt.Printf("The HTTP request failed with error %s\n", err)
-		return
-	}
-	json.Unmarshal([]byte(res), &inviteResp)
-	fmt.Println("✓")
+	var jsonData map[string]interface{}
+	if fromSignUp {
+		urlToken := inviteURLToken[len(urlPath+"/create-password?t="):]
+		// ValidateInvite
+		fmt.Print("ValidateInvite... ")
+		jsonData = map[string]interface{}{"url_token": urlToken}
+		inviteResp := pb.ValidateEmailInviteResponse{}
+		res, err := doPost(urlPath+"/api/v1/validate_invite", jsonData, "", 5)
+		if err != nil {
+			fmt.Println("x")
+			fmt.Printf("The HTTP request failed with error %s\n", err)
+			return
+		}
+		json.Unmarshal([]byte(res), &inviteResp)
+		fmt.Println("✓")
 
-	// SetPassword
-	fmt.Print("SetPassword... ")
-	testPassword := "TestP4ss"
-	jsonData = map[string]interface{}{"url_token": urlToken, "password": testPassword}
-	setPassResp := pb.ValidateEmailInviteResponse{}
-	res, err = doPost(urlPath+"/api/v1/users/set_password", jsonData, "", 5)
-	if err != nil {
-		fmt.Println("x")
-		fmt.Printf("The HTTP request failed with error %s\n", err)
-		return
+		// SetPassword
+		fmt.Print("SetPassword... ")
+		jsonData = map[string]interface{}{"url_token": urlToken, "password": testPassword}
+		setPassResp := pb.ValidateEmailInviteResponse{}
+		res, err = doPost(urlPath+"/api/v1/users/set_password", jsonData, "", 5)
+		if err != nil {
+			fmt.Println("x")
+			fmt.Printf("The HTTP request failed with error %s\n", err)
+			return
+		}
+		json.Unmarshal([]byte(res), &setPassResp)
+		fmt.Println("✓")
 	}
-	json.Unmarshal([]byte(res), &setPassResp)
-	fmt.Println("✓")
 
 	// Login
 	fmt.Print("Login... ")
 	jsonData = map[string]interface{}{"email": adminEmail, "password": testPassword, "company": adminCompany}
 	loginRes := pb.LoginResponse{}
-	res, err = doPost(urlPath+"/api/v1/users/login", jsonData, "", 5)
+	res, err := doPost(urlPath+"/api/v1/users/login", jsonData, "", 5)
 	if err != nil {
 		fmt.Println("x")
 		fmt.Printf("The HTTP request failed with error %s\n", err)
@@ -164,12 +170,14 @@ func main() {
 	validatePermissionResponse(&addPermRes, jsonData)
 
 	// AddPermission Duplicate
+	// TestDescription: If a permission is created with the exact same effect, resources and actions, it shall not be created and the request should be rejected.
 	fmt.Print("AddPermission Duplicated, expect error... ")
 	randDupPermission := "dup-perm" + RandomCharString(5)
 	jsonData = map[string]interface{}{"name": randDupPermission, "description": "allows access to buckets", "effect": "allow", "resources": []string{randBucket}, "actions": []string{"write"}}
 	_, err = doPost(urlPath+"/api/v1/permissions", jsonData, loginRes.JwtToken, 5)
 	if err == nil {
-		fmt.Println("duplicate permission didn't failed")
+		fmt.Println("x")
+		fmt.Println("duplicate permission should have failed")
 		return
 	}
 	fmt.Println("✓")
@@ -268,7 +276,7 @@ func main() {
 	// TestDescription: If bucket is being used within a permission, deletion should not be allowed.
 	fmt.Print("DeleteBucket... ")
 	deleteBucketRes := pb.Bucket{}
-	res, err = doDelete(urlPath+"/api/v1/buckets/"+randBucket, loginRes.JwtToken, 500)
+	res, err = doDelete(urlPath+"/api/v1/buckets/"+randBucket, loginRes.JwtToken, 400)
 	if err != nil {
 		fmt.Println("x")
 		fmt.Printf("The HTTP request failed with error %s\n", err)
@@ -278,8 +286,35 @@ func main() {
 	fmt.Println("✓")
 
 	// RemovePermission
+	// TestDescription: If the permission to be deleted is the only assigned to one or more Service Accounts,
+	// the request is denied.
 	fmt.Print("RemovePermission... ")
 	removePerRes := pb.Empty{}
+	res, err = doDelete(urlPath+"/api/v1/permissions/"+addPermRes.Id, loginRes.JwtToken, 400)
+	if err != nil {
+		fmt.Println("x")
+		fmt.Printf("The HTTP request failed with error %s\n", err)
+		return
+	}
+	json.Unmarshal([]byte(res), &removePerRes)
+	fmt.Println("✓")
+
+	// RemoveServiceAccount
+	fmt.Print("RemoveServiceAccount... ")
+	removeSaRes := pb.Empty{}
+	res, err = doDelete(urlPath+"/api/v1/service_accounts/"+createSA.ServiceAccount.Id, loginRes.JwtToken, 200)
+	if err != nil {
+		fmt.Println("x")
+		fmt.Printf("The HTTP request failed with error %s\n", err)
+		return
+	}
+	json.Unmarshal([]byte(res), &removeSaRes)
+	fmt.Println("✓")
+
+	// RemovePermission
+	// TestDescription: Remove permission should be allowed since it is not assigned to any Service Accounts anymore
+	fmt.Print("RemovePermission... ")
+	removePerRes = pb.Empty{}
 	res, err = doDelete(urlPath+"/api/v1/permissions/"+addPermRes.Id, loginRes.JwtToken, 200)
 	if err != nil {
 		fmt.Println("x")
@@ -300,18 +335,6 @@ func main() {
 		return
 	}
 	json.Unmarshal([]byte(res), &deleteBucketRes)
-	fmt.Println("✓")
-
-	// RemoveServiceAccount
-	fmt.Print("RemoveServiceAccount... ")
-	removeSaRes := pb.Empty{}
-	res, err = doDelete(urlPath+"/api/v1/service_accounts/"+createSA.ServiceAccount.Id, loginRes.JwtToken, 200)
-	if err != nil {
-		fmt.Println("x")
-		fmt.Printf("The HTTP request failed with error %s\n", err)
-		return
-	}
-	json.Unmarshal([]byte(res), &removeSaRes)
 	fmt.Println("✓")
 
 	fmt.Println("Done testing mkube REST APIs.")
