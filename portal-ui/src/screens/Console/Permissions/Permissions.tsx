@@ -62,6 +62,11 @@ const styles = (theme: Theme) =>
     tableToolbar: {
       paddingLeft: theme.spacing(2),
       paddingRight: theme.spacing(0)
+    },
+    wrapCell: {
+      maxWidth: "200px",
+      whiteSpace: "normal",
+      wordWrap: "break-word"
     }
   });
 
@@ -194,18 +199,18 @@ class Permissions extends React.Component<
       });
     };
 
-    const actionLabel = (action:string)=> {
+    const actionLabel = (action: string) => {
       switch (action) {
-        case 'readwrite':
-          return 'All Actions'
-        case 'read':
-          return 'Read Only'
-        case 'write':
-          return 'Write Only'
+        case "readwrite":
+          return "All Actions";
+        case "read":
+          return "Read Only";
+        case "write":
+          return "Write Only";
         default:
-            return 'n/a'
+          return "n/a";
       }
-    }
+    };
 
     return (
       <React.Fragment>
@@ -270,8 +275,8 @@ class Permissions extends React.Component<
               <TableBody>
                 {records.map(row => (
                   <TableRow key={row.name}>
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{row.description}</TableCell>
+                    <TableCell className={classes.wrapCell}>{row.name}</TableCell>
+                    <TableCell className={classes.wrapCell}>{row.description}</TableCell>
                     <TableCell>{row.effect}</TableCell>
                     <TableCell>
                       {row.resources.map(r => r.bucket_name).join(", ")}

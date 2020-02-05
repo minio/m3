@@ -114,9 +114,7 @@ class DeletePermission extends React.Component<
         <DialogContent>
           {deleteLoading && <LinearProgress />}
           <DialogContentText id="alert-dialog-description">
-            Are you sure you want to delete permission{" "}
-            <b>{selectedPermission.name}</b>?
-            <br />A permission can only be deleted if it's empty.
+            Are you sure you want to delete permission{" "}<b>{selectedPermission.name}</b>?
             {deleteError !== "" && (
               <React.Fragment>
                 <br />
