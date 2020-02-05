@@ -39,6 +39,9 @@ const (
 	Invalid              = "invalid"
 )
 
+var ErrDuplicatedPermission = errors.New("Another permission for those actions, effect and resources already exists")
+var ErrPermissionName = errors.New("Permission name not valid or already exists")
+
 func (at ActionType) IsValid() error {
 	switch at {
 	case Write, Read, Readwrite:
@@ -205,17 +208,19 @@ func AddPermissionToDB(ctx *Context, name, description string, effect Effect, re
 	// generate permission
 	perm, err := NewPermissionObj(name, description, effect, resources, actions)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
 	err = validatePermissionName(ctx, name)
 	if err != nil {
-		log.Println("error validating permission:", err)
-		return nil, fmt.Errorf("permission name: `%s` not valid or already exists", name)
+		log.Println(err)
+		return nil, ErrPermissionName
 	}
 
 	permSlug, err := getValidPermSlug(ctx, name)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 
@@ -223,6 +228,7 @@ func AddPermissionToDB(ctx *Context, name, description string, effect Effect, re
 	// insert to db
 	err = InsertPermission(ctx, perm)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	return perm, nil
@@ -972,8 +978,6 @@ func MapPermissionsToIDs(ctx *Context, permissions []string) (map[string]*uuid.U
 	return permToID, nil
 
 }
-
-var ErrDuplicatedPermission = errors.New("Another permission for those actions, effect and resources already exists")
 
 func ValidatePermissionUniqueness(ctx *Context, effect Effect, resources, actions []string, ignoreID *uuid.UUID) error {
 	// we are going to query for matching permissions, if the following query returns at least 1 result, there's another

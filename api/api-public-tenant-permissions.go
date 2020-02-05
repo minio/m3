@@ -100,6 +100,9 @@ func (s *server) AddPermission(ctx context.Context, in *pb.AddPermissionRequest)
 
 	permissionObj, err := cluster.AddPermissionToDB(appCtx, permissionName, description, effect, resources, actions)
 	if err != nil {
+		if err == cluster.ErrPermissionName {
+			return nil, status.New(codes.InvalidArgument, err.Error()).Err()
+		}
 		return nil, status.New(codes.Internal, "There was an error creating the permission").Err()
 	}
 	// if we reach here, all is good, commit
