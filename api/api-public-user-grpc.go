@@ -379,3 +379,7 @@ func (s *server) ForgotPassword(ctx context.Context, in *pb.ForgotPasswordReques
 	}
 	return &pb.Empty{}, nil
 }
+
+func (s *server) RemoveUser(ctx context.Context, in *pb.UserActionRequest) (*pb.UserActionResponse, error) {
+	return &pb.UserActionResponse{}, nil
+}
