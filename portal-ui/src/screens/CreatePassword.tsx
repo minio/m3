@@ -194,7 +194,7 @@ const CreatePassword: React.FC = () => {
                     variant="body1"
                     className={classes.errorBlock}
                   >
-                    {`${error}`}
+                    {error}
                   </Typography>
                 </Grid>
               )}

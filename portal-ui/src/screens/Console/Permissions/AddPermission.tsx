@@ -349,7 +349,7 @@ class AddPermission extends React.Component<
                 variant="body1"
                 className={classes.errorBlock}
               >
-                {`${addError}`}
+                {addError}
               </Typography>
             </Grid>
           )}

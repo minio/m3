@@ -100,7 +100,7 @@ class AddBucket extends React.Component<IAddBucketProps, IAddBucketState> {
                 variant="body1"
                 className={classes.errorBlock}
               >
-                {`${addError}`}
+                {addError}
               </Typography>
             </Grid>
           )}

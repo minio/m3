@@ -16,19 +16,47 @@
 
 import React from "react";
 import ReactDOM from "react-dom";
-import {Provider} from "react-redux";
+import { Provider } from "react-redux";
 import Routes from "./Routes";
 import configureStore from "./store";
 import * as serviceWorker from "./serviceWorker";
-import {ThemeProvider} from "@material-ui/core/styles";
+import { ThemeProvider, withStyles } from "@material-ui/core/styles";
 
 import "./index.css";
 import theme from "./theme/main";
 
+const GlobalCss = withStyles({
+  // @global is handled by jss-plugin-global.
+  "@global": {
+    // You should target [class*="MuiButton-root"] instead if you nest themes.
+    ".MuiButton-root": {
+      fontSize: "14px",
+      textTransform: "capitalize",
+      padding: "16px 25px 16px 25px",
+      borderRadius: "3px"
+    },
+    ".MuiTableCell-head": {
+      fontSize: "13px"
+    },
+    ".MuiPaper-root": {
+      borderRadius: "3px"
+    },
+    ".MuiDrawer-paperAnchorDockedLeft": {
+      borderRightColor: "white"
+    },
+    ".MuiDrawer-root": {
+      "& .MuiPaper-root": {
+        borderRadius: "0px"
+      }
+    }
+  }
+})(() => null);
+
 ReactDOM.render(
   <Provider store={configureStore()}>
+    <GlobalCss />
     <ThemeProvider theme={theme}>
-      <Routes/>
+      <Routes />
     </ThemeProvider>
   </Provider>,
   document.getElementById("root")

@@ -26,15 +26,12 @@ import Grid from "@material-ui/core/Grid";
 import api from "../../../common/api";
 import {
   Button,
-  Drawer,
   IconButton,
   LinearProgress,
   TableFooter,
-  TablePagination,
-  Toolbar
+  TablePagination
 } from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
-import DeleteIcon from "@material-ui/icons/Delete";
 import {
   NewServiceAccount,
   ServiceAccount,
@@ -45,6 +42,7 @@ import EditIcon from "@material-ui/icons/Edit";
 import AddServiceAccount from "./AddServiceAccount";
 import DeleteServiceAccount from "./DeleteServiceAccount";
 import CredentialsPrompt from "./CredentialsPrompt";
+import { CreateIcon, DeleteIcon } from "../../../icons";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -52,7 +50,6 @@ const styles = (theme: Theme) =>
       marginTop: theme.spacing(3)
     },
     paper: {
-      // padding: theme.spacing(2),
       display: "flex",
       overflow: "auto",
       flexDirection: "column"
@@ -73,6 +70,22 @@ const styles = (theme: Theme) =>
       maxWidth: "200px",
       whiteSpace: "normal",
       wordWrap: "break-word"
+    },
+    minTableHeader: {
+      color: "white",
+      background: theme.palette.primary.main,
+      "& tr": {
+        color: "white",
+        "& th": {
+          color: "white"
+        }
+      }
+    },
+    imageIcon: {
+      height: "100%"
+    },
+    iconRoot: {
+      textAlign: "center"
     }
   });
 
@@ -222,112 +235,110 @@ class ServiceAccounts extends React.Component<
 
     return (
       <React.Fragment>
-        <Drawer
-          anchor="right"
+        <AddServiceAccount
           open={addScreenOpen}
-          onClose={() => {
-            this.setState({ addScreenOpen: false });
+          selectedServiceAccount={selectedServiceAccount}
+          closeModalAndRefresh={(res: NewServiceAccount | null) => {
+            this.closeAddModalAndRefresh(res);
           }}
-        >
-          <div className={classes.addSideBar}>
-            <AddServiceAccount
-              selectedServiceAccount={selectedServiceAccount}
-              closeModalAndRefresh={(res: NewServiceAccount | null) => {
-                this.closeAddModalAndRefresh(res);
-              }}
-            />
-          </div>
-        </Drawer>
+        />
 
-        <Paper className={classes.paper}>
-          <Toolbar className={classes.tableToolbar}>
-            <Grid justify="space-between" container>
-              <Grid item xs={9}>
-                <Typography
-                  className={classes.title}
-                  variant="h6"
-                  id="tableTitle"
-                >
-                  Service Accounts
-                </Typography>
-              </Grid>
-              <Grid item xs={3}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => {
-                    this.setState({
-                      addScreenOpen: true,
-                      selectedServiceAccount: null
-                    });
-                  }}
-                >
-                  Add Service Account
-                </Button>
-              </Grid>
-            </Grid>
-          </Toolbar>
-          {loading && <LinearProgress />}
-          {records != null && records.length > 0 ? (
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Access Key</TableCell>
-                  <TableCell>Enabled</TableCell>
-                  <TableCell align="right"></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {records.map(row => (
-                  <TableRow key={row.name}>
-                    <TableCell className={classes.wrapCell}>{row.name}</TableCell>
-                    <TableCell>{row.access_key}</TableCell>
-                    <TableCell>{row.enabled ? 'enabled' : 'disabled'}</TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        aria-label="edit"
-                        onClick={() => {
-                          editServiceAccount(row);
+        <Grid container>
+          <Grid item xs={12}>
+            <Typography variant="h6">Service Accounts</Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <br />
+          </Grid>
+          <Grid item xs={6}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<CreateIcon />}
+              onClick={() => {
+                this.setState({
+                  addScreenOpen: true,
+                  selectedServiceAccount: null
+                });
+              }}
+            >
+              Create new service account
+            </Button>
+          </Grid>
+          <Grid item xs={6}></Grid>
+          <Grid item xs={12}>
+            <br />
+          </Grid>
+          <Grid item xs={12}>
+            <Paper className={classes.paper}>
+              {loading && <LinearProgress />}
+              {records != null && records.length > 0 ? (
+                <Table size="small">
+                  <TableHead className={classes.minTableHeader}>
+                    <TableRow>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Access Key</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell align="right"></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {records.map(row => (
+                      <TableRow key={row.name}>
+                        <TableCell className={classes.wrapCell}>
+                          {row.name}
+                        </TableCell>
+                        <TableCell>{row.access_key}</TableCell>
+                        <TableCell>
+                          {row.enabled ? "enabled" : "disabled"}
+                        </TableCell>
+                        <TableCell align="right">
+                          <IconButton
+                            aria-label="edit"
+                            onClick={() => {
+                              editServiceAccount(row);
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton
+                            aria-label="delete"
+                            onClick={() => {
+                              confirmDeleteServiceAccount(row);
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter>
+                    <TableRow>
+                      <TablePagination
+                        rowsPerPageOptions={[5, 10, 25]}
+                        colSpan={4}
+                        count={totalRecords}
+                        rowsPerPage={rowsPerPage}
+                        page={page}
+                        SelectProps={{
+                          inputProps: { "aria-label": "rows per page" },
+                          native: true
                         }}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
-                        aria-label="delete"
-                        onClick={() => {
-                          confirmDeleteServiceAccount(row);
-                        }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    colSpan={4}
-                    count={totalRecords}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    SelectProps={{
-                      inputProps: { "aria-label": "rows per page" },
-                      native: true
-                    }}
-                    onChangePage={handleChangePage}
-                    onChangeRowsPerPage={handleChangeRowsPerPage}
-                    ActionsComponent={MinTablePaginationActions}
-                  />
-                </TableRow>
-              </TableFooter>
-            </Table>
-          ) : (
-            <div>No Service Accounts</div>
-          )}
-        </Paper>
+                        onChangePage={handleChangePage}
+                        onChangeRowsPerPage={handleChangeRowsPerPage}
+                        ActionsComponent={MinTablePaginationActions}
+                      />
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              ) : (
+                <div>No Service Accounts</div>
+              )}
+            </Paper>
+          </Grid>
+        </Grid>
+
         <DeleteServiceAccount
           deleteOpen={deleteOpen}
           selectedServiceAccount={selectedServiceAccount}
@@ -338,7 +349,9 @@ class ServiceAccounts extends React.Component<
         <CredentialsPrompt
           newServiceAccount={newServiceAccount}
           open={showNewCredentials}
-          closeModal={()=>{this.closeCredentialsModal()}}
+          closeModal={() => {
+            this.closeCredentialsModal();
+          }}
         />
       </React.Fragment>
     );
