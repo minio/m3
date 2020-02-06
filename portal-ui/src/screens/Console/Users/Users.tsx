@@ -27,14 +27,12 @@ import api from "../../../common/api";
 import {
   Button,
   Drawer,
-  IconButton,
   LinearProgress,
   TableFooter,
   TablePagination,
   Toolbar
 } from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
-import DeleteIcon from "@material-ui/icons/Delete";
 import { User, UsersList } from "./types";
 import { MinTablePaginationActions } from "../../../common/MinTablePaginationActions";
 import AddUser from "./AddUser";
@@ -267,14 +265,14 @@ class Users extends React.Component<IUsersProps, IUsersState> {
                       {/*>*/}
                       {/*    <EditIcon/>*/}
                       {/*</IconButton>*/}
-                      <IconButton
-                        aria-label="delete"
-                        onClick={() => {
-                          confirmDeleteUser(row);
-                        }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+                      {/*<IconButton*/}
+                      {/*  aria-label="delete"*/}
+                      {/*  onClick={() => {*/}
+                      {/*    confirmDeleteUser(row);*/}
+                      {/*  }}*/}
+                      {/*>*/}
+                      {/*  <DeleteIcon />*/}
+                      {/*</IconButton>*/}
                     </TableCell>
                   </TableRow>
                 ))}
