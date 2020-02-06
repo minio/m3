@@ -182,7 +182,10 @@ class AddServiceAccount extends React.Component<
             this.setState({
               loadingServiceAccount: false,
               name: selectedServiceAccount.name,
-              selectedPermissions: res.permissions
+              selectedPermissions:
+                res.permissions === undefined || res.permissions === null
+                  ? []
+                  : res.permissions
             });
           })
           .catch(err => {
