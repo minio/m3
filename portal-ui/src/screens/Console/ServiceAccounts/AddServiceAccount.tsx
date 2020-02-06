@@ -290,6 +290,12 @@ class AddServiceAccount extends React.Component<
       let newSelected: Permission[] = [...selectedPermissions];
       if (newSelected.filter(p => p.id === perm.id).length === 0) {
         newSelected.push(perm);
+      } else {
+        const selectedIndex = newSelected.indexOf(perm);
+        newSelected = [
+          ...newSelected.slice(0, selectedIndex),
+          ...newSelected.slice(selectedIndex + 1)
+        ];
       }
 
       this.setState({ selectedPermissions: newSelected });

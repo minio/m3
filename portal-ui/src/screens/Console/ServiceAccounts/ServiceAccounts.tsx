@@ -68,6 +68,11 @@ const styles = (theme: Theme) =>
     tableToolbar: {
       paddingLeft: theme.spacing(2),
       paddingRight: theme.spacing(0)
+    },
+    wrapCell: {
+      maxWidth: "200px",
+      whiteSpace: "normal",
+      wordWrap: "break-word"
     }
   });
 
@@ -276,7 +281,7 @@ class ServiceAccounts extends React.Component<
               <TableBody>
                 {records.map(row => (
                   <TableRow key={row.name}>
-                    <TableCell>{row.name}</TableCell>
+                    <TableCell className={classes.wrapCell}>{row.name}</TableCell>
                     <TableCell>{row.access_key}</TableCell>
                     <TableCell>{row.enabled ? 'enabled' : 'disabled'}</TableCell>
                     <TableCell align="right">
