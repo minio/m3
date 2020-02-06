@@ -33,6 +33,11 @@ const styles = (theme: Theme) =>
     createStyles({
         errorBlock: {
             color: "red"
+        },
+        wrapText: {
+            maxWidth: "200px",
+            whiteSpace: "normal",
+            wordWrap: "break-word"
         }
     });
 
@@ -114,8 +119,8 @@ class DeleteServiceAccount extends React.Component<
                 <DialogContent>
                     {deleteLoading && <LinearProgress />}
                     <DialogContentText id="alert-dialog-description">
-                        Are you sure you want to delete service account
-                        <b>{selectedServiceAccount.name}</b>?
+                        Are you sure you want to delete service account{" "}
+                        <b className={classes.wrapText}>{selectedServiceAccount.name}</b>?
                         {deleteError !== "" && (
                             <React.Fragment>
                                 <br />
