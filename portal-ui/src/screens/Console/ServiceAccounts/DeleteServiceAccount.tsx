@@ -116,7 +116,6 @@ class DeleteServiceAccount extends React.Component<
                     <DialogContentText id="alert-dialog-description">
                         Are you sure you want to delete service account
                         <b>{selectedServiceAccount.name}</b>?
-                        <br />A service_account can only be deleted if it's empty.
                         {deleteError !== "" && (
                             <React.Fragment>
                                 <br />
