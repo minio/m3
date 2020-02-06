@@ -1009,13 +1009,21 @@ func ValidatePermissionUniqueness(ctx *Context, effect Effect, resources, action
 				                                        WHERE bucket_name = ANY($1)) spr ON spr.id = pr.id
 				                    WHERE spr.resource = ANY($2)
 				                    GROUP BY pr.permission_id) AS pc ON p.id = pc.permission_id
-				         LEFT JOIN (SELECT pa.permission_id, COUNT(*) AS actions_count
+				    LEFT JOIN (SELECT pr.permission_id, COUNT(*) AS total_resource_count
+                    FROM permissions_resources pr
+                    GROUP BY pr.permission_id) AS pc_total ON p.id = pc_total.permission_id     
+				    LEFT JOIN (SELECT pa.permission_id, COUNT(*) AS actions_count
 				                    FROM permissions_actions pa
 				                    WHERE action = ANY($3)
 				                    GROUP BY pa.permission_id) pac ON p.id = pac.permission_id
+							LEFT JOIN (SELECT pa.permission_id, COUNT(*) AS total_actions_count
+									FROM permissions_actions pa
+									GROUP BY pa.permission_id) pac_total ON p.id = pac_total.permission_id
 				WHERE p.effect = $4
-				  AND pc.resource_count = $5
-				  AND pac.actions_count = $6`
+				  AND  total_resource_count=pc.resource_count
+  				  AND  total_actions_count=pac.actions_count
+				  AND total_resource_count = $5
+				  AND total_actions_count = $6`
 	tx, err := ctx.TenantTx()
 	if err != nil {
 		return err
@@ -1058,7 +1066,7 @@ func ServiceAccountSolePermission(ctx *Context, permissionID *uuid.UUID) (exists
 					-- Get count of permissions per service account
 					SELECT
 						sa.service_account_id,
-						COUNT(sa.permission_id) as permissions_count
+						COUNT(sa.permission_id) AS permissions_count
 					FROM service_accounts_permissions sa
 					GROUP BY 
 						sa.service_account_id

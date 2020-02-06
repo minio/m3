@@ -24,7 +24,6 @@ import TableRow from "@material-ui/core/TableRow";
 import Paper from "@material-ui/core/Paper";
 import Grid from "@material-ui/core/Grid";
 import api from "../../../common/api";
-import { Bucket, BucketList } from "./types";
 import {
   Button,
   Drawer,
@@ -36,9 +35,11 @@ import {
 } from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
 import DeleteIcon from "@material-ui/icons/Delete";
-import AddBucket from "./AddBucket";
-import DeleteBucket from "./DeleteBucket";
+import { Permission, PermissionList } from "./types";
+import AddPermission from "./AddPermission";
+import DeletePermission from "./DeletePermission";
 import { MinTablePaginationActions } from "../../../common/MinTablePaginationActions";
+import EditIcon from "@material-ui/icons/Edit";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -61,15 +62,20 @@ const styles = (theme: Theme) =>
     tableToolbar: {
       paddingLeft: theme.spacing(2),
       paddingRight: theme.spacing(0)
+    },
+    wrapCell: {
+      maxWidth: "200px",
+      whiteSpace: "normal",
+      wordWrap: "break-word"
     }
   });
 
-interface IBucketsProps {
+interface IPermissionsProps {
   classes: any;
 }
 
-interface IBucketsState {
-  records: Bucket[];
+interface IPermissionsState {
+  records: Permission[];
   totalRecords: number;
   loading: boolean;
   error: string;
@@ -78,11 +84,14 @@ interface IBucketsState {
   page: number;
   rowsPerPage: number;
   deleteOpen: boolean;
-  selectedBucket: string;
+  selectedPermission: Permission | null;
 }
 
-class Buckets extends React.Component<IBucketsProps, IBucketsState> {
-  state: IBucketsState = {
+class Permissions extends React.Component<
+  IPermissionsProps,
+  IPermissionsState
+> {
+  state: IPermissionsState = {
     records: [],
     totalRecords: 0,
     loading: false,
@@ -92,7 +101,7 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
     page: 0,
     rowsPerPage: 10,
     deleteOpen: false,
-    selectedBucket: ""
+    selectedPermission: null
   };
 
   fetchRecords() {
@@ -100,19 +109,22 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
       const { page, rowsPerPage } = this.state;
       const offset = page * rowsPerPage;
       api
-        .invoke("GET", `/api/v1/buckets?offset=${offset}&limit=${rowsPerPage}`)
-        .then((res: BucketList) => {
+        .invoke(
+          "GET",
+          `/api/v1/permissions?offset=${offset}&limit=${rowsPerPage}`
+        )
+        .then((res: PermissionList) => {
           this.setState({
             loading: false,
-            records: res.buckets,
-            totalRecords: res.total_buckets,
+            records: res.permissions,
+            totalRecords: res.total,
             error: ""
           });
           // if we get 0 results, and page > 0 , go down 1 page
           if (
-            (res.buckets === undefined ||
-              res.buckets == null ||
-              res.buckets.length === 0) &&
+            (res.permissions === undefined ||
+              res.permissions == null ||
+              res.permissions.length === 0) &&
             page > 0
           ) {
             const newPage = page - 1;
@@ -155,7 +167,7 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
       page,
       rowsPerPage,
       deleteOpen,
-      selectedBucket
+      selectedPermission
     } = this.state;
 
     const handleChangePage = (event: unknown, newPage: number) => {
@@ -173,19 +185,31 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
       });
     };
 
-    const confirmDeleteBucket = (bucket: string) => {
-      this.setState({ deleteOpen: true, selectedBucket: bucket });
+    const confirmDeletePermission = (selectedPermission: Permission) => {
+      this.setState({
+        deleteOpen: true,
+        selectedPermission: selectedPermission
+      });
     };
 
-    const bytesToSize = (bytesStr: string) => {
-      const bytes = parseInt(bytesStr, 10);
-      if (isNaN(bytes)) {
-        return "0 Byte";
+    const editPermission = (selectedPermission: Permission) => {
+      this.setState({
+        addScreenOpen: true,
+        selectedPermission: selectedPermission
+      });
+    };
+
+    const actionLabel = (action: string) => {
+      switch (action) {
+        case "readwrite":
+          return "All Actions";
+        case "read":
+          return "Read Only";
+        case "write":
+          return "Write Only";
+        default:
+          return "n/a";
       }
-      const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-      if (bytes === 0) return "0 Byte";
-      const i = Math.floor(Math.log(bytes) / Math.log(1024));
-      return Math.round(bytes / Math.pow(1024, i)) + " " + sizes[i];
     };
 
     return (
@@ -198,7 +222,8 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
           }}
         >
           <div className={classes.addSideBar}>
-            <AddBucket
+            <AddPermission
+              selectedPermission={selectedPermission}
               closeModalAndRefresh={() => {
                 this.closeAddModalAndRefresh();
               }}
@@ -215,7 +240,7 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
                   variant="h6"
                   id="tableTitle"
                 >
-                  Buckets
+                  Permissions
                 </Typography>
               </Grid>
               <Grid item xs={2}>
@@ -223,10 +248,13 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
                   variant="contained"
                   color="primary"
                   onClick={() => {
-                    this.setState({ addScreenOpen: true });
+                    this.setState({
+                      addScreenOpen: true,
+                      selectedPermission: null
+                    });
                   }}
                 >
-                  Add Bucket
+                  Add Permission
                 </Button>
               </Grid>
             </Grid>
@@ -237,20 +265,36 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
-                  <TableCell>Size</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell>Description</TableCell>
+                  <TableCell>Effect</TableCell>
+                  <TableCell>Resources</TableCell>
+                  <TableCell>Action</TableCell>
+                  <TableCell align="right"></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {records.map(row => (
                   <TableRow key={row.name}>
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{bytesToSize(row.size)}</TableCell>
+                    <TableCell className={classes.wrapCell}>{row.name}</TableCell>
+                    <TableCell className={classes.wrapCell}>{row.description}</TableCell>
+                    <TableCell>{row.effect}</TableCell>
+                    <TableCell className={classes.wrapCell}>
+                      {row.resources.map(r => r.bucket_name).join(", ")}
+                    </TableCell>
+                    <TableCell>{actionLabel(row.actions[0].type)}</TableCell>
                     <TableCell align="right">
+                      <IconButton
+                        aria-label="edit"
+                        onClick={() => {
+                          editPermission(row);
+                        }}
+                      >
+                        <EditIcon />
+                      </IconButton>
                       <IconButton
                         aria-label="delete"
                         onClick={() => {
-                          confirmDeleteBucket(row.name);
+                          confirmDeletePermission(row);
                         }}
                       >
                         <DeleteIcon />
@@ -263,7 +307,7 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
                 <TableRow>
                   <TablePagination
                     rowsPerPageOptions={[5, 10, 25]}
-                    colSpan={3}
+                    colSpan={6}
                     count={totalRecords}
                     rowsPerPage={rowsPerPage}
                     page={page}
@@ -279,12 +323,12 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
               </TableFooter>
             </Table>
           ) : (
-            <div>No Buckets</div>
+            <div>No Permissions</div>
           )}
         </Paper>
-        <DeleteBucket
+        <DeletePermission
           deleteOpen={deleteOpen}
-          selectedBucket={selectedBucket}
+          selectedPermission={selectedPermission}
           closeDeleteModalAndRefresh={(refresh: boolean) => {
             this.closeDeleteModalAndRefresh(refresh);
           }}
@@ -294,4 +338,4 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
   }
 }
 
-export default withStyles(styles)(Buckets);
+export default withStyles(styles)(Permissions);
