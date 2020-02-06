@@ -54,6 +54,7 @@ import Menu from "./Menu";
 import api from "../../common/api";
 import storage from "local-storage-fallback";
 import NotFoundPage from "../NotFoundPage";
+import ServiceAccounts from "./ServiceAccounts/ServiceAccounts";
 
 function Copyright() {
   return (
@@ -169,9 +170,7 @@ class Console extends React.Component<
   componentDidMount(): void {
     api
       .invoke("GET", `/api/v1/users/whoami`)
-      .then(res => {
-        console.log(res);
-      })
+      .then(res => {})
       .catch(err => {
         storage.removeItem("token");
         history.push("/");
@@ -234,6 +233,12 @@ class Console extends React.Component<
                   <Route exact path="/buckets">
                     Buckets
                   </Route>
+                  <Route exact path="/permissions">
+                    Permissions
+                  </Route>
+                  <Route exact path="/service_accounts">
+                    Service Accounts
+                  </Route>
                   <Route exact path="/dashboard">
                     Dashboard
                   </Route>
@@ -253,6 +258,11 @@ class Console extends React.Component<
               <Switch>
                 <Route exact path="/buckets" component={Buckets} />
                 <Route exact path="/permissions" component={Permissions} />
+                <Route
+                  exact
+                  path="/service_accounts"
+                  component={ServiceAccounts}
+                />
                 <Route exact path="/dashboard" component={Dashboard} />
                 <Route exact path="/" component={Dashboard} />
                 <Route component={NotFoundPage} />

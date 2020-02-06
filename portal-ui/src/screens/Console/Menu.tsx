@@ -73,11 +73,11 @@ class Menu extends React.Component<MenuProps> {
             </ListItemIcon>
             <ListItemText primary="Permissions" />
           </ListItem>
-          <ListItem button>
+          <ListItem button component={Link} to="/service_accounts">
             <ListItemIcon>
               <BarChartIcon />
             </ListItemIcon>
-            <ListItemText primary="Reports" />
+            <ListItemText primary="Service Accounts" />
           </ListItem>
           <ListItem button>
             <ListItemIcon>
