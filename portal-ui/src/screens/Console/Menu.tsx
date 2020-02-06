@@ -128,11 +128,11 @@ class Menu extends React.Component<MenuProps> {
             </ListItemIcon>
             <ListItemText primary="Service Accounts" />
           </ListItem>
-          <ListItem button>
+          <ListItem button component={Link} to="/users">
             <ListItemIcon>
-              <LayersIcon />
+              <PeopleIcon />
             </ListItemIcon>
-            <ListItemText primary="Integrations" />
+            <ListItemText primary="Users" />
           </ListItem>
           <Divider />
           <ListItem
