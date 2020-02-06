@@ -138,7 +138,7 @@ func getLocalBucketNamespaceConfiguration(ctx *Context) string {
 						proxy_set_header Host $http_host;
 						proxy_read_timeout 15m;
 						proxy_request_buffering off;
-						proxy_pass http://%s:%d;
+						proxy_pass https://%s:%d;
 					}
 				}
 
@@ -215,7 +215,7 @@ func getGlobalBucketNamespaceConfiguration(ctx *Context) string {
 					server portal-proxy.default.svc.cluster.local:443;
 				}
 				upstream tenancy {
-					server portal-proxy:80;
+					server portal-proxy:443;
 				}
 	
 				%s

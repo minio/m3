@@ -157,3 +157,11 @@ func GetBuildTime() string {
 	}
 	return defVersion
 }
+
+func getMinioTLS() bool {
+	return strings.ToLower(env.Get(minioTLS, "false")) == "true"
+}
+
+func getETCDHostname() string {
+	return env.Get(etcdHostName, "http://m3-etcd-cluster-client:2379")
+}

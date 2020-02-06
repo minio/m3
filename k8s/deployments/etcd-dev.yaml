@@ -67,8 +67,6 @@ spec:
     metadata:
       labels:
         name: etcd-operator
-      annotations:
-        autocert.step.sm/name: etcd-operator.default.svc.cluster.local
     spec:
       containers:
         - command:

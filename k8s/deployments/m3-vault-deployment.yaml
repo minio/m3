@@ -25,8 +25,6 @@ spec:
     metadata:
       labels:
         app: m3-vault
-      annotations:
-        autocert.step.sm/name: m3-vault.default.svc.cluster.local
     spec:
       containers:
         - name: m3-vault

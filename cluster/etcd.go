@@ -42,14 +42,13 @@ func WatcEtcdBucketCreation() {
 		return
 	}
 
-	etcdHost := "m3-etcd-cluster-client:2379"
 	etcdWatchKey := "/skydns"
 
 	var etcd *clientv3.Client
 	tries := 0
 	for {
 		etcd, err = clientv3.New(clientv3.Config{
-			Endpoints:   []string{"http://" + etcdHost},
+			Endpoints:   []string{getETCDHostname()},
 			DialTimeout: 5 * time.Second,
 		})
 		if err != nil {

@@ -15,7 +15,7 @@ RUN go build -ldflags "-w -s" -o m3-nginx ./cmd/m3-nginx
 
 FROM nginx
 MAINTAINER MinIO Development "dev@min.io"
-EXPOSE 80
+EXPOSE 443
 
 COPY --from=0 /go/src/github.com/minio/m3-nginx/m3-nginx  .
 

@@ -26,7 +26,7 @@ import (
 
 func addMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, accessKey string, secretKey string) error {
 	// get an admin with operator keys
-	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(getMinioTLS()), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
 		return pErr.Cause
 	}
@@ -41,7 +41,7 @@ func addMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, acce
 
 func addMinioCannedPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, accessKey string, policy string) error {
 	// get an admin with operator keys
-	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(getMinioTLS()), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
 		return pErr.Cause
 	}
@@ -57,7 +57,7 @@ func addMinioCannedPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfi
 // then applies it to the provided user
 func addMinioIAMPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, policyName, policy, userAccessKey string) error {
 	// get an admin with operator keys
-	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(getMinioTLS()), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
 		return pErr.Cause
 	}
@@ -77,7 +77,7 @@ func addMinioIAMPolicyToUser(sgt *StorageGroupTenant, tenantConf *TenantConfigur
 // setMinioUserStatus sets the status for a MinIO user
 func setMinioUserStatus(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, userAccessKey string, enabled bool) error {
 	// get an admin with operator keys
-	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(getMinioTLS()), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
 		return pErr.Cause
 	}
@@ -99,7 +99,7 @@ func setMinioUserStatus(sgt *StorageGroupTenant, tenantConf *TenantConfiguration
 // removeMinioUser sets the status for a MinIO user
 func removeMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, userAccessKey string) error {
 	// get an admin with operator keys
-	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(getMinioTLS()), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
 		return pErr.Cause
 	}
@@ -112,7 +112,7 @@ func removeMinioUser(sgt *StorageGroupTenant, tenantConf *TenantConfiguration, u
 }
 
 func stopMinioTenantServers(sgt *StorageGroupTenant, tenantConf *TenantConfiguration) error {
-	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(getMinioTLS()), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
 		return pErr.Cause
 	}
@@ -125,7 +125,7 @@ func stopMinioTenantServers(sgt *StorageGroupTenant, tenantConf *TenantConfigura
 }
 
 func restartMinioTenantServers(sgt *StorageGroupTenant, tenantConf *TenantConfiguration) error {
-	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(getMinioTLS()), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
 		return pErr.Cause
 	}
@@ -186,7 +186,7 @@ func IsMinioReadyRetry(ctx *Context) bool {
 // Returns data usage of the current tenant
 func getMinioDataUsageInfo(sgt *StorageGroupTenant, tenantConf *TenantConfiguration) (*madmin.DataUsageInfo, error) {
 	// get an admin with operator keys
-	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(false), tenantConf.AccessKey, tenantConf.SecretKey)
+	adminClient, pErr := NewAdminClient(sgt.HTTPAddress(getMinioTLS()), tenantConf.AccessKey, tenantConf.SecretKey)
 	if pErr != nil {
 		return nil, pErr.Cause
 	}

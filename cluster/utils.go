@@ -86,6 +86,8 @@ func GetTenantConfig(tenant *Tenant) (*TenantConfiguration, error) {
 	}
 	conf.SecretKey = string(val)
 
+	conf.TLS = getMinioTLS()
+
 	// Build configuration
 	return &conf, nil
 }

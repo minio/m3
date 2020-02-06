@@ -87,8 +87,6 @@ spec:
     metadata:
       labels:
         name: prometheus
-      annotations:
-        autocert.step.sm/name: prometheus.default.svc.cluster.local
     spec:
       containers:
         - args:

@@ -121,7 +121,8 @@ metadata:
 data:
   ADMIN_NAME: <ADMIN_NAME>
   ADMIN_EMAIL: <ADMIN_EMAIL>
-  DB_HOSTNAME: "<POSTGRES_HOSTNAME>"
+  ETCD_HOSTNAME: <ETCD_HOSTNAME>
+  DB_HOSTNAME: <POSTGRES_HOSTNAME>
   # DB Configuration Parameters
   #DB_PORT: "<DB_PORT>"
   #DB_USER: "<DB_USER>"
@@ -157,6 +158,9 @@ data:
   #SETUP_STORAGE_STANDARD_PARITY: "EC:4"
   # Specific Images (uncomment to use instead of default ones):
   #KES_IMAGE: ""
+  #MINIO_IMAGE: ""
+  # Uncomment to enable TLS for the Minio cluster, an internal CA is required, ie: autocert
+  #MINIO_TLS: "true"
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -34,12 +34,12 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 	minioConfigCmd := []string{"server"}
 	// Set minio server commands depending on number of nodes and disks
 	if sgTenant.StorageGroup.TotalNodes > 1 {
-		minioPath = fmt.Sprintf("http://sg-%d-host-{1...%d}", sg.Num, sgTenant.StorageGroup.TotalNodes)
+		minioPath = fmt.Sprintf("https://sg-%d-host-{1...%d}", sg.Num, sgTenant.StorageGroup.TotalNodes)
 		if sgTenant.StorageGroup.TotalVolumes > 1 {
-			// set path like "http://sg-%d-host-{1...%d}/mnt/tdisk{1...%d}"
+			// set path like "https://sg-%d-host-{1...%d}/mnt/tdisk{1...%d}"
 			minioPath = minioPath + fmt.Sprintf("/mnt/tdisk{1...%d}", sgTenant.StorageGroup.TotalVolumes)
 		} else if sgTenant.StorageGroup.TotalVolumes == 1 {
-			// set path like "http://sg-%d-host-{1...%d}/mnt/tdisk1"
+			// set path like "https://sg-%d-host-{1...%d}/mnt/tdisk1"
 			minioPath = minioPath + "/mnt/tdisk1"
 		}
 		// set minio command
@@ -58,7 +58,7 @@ func mkTenantMinioContainer(sgTenant *StorageGroupTenant, sgNode *StorageGroupNo
 		Args:            minioConfigCmd,
 		Ports: []v1.ContainerPort{
 			{
-				Name:          "http",
+				Name:          "https",
 				ContainerPort: sgTenant.Port,
 			},
 		},

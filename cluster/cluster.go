@@ -220,7 +220,7 @@ func CreateTenantServiceInStorageGroup(sgt *StorageGroupTenant) {
 		Spec: v1.ServiceSpec{
 			Ports: []v1.ServicePort{
 				{
-					Name: "http",
+					Name: "https",
 					Port: sgt.Port,
 				},
 			},
@@ -279,6 +279,9 @@ func CreateDeploymentWithTenants(tenants []*StorageGroupTenant, sg *StorageGroup
 					Labels: map[string]string{
 						"app": sgHostName,
 						"sg":  fmt.Sprintf("storage-group-%d", sg.Num),
+					},
+					Annotations: map[string]string{
+						"autocert.step.sm/name": fmt.Sprintf("%s", sgHostName),
 					},
 				},
 				Spec: mainPodSpec,
