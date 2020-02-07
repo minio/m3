@@ -20,3 +20,4 @@ export { default as DeleteIcon } from './DeleteIcon';
 export { default as ServiceAccountIcon } from './ServiceAccountIcon';
 export { default as DashboardIcon } from './DashboardIcon';
 export { default as BucketsIcon } from './BucketsIcon';
+export { default as UsersIcon } from './UsersIcon';
