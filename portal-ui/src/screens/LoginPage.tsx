@@ -136,7 +136,7 @@ class Login extends React.Component<LoginProps> {
                     variant="body1"
                     className={classes.errorBlock}
                   >
-                    {`${error}`}
+                    {error}
                   </Typography>
                 </Grid>
               )}

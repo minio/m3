@@ -18,12 +18,9 @@ import React from "react";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemIcon from "@material-ui/core/ListItemIcon";
 import ListItemText from "@material-ui/core/ListItemText";
-import DashboardIcon from "@material-ui/icons/Dashboard";
-import BarChartIcon from "@material-ui/icons/BarChart";
 import LayersIcon from "@material-ui/icons/Layers";
-import ArchiveIcon from "@material-ui/icons/Archive";
-import { Link } from "react-router-dom";
-import { Divider } from "@material-ui/core";
+import { Link, NavLink } from "react-router-dom";
+import { Divider, withStyles } from "@material-ui/core";
 import { ExitToApp } from "@material-ui/icons";
 import { AppState } from "../../store";
 import { connect } from "react-redux";
@@ -31,7 +28,55 @@ import { userLoggedIn } from "../../actions";
 import List from "@material-ui/core/List";
 import storage from "local-storage-fallback";
 import history from "../../history";
-import LockIcon from "@material-ui/icons/Lock";
+import logo from "../../icons/mkube_logo_temp.svg";
+import {
+  BucketsIcon,
+  DashboardIcon,
+  PermissionIcon,
+  ServiceAccountIcon
+} from "../../icons";
+import { createStyles, Theme } from "@material-ui/core/styles";
+
+const styles = (theme: Theme) =>
+  createStyles({
+    logo: {
+      paddingTop: "42px",
+      marginBottom: "20px",
+      textAlign: "center",
+      "& img": {
+        width: "76px"
+      }
+    },
+    menuList: {
+      "& .active": {
+        borderTopLeftRadius: "3px",
+        borderBottomLeftRadius: "3px",
+        color: "white",
+        background:
+          "transparent linear-gradient(90deg, #362585 0%, #362585 7%, #281B6F 39%, #1F1661 100%) 0% 0% no-repeat padding-box",
+        "& .MuiSvgIcon-root": {
+          color: "white"
+        }
+      },
+      "& .MuiListItem-root": {
+        marginTop: "16px"
+      },
+      paddingLeft: "30px",
+      "& .MuiSvgIcon-root": {
+        fontSize: "18px",
+        color: "#393939"
+      },
+      "& .MuiListItemIcon-root": {
+        minWidth: "40px"
+      },
+      "& .MuiTypography-root": {
+        fontSize: "14px"
+      },
+      "& .MuiListItem-gutters": {
+        paddingRight: "0px"
+      }
+    }
+  });
 
 const mapState = (state: AppState) => ({
   open: state.system.loggedIn
@@ -40,6 +85,7 @@ const mapState = (state: AppState) => ({
 const connector = connect(mapState, { userLoggedIn });
 
 interface MenuProps {
+  classes: any;
   userLoggedIn: typeof userLoggedIn;
 }
 
@@ -51,33 +97,36 @@ class Menu extends React.Component<MenuProps> {
   }
 
   render() {
+    const { classes } = this.props;
     return (
-      <List>
-        {}
-        <div>
-          <ListItem button component={Link} to="/">
+      <React.Fragment>
+        <div className={classes.logo}>
+          <img src={logo} />
+        </div>
+        <List className={classes.menuList}>
+          <ListItem button component={NavLink} to="/" exact>
             <ListItemIcon>
               <DashboardIcon />
             </ListItemIcon>
             <ListItemText primary="Dashboard" />
           </ListItem>
-          <ListItem button component={Link} to="/buckets">
+          <ListItem button component={NavLink} to="/buckets">
             <ListItemIcon>
-              <ArchiveIcon />
+              <BucketsIcon />
             </ListItemIcon>
             <ListItemText primary="Buckets" />
           </ListItem>
-          <ListItem button component={Link} to="/permissions">
+          <ListItem button component={NavLink} to="/permissions">
             <ListItemIcon>
-              <LockIcon />
+              <PermissionIcon />
             </ListItemIcon>
             <ListItemText primary="Permissions" />
           </ListItem>
-          <ListItem button>
+          <ListItem button component={NavLink} to="/service_accounts">
             <ListItemIcon>
-              <BarChartIcon />
+              <ServiceAccountIcon />
             </ListItemIcon>
-            <ListItemText primary="Reports" />
+            <ListItemText primary="Service Accounts" />
           </ListItem>
           <ListItem button>
             <ListItemIcon>
@@ -97,10 +146,10 @@ class Menu extends React.Component<MenuProps> {
             </ListItemIcon>
             <ListItemText primary="Logout" />
           </ListItem>
-        </div>
-      </List>
+        </List>
+      </React.Fragment>
     );
   }
 }
 
-export default connector(Menu);
+export default connector(withStyles(styles)(Menu));

@@ -47,7 +47,6 @@ const styles = (theme: Theme) =>
       marginTop: theme.spacing(3)
     },
     paper: {
-      // padding: theme.spacing(2),
       display: "flex",
       overflow: "auto",
       flexDirection: "column"

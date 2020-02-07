@@ -54,6 +54,7 @@ import Menu from "./Menu";
 import api from "../../common/api";
 import storage from "local-storage-fallback";
 import NotFoundPage from "../NotFoundPage";
+import ServiceAccounts from "./ServiceAccounts/ServiceAccounts";
 
 function Copyright() {
   return (
@@ -68,7 +69,7 @@ function Copyright() {
   );
 }
 
-const drawerWidth = 240;
+const drawerWidth = 254;
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -76,6 +77,8 @@ const styles = (theme: Theme) =>
       display: "flex"
     },
     toolbar: {
+      background: theme.palette.background.default,
+      color: "black",
       paddingRight: 24 // keep right padding when drawer closed
     },
     toolbarIcon: {
@@ -129,7 +132,9 @@ const styles = (theme: Theme) =>
         width: theme.spacing(9)
       }
     },
-    appBarSpacer: theme.mixins.toolbar,
+    appBarSpacer: {
+      height: "5px"
+    },
     content: {
       flexGrow: 1,
       height: "100vh",
@@ -169,9 +174,7 @@ class Console extends React.Component<
   componentDidMount(): void {
     api
       .invoke("GET", `/api/v1/users/whoami`)
-      .then(res => {
-        console.log(res);
-      })
+      .then(res => {})
       .catch(err => {
         storage.removeItem("token");
         history.push("/");
@@ -190,61 +193,19 @@ class Console extends React.Component<
           }}
           open={open}
         >
-          <div className={classes.toolbarIcon}>
-            <IconButton
-              onClick={() => {
-                this.props.setMenuOpen(false);
-              }}
-            >
-              <ChevronLeftIcon />
-            </IconButton>
-          </div>
-          <Divider />
+          {/*<div className={classes.toolbarIcon}>*/}
+          {/*  <IconButton*/}
+          {/*    onClick={() => {*/}
+          {/*      this.props.setMenuOpen(false);*/}
+          {/*    }}*/}
+          {/*  >*/}
+          {/*    <ChevronLeftIcon />*/}
+          {/*  </IconButton>*/}
+          {/*</div>*/}
+          {/*<Divider />*/}
 
           <Menu />
         </Drawer>
-        <AppBar
-          position="absolute"
-          className={clsx(classes.appBar, open && classes.appBarShift)}
-        >
-          <Toolbar className={classes.toolbar}>
-            <IconButton
-              edge="start"
-              color="inherit"
-              aria-label="open drawer"
-              onClick={() => {
-                this.props.setMenuOpen(true);
-              }}
-              className={clsx(
-                classes.menuButton,
-                open && classes.menuButtonHidden
-              )}
-            >
-              <MenuIcon />
-            </IconButton>
-            <Typography
-              component="h1"
-              variant="h6"
-              color="inherit"
-              noWrap
-              className={classes.title}
-            >
-              <Router history={history}>
-                <Switch>
-                  <Route exact path="/buckets">
-                    Buckets
-                  </Route>
-                  <Route exact path="/dashboard">
-                    Dashboard
-                  </Route>
-                  <Route exact path="/">
-                    Dashboard
-                  </Route>
-                </Switch>
-              </Router>
-            </Typography>
-          </Toolbar>
-        </AppBar>
 
         <main className={classes.content}>
           <div className={classes.appBarSpacer} />
@@ -253,6 +214,11 @@ class Console extends React.Component<
               <Switch>
                 <Route exact path="/buckets" component={Buckets} />
                 <Route exact path="/permissions" component={Permissions} />
+                <Route
+                  exact
+                  path="/service_accounts"
+                  component={ServiceAccounts}
+                />
                 <Route exact path="/dashboard" component={Dashboard} />
                 <Route exact path="/" component={Dashboard} />
                 <Route component={NotFoundPage} />
