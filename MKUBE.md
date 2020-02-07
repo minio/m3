@@ -2,24 +2,12 @@
 # M3
 ## Buckets
 ### Create Bucket
-Required input:
-
-1. Name `string`
-2. Access `int`
-	- *0* : Private 
-	- *1* : Public
-	- *2* : Custom
-
 **Restrictions**:
 
   * Name should follow [S3 bucket naming convention](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-s3-bucket-naming-requirements.html).
   * If Global Bucket feature enabled, **bucket name** is unique accross tenants.
-
+  * Only the Service Account with the proper permissions will be allowed to interact with the bucket.
 ### Delete Bucket
-Required input:
-
-1. Name `string`
-
 **Restrictions**:
 
   * Bucket can only be deleted if it is empty.
@@ -47,12 +35,6 @@ A Permissions consists the following parts:
 
 M3 permissions is an abstraction and simplification of an S3 policy.
 ### Create Permission
-Required input:
-
-1. Name `string`
-2. Effect `"allow" | "deny"`  
-3. Resources `[string]`
-4. Action `"read" | "write" | "readwrite"`
 
 **Restrictions**:
 
@@ -64,24 +46,12 @@ Required input:
 ### Update Permission
 Updates the permissions with the desired definitions and applies the changes to the Service Accounts that are using it (if any).
 
-Required input:
-
-1. Id `string`
-2. Name `string`
-3. Effect `"allow" | "deny"`  
-4. Resources `[string]`
-5. Action `"read" | "write" | "readwrite"`
-
 **Restrictions**:
 
   * List of resources can't be empty.
 
 ### Delete Permission
 Deletes a permission and updates all the Service Accounts that are using it (if any).
-
-Required input:
-
-1. Id `string`
 
 **Restrictions**:
 
@@ -92,10 +62,6 @@ Required input:
 Creates a Service Account and provides the `Access Key` and `Secret Key` to be used by the S3 application.
 
 All permissions selected will be applied to the Service Account after its creation.
-Required input:
-
-1. Name `string`
-2. Permissions Ids `[string]` 
 
 **Restrictions**:
 
@@ -106,12 +72,6 @@ Required input:
 ### Update Service Account
 Updates the fields for a Service Account including the permissions assigned to it.
 
-Required input:
-
-1. Id `string`
-2. Name `string`
-3. Permissions Ids `[string]` 
-
 **Restrictions**:
 
   * List of permissions can't be empty.
@@ -119,53 +79,30 @@ Required input:
 ### Enable Service Account
 Enables S3 requests for that Service Account.
 
-Required input:
-
-1. Id `string`
-
 ### Disable Service Account
 Disables S3 requests for that Service Account.
-
-Required input:
-
-1. Id `string`
 
 ### Delete Service Account
 Deletes a Service Account including its access.
 
-Required input:
-
-1. Id `string`
-
 ## Users
 ### Create User
-Required input:
+Creates a new user with the name and email.
 
-1. Name `string`
-2. Email `string`
+**Enabled** shows if the user is enabled or disabled.
 
-**Enabled** shows if the user is enabled or disabled -  `boolean`
+**Restrictions**:
+
+  * Users with the same email are not allowed.
 
 ### Enable User
 Enables a user to login.
 
-Required input:
-
-1. Id `string`
-
 ### Disable User
 Disables an user and invalidates all current active sessions.
 
-Required input:
-
-1. Id `string`
-
 ### Reset Password
 Sends an email to an user to reset their password.
-
-Required input:
-
-1. Email `string`
 
 **Restrictions**:
 
@@ -175,10 +112,6 @@ Required input:
 Resets an user's own password by retreiving the old and new password.
 
 After changing password all user's current sessions get invalidated.
-Required input:
-
-1. Old Password `string`
-2. New Password `string`
 
 **Restrictions**:
 
@@ -186,11 +119,6 @@ Required input:
 
 ### Forgot Password
 Sends an email to an User to reset their password.
-
-Required input:
-
-1. Company `string`
-2. Email `string`
 
 **Restrictions**:
 
