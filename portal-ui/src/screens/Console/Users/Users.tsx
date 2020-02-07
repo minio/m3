@@ -257,22 +257,6 @@ class Users extends React.Component<IUsersProps, IUsersState> {
                       {row.email}
                     </TableCell>
                     <TableCell align="right">
-                      {/*<IconButton*/}
-                      {/*    aria-label="edit"*/}
-                      {/*    onClick={() => {*/}
-                      {/*        editUser(row);*/}
-                      {/*    }}*/}
-                      {/*>*/}
-                      {/*    <EditIcon/>*/}
-                      {/*</IconButton>*/}
-                      {/*<IconButton*/}
-                      {/*  aria-label="delete"*/}
-                      {/*  onClick={() => {*/}
-                      {/*    confirmDeleteUser(row);*/}
-                      {/*  }}*/}
-                      {/*>*/}
-                      {/*  <DeleteIcon />*/}
-                      {/*</IconButton>*/}
                     </TableCell>
                   </TableRow>
                 ))}

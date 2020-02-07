@@ -147,7 +147,7 @@ class AddUser extends React.Component<IAddUserProps, IAddUserState> {
                 variant="body1"
                 className={classes.errorBlock}
               >
-                {`${addError}`}
+                {addError}
               </Typography>
             </Grid>
           )}
