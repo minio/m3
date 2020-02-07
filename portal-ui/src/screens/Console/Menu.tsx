@@ -18,8 +18,7 @@ import React from "react";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemIcon from "@material-ui/core/ListItemIcon";
 import ListItemText from "@material-ui/core/ListItemText";
-import LayersIcon from "@material-ui/icons/Layers";
-import { Link, NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { Divider, withStyles } from "@material-ui/core";
 import { ExitToApp } from "@material-ui/icons";
 import { AppState } from "../../store";
@@ -33,7 +32,8 @@ import {
   BucketsIcon,
   DashboardIcon,
   PermissionIcon,
-  ServiceAccountIcon
+  ServiceAccountIcon,
+  UsersIcon
 } from "../../icons";
 import { createStyles, Theme } from "@material-ui/core/styles";
 
@@ -128,11 +128,11 @@ class Menu extends React.Component<MenuProps> {
             </ListItemIcon>
             <ListItemText primary="Service Accounts" />
           </ListItem>
-          <ListItem button>
+          <ListItem button component={NavLink} to="/users">
             <ListItemIcon>
-              <LayersIcon />
+              <UsersIcon />
             </ListItemIcon>
-            <ListItemText primary="Integrations" />
+            <ListItemText primary="Users" />
           </ListItem>
           <Divider />
           <ListItem

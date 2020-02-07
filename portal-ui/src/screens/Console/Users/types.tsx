@@ -14,10 +14,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-export { default as PermissionIcon } from './PermissionIcon';
-export { default as CreateIcon } from './CreateIcon';
-export { default as DeleteIcon } from './DeleteIcon';
-export { default as ServiceAccountIcon } from './ServiceAccountIcon';
-export { default as DashboardIcon } from './DashboardIcon';
-export { default as BucketsIcon } from './BucketsIcon';
-export { default as UsersIcon } from './UsersIcon';
+export interface User {
+    name: string;
+    id: string;
+    email: string;
+    is_me: boolean;
+    enabled: boolean;
+}
+
+export interface UsersList {
+    users: User[];
+    total_users:number;
+}

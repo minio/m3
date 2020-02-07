@@ -55,6 +55,7 @@ import api from "../../common/api";
 import storage from "local-storage-fallback";
 import NotFoundPage from "../NotFoundPage";
 import ServiceAccounts from "./ServiceAccounts/ServiceAccounts";
+import Users from "./Users/Users";
 
 function Copyright() {
   return (
@@ -219,6 +220,7 @@ class Console extends React.Component<
                   path="/service_accounts"
                   component={ServiceAccounts}
                 />
+                <Route exact path="/users" component={Users} />
                 <Route exact path="/dashboard" component={Dashboard} />
                 <Route exact path="/" component={Dashboard} />
                 <Route component={NotFoundPage} />
