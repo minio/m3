@@ -49,7 +49,7 @@ func login(_ *cli.Context) error {
 
 	if err != nil {
 		fmt.Print("\n")
-		fmt.Println("Using normal authentication because, reason: ", err)
+		fmt.Println("Using normal authentication, reason: ", err)
 		fmt.Print("\n")
 	}
 
