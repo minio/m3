@@ -19,7 +19,7 @@ import ListItem from "@material-ui/core/ListItem";
 import ListItemIcon from "@material-ui/core/ListItemIcon";
 import ListItemText from "@material-ui/core/ListItemText";
 import LayersIcon from "@material-ui/icons/Layers";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { Divider, withStyles } from "@material-ui/core";
 import { ExitToApp } from "@material-ui/icons";
 import { AppState } from "../../store";
@@ -48,6 +48,19 @@ const styles = (theme: Theme) =>
       }
     },
     menuList: {
+      "& .active": {
+        borderTopLeftRadius: "3px",
+        borderBottomLeftRadius: "3px",
+        color: "white",
+        background:
+          "transparent linear-gradient(90deg, #362585 0%, #362585 7%, #281B6F 39%, #1F1661 100%) 0% 0% no-repeat padding-box",
+        "& .MuiSvgIcon-root": {
+          color: "white"
+        }
+      },
+      "& .MuiListItem-root": {
+        marginTop: "16px"
+      },
       paddingLeft: "30px",
       "& .MuiSvgIcon-root": {
         fontSize: "18px",
@@ -91,25 +104,25 @@ class Menu extends React.Component<MenuProps> {
           <img src={logo} />
         </div>
         <List className={classes.menuList}>
-          <ListItem button component={Link} to="/">
+          <ListItem button component={NavLink} to="/" exact>
             <ListItemIcon>
               <DashboardIcon />
             </ListItemIcon>
             <ListItemText primary="Dashboard" />
           </ListItem>
-          <ListItem button component={Link} to="/buckets">
+          <ListItem button component={NavLink} to="/buckets">
             <ListItemIcon>
               <BucketsIcon />
             </ListItemIcon>
             <ListItemText primary="Buckets" />
           </ListItem>
-          <ListItem button component={Link} to="/permissions">
+          <ListItem button component={NavLink} to="/permissions">
             <ListItemIcon>
               <PermissionIcon />
             </ListItemIcon>
             <ListItemText primary="Permissions" />
           </ListItem>
-          <ListItem button component={Link} to="/service_accounts">
+          <ListItem button component={NavLink} to="/service_accounts">
             <ListItemIcon>
               <ServiceAccountIcon />
             </ListItemIcon>
