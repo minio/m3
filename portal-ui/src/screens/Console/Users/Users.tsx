@@ -36,6 +36,10 @@ import { MinTablePaginationActions } from "../../../common/MinTablePaginationAct
 import AddUser from "./AddUser";
 import DeleteUser from "./DeleteUser";
 import { CreateIcon } from "../../../icons";
+import TextField from "@material-ui/core/TextField";
+import InputAdornment from "@material-ui/core/InputAdornment";
+import SearchIcon from "@material-ui/icons/Search";
+import Checkbox from "@material-ui/core/Checkbox";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -64,8 +68,25 @@ const styles = (theme: Theme) =>
       whiteSpace: "normal",
       wordWrap: "break-word"
     },
+    minTableHeader: {
+      color: "#393939",
+      "& tr": {
+        "& th": {
+          fontWeight:'bold'
+        }
+      }
+    },
     actionsTray: {
-      textAlign: "right"
+      textAlign: "right",
+      "& button": {
+        marginLeft: 10,
+      }
+    },
+    searchField: {
+      background: "#FFFFFF",
+      padding: 12,
+      borderRadius: 5,
+      boxShadow: "0px 3px 6px #00000012",
     }
   });
 
@@ -195,8 +216,21 @@ class Users extends React.Component<IUsersProps, IUsersState> {
           <Grid item xs={12}>
             <br />
           </Grid>
-          <Grid item xs={6}></Grid>
-          <Grid item xs={6} className={classes.actionsTray}>
+          <Grid item xs={12} className={classes.actionsTray}>
+            <TextField
+              placeholder="Search Users"
+              className={classes.searchField}
+              id="search-resource"
+              label=""
+              InputProps={{
+                disableUnderline: true,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
             <Button
               variant="contained"
               color="primary"
@@ -218,9 +252,10 @@ class Users extends React.Component<IUsersProps, IUsersState> {
             <Paper className={classes.paper}>
               {loading && <LinearProgress />}
               {records != null && records.length > 0 ? (
-                <Table size="small">
-                  <TableHead>
+                <Table size="medium">
+                  <TableHead className={classes.minTableHeader}>
                     <TableRow>
+                      <TableCell>Select</TableCell>
                       <TableCell>Name</TableCell>
                       <TableCell>Email</TableCell>
                       <TableCell align="right"></TableCell>
@@ -229,6 +264,13 @@ class Users extends React.Component<IUsersProps, IUsersState> {
                   <TableBody>
                     {records.map(row => (
                       <TableRow key={row.name}>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            value="secondary"
+                            color="primary"
+                            inputProps={{ 'aria-label': 'secondary checkbox' }}
+                          />
+                        </TableCell>
                         <TableCell className={classes.wrapCell}>
                           {row.name}
                         </TableCell>

@@ -36,6 +36,7 @@ const GlobalCss = withStyles({
       borderRadius: "3px"
     },
     ".MuiTableCell-head": {
+      borderRadius: "3px 3px 0px 0px",
       fontSize: "13px"
     },
     ".MuiPaper-root": {
