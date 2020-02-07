@@ -16,7 +16,6 @@
 
 import React from "react";
 import Grid from "@material-ui/core/Grid";
-import Title from "../../../common/Title";
 import Typography from "@material-ui/core/Typography";
 import {
   Button,
@@ -123,14 +122,14 @@ const styles = (theme: Theme) =>
     }
   });
 
-interface IAddServiceAccountProps {
+interface IAddServiceAccountContentProps {
   classes: any;
   open: boolean;
   closeModalAndRefresh: (res: NewServiceAccount | null) => void;
   selectedServiceAccount: ServiceAccount | null;
 }
 
-interface IAddServiceAccountState {
+interface IAddServiceAccountContentState {
   addLoading: boolean;
   addError: string;
   name: string;
@@ -143,11 +142,11 @@ interface IAddServiceAccountState {
   loadingServiceAccount: boolean;
 }
 
-class AddServiceAccount extends React.Component<
-  IAddServiceAccountProps,
-  IAddServiceAccountState
+class AddServiceAccountContent extends React.Component<
+  IAddServiceAccountContentProps,
+  IAddServiceAccountContentState
 > {
-  state: IAddServiceAccountState = {
+  state: IAddServiceAccountContentState = {
     addLoading: false,
     addError: "",
     name: "",
@@ -267,7 +266,7 @@ class AddServiceAccount extends React.Component<
   }
 
   render() {
-    const { classes, selectedServiceAccount, open } = this.props;
+    const { classes, selectedServiceAccount} = this.props;
     const {
       addLoading,
       addError,
@@ -301,7 +300,7 @@ class AddServiceAccount extends React.Component<
       } else {
         let selectedIndex = -1;
         for (let i = 0; i < newSelected.length; i++) {
-          if (newSelected[i].id == perm.id) {
+          if (newSelected[i].id === perm.id) {
             selectedIndex = i;
             break;
           }
@@ -335,21 +334,12 @@ class AddServiceAccount extends React.Component<
       Math.min(rowsPerPage, permissions.length - page * rowsPerPage);
 
     return (
-      <Dialog
-        open={open}
-        onClose={() => {
-          this.setState({ addError: "" }, () => {
-            this.props.closeModalAndRefresh(null);
-          });
-        }}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-      >
+      <React.Fragment>
         <DialogTitle id="alert-dialog-title">
           {selectedServiceAccount !== null ? (
-            <Title>Edit Service Account</Title>
+            <span>Edit Service Account</span>
           ) : (
-            <Title>Create Service Account</Title>
+            <span>Create Service Account</span>
           )}
         </DialogTitle>
         <DialogContent>
@@ -495,9 +485,44 @@ class AddServiceAccount extends React.Component<
             </Grid>
           </form>
         </DialogContent>
+      </React.Fragment>
+    );
+  }
+}
+
+const AddServiceAccountWrapper = withStyles(styles)(AddServiceAccountContent);
+
+interface IAddServiceAccountProps {
+  open: boolean;
+  closeModalAndRefresh: (res: NewServiceAccount | null) => void;
+  selectedServiceAccount: ServiceAccount | null;
+}
+
+interface IAddServiceAccountState {}
+
+class AddServiceAccount extends React.Component<
+  IAddServiceAccountProps,
+  IAddServiceAccountState
+> {
+  state: IAddServiceAccountState = {};
+
+  render() {
+    const { open } = this.props;
+    return (
+      <Dialog
+        open={open}
+        onClose={() => {
+          this.setState({ addError: "" }, () => {
+            this.props.closeModalAndRefresh(null);
+          });
+        }}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <AddServiceAccountWrapper {...this.props} />
       </Dialog>
     );
   }
 }
 
-export default withStyles(styles)(AddServiceAccount);
+export default AddServiceAccount;

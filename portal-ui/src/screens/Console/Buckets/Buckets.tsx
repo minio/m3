@@ -27,18 +27,17 @@ import api from "../../../common/api";
 import { Bucket, BucketList } from "./types";
 import {
   Button,
-  Drawer,
   IconButton,
   LinearProgress,
   TableFooter,
-  TablePagination,
-  Toolbar
+  TablePagination
 } from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
 import DeleteIcon from "@material-ui/icons/Delete";
 import AddBucket from "./AddBucket";
 import DeleteBucket from "./DeleteBucket";
 import { MinTablePaginationActions } from "../../../common/MinTablePaginationActions";
+import { CreateIcon } from "../../../icons";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -60,6 +59,17 @@ const styles = (theme: Theme) =>
     tableToolbar: {
       paddingLeft: theme.spacing(2),
       paddingRight: theme.spacing(0)
+    },
+    minTableHeader: {
+      color: "#393939",
+      "& tr": {
+        "& th": {
+          fontWeight: "bold"
+        }
+      }
+    },
+    actionsTray: {
+      textAlign: "right"
     }
   });
 
@@ -189,98 +199,93 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
 
     return (
       <React.Fragment>
-        <Drawer
-          anchor="right"
+        <AddBucket
           open={addScreenOpen}
-          onClose={() => {
-            this.setState({ addScreenOpen: false });
+          closeModalAndRefresh={() => {
+            this.closeAddModalAndRefresh();
           }}
-        >
-          <div className={classes.addSideBar}>
-            <AddBucket
-              closeModalAndRefresh={() => {
-                this.closeAddModalAndRefresh();
+        />
+        <Grid container>
+          <Grid item xs={12}>
+            <Typography variant="h6">Buckets</Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <br />
+          </Grid>
+          <Grid item xs={6}></Grid>
+          <Grid item xs={6} className={classes.actionsTray}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<CreateIcon />}
+              onClick={() => {
+                this.setState({
+                  addScreenOpen: true
+                });
               }}
-            />
-          </div>
-        </Drawer>
-
-        <Paper className={classes.paper}>
-          <Toolbar className={classes.tableToolbar}>
-            <Grid justify="space-between" container>
-              <Grid item xs={10}>
-                <Typography
-                  className={classes.title}
-                  variant="h6"
-                  id="tableTitle"
-                >
-                  Buckets
-                </Typography>
-              </Grid>
-              <Grid item xs={2}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => {
-                    this.setState({ addScreenOpen: true });
-                  }}
-                >
-                  Add Bucket
-                </Button>
-              </Grid>
-            </Grid>
-          </Toolbar>
-          {loading && <LinearProgress />}
-          {records != null && records.length > 0 ? (
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Size</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {records.map(row => (
-                  <TableRow key={row.name}>
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{bytesToSize(row.size)}</TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        aria-label="delete"
-                        onClick={() => {
-                          confirmDeleteBucket(row.name);
+            >
+              Create Bucket
+            </Button>
+          </Grid>
+          <Grid item xs={12}>
+            <br />
+          </Grid>
+          <Grid item xs={12}>
+            <Paper className={classes.paper}>
+              {loading && <LinearProgress />}
+              {records != null && records.length > 0 ? (
+                <Table size="small">
+                  <TableHead className={classes.minTableHeader}>
+                    <TableRow>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Size</TableCell>
+                      <TableCell align="right">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {records.map(row => (
+                      <TableRow key={row.name}>
+                        <TableCell>{row.name}</TableCell>
+                        <TableCell>{bytesToSize(row.size)}</TableCell>
+                        <TableCell align="right">
+                          <IconButton
+                            aria-label="delete"
+                            onClick={() => {
+                              confirmDeleteBucket(row.name);
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter>
+                    <TableRow>
+                      <TablePagination
+                        rowsPerPageOptions={[5, 10, 25]}
+                        colSpan={3}
+                        count={totalRecords}
+                        rowsPerPage={rowsPerPage}
+                        page={page}
+                        SelectProps={{
+                          inputProps: { "aria-label": "rows per page" },
+                          native: true
                         }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    colSpan={3}
-                    count={totalRecords}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    SelectProps={{
-                      inputProps: { "aria-label": "rows per page" },
-                      native: true
-                    }}
-                    onChangePage={handleChangePage}
-                    onChangeRowsPerPage={handleChangeRowsPerPage}
-                    ActionsComponent={MinTablePaginationActions}
-                  />
-                </TableRow>
-              </TableFooter>
-            </Table>
-          ) : (
-            <div>No Buckets</div>
-          )}
-        </Paper>
+                        onChangePage={handleChangePage}
+                        onChangeRowsPerPage={handleChangeRowsPerPage}
+                        ActionsComponent={MinTablePaginationActions}
+                      />
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              ) : (
+                <div>No Buckets</div>
+              )}
+            </Paper>
+          </Grid>
+        </Grid>
+
         <DeleteBucket
           deleteOpen={deleteOpen}
           selectedBucket={selectedBucket}

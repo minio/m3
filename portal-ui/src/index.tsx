@@ -42,7 +42,7 @@ const GlobalCss = withStyles({
       borderRadius: "3px"
     },
     ".MuiDrawer-paperAnchorDockedLeft": {
-      borderRightColor: "white"
+      borderRight: "0px"
     },
     ".MuiDrawer-root": {
       "& .MuiPaper-root": {

@@ -26,12 +26,10 @@ import Grid from "@material-ui/core/Grid";
 import api from "../../../common/api";
 import {
   Button,
-  Drawer,
   IconButton,
   LinearProgress,
   TableFooter,
-  TablePagination,
-  Toolbar
+  TablePagination
 } from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
 import DeleteIcon from "@material-ui/icons/Delete";
@@ -40,6 +38,7 @@ import AddPermission from "./AddPermission";
 import DeletePermission from "./DeletePermission";
 import { MinTablePaginationActions } from "../../../common/MinTablePaginationActions";
 import EditIcon from "@material-ui/icons/Edit";
+import { CreateIcon } from "../../../icons";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -66,6 +65,9 @@ const styles = (theme: Theme) =>
       maxWidth: "200px",
       whiteSpace: "normal",
       wordWrap: "break-word"
+    },
+    actionsTray: {
+      textAlign: "right"
     }
   });
 
@@ -139,7 +141,7 @@ class Permissions extends React.Component<
   }
 
   closeAddModalAndRefresh() {
-    this.setState({ addScreenOpen: false }, () => {
+    this.setState({ addScreenOpen: false, selectedPermission: null }, () => {
       this.fetchRecords();
     });
   }
@@ -213,118 +215,119 @@ class Permissions extends React.Component<
 
     return (
       <React.Fragment>
-        <Drawer
-          anchor="right"
-          open={addScreenOpen}
-          onClose={() => {
-            this.setState({ addScreenOpen: false });
-          }}
-        >
-          <div className={classes.addSideBar}>
-            <AddPermission
-              selectedPermission={selectedPermission}
-              closeModalAndRefresh={() => {
-                this.closeAddModalAndRefresh();
-              }}
-            />
-          </div>
-        </Drawer>
 
-        <Paper className={classes.paper}>
-          <Toolbar className={classes.tableToolbar}>
-            <Grid justify="space-between" container>
-              <Grid item xs={10}>
-                <Typography
-                  className={classes.title}
-                  variant="h6"
-                  id="tableTitle"
-                >
-                  Permissions
-                </Typography>
-              </Grid>
-              <Grid item xs={2}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => {
-                    this.setState({
-                      addScreenOpen: true,
-                      selectedPermission: null
-                    });
-                  }}
-                >
-                  Add Permission
-                </Button>
-              </Grid>
-            </Grid>
-          </Toolbar>
-          {loading && <LinearProgress />}
-          {records != null && records.length > 0 ? (
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Effect</TableCell>
-                  <TableCell>Resources</TableCell>
-                  <TableCell>Action</TableCell>
-                  <TableCell align="right"></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {records.map(row => (
-                  <TableRow key={row.name}>
-                    <TableCell className={classes.wrapCell}>{row.name}</TableCell>
-                    <TableCell className={classes.wrapCell}>{row.description}</TableCell>
-                    <TableCell>{row.effect}</TableCell>
-                    <TableCell className={classes.wrapCell}>
-                      {row.resources.map(r => r.bucket_name).join(", ")}
-                    </TableCell>
-                    <TableCell>{actionLabel(row.actions[0].type)}</TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        aria-label="edit"
-                        onClick={() => {
-                          editPermission(row);
+        <AddPermission
+          open={addScreenOpen}
+          selectedPermission={selectedPermission}
+          closeModalAndRefresh={() => {
+            this.closeAddModalAndRefresh();
+          }}
+        />
+
+        <Grid container>
+          <Grid item xs={12}>
+            <Typography variant="h6">Permissions</Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <br />
+          </Grid>
+          <Grid item xs={6}></Grid>
+          <Grid item xs={6} className={classes.actionsTray}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<CreateIcon />}
+              onClick={() => {
+                this.setState({
+                  addScreenOpen: true,
+                  selectedPermission: null
+                });
+              }}
+            >
+              Create Permission
+            </Button>
+          </Grid>
+
+          <Grid item xs={12}>
+            <br />
+          </Grid>
+          <Grid item xs={12}>
+            <Paper className={classes.paper}>
+              {loading && <LinearProgress />}
+              {records != null && records.length > 0 ? (
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Description</TableCell>
+                      <TableCell>Effect</TableCell>
+                      <TableCell>Resources</TableCell>
+                      <TableCell>Action</TableCell>
+                      <TableCell align="right"></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {records.map(row => (
+                      <TableRow key={row.name}>
+                        <TableCell className={classes.wrapCell}>
+                          {row.name}
+                        </TableCell>
+                        <TableCell className={classes.wrapCell}>
+                          {row.description}
+                        </TableCell>
+                        <TableCell>{row.effect}</TableCell>
+                        <TableCell className={classes.wrapCell}>
+                          {row.resources.map(r => r.bucket_name).join(", ")}
+                        </TableCell>
+                        <TableCell>
+                          {actionLabel(row.actions[0].type)}
+                        </TableCell>
+                        <TableCell align="right">
+                          <IconButton
+                            aria-label="edit"
+                            onClick={() => {
+                              editPermission(row);
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton
+                            aria-label="delete"
+                            onClick={() => {
+                              confirmDeletePermission(row);
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter>
+                    <TableRow>
+                      <TablePagination
+                        rowsPerPageOptions={[5, 10, 25]}
+                        colSpan={6}
+                        count={totalRecords}
+                        rowsPerPage={rowsPerPage}
+                        page={page}
+                        SelectProps={{
+                          inputProps: { "aria-label": "rows per page" },
+                          native: true
                         }}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
-                        aria-label="delete"
-                        onClick={() => {
-                          confirmDeletePermission(row);
-                        }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    colSpan={6}
-                    count={totalRecords}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    SelectProps={{
-                      inputProps: { "aria-label": "rows per page" },
-                      native: true
-                    }}
-                    onChangePage={handleChangePage}
-                    onChangeRowsPerPage={handleChangeRowsPerPage}
-                    ActionsComponent={MinTablePaginationActions}
-                  />
-                </TableRow>
-              </TableFooter>
-            </Table>
-          ) : (
-            <div>No Permissions</div>
-          )}
-        </Paper>
+                        onChangePage={handleChangePage}
+                        onChangeRowsPerPage={handleChangeRowsPerPage}
+                        ActionsComponent={MinTablePaginationActions}
+                      />
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              ) : (
+                <div>No Permissions</div>
+              )}
+            </Paper>
+          </Grid>
+        </Grid>
         <DeletePermission
           deleteOpen={deleteOpen}
           selectedPermission={selectedPermission}

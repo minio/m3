@@ -72,12 +72,10 @@ const styles = (theme: Theme) =>
       wordWrap: "break-word"
     },
     minTableHeader: {
-      color: "white",
-      background: theme.palette.primary.main,
+      color: "#393939",
       "& tr": {
-        color: "white",
         "& th": {
-          color: "white"
+          fontWeight:'bold'
         }
       }
     },
