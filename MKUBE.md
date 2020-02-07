@@ -101,7 +101,7 @@ Required input:
 
   * Service Accounts with the same name are not allowed.
   * List of permissions can't be empty.
-  * **Secret Key** is not stored on the DB and is showed only after creation.
+  * **Secret Key** is not stored on the DB and is showed only once during the time of creation.
 
 ### Update Service Account
 Updates the fields for a Service Account including the permissions assigned to it.
