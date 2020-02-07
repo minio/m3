@@ -86,6 +86,9 @@ const styles = (theme: Theme) =>
     },
     iconRoot: {
       textAlign: "center"
+    },
+    actionsTray: {
+      textAlign:"right",
     }
   });
 
@@ -250,7 +253,8 @@ class ServiceAccounts extends React.Component<
           <Grid item xs={12}>
             <br />
           </Grid>
-          <Grid item xs={6}>
+          <Grid item xs={6}></Grid>
+          <Grid item xs={6} className={classes.actionsTray}>
             <Button
               variant="contained"
               color="primary"
@@ -262,10 +266,10 @@ class ServiceAccounts extends React.Component<
                 });
               }}
             >
-              Create new service account
+              Create service account
             </Button>
           </Grid>
-          <Grid item xs={6}></Grid>
+
           <Grid item xs={12}>
             <br />
           </Grid>
