@@ -16,10 +16,12 @@
 
 import React from "react";
 import Grid from "@material-ui/core/Grid";
-import Title from "../../../common/Title";
 import Typography from "@material-ui/core/Typography";
 import {
   Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   FormControl,
   FormControlLabel,
   FormLabel,
@@ -124,13 +126,14 @@ const styles = (theme: Theme) =>
     }
   });
 
-interface IAddPermissionProps {
+interface IAddPermissionContentProps {
   classes: any;
+  open: boolean;
   closeModalAndRefresh: () => void;
   selectedPermission: Permission | null;
 }
 
-interface IAddPermissionState {
+interface IAddPermissionContentState {
   addLoading: boolean;
   addError: string;
   name: string;
@@ -145,11 +148,11 @@ interface IAddPermissionState {
   loadingBuckets: boolean;
 }
 
-class AddPermission extends React.Component<
-  IAddPermissionProps,
-  IAddPermissionState
+class AddPermissionContent extends React.Component<
+  IAddPermissionContentProps,
+  IAddPermissionContentState
 > {
-  state: IAddPermissionState = {
+  state: IAddPermissionContentState = {
     addLoading: false,
     addError: "",
     name: "",
@@ -266,7 +269,7 @@ class AddPermission extends React.Component<
   }
 
   render() {
-    const { classes, selectedPermission } = this.props;
+    const { classes, selectedPermission, open } = this.props;
     const {
       addLoading,
       addError,
@@ -327,206 +330,259 @@ class AddPermission extends React.Component<
       rowsPerPage - Math.min(rowsPerPage, buckets.length - page * rowsPerPage);
 
     return (
-      <form
-        noValidate
-        autoComplete="off"
-        onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
-          this.saveRecord(e);
+      <Dialog
+        open={open}
+        onClose={() => {
+          this.setState({ addError: "" }, () => {
+            this.props.closeModalAndRefresh();
+          });
         }}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
       >
-        <Grid container>
-          <Grid item xs={12}>
-            {selectedPermission !== null ? (
-              <Title>Edit Permission</Title>
-            ) : (
-              <Title>Add Permission</Title>
-            )}
-          </Grid>
-          {addError !== "" && (
-            <Grid item xs={12}>
-              <Typography
-                component="p"
-                variant="body1"
-                className={classes.errorBlock}
-              >
-                {addError}
-              </Typography>
-            </Grid>
+        <DialogTitle id="alert-dialog-title">
+          {selectedPermission !== null ? (
+            <span>Edit Permission</span>
+          ) : (
+            <span>Create Permission</span>
           )}
-          <Grid item xs={12}>
-            <TextField
-              id="standard-basic"
-              fullWidth
-              label="Name"
-              value={name}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                this.setState({ name: e.target.value });
-              }}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              id="standard-multiline-static"
-              label="Description"
-              fullWidth
-              multiline
-              rows="4"
-              value={description}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                this.setState({ description: e.target.value });
-              }}
-            />
-          </Grid>
+        </DialogTitle>
+        <DialogContent>
+          <form
+            noValidate
+            autoComplete="off"
+            onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
+              this.saveRecord(e);
+            }}
+          >
+            <Grid container>
+              {addError !== "" && (
+                <Grid item xs={12}>
+                  <Typography
+                    component="p"
+                    variant="body1"
+                    className={classes.errorBlock}
+                  >
+                    {addError}
+                  </Typography>
+                </Grid>
+              )}
+              <Grid item xs={12}>
+                <TextField
+                  id="standard-basic"
+                  fullWidth
+                  label="Name"
+                  value={name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    this.setState({ name: e.target.value });
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  id="standard-multiline-static"
+                  label="Description"
+                  fullWidth
+                  multiline
+                  rows="4"
+                  value={description}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    this.setState({ description: e.target.value });
+                  }}
+                />
+              </Grid>
 
-          <Grid item xs={12}>
-            <FormControl className={classes.formControl} fullWidth>
-              <InputLabel id="select-effect">Effect</InputLabel>
-              <Select
-                labelId="select-effect"
-                id="select-effect"
-                value={effect}
-                onChange={(e: React.ChangeEvent<{ value: unknown }>) => {
-                  this.setState({ effect: e.target.value as string });
-                }}
-              >
-                <MenuItem value="Allow">Allow</MenuItem>
-                <MenuItem value="Deny">Deny</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <div className={classes.root}>
-              <EnhancedTableToolbar numSelected={resources.length} />
-              <TableContainer>
-                <Table
-                  className={classes.table}
-                  aria-labelledby="tableTitle"
-                  size={"small"}
-                  aria-label="enhanced table"
-                >
-                  <TableHead>
-                    <TableRow>
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          indeterminate={
-                            resources.length > 0 &&
-                            resources.length < buckets.length
-                          }
-                          checked={
-                            buckets.length > 0 &&
-                            resources.length === buckets.length
-                          }
-                          onChange={handleSelectAllClick}
-                          inputProps={{ "aria-label": "select all desserts" }}
-                        />
-                      </TableCell>
-                      <TableCell>Name</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {buckets
-                      .slice(
-                        page * rowsPerPage,
-                        page * rowsPerPage + rowsPerPage
-                      )
-                      .map((row, index) => {
-                        const isItemSelected = isSelected(row.name);
-                        const labelId = `enhanced-table-checkbox-${index}`;
+              <Grid item xs={12}>
+                <FormControl className={classes.formControl} fullWidth>
+                  <InputLabel id="select-effect">Effect</InputLabel>
+                  <Select
+                    labelId="select-effect"
+                    id="select-effect"
+                    value={effect}
+                    onChange={(e: React.ChangeEvent<{ value: unknown }>) => {
+                      this.setState({ effect: e.target.value as string });
+                    }}
+                  >
+                    <MenuItem value="Allow">Allow</MenuItem>
+                    <MenuItem value="Deny">Deny</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <div className={classes.root}>
+                  <EnhancedTableToolbar numSelected={resources.length} />
+                  <TableContainer>
+                    <Table
+                      className={classes.table}
+                      aria-labelledby="tableTitle"
+                      size={"small"}
+                      aria-label="enhanced table"
+                    >
+                      <TableHead>
+                        <TableRow>
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              indeterminate={
+                                resources.length > 0 &&
+                                resources.length < buckets.length
+                              }
+                              checked={
+                                buckets.length > 0 &&
+                                resources.length === buckets.length
+                              }
+                              onChange={handleSelectAllClick}
+                              inputProps={{
+                                "aria-label": "select all desserts"
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>Name</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {buckets
+                          .slice(
+                            page * rowsPerPage,
+                            page * rowsPerPage + rowsPerPage
+                          )
+                          .map((row, index) => {
+                            const isItemSelected = isSelected(row.name);
+                            const labelId = `enhanced-table-checkbox-${index}`;
 
-                        return (
-                          <TableRow
-                            hover
-                            onClick={event => handleClick(event, row.name)}
-                            role="checkbox"
-                            aria-checked={isItemSelected}
-                            tabIndex={-1}
-                            key={row.name}
-                            selected={isItemSelected}
-                          >
-                            <TableCell padding="checkbox">
-                              <Checkbox
-                                checked={isItemSelected}
-                                inputProps={{ "aria-labelledby": labelId }}
-                              />
-                            </TableCell>
-                            <TableCell id={labelId}>{row.name}</TableCell>
+                            return (
+                              <TableRow
+                                hover
+                                onClick={event => handleClick(event, row.name)}
+                                role="checkbox"
+                                aria-checked={isItemSelected}
+                                tabIndex={-1}
+                                key={row.name}
+                                selected={isItemSelected}
+                              >
+                                <TableCell padding="checkbox">
+                                  <Checkbox
+                                    checked={isItemSelected}
+                                    inputProps={{ "aria-labelledby": labelId }}
+                                  />
+                                </TableCell>
+                                <TableCell id={labelId}>{row.name}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        {emptyRows > 0 && (
+                          <TableRow style={{ height: 33 * emptyRows }}>
+                            <TableCell colSpan={6} />
                           </TableRow>
-                        );
-                      })}
-                    {emptyRows > 0 && (
-                      <TableRow style={{ height: 33 * emptyRows }}>
-                        <TableCell colSpan={6} />
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              <TablePagination
-                rowsPerPageOptions={[5, 10, 25]}
-                component="div"
-                count={buckets.length}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                labelRowsPerPage={null}
-                onChangePage={handleChangePage}
-                onChangeRowsPerPage={handleChangeRowsPerPage}
-              />
-            </div>
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl component="fieldset" className={classes.formControl}>
-              <FormLabel component="legend">Action</FormLabel>
-              <RadioGroup
-                aria-label="action"
-                name="action"
-                value={action}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                  this.setState({
-                    action: (event.target as HTMLInputElement).value
-                  });
-                }}
-              >
-                <FormControlLabel
-                  value="readwrite"
-                  control={<Radio />}
-                  label="All Actions"
-                />
-                <FormControlLabel
-                  value="read"
-                  control={<Radio />}
-                  label="Read Only"
-                />
-                <FormControlLabel
-                  value="write"
-                  control={<Radio />}
-                  label="Write Only"
-                />
-              </RadioGroup>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <br />
-          </Grid>
-          <Grid item xs={12}>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              disabled={addLoading}
-            >
-              Save
-            </Button>
-          </Grid>
-          {addLoading && (
-            <Grid item xs={12}>
-              <LinearProgress />
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  <TablePagination
+                    rowsPerPageOptions={[5, 10, 25]}
+                    component="div"
+                    count={buckets.length}
+                    rowsPerPage={rowsPerPage}
+                    page={page}
+                    labelRowsPerPage={null}
+                    onChangePage={handleChangePage}
+                    onChangeRowsPerPage={handleChangeRowsPerPage}
+                  />
+                </div>
+              </Grid>
+              <Grid item xs={12}>
+                <FormControl
+                  component="fieldset"
+                  className={classes.formControl}
+                >
+                  <FormLabel component="legend">Action</FormLabel>
+                  <RadioGroup
+                    aria-label="action"
+                    name="action"
+                    value={action}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                      this.setState({
+                        action: (event.target as HTMLInputElement).value
+                      });
+                    }}
+                  >
+                    <FormControlLabel
+                      value="readwrite"
+                      control={<Radio />}
+                      label="All Actions"
+                    />
+                    <FormControlLabel
+                      value="read"
+                      control={<Radio />}
+                      label="Read Only"
+                    />
+                    <FormControlLabel
+                      value="write"
+                      control={<Radio />}
+                      label="Write Only"
+                    />
+                  </RadioGroup>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <br />
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  disabled={addLoading}
+                >
+                  Save
+                </Button>
+              </Grid>
+              {addLoading && (
+                <Grid item xs={12}>
+                  <LinearProgress />
+                </Grid>
+              )}
             </Grid>
-          )}
-        </Grid>
-      </form>
+          </form>
+        </DialogContent>
+      </Dialog>
     );
   }
 }
 
-export default withStyles(styles)(AddPermission);
+const AddPermissionWrapper = withStyles(styles)(AddPermissionContent);
+
+interface IAddPermissionProps {
+  open: boolean;
+  closeModalAndRefresh: () => void;
+  selectedPermission: Permission | null;
+}
+
+interface IAddPermissionState {}
+
+class AddPermission extends React.Component<
+  IAddPermissionProps,
+  IAddPermissionState
+> {
+  state: IAddPermissionState = {};
+
+  render() {
+    const { open } = this.props;
+    return (
+      <Dialog
+        open={open}
+        onClose={() => {
+          this.setState({ addError: "" }, () => {
+            this.props.closeModalAndRefresh();
+          });
+        }}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <AddPermissionWrapper {...this.props} />
+      </Dialog>
+    );
+  }
+}
+
+export default AddPermission;

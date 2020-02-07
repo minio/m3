@@ -15,37 +15,35 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import React from "react";
-import Avatar from "@material-ui/core/Avatar";
 import Button from "@material-ui/core/Button";
-import CssBaseline from "@material-ui/core/CssBaseline";
 import TextField from "@material-ui/core/TextField";
 import Link from "@material-ui/core/Link";
 import Grid from "@material-ui/core/Grid";
-import Box from "@material-ui/core/Box";
-import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
 import Typography from "@material-ui/core/Typography";
 import { createStyles, Theme, withStyles } from "@material-ui/core/styles";
-import Container from "@material-ui/core/Container";
 import request from "superagent";
 import storage from "local-storage-fallback";
 import { connect, ConnectedProps } from "react-redux";
-import Copyright from "../common/Copyright";
 import { SystemState } from "../types";
 import { userLoggedIn } from "../actions";
 import history from "../history";
+import { Paper } from "@material-ui/core";
 
 const styles = (theme: Theme) =>
   createStyles({
     "@global": {
       body: {
-        backgroundColor: theme.palette.common.white
+        backgroundColor: "#F4F4F4"
       }
     },
     paper: {
-      marginTop: theme.spacing(8),
+      marginTop: theme.spacing(16),
+      borderRadius: "3px",
       display: "flex",
       flexDirection: "column",
-      alignItems: "center"
+      alignItems: "center",
+      width: "800px",
+      margin: "auto"
     },
     avatar: {
       margin: theme.spacing(1),
@@ -60,6 +58,18 @@ const styles = (theme: Theme) =>
     },
     errorBlock: {
       color: "red"
+    },
+    mainContainer: {
+      borderRadius: "3px"
+    },
+    theOcean: {
+      borderTopLeftRadius: "3px",
+      borderBottomLeftRadius: "3px",
+      background:
+        "transparent linear-gradient(333deg, #281B6F 1%, #271260 13%, #120D53 83%) 0% 0% no-repeat padding-box;"
+    },
+    theLogin: {
+      padding: "76px 62px 20px 62px"
     }
   });
 
@@ -110,7 +120,7 @@ class Login extends React.Component<LoginProps> {
         history.push("/dashboard");
       })
       .catch(err => {
-        this.setState({ error: err });
+        this.setState({ error: `${err}` });
       });
   };
 
@@ -118,99 +128,96 @@ class Login extends React.Component<LoginProps> {
     const { error, email, password, company } = this.state;
     const { classes } = this.props;
     return (
-      <Container component="main" maxWidth="xs">
-        <CssBaseline />
-        <div className={classes.paper}>
-          <Avatar className={classes.avatar}>
-            <LockOutlinedIcon />
-          </Avatar>
-          <Typography component="h1" variant="h5">
-            Acme Storage Login
-          </Typography>
-          <form className={classes.form} noValidate onSubmit={this.formSubmit}>
-            <Grid container spacing={2}>
-              {error !== "" && (
-                <Grid item xs={12}>
-                  <Typography
-                    component="p"
-                    variant="body1"
-                    className={classes.errorBlock}
-                  >
-                    {error}
-                  </Typography>
-                </Grid>
-              )}
-              <Grid item xs={12}>
-                <TextField
-                  autoComplete="company_name"
-                  name="company_name"
-                  variant="outlined"
-                  required
-                  fullWidth
-                  value={company}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    this.setState({ company: e.target.value })
-                  }
-                  id="company_name"
-                  label="Company"
-                  autoFocus
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <TextField
-                  variant="outlined"
-                  required
-                  fullWidth
-                  id="email"
-                  value={email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    this.setState({ email: e.target.value })
-                  }
-                  label="Email Address"
-                  name="email"
-                  autoComplete="email"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  variant="outlined"
-                  required
-                  fullWidth
-                  value={password}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    this.setState({ password: e.target.value })
-                  }
-                  name="password"
-                  label="Password"
-                  type="password"
-                  id="password"
-                  autoComplete="current-password"
-                />
-              </Grid>
-            </Grid>
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              color="primary"
-              className={classes.submit}
-            >
+      <Paper className={classes.paper}>
+        <Grid container className={classes.mainContainer}>
+          <Grid item xs={7} className={classes.theOcean}></Grid>
+          <Grid item xs={5} className={classes.theLogin}>
+            <Typography component="h1" variant="h6">
               Login
-            </Button>
-            <Grid container justify="flex-end">
-              <Grid item>
-                <Link href="#" variant="body2">
-                  Forgot Password?
-                </Link>
+            </Typography>
+            <form
+              className={classes.form}
+              noValidate
+              onSubmit={this.formSubmit}
+            >
+              <Grid container spacing={2}>
+                {error !== "" && (
+                  <Grid item xs={12}>
+                    <Typography
+                      component="p"
+                      variant="body1"
+                      className={classes.errorBlock}
+                    >
+                      {error}
+                    </Typography>
+                  </Grid>
+                )}
+                <Grid item xs={12}>
+                  <TextField
+                    autoComplete="company_name"
+                    name="company_name"
+                    required
+                    fullWidth
+                    value={company}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      this.setState({ company: e.target.value })
+                    }
+                    id="company_name"
+                    label="Company"
+                    autoFocus
+                  />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    id="email"
+                    value={email}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      this.setState({ email: e.target.value })
+                    }
+                    label="Email Address"
+                    name="email"
+                    autoComplete="email"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    value={password}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      this.setState({ password: e.target.value })
+                    }
+                    name="password"
+                    label="Password"
+                    type="password"
+                    id="password"
+                    autoComplete="current-password"
+                  />
+                </Grid>
               </Grid>
-            </Grid>
-          </form>
-        </div>
-        <Box mt={5}>
-          <Copyright />
-        </Box>
-      </Container>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                color="primary"
+                className={classes.submit}
+              >
+                Login
+              </Button>
+              <Grid container justify="flex-end">
+                <Grid item>
+                  <Link href="#" variant="body2">
+                    Forgot Password?
+                  </Link>
+                </Grid>
+              </Grid>
+            </form>
+          </Grid>
+        </Grid>
+      </Paper>
     );
   }
 }

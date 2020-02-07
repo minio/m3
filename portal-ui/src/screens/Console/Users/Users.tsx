@@ -26,17 +26,16 @@ import Grid from "@material-ui/core/Grid";
 import api from "../../../common/api";
 import {
   Button,
-  Drawer,
   LinearProgress,
   TableFooter,
-  TablePagination,
-  Toolbar
+  TablePagination
 } from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
 import { User, UsersList } from "./types";
 import { MinTablePaginationActions } from "../../../common/MinTablePaginationActions";
 import AddUser from "./AddUser";
 import DeleteUser from "./DeleteUser";
+import { CreateIcon } from "../../../icons";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -64,6 +63,9 @@ const styles = (theme: Theme) =>
       maxWidth: "200px",
       whiteSpace: "normal",
       wordWrap: "break-word"
+    },
+    actionsTray: {
+      textAlign: "right"
     }
   });
 
@@ -176,114 +178,92 @@ class Users extends React.Component<IUsersProps, IUsersState> {
       });
     };
 
-    const confirmDeleteUser = (selectedUser: User) => {
-      this.setState({
-        deleteOpen: true,
-        selectedUser: selectedUser
-      });
-    };
-
-    const editUser = (selectedUser: User) => {
-      this.setState({
-        addScreenOpen: true,
-        selectedUser: selectedUser
-      });
-    };
-
     return (
       <React.Fragment>
-        <Drawer
-          anchor="right"
+        <AddUser
           open={addScreenOpen}
-          onClose={() => {
-            this.setState({ addScreenOpen: false });
+          selectedUser={selectedUser}
+          closeModalAndRefresh={() => {
+            this.closeAddModalAndRefresh();
           }}
-        >
-          <div className={classes.addSideBar}>
-            <AddUser
-              selectedUser={selectedUser}
-              closeModalAndRefresh={() => {
-                this.closeAddModalAndRefresh();
-              }}
-            />
-          </div>
-        </Drawer>
+        />
 
-        <Paper className={classes.paper}>
-          <Toolbar className={classes.tableToolbar}>
-            <Grid justify="space-between" container>
-              <Grid item xs={10}>
-                <Typography
-                  className={classes.title}
-                  variant="h6"
-                  id="tableTitle"
-                >
-                  Users
-                </Typography>
-              </Grid>
-              <Grid item xs={2}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => {
-                    this.setState({
-                      addScreenOpen: true,
-                      selectedUser: null
-                    });
-                  }}
-                >
-                  Add User
-                </Button>
-              </Grid>
-            </Grid>
-          </Toolbar>
-          {loading && <LinearProgress />}
-          {records != null && records.length > 0 ? (
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell align="right"></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {records.map(row => (
-                  <TableRow key={row.name}>
-                    <TableCell className={classes.wrapCell}>
-                      {row.name}
-                    </TableCell>
-                    <TableCell className={classes.wrapCell}>
-                      {row.email}
-                    </TableCell>
-                    <TableCell align="right">
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TablePagination
-                    rowsPerPageOptions={[5, 10, 25]}
-                    colSpan={3}
-                    count={totalRecords}
-                    rowsPerPage={rowsPerPage}
-                    page={page}
-                    SelectProps={{
-                      inputProps: { "aria-label": "rows per page" },
-                      native: true
-                    }}
-                    onChangePage={handleChangePage}
-                    onChangeRowsPerPage={handleChangeRowsPerPage}
-                    ActionsComponent={MinTablePaginationActions}
-                  />
-                </TableRow>
-              </TableFooter>
-            </Table>
-          ) : (
-            <div>No Users</div>
-          )}
-        </Paper>
+        <Grid container>
+          <Grid item xs={12}>
+            <Typography variant="h6">Users</Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <br />
+          </Grid>
+          <Grid item xs={6}></Grid>
+          <Grid item xs={6} className={classes.actionsTray}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<CreateIcon />}
+              onClick={() => {
+                this.setState({
+                  addScreenOpen: true
+                });
+              }}
+            >
+              Create User
+            </Button>
+          </Grid>
+
+          <Grid item xs={12}>
+            <br />
+          </Grid>
+          <Grid item xs={12}>
+            <Paper className={classes.paper}>
+              {loading && <LinearProgress />}
+              {records != null && records.length > 0 ? (
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Email</TableCell>
+                      <TableCell align="right"></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {records.map(row => (
+                      <TableRow key={row.name}>
+                        <TableCell className={classes.wrapCell}>
+                          {row.name}
+                        </TableCell>
+                        <TableCell className={classes.wrapCell}>
+                          {row.email}
+                        </TableCell>
+                        <TableCell align="right"></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter>
+                    <TableRow>
+                      <TablePagination
+                        rowsPerPageOptions={[5, 10, 25]}
+                        colSpan={3}
+                        count={totalRecords}
+                        rowsPerPage={rowsPerPage}
+                        page={page}
+                        SelectProps={{
+                          inputProps: { "aria-label": "rows per page" },
+                          native: true
+                        }}
+                        onChangePage={handleChangePage}
+                        onChangeRowsPerPage={handleChangeRowsPerPage}
+                        ActionsComponent={MinTablePaginationActions}
+                      />
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              ) : (
+                <div>No Users</div>
+              )}
+            </Paper>
+          </Grid>
+        </Grid>
         <DeleteUser
           deleteOpen={deleteOpen}
           selectedUser={selectedUser}
