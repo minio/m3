@@ -24,21 +24,19 @@ import TableRow from "@material-ui/core/TableRow";
 import Paper from "@material-ui/core/Paper";
 import Grid from "@material-ui/core/Grid";
 import api from "../../../common/api";
-import { Bucket, BucketList } from "./types";
 import {
   Button,
   Drawer,
-  IconButton,
   LinearProgress,
   TableFooter,
   TablePagination,
   Toolbar
 } from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
-import DeleteIcon from "@material-ui/icons/Delete";
-import AddBucket from "./AddBucket";
-import DeleteBucket from "./DeleteBucket";
+import { User, UsersList } from "./types";
 import { MinTablePaginationActions } from "../../../common/MinTablePaginationActions";
+import AddUser from "./AddUser";
+import DeleteUser from "./DeleteUser";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -46,6 +44,7 @@ const styles = (theme: Theme) =>
       marginTop: theme.spacing(3)
     },
     paper: {
+      // padding: theme.spacing(2),
       display: "flex",
       overflow: "auto",
       flexDirection: "column"
@@ -60,15 +59,20 @@ const styles = (theme: Theme) =>
     tableToolbar: {
       paddingLeft: theme.spacing(2),
       paddingRight: theme.spacing(0)
+    },
+    wrapCell: {
+      maxWidth: "200px",
+      whiteSpace: "normal",
+      wordWrap: "break-word"
     }
   });
 
-interface IBucketsProps {
+interface IUsersProps {
   classes: any;
 }
 
-interface IBucketsState {
-  records: Bucket[];
+interface IUsersState {
+  records: User[];
   totalRecords: number;
   loading: boolean;
   error: string;
@@ -77,11 +81,11 @@ interface IBucketsState {
   page: number;
   rowsPerPage: number;
   deleteOpen: boolean;
-  selectedBucket: string;
+  selectedUser: User | null;
 }
 
-class Buckets extends React.Component<IBucketsProps, IBucketsState> {
-  state: IBucketsState = {
+class Users extends React.Component<IUsersProps, IUsersState> {
+  state: IUsersState = {
     records: [],
     totalRecords: 0,
     loading: false,
@@ -91,7 +95,7 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
     page: 0,
     rowsPerPage: 10,
     deleteOpen: false,
-    selectedBucket: ""
+    selectedUser: null
   };
 
   fetchRecords() {
@@ -99,19 +103,19 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
       const { page, rowsPerPage } = this.state;
       const offset = page * rowsPerPage;
       api
-        .invoke("GET", `/api/v1/buckets?offset=${offset}&limit=${rowsPerPage}`)
-        .then((res: BucketList) => {
+        .invoke("GET", `/api/v1/users?offset=${offset}&limit=${rowsPerPage}`)
+        .then((res: UsersList) => {
           this.setState({
             loading: false,
-            records: res.buckets,
-            totalRecords: res.total_buckets,
+            records: res.users,
+            totalRecords: res.total_users,
             error: ""
           });
           // if we get 0 results, and page > 0 , go down 1 page
           if (
-            (res.buckets === undefined ||
-              res.buckets == null ||
-              res.buckets.length === 0) &&
+            (res.users === undefined ||
+              res.users == null ||
+              res.users.length === 0) &&
             page > 0
           ) {
             const newPage = page - 1;
@@ -154,7 +158,7 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
       page,
       rowsPerPage,
       deleteOpen,
-      selectedBucket
+      selectedUser
     } = this.state;
 
     const handleChangePage = (event: unknown, newPage: number) => {
@@ -172,19 +176,18 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
       });
     };
 
-    const confirmDeleteBucket = (bucket: string) => {
-      this.setState({ deleteOpen: true, selectedBucket: bucket });
+    const confirmDeleteUser = (selectedUser: User) => {
+      this.setState({
+        deleteOpen: true,
+        selectedUser: selectedUser
+      });
     };
 
-    const bytesToSize = (bytesStr: string) => {
-      const bytes = parseInt(bytesStr, 10);
-      if (isNaN(bytes)) {
-        return "0 Byte";
-      }
-      const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-      if (bytes === 0) return "0 Byte";
-      const i = Math.floor(Math.log(bytes) / Math.log(1024));
-      return Math.round(bytes / Math.pow(1024, i)) + " " + sizes[i];
+    const editUser = (selectedUser: User) => {
+      this.setState({
+        addScreenOpen: true,
+        selectedUser: selectedUser
+      });
     };
 
     return (
@@ -197,7 +200,8 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
           }}
         >
           <div className={classes.addSideBar}>
-            <AddBucket
+            <AddUser
+              selectedUser={selectedUser}
               closeModalAndRefresh={() => {
                 this.closeAddModalAndRefresh();
               }}
@@ -214,7 +218,7 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
                   variant="h6"
                   id="tableTitle"
                 >
-                  Buckets
+                  Users
                 </Typography>
               </Grid>
               <Grid item xs={2}>
@@ -222,10 +226,13 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
                   variant="contained"
                   color="primary"
                   onClick={() => {
-                    this.setState({ addScreenOpen: true });
+                    this.setState({
+                      addScreenOpen: true,
+                      selectedUser: null
+                    });
                   }}
                 >
-                  Add Bucket
+                  Add User
                 </Button>
               </Grid>
             </Grid>
@@ -236,24 +243,20 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
-                  <TableCell>Size</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell align="right"></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {records.map(row => (
                   <TableRow key={row.name}>
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{bytesToSize(row.size)}</TableCell>
+                    <TableCell className={classes.wrapCell}>
+                      {row.name}
+                    </TableCell>
+                    <TableCell className={classes.wrapCell}>
+                      {row.email}
+                    </TableCell>
                     <TableCell align="right">
-                      <IconButton
-                        aria-label="delete"
-                        onClick={() => {
-                          confirmDeleteBucket(row.name);
-                        }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -278,12 +281,12 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
               </TableFooter>
             </Table>
           ) : (
-            <div>No Buckets</div>
+            <div>No Users</div>
           )}
         </Paper>
-        <DeleteBucket
+        <DeleteUser
           deleteOpen={deleteOpen}
-          selectedBucket={selectedBucket}
+          selectedUser={selectedUser}
           closeDeleteModalAndRefresh={(refresh: boolean) => {
             this.closeDeleteModalAndRefresh(refresh);
           }}
@@ -293,4 +296,4 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
   }
 }
 
-export default withStyles(styles)(Buckets);
+export default withStyles(styles)(Users);

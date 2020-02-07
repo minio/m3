@@ -21,6 +21,7 @@ import Typography from "@material-ui/core/Typography";
 import { Button, LinearProgress, TextField } from "@material-ui/core";
 import { createStyles, Theme, withStyles } from "@material-ui/core/styles";
 import api from "../../../common/api";
+import { User } from "./types";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -29,69 +30,115 @@ const styles = (theme: Theme) =>
     }
   });
 
-interface IAddBucketProps {
+interface IAddUserProps {
   classes: any;
   closeModalAndRefresh: () => void;
+  selectedUser: User | null;
 }
 
-interface IAddBucketState {
+interface IAddUserState {
   addLoading: boolean;
   addError: string;
-  bucketName: string;
+  name: string;
+  email: string;
 }
 
-class AddBucket extends React.Component<IAddBucketProps, IAddBucketState> {
-  state: IAddBucketState = {
+class AddUser extends React.Component<IAddUserProps, IAddUserState> {
+  state: IAddUserState = {
     addLoading: false,
     addError: "",
-    bucketName: ""
+    name: "",
+    email: ""
   };
 
-  addRecord(event: React.FormEvent) {
+  componentDidMount(): void {
+    const { selectedUser } = this.props;
+    if (selectedUser !== null) {
+      this.setState({
+        name: selectedUser.name,
+        email: selectedUser.email
+      });
+    }
+  }
+
+  saveRecord(event: React.FormEvent) {
     event.preventDefault();
-    const { bucketName, addLoading } = this.state;
+    const { name, addLoading, email } = this.state;
+    const { selectedUser } = this.props;
     if (addLoading) {
       return;
     }
     this.setState({ addLoading: true }, () => {
-      api
-        .invoke("POST", "/api/v1/buckets", {
-          name: bucketName
-        })
-        .then(res => {
-          this.setState(
-            {
+      if (selectedUser !== null) {
+        api
+          .invoke("PUT", `/api/v1/users/${selectedUser.id}`, {
+            id: selectedUser.id,
+            name: name,
+            email: email
+          })
+          .then(res => {
+            this.setState(
+              {
+                addLoading: false,
+                addError: ""
+              },
+              () => {
+                this.props.closeModalAndRefresh();
+              }
+            );
+          })
+          .catch(err => {
+            this.setState({
               addLoading: false,
-              addError: ""
-            },
-            () => {
-              this.props.closeModalAndRefresh();
-            }
-          );
-        })
-        .catch(err => {
-          this.setState({
-            addLoading: false,
-            addError: err
+              addError: err
+            });
           });
-        });
+      } else {
+        api
+          .invoke("POST", "/api/v1/users", {
+            name: name,
+            email: email
+          })
+          .then(res => {
+            this.setState(
+              {
+                addLoading: false,
+                addError: ""
+              },
+              () => {
+                this.props.closeModalAndRefresh();
+              }
+            );
+          })
+          .catch(err => {
+            this.setState({
+              addLoading: false,
+              addError: err
+            });
+          });
+      }
     });
   }
 
   render() {
-    const { classes } = this.props;
-    const { addLoading, addError } = this.state;
+    const { classes, selectedUser } = this.props;
+    const { addLoading, addError, name, email } = this.state;
+
     return (
       <form
         noValidate
         autoComplete="off"
         onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
-          this.addRecord(e);
+          this.saveRecord(e);
         }}
       >
         <Grid container>
           <Grid item xs={12}>
-            <Title>Add Bucket</Title>
+            {selectedUser !== null ? (
+              <Title>Edit User</Title>
+            ) : (
+              <Title>Add User</Title>
+            )}
           </Grid>
           {addError !== "" && (
             <Grid item xs={12}>
@@ -108,9 +155,21 @@ class AddBucket extends React.Component<IAddBucketProps, IAddBucketState> {
             <TextField
               id="standard-basic"
               fullWidth
-              label="Bucket Name"
+              label="Name"
+              value={name}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                this.setState({ bucketName: e.target.value });
+                this.setState({ name: e.target.value });
+              }}
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              id="standard-multiline-static"
+              label="Description"
+              fullWidth
+              value={email}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                this.setState({ email: e.target.value });
               }}
             />
           </Grid>
@@ -139,4 +198,4 @@ class AddBucket extends React.Component<IAddBucketProps, IAddBucketState> {
   }
 }
 
-export default withStyles(styles)(AddBucket);
+export default withStyles(styles)(AddUser);

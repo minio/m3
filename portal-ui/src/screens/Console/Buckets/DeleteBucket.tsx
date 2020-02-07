@@ -117,7 +117,7 @@ class DeleteBucket extends React.Component<
                   variant="body1"
                   className={classes.errorBlock}
                 >
-                  {`${deleteError}`}
+                  {deleteError}
                 </Typography>
               </React.Fragment>
             )}
