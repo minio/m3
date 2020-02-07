@@ -104,7 +104,7 @@ class Menu extends React.Component<MenuProps> {
           <img src={logo} />
         </div>
         <List className={classes.menuList}>
-          <ListItem button component={NavLink} to="/" exact>
+          <ListItem button component={NavLink} to="/dashboard">
             <ListItemIcon>
               <DashboardIcon />
             </ListItemIcon>

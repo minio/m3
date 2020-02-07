@@ -18,7 +18,14 @@ import React from "react";
 import Grid from "@material-ui/core/Grid";
 import Title from "../../../common/Title";
 import Typography from "@material-ui/core/Typography";
-import { Button, LinearProgress, TextField } from "@material-ui/core";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  LinearProgress,
+  TextField
+} from "@material-ui/core";
 import { createStyles, Theme, withStyles } from "@material-ui/core/styles";
 import api from "../../../common/api";
 
@@ -31,6 +38,7 @@ const styles = (theme: Theme) =>
 
 interface IAddBucketProps {
   classes: any;
+  open: boolean;
   closeModalAndRefresh: () => void;
 }
 
@@ -79,62 +87,75 @@ class AddBucket extends React.Component<IAddBucketProps, IAddBucketState> {
   }
 
   render() {
-    const { classes } = this.props;
+    const { classes, open } = this.props;
     const { addLoading, addError } = this.state;
     return (
-      <form
-        noValidate
-        autoComplete="off"
-        onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
-          this.addRecord(e);
+      <Dialog
+        open={open}
+        onClose={() => {
+          this.setState({ addError: "" }, () => {
+            this.props.closeModalAndRefresh();
+          });
         }}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
       >
-        <Grid container>
-          <Grid item xs={12}>
-            <Title>Add Bucket</Title>
-          </Grid>
-          {addError !== "" && (
-            <Grid item xs={12}>
-              <Typography
-                component="p"
-                variant="body1"
-                className={classes.errorBlock}
-              >
-                {addError}
-              </Typography>
+        <DialogTitle id="alert-dialog-title">
+          <Title>Create Bucket</Title>
+        </DialogTitle>
+        <DialogContent>
+          <form
+            noValidate
+            autoComplete="off"
+            onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
+              this.addRecord(e);
+            }}
+          >
+            <Grid container>
+              {addError !== "" && (
+                <Grid item xs={12}>
+                  <Typography
+                    component="p"
+                    variant="body1"
+                    className={classes.errorBlock}
+                  >
+                    {addError}
+                  </Typography>
+                </Grid>
+              )}
+              <Grid item xs={12}>
+                <TextField
+                  id="standard-basic"
+                  fullWidth
+                  label="Bucket Name"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    this.setState({ bucketName: e.target.value });
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <br />
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  disabled={addLoading}
+                >
+                  Save
+                </Button>
+              </Grid>
+              {addLoading && (
+                <Grid item xs={12}>
+                  <LinearProgress />
+                </Grid>
+              )}
             </Grid>
-          )}
-          <Grid item xs={12}>
-            <TextField
-              id="standard-basic"
-              fullWidth
-              label="Bucket Name"
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                this.setState({ bucketName: e.target.value });
-              }}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <br />
-          </Grid>
-          <Grid item xs={12}>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              disabled={addLoading}
-            >
-              Save
-            </Button>
-          </Grid>
-          {addLoading && (
-            <Grid item xs={12}>
-              <LinearProgress />
-            </Grid>
-          )}
-        </Grid>
-      </form>
+          </form>
+        </DialogContent>
+      </Dialog>
     );
   }
 }

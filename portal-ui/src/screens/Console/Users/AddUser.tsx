@@ -18,7 +18,14 @@ import React from "react";
 import Grid from "@material-ui/core/Grid";
 import Title from "../../../common/Title";
 import Typography from "@material-ui/core/Typography";
-import { Button, LinearProgress, TextField } from "@material-ui/core";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  LinearProgress,
+  TextField
+} from "@material-ui/core";
 import { createStyles, Theme, withStyles } from "@material-ui/core/styles";
 import api from "../../../common/api";
 import { User } from "./types";
@@ -30,21 +37,24 @@ const styles = (theme: Theme) =>
     }
   });
 
-interface IAddUserProps {
+interface IAddUserContentProps {
   classes: any;
   closeModalAndRefresh: () => void;
   selectedUser: User | null;
 }
 
-interface IAddUserState {
+interface IAddUserContentState {
   addLoading: boolean;
   addError: string;
   name: string;
   email: string;
 }
 
-class AddUser extends React.Component<IAddUserProps, IAddUserState> {
-  state: IAddUserState = {
+class AddUserContent extends React.Component<
+  IAddUserContentProps,
+  IAddUserContentState
+> {
+  state: IAddUserContentState = {
     addLoading: false,
     addError: "",
     name: "",
@@ -125,77 +135,113 @@ class AddUser extends React.Component<IAddUserProps, IAddUserState> {
     const { addLoading, addError, name, email } = this.state;
 
     return (
-      <form
-        noValidate
-        autoComplete="off"
-        onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
-          this.saveRecord(e);
-        }}
-      >
-        <Grid container>
-          <Grid item xs={12}>
-            {selectedUser !== null ? (
-              <Title>Edit User</Title>
-            ) : (
-              <Title>Add User</Title>
-            )}
-          </Grid>
-          {addError !== "" && (
-            <Grid item xs={12}>
-              <Typography
-                component="p"
-                variant="body1"
-                className={classes.errorBlock}
-              >
-                {addError}
-              </Typography>
+      <React.Fragment>
+        <DialogTitle id="alert-dialog-title">
+          Create User
+        </DialogTitle>
+        <DialogContent>
+          <form
+            noValidate
+            autoComplete="off"
+            onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
+              this.saveRecord(e);
+            }}
+          >
+            <Grid container>
+              <Grid item xs={12}>
+                {selectedUser !== null ? (
+                  <Title>Edit User</Title>
+                ) : (
+                  <Title>Add User</Title>
+                )}
+              </Grid>
+              {addError !== "" && (
+                <Grid item xs={12}>
+                  <Typography
+                    component="p"
+                    variant="body1"
+                    className={classes.errorBlock}
+                  >
+                    {addError}
+                  </Typography>
+                </Grid>
+              )}
+              <Grid item xs={12}>
+                <TextField
+                  id="standard-basic"
+                  fullWidth
+                  label="Name"
+                  value={name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    this.setState({ name: e.target.value });
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  id="standard-multiline-static"
+                  label="Description"
+                  fullWidth
+                  value={email}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    this.setState({ email: e.target.value });
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <br />
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  disabled={addLoading}
+                >
+                  Save
+                </Button>
+              </Grid>
+              {addLoading && (
+                <Grid item xs={12}>
+                  <LinearProgress />
+                </Grid>
+              )}
             </Grid>
-          )}
-          <Grid item xs={12}>
-            <TextField
-              id="standard-basic"
-              fullWidth
-              label="Name"
-              value={name}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                this.setState({ name: e.target.value });
-              }}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              id="standard-multiline-static"
-              label="Description"
-              fullWidth
-              value={email}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                this.setState({ email: e.target.value });
-              }}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <br />
-          </Grid>
-          <Grid item xs={12}>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              disabled={addLoading}
-            >
-              Save
-            </Button>
-          </Grid>
-          {addLoading && (
-            <Grid item xs={12}>
-              <LinearProgress />
-            </Grid>
-          )}
-        </Grid>
-      </form>
+          </form>
+        </DialogContent>
+      </React.Fragment>
     );
   }
 }
 
-export default withStyles(styles)(AddUser);
+const AddUserWrapper = withStyles(styles)(AddUserContent);
+
+interface IAddUserProps {
+  open: boolean;
+  closeModalAndRefresh: () => void;
+  selectedUser: User | null;
+}
+
+interface IAddUserState {}
+
+class AddUser extends React.Component<IAddUserProps, IAddUserState> {
+  state: IAddUserState = {};
+  render() {
+    const { open } = this.props;
+    return (
+      <Dialog
+        open={open}
+        onClose={() => {
+          this.props.closeModalAndRefresh();
+        }}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <AddUserWrapper {...this.props} />
+      </Dialog>
+    );
+  }
+}
+
+export default AddUser;
