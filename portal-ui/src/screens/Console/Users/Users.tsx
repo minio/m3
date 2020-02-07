@@ -26,11 +26,9 @@ import Grid from "@material-ui/core/Grid";
 import api from "../../../common/api";
 import {
   Button,
-  Drawer,
   LinearProgress,
   TableFooter,
-  TablePagination,
-  Toolbar
+  TablePagination
 } from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
 import { User, UsersList } from "./types";
@@ -67,7 +65,7 @@ const styles = (theme: Theme) =>
       wordWrap: "break-word"
     },
     actionsTray: {
-      textAlign:"right",
+      textAlign: "right"
     }
   });
 

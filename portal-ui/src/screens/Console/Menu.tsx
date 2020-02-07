@@ -101,7 +101,7 @@ class Menu extends React.Component<MenuProps> {
     return (
       <React.Fragment>
         <div className={classes.logo}>
-          <img src={logo} />
+          <img src={logo} alt="logo" />
         </div>
         <List className={classes.menuList}>
           <ListItem button component={NavLink} to="/dashboard">
