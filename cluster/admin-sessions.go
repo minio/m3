@@ -36,7 +36,7 @@ type AdminSession struct {
 	WhoAmI           string
 }
 
-func CreateAdminSession(ctx *Context, adminID *uuid.UUID) (*AdminSession, error) {
+func CreateAdminSession(ctx *Context, adminID *uuid.UUID, idpSession bool, expirationDate time.Time) (*AdminSession, error) {
 	// Set query parameters
 	// Insert a new session with random string as id
 	sessionID, err := GetRandString(32, "sha256")
@@ -44,9 +44,20 @@ func CreateAdminSession(ctx *Context, adminID *uuid.UUID) (*AdminSession, error)
 		return nil, err
 	}
 
+	// Default token and refresh token expiration time
+	expiresAt := time.Now().Add(time.Hour * 24)
+	refreshExpiresAt := time.Now().Add(time.Hour * 24 * 30)
+
+	// Refresh token used to renew a token session
 	refreshToken, err := GetRandString(32, "sha256")
 	if err != nil {
 		return nil, err
+	}
+
+	// If session is coming from idp we use the idp expiration time for both tokens
+	if idpSession {
+		expiresAt = expirationDate
+		refreshExpiresAt = expirationDate
 	}
 
 	query :=
@@ -62,8 +73,8 @@ func CreateAdminSession(ctx *Context, adminID *uuid.UUID) (*AdminSession, error)
 		ID:               sessionID,
 		AdminID:          *adminID,
 		RefreshToken:     refreshToken,
-		ExpiresAt:        time.Now().Add(time.Hour * 24),
-		RefreshExpiresAt: time.Now().Add(time.Hour * 24 * 30),
+		ExpiresAt:        expiresAt,
+		RefreshExpiresAt: refreshExpiresAt,
 		Status:           "valid",
 	}
 	// Execute Query

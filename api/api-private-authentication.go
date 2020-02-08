@@ -21,6 +21,7 @@ import (
 	"database/sql"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/minio/m3/api/authentication"
 	"github.com/minio/m3/cluster"
@@ -59,7 +60,7 @@ func (ps *privateServer) Login(ctx context.Context, in *pb.CLILoginRequest) (*pb
 		err = appCtx.Commit()
 	}()
 	// Everything looks good, create session
-	session, err := cluster.CreateAdminSession(appCtx, &admin.ID)
+	session, err := cluster.CreateAdminSession(appCtx, &admin.ID, false, time.Now())
 	if err != nil {
 		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
@@ -95,6 +96,7 @@ func (ps *privateServer) LoginWithIdp(ctx context.Context, in *pb.LoginWithIdpRe
 	}
 	name := profile["name"].(string)
 	email := profile["name"].(string)
+	expiresAt := profile["expires_at"].(time.Time)
 	// Look for the user on the database by email
 	admin, err = cluster.GetAdminByEmail(appCtx, email)
 	if err != nil {
@@ -118,7 +120,7 @@ func (ps *privateServer) LoginWithIdp(ctx context.Context, in *pb.LoginWithIdpRe
 		}
 	}
 	// Everything looks good, create session
-	session, err := cluster.CreateAdminSession(appCtx, &admin.ID)
+	session, err := cluster.CreateAdminSession(appCtx, &admin.ID, true, expiresAt)
 	if err != nil {
 		log.Println(err)
 		return nil, status.New(codes.Internal, "Internal Error").Err()
