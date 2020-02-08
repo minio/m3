@@ -4,27 +4,1059 @@
     "title": "public_api.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
   "consumes": [
     "application/json"
   ],
   "produces": [
     "application/json"
   ],
-  "paths": {},
-  "definitions": {
-    "ServiceAccountStatus": {
-      "type": "string",
-      "enum": [
-        "ACTIVE",
-        "INACTIVE"
-      ],
-      "default": "ACTIVE",
-      "title": "State of the ServiceAccount"
+  "paths": {
+    "/api/v1/accounts/signup": {
+      "post": {
+        "summary": "Registers a new Tenant and a Tenant Admin account",
+        "operationId": "RegisterTenant",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3RegisterAccountResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3RegisterAccountRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
     },
+    "/api/v1/buckets": {
+      "get": {
+        "summary": "List Buckets",
+        "operationId": "ListBuckets",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3ListBucketsResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "sort_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "query",
+            "description": "a query to filter buckets with.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      },
+      "post": {
+        "summary": "Make a bucket",
+        "operationId": "MakeBucket",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Bucket"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3MakeBucketRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/buckets/{name}": {
+      "delete": {
+        "summary": "Delete Bucket",
+        "operationId": "DeleteBucket",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Bucket"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/buckets/{name}/access_control": {
+      "post": {
+        "summary": "Change Bucket access control between private and public.",
+        "operationId": "ChangeBucketAccessControl",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Empty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3AccessControlRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/metrics": {
+      "get": {
+        "summary": "Returns metrics around the authenticated tenant account",
+        "operationId": "Metrics",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3MetricsResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/permissions": {
+      "get": {
+        "summary": "List Permissions",
+        "operationId": "ListPermissions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3ListPermissionsResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "sort_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      },
+      "post": {
+        "summary": "Add a Permission",
+        "operationId": "AddPermission",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Permission"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3AddPermissionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/permissions/{id}": {
+      "get": {
+        "summary": "Get details of a Permission",
+        "operationId": "InfoPermission",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Permission"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Identifier for the Permission",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      },
+      "delete": {
+        "summary": "Remove a Permission",
+        "operationId": "RemovePermission",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Empty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Identifier for the Permission",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      },
+      "put": {
+        "summary": "Update a Permission",
+        "operationId": "UpdatePermission",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Permission"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3UpdatePermissionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/permissions/{id}/assign_to_service_accounts": {
+      "post": {
+        "summary": "Assign this permission to multiple service accounts",
+        "operationId": "AssignPermissionToMultipleServiceAccounts",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3MultiAddPermissionToSAsResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3MultiAddPermissionToSAsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/service_accounts": {
+      "get": {
+        "summary": "List Service Accounts",
+        "operationId": "ListServiceAccounts",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3ListServiceAccountsResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "sort_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "query",
+            "description": "a query to filter ServiceAccounts with.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      },
+      "post": {
+        "summary": "Generates a Service Account for the given user.\nThis is the only time the secret key will be returned",
+        "operationId": "CreateServiceAccount",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3CreateServiceAccountResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3CreateServiceAccountRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/service_accounts/{id}": {
+      "get": {
+        "summary": "Get details of an individual Service Account",
+        "operationId": "InfoServiceAccount",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3InfoServiceAccountResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      },
+      "delete": {
+        "summary": "Remove a Service Account",
+        "operationId": "RemoveServiceAccount",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Empty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      },
+      "put": {
+        "summary": "Updates a Service Account with the selected permissions",
+        "operationId": "UpdateServiceAccount",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3InfoServiceAccountResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3UpdateServiceAccountRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/service_accounts/{id}/assign_permissions": {
+      "post": {
+        "summary": "Assign multiple permissions to this Service Account",
+        "operationId": "AssignPermissionsToServiceAccount",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Empty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3AddPermissionsSARequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/service_accounts/{id}/disable": {
+      "post": {
+        "summary": "Disable a Service Account",
+        "operationId": "DisableServiceAccount",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3ServiceAccount"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3ServiceAccountActionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/service_accounts/{id}/enable": {
+      "post": {
+        "summary": "Enable a Service Account",
+        "operationId": "EnableServiceAccount",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3ServiceAccount"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3ServiceAccountActionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "summary": "List Users",
+        "operationId": "ListUsers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3ListUsersResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "sort_by",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "query",
+            "description": "a query to filter users with.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "description": "max number of results per request.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      },
+      "post": {
+        "summary": "Add a User",
+        "operationId": "AddUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3User"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3AddUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/users/add_invite": {
+      "post": {
+        "summary": "Sends an email invitation for sign up",
+        "operationId": "UserAddInvite",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Empty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3InviteRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/users/change_password": {
+      "patch": {
+        "summary": "Change Password allows to change an existing password",
+        "operationId": "ChangePassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Empty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3ChangePasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/users/forgot_password": {
+      "post": {
+        "summary": "Sends an email to set a new password",
+        "operationId": "ForgotPassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Empty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3ForgotPasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/users/login": {
+      "post": {
+        "summary": "Login",
+        "operationId": "Login",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3LoginResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3LoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/users/logout": {
+      "post": {
+        "summary": "Logout",
+        "operationId": "Logout",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Empty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3Empty"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/users/reset_invite": {
+      "post": {
+        "summary": "Sends an email invitation for resetting a user's password",
+        "operationId": "UserResetPasswordInvite",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Empty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3InviteRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/users/set_password": {
+      "post": {
+        "summary": "Set Password Used for Signing Up a new User and Resetting a Password",
+        "operationId": "SetPassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3Empty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3SetPasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/users/whoami": {
+      "get": {
+        "summary": "Tells current users's info",
+        "operationId": "UserWhoAmI",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3WhoAmIResponse"
+            }
+          }
+        },
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "summary": "Get details for an individual user",
+        "operationId": "InfoUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3User"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      },
+      "delete": {
+        "summary": "Remove a User",
+        "operationId": "RemoveUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3UserActionResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/users/{id}/disable": {
+      "post": {
+        "summary": "Disable a User",
+        "operationId": "DisableUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3UserActionResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3UserActionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/users/{id}/enable": {
+      "post": {
+        "summary": "Enable a User",
+        "operationId": "EnableUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3UserActionResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3UserActionRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/validate_invite": {
+      "post": {
+        "summary": "ValidateInvite validates url token sent for resetting password or sign Up",
+        "operationId": "ValidateInvite",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3ValidateEmailInviteResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/m3ValidateInviteRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    },
+    "/api/v1/version": {
+      "get": {
+        "summary": "Version returns the current version of the system components and storage groups",
+        "operationId": "Version",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/m3VersionResponse"
+            }
+          }
+        },
+        "tags": [
+          "PublicAPI"
+        ]
+      }
+    }
+  },
+  "definitions": {
     "m3Access": {
       "type": "string",
       "enum": [
@@ -38,24 +1070,36 @@
       "type": "object",
       "properties": {
         "name": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "access": {
           "$ref": "#/definitions/m3Access"
         }
       }
     },
-    "m3AccessControlResponse": {
+    "m3AddPermissionRequest": {
       "type": "object",
       "properties": {
-        "error": {
-          "type": "string",
-          "format": "string"
+        "name": {
+          "type": "string"
         },
-        "status": {
-          "type": "string",
-          "format": "string"
+        "description": {
+          "type": "string"
+        },
+        "effect": {
+          "type": "string"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -63,29 +1107,14 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "permission_id": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "string"
+            "type": "string"
           },
           "title": "list of permission id, an absence of a permission_id means it's not desired and should be removed\nfrom the assigned list"
-        }
-      }
-    },
-    "m3AddPermissionsSAResponse": {
-      "type": "object",
-      "properties": {
-        "error": {
-          "type": "string",
-          "format": "string"
-        },
-        "status": {
-          "type": "string",
-          "format": "string"
         }
       }
     },
@@ -93,16 +1122,13 @@
       "type": "object",
       "properties": {
         "name": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "email": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "password": {
           "type": "string",
-          "format": "string",
           "title": "optional"
         }
       }
@@ -111,8 +1137,7 @@
       "type": "object",
       "properties": {
         "name": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "size": {
           "type": "string",
@@ -123,34 +1148,42 @@
         }
       }
     },
+    "m3ChangePasswordRequest": {
+      "type": "object",
+      "properties": {
+        "old_password": {
+          "type": "string",
+          "title": "User's current password"
+        },
+        "new_password": {
+          "type": "string",
+          "title": "User's new password to set"
+        }
+      }
+    },
     "m3CreateServiceAccountRequest": {
       "type": "object",
       "properties": {
-        "user_access_key": {
-          "type": "string",
-          "format": "string"
+        "name": {
+          "type": "string"
+        },
+        "permission_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "m3CreateServiceAccountResponse": {
       "type": "object",
       "properties": {
-        "access_key": {
-          "type": "string",
-          "format": "string"
+        "service_account": {
+          "$ref": "#/definitions/m3ServiceAccount"
         },
         "secret_key": {
           "type": "string",
-          "format": "string"
-        }
-      }
-    },
-    "m3DeleteBucketRequest": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "format": "string"
+          "title": "secret_key will be shown only when creating a service account"
         }
       }
     },
@@ -158,31 +1191,50 @@
       "type": "object",
       "title": "Empty message for services that rely on headers"
     },
-    "m3ListBucketsRequest": {
+    "m3ForgotPasswordRequest": {
       "type": "object",
       "properties": {
-        "sort_by": {
-          "type": "string",
-          "format": "string"
+        "company": {
+          "type": "string"
         },
-        "offset": {
-          "type": "integer",
-          "format": "int32"
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "m3InfoServiceAccountResponse": {
+      "type": "object",
+      "properties": {
+        "service_account": {
+          "$ref": "#/definitions/m3ServiceAccount"
         },
-        "query": {
+        "permissions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/m3Permission"
+          }
+        }
+      }
+    },
+    "m3InviteRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
           "type": "string",
-          "format": "string",
-          "title": "a query to filter buckets with"
+          "title": "Name of new user to be created"
+        },
+        "email": {
+          "type": "string",
+          "title": "Email of the new user who will receive the invitation email"
         }
       },
-      "title": "Request what buckets the current tenant user can see"
+      "title": "Sends an invite to signup a new user or reset a user's password"
     },
     "m3ListBucketsResponse": {
       "type": "object",
       "properties": {
         "error": {
           "type": "string",
-          "format": "string",
           "title": "if any error, like user not allowed to list buckets"
         },
         "buckets": {
@@ -199,41 +1251,17 @@
         }
       }
     },
-    "m3ListPermissionsRequest": {
-      "type": "object",
-      "properties": {
-        "sort_by": {
-          "type": "string",
-          "format": "string"
-        },
-        "offset": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "query": {
-          "type": "string",
-          "format": "string",
-          "title": "a query to filter Permissions with"
-        }
-      },
-      "title": "Request a list of Permissions on the tenant account"
-    },
     "m3ListPermissionsResponse": {
       "type": "object",
       "properties": {
-        "error": {
-          "type": "string",
-          "format": "string",
-          "title": "if any error, like user not allowed to list Permissions"
-        },
-        "Permissions": {
+        "permissions": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/m3Permission"
           },
           "title": "list of resulting Permissions"
         },
-        "total_Permissions": {
+        "total": {
           "type": "integer",
           "format": "int32",
           "title": "number of Permissions on the tenant account"
@@ -241,41 +1269,17 @@
       },
       "title": "Request a list of Permissions on the tenant account"
     },
-    "m3ListServiceAccountsRequest": {
-      "type": "object",
-      "properties": {
-        "sort_by": {
-          "type": "string",
-          "format": "string"
-        },
-        "offset": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "query": {
-          "type": "string",
-          "format": "string",
-          "title": "a query to filter ServiceAccounts with"
-        }
-      },
-      "title": "Request a list of ServiceAccounts on the tenant account"
-    },
     "m3ListServiceAccountsResponse": {
       "type": "object",
       "properties": {
-        "error": {
-          "type": "string",
-          "format": "string",
-          "title": "if any error, like user not allowed to list ServiceAccounts"
-        },
-        "ServiceAccounts": {
+        "service_accounts": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/m3ServiceAccount"
           },
           "title": "list of resulting ServiceAccounts"
         },
-        "total_ServiceAccounts": {
+        "total": {
           "type": "integer",
           "format": "int32",
           "title": "number of ServiceAccounts on the tenant account"
@@ -283,36 +1287,11 @@
       },
       "title": "Request a list of ServiceAccounts on the tenant account"
     },
-    "m3ListUsersRequest": {
-      "type": "object",
-      "properties": {
-        "sort_by": {
-          "type": "string",
-          "format": "string"
-        },
-        "offset": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "query": {
-          "type": "string",
-          "format": "string",
-          "title": "a query to filter users with"
-        },
-        "limit": {
-          "type": "integer",
-          "format": "int32",
-          "title": "max number of results per request"
-        }
-      },
-      "title": "Request a list of users on the tenant account"
-    },
     "m3ListUsersResponse": {
       "type": "object",
       "properties": {
         "error": {
           "type": "string",
-          "format": "string",
           "title": "if any error, like user not allowed to list users"
         },
         "users": {
@@ -335,15 +1314,15 @@
       "properties": {
         "company": {
           "type": "string",
-          "format": "string"
+          "title": "Company short name"
         },
         "email": {
           "type": "string",
-          "format": "string"
+          "title": "User's email"
         },
         "password": {
           "type": "string",
-          "format": "string"
+          "title": "User's password"
         }
       }
     },
@@ -351,12 +1330,11 @@
       "type": "object",
       "properties": {
         "error": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "jwt_token": {
           "type": "string",
-          "format": "string"
+          "title": "Session token required for login"
         }
       }
     },
@@ -364,42 +1342,69 @@
       "type": "object",
       "properties": {
         "name": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "access": {
           "$ref": "#/definitions/m3Access"
         }
       }
     },
-    "m3MetricsRequest": {
+    "m3MetricsDayUsage": {
       "type": "object",
-      "title": "A request for metrics on the authenticated tenant"
+      "properties": {
+        "time": {
+          "type": "string"
+        },
+        "usage": {
+          "type": "string",
+          "format": "uint64"
+        }
+      },
+      "title": "Usage per day"
     },
     "m3MetricsResponse": {
       "type": "object",
       "properties": {
-        "usage": {
-          "$ref": "#/definitions/m3UsageMetrics"
+        "total_buckets": {
+          "type": "string",
+          "format": "uint64",
+          "title": "total number of buckets on the account"
         },
-        "network": {
-          "$ref": "#/definitions/m3NetworkMetrics"
+        "total_usage": {
+          "type": "string",
+          "format": "uint64",
+          "title": "A number of bytes representing the total usage on the account"
+        },
+        "total_cost": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Cost per usage"
+        },
+        "daily_usage": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/m3MetricsDayUsage"
+          },
+          "title": "daily usage"
+        },
+        "show_cost": {
+          "type": "boolean",
+          "format": "boolean",
+          "title": "flag to decide to show cost or not on UI"
         }
       },
-      "title": "Information to build a basic dashboard"
+      "title": "Capacity related metrics"
     },
     "m3MultiAddPermissionToSAsRequest": {
       "type": "object",
       "properties": {
         "id": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "service_account_id": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "string"
+            "type": "string"
           }
         }
       }
@@ -408,75 +1413,68 @@
       "type": "object",
       "properties": {
         "error": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "status": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         }
       }
-    },
-    "m3NetworkMetrics": {
-      "type": "object",
-      "properties": {
-        "current_egress": {
-          "type": "string",
-          "format": "int64",
-          "title": "Current period amount of egress"
-        }
-      },
-      "title": "Networking related metrics"
     },
     "m3Permission": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string"
+        },
         "name": {
-          "type": "string",
-          "format": "string",
-          "title": "Identifier for the Permission"
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
         },
         "effect": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "resources": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "string"
+            "$ref": "#/definitions/m3PermissionResource"
           }
         },
         "actions": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "string"
+            "$ref": "#/definitions/m3PermissionAction"
           }
         }
       },
       "title": "Permission resource"
     },
-    "m3PermissionActionRequest": {
+    "m3PermissionAction": {
       "type": "object",
       "properties": {
         "id": {
-          "type": "string",
-          "format": "string",
-          "title": "Identifier for the Permission"
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
         }
       }
     },
-    "m3PermissionActionResponse": {
+    "m3PermissionResource": {
       "type": "object",
       "properties": {
-        "error": {
-          "type": "string",
-          "format": "string"
+        "id": {
+          "type": "string"
         },
-        "status": {
-          "type": "string",
-          "format": "string"
+        "bucket_name": {
+          "type": "string"
+        },
+        "pattern": {
+          "type": "string"
         }
       }
     },
@@ -484,24 +1482,19 @@
       "type": "object",
       "properties": {
         "full_name": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "company": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "company_short_name": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "email": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "password": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         }
       },
       "title": "Message containing details of the Tenant Admin and the tenant that is going to be created"
@@ -510,39 +1503,31 @@
       "type": "object",
       "properties": {
         "error": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "jwt_token": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         }
       },
-      "title": "Response on wether the account was created or not"
-    },
-    "m3ResetPasswordRequest": {
-      "type": "object",
-      "properties": {
-        "password": {
-          "type": "string",
-          "format": "string"
-        },
-        "new_password": {
-          "type": "string",
-          "format": "string"
-        }
-      }
+      "title": "Response on whether the account was created or not"
     },
     "m3ServiceAccount": {
       "type": "object",
       "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
         "access_key": {
           "type": "string",
-          "format": "string",
           "title": "Identifier for the ServiceAccount"
         },
-        "status": {
-          "$ref": "#/definitions/ServiceAccountStatus"
+        "enabled": {
+          "type": "boolean",
+          "format": "boolean",
+          "title": "State of the ServiceAccount"
         }
       }
     },
@@ -550,52 +1535,88 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         }
       }
     },
-    "m3ServiceAccountActionResponse": {
+    "m3SetPasswordRequest": {
       "type": "object",
       "properties": {
-        "error": {
-          "type": "string",
-          "format": "string",
-          "title": "If any error happened"
-        }
-      }
-    },
-    "m3UsageMetrics": {
-      "type": "object",
-      "properties": {
-        "buckets": {
-          "type": "integer",
-          "format": "int32",
-          "title": "number of buckets on the account"
+        "url_token": {
+          "type": "string"
         },
-        "total_data": {
+        "password": {
           "type": "string",
-          "format": "int64",
-          "title": "A number of bytes representing the total usage on the account"
+          "title": "User's password to set"
         }
       },
-      "title": "Capacity related metrics"
+      "title": "Used for Signing Up a new User and Resetting a Password"
+    },
+    "m3UpdatePermissionRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "effect": {
+          "type": "string"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "m3UpdateServiceAccountRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean",
+          "format": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "permission_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     },
     "m3User": {
       "type": "object",
       "properties": {
         "name": {
-          "type": "string",
-          "format": "string",
-          "title": "Identifier for the user"
+          "type": "string"
         },
         "email": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         },
         "id": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean",
+          "format": "boolean"
         }
       }
     },
@@ -603,21 +1624,57 @@
       "type": "object",
       "properties": {
         "id": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
         }
       }
     },
     "m3UserActionResponse": {
       "type": "object",
       "properties": {
-        "error": {
-          "type": "string",
-          "format": "string"
-        },
         "status": {
-          "type": "string",
-          "format": "string"
+          "type": "string"
+        }
+      }
+    },
+    "m3ValidateEmailInviteResponse": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "company": {
+          "type": "string"
+        }
+      },
+      "title": "Once token invite is validates we return the email and company to proceed with the Signup"
+    },
+    "m3ValidateInviteRequest": {
+      "type": "object",
+      "properties": {
+        "url_token": {
+          "type": "string"
+        }
+      }
+    },
+    "m3VersionResponse": {
+      "type": "object",
+      "properties": {
+        "components": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "m3WhoAmIResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/m3User"
+        },
+        "company": {
+          "type": "string"
         }
       }
     }
