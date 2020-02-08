@@ -58,7 +58,7 @@ const theme = createMuiTheme({
     },
     h6: {
       fontWeight: "bold",
-      color:"#201763"
+      color:"#000000"
     }
   }
 });

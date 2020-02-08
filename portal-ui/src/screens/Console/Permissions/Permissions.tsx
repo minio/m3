@@ -38,7 +38,14 @@ import AddPermission from "./AddPermission";
 import DeletePermission from "./DeletePermission";
 import { MinTablePaginationActions } from "../../../common/MinTablePaginationActions";
 import EditIcon from "@material-ui/icons/Edit";
+import Checkbox from "@material-ui/core/Checkbox";
 import { CreateIcon } from "../../../icons";
+import TextField from '@material-ui/core/TextField';
+import InputBase from '@material-ui/core/InputBase';
+import SearchIcon from '@material-ui/icons/Search';
+import InputAdornment from '@material-ui/core/InputAdornment';
+import PlayArrowRoundedIcon from "@material-ui/icons/PlayArrowRounded";
+
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -66,8 +73,25 @@ const styles = (theme: Theme) =>
       whiteSpace: "normal",
       wordWrap: "break-word"
     },
+    minTableHeader: {
+      color: "#393939",
+      "& tr": {
+        "& th": {
+          fontWeight: "bold"
+        }
+      }
+    },
     actionsTray: {
-      textAlign: "right"
+      textAlign: "right",
+      "& button": {
+        marginLeft: 10,
+      },
+    },
+    searchField: {
+      background: "#FFFFFF",
+      padding: 12,
+      borderRadius: 5,
+      boxShadow: "0px 3px 6px #00000012",
     }
   });
 
@@ -231,8 +255,21 @@ class Permissions extends React.Component<
           <Grid item xs={12}>
             <br />
           </Grid>
-          <Grid item xs={6}></Grid>
-          <Grid item xs={6} className={classes.actionsTray}>
+          <Grid item xs={12} className={classes.actionsTray}>
+            <TextField
+              placeholder="Search Permissions"
+              className={classes.searchField}
+              id="search-resource"
+              label=""
+              InputProps={{
+                disableUnderline: true,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
             <Button
               variant="contained"
               color="primary"
@@ -246,8 +283,19 @@ class Permissions extends React.Component<
             >
               Create Permission
             </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<PlayArrowRoundedIcon />}
+              onClick={() => {
+                this.setState({
+                  addScreenOpen: true
+                });
+              }}
+            >
+              Assign Permissions
+            </Button>
           </Grid>
-
           <Grid item xs={12}>
             <br />
           </Grid>
@@ -255,9 +303,10 @@ class Permissions extends React.Component<
             <Paper className={classes.paper}>
               {loading && <LinearProgress />}
               {records != null && records.length > 0 ? (
-                <Table size="small">
-                  <TableHead>
+                <Table size="medium">
+                  <TableHead className={classes.minTableHeader}>
                     <TableRow>
+                      <TableCell>Select</TableCell>
                       <TableCell>Name</TableCell>
                       <TableCell>Description</TableCell>
                       <TableCell>Effect</TableCell>
@@ -269,6 +318,13 @@ class Permissions extends React.Component<
                   <TableBody>
                     {records.map(row => (
                       <TableRow key={row.name}>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            value="secondary"
+                            color="primary"
+                            inputProps={{ 'aria-label': 'secondary checkbox' }}
+                          />
+                        </TableCell>
                         <TableCell className={classes.wrapCell}>
                           {row.name}
                         </TableCell>

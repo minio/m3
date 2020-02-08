@@ -34,10 +34,15 @@ import {
 } from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
 import DeleteIcon from "@material-ui/icons/Delete";
+import PlayArrowRoundedIcon from '@material-ui/icons/PlayArrowRounded';
 import AddBucket from "./AddBucket";
 import DeleteBucket from "./DeleteBucket";
 import { MinTablePaginationActions } from "../../../common/MinTablePaginationActions";
 import { CreateIcon } from "../../../icons";
+import Checkbox from "@material-ui/core/Checkbox";
+import TextField from "@material-ui/core/TextField";
+import InputAdornment from "@material-ui/core/InputAdornment";
+import SearchIcon from "@material-ui/icons/Search";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -69,7 +74,16 @@ const styles = (theme: Theme) =>
       }
     },
     actionsTray: {
-      textAlign: "right"
+      textAlign: "right",
+      "& button": {
+        marginLeft: 10,
+      },
+    },
+    searchField: {
+      background: "#FFFFFF",
+      padding: 12,
+      borderRadius: 5,
+      boxShadow: "0px 3px 6px #00000012",
     }
   });
 
@@ -212,8 +226,21 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
           <Grid item xs={12}>
             <br />
           </Grid>
-          <Grid item xs={6}></Grid>
-          <Grid item xs={6} className={classes.actionsTray}>
+          <Grid item xs={12} className={classes.actionsTray}>
+            <TextField
+              placeholder="Search Buckets"
+              className={classes.searchField}
+              id="search-resource"
+              label=""
+              InputProps={{
+                disableUnderline: true,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
             <Button
               variant="contained"
               color="primary"
@@ -226,6 +253,18 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
             >
               Create Bucket
             </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<PlayArrowRoundedIcon />}
+              onClick={() => {
+                this.setState({
+                  addScreenOpen: true
+                });
+              }}
+            >
+              Change Access
+            </Button>
           </Grid>
           <Grid item xs={12}>
             <br />
@@ -234,18 +273,28 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
             <Paper className={classes.paper}>
               {loading && <LinearProgress />}
               {records != null && records.length > 0 ? (
-                <Table size="small">
+                <Table size="medium">
                   <TableHead className={classes.minTableHeader}>
                     <TableRow>
+                      <TableCell>Select</TableCell>
                       <TableCell>Name</TableCell>
-                      <TableCell>Size</TableCell>
+                      <TableCell>Access</TableCell>
+                      <TableCell>Usage </TableCell>
                       <TableCell align="right">Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {records.map(row => (
                       <TableRow key={row.name}>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            value="secondary"
+                            color="primary"
+                            inputProps={{ 'aria-label': 'secondary checkbox' }}
+                          />
+                        </TableCell>
                         <TableCell>{row.name}</TableCell>
+                        <TableCell>{row.accessType}</TableCell>
                         <TableCell>{bytesToSize(row.size)}</TableCell>
                         <TableCell align="right">
                           <IconButton

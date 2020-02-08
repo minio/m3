@@ -147,7 +147,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column"
     },
     fixedHeight: {
-      height: 240
+      minHeight: 240,
     }
   });
 

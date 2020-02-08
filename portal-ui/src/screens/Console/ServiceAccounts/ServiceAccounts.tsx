@@ -43,6 +43,11 @@ import AddServiceAccount from "./AddServiceAccount";
 import DeleteServiceAccount from "./DeleteServiceAccount";
 import CredentialsPrompt from "./CredentialsPrompt";
 import { CreateIcon, DeleteIcon } from "../../../icons";
+import Checkbox from "@material-ui/core/Checkbox";
+import PlayArrowRoundedIcon from "@material-ui/icons/PlayArrowRounded";
+import TextField from "@material-ui/core/TextField";
+import InputAdornment from "@material-ui/core/InputAdornment";
+import SearchIcon from "@material-ui/icons/Search";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -86,7 +91,16 @@ const styles = (theme: Theme) =>
       textAlign: "center"
     },
     actionsTray: {
-      textAlign:"right",
+      textAlign: "right",
+      "& button": {
+        marginLeft: 10,
+      },
+    },
+    searchField: {
+      background: "#FFFFFF",
+      padding: 12,
+      borderRadius: 5,
+      boxShadow: "0px 3px 6px #00000012",
     }
   });
 
@@ -251,8 +265,21 @@ class ServiceAccounts extends React.Component<
           <Grid item xs={12}>
             <br />
           </Grid>
-          <Grid item xs={6}></Grid>
-          <Grid item xs={6} className={classes.actionsTray}>
+          <Grid item xs={12} className={classes.actionsTray}>
+            <TextField
+              placeholder="Search Service Accounts"
+              className={classes.searchField}
+              id="search-resource"
+              label=""
+              InputProps={{
+                disableUnderline: true,
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
             <Button
               variant="contained"
               color="primary"
@@ -266,6 +293,18 @@ class ServiceAccounts extends React.Component<
             >
               Create service account
             </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<PlayArrowRoundedIcon />}
+              onClick={() => {
+                this.setState({
+                  addScreenOpen: true
+                });
+              }}
+            >
+              Change Access
+            </Button>
           </Grid>
 
           <Grid item xs={12}>
@@ -275,18 +314,26 @@ class ServiceAccounts extends React.Component<
             <Paper className={classes.paper}>
               {loading && <LinearProgress />}
               {records != null && records.length > 0 ? (
-                <Table size="small">
+                <Table size="medium">
                   <TableHead className={classes.minTableHeader}>
                     <TableRow>
+                      <TableCell>Select</TableCell>
                       <TableCell>Name</TableCell>
                       <TableCell>Access Key</TableCell>
                       <TableCell>Status</TableCell>
-                      <TableCell align="right"></TableCell>
+                      <TableCell align="right">Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {records.map(row => (
                       <TableRow key={row.name}>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            value="secondary"
+                            color="primary"
+                            inputProps={{ 'aria-label': 'secondary checkbox' }}
+                          />
+                        </TableCell>
                         <TableCell className={classes.wrapCell}>
                           {row.name}
                         </TableCell>

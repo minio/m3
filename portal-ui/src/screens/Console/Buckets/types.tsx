@@ -17,6 +17,7 @@
 export interface Bucket {
   name: string;
   size: string;
+  accessType: string;
 }
 
 export interface BucketList {
