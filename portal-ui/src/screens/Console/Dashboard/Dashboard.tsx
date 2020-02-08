@@ -30,6 +30,9 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import NetworkCheckIcon from '@material-ui/icons/NetworkCheck';
+import PieChartIcon from '@material-ui/icons/PieChart';
+import ViewHeadlineIcon from '@material-ui/icons/ViewHeadline';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -84,7 +87,12 @@ const useStyles = makeStyles(theme => ({
     "& h6": {
       color: "#777777",
       fontSize: 14,
-    }
+    },
+    "& p": {
+      "& span": {
+        fontSize: 16,
+      },
+    },
   },
   paper: {
     padding: theme.spacing(2),
@@ -100,6 +108,10 @@ const useStyles = makeStyles(theme => ({
     fontSize: "60px",
     fontWeight: "bold",
   },
+  icon: {
+    marginRight: 10,
+    color: "#777777",
+  },
 }));
 
 export default function Dashboard() {
@@ -107,49 +119,49 @@ export default function Dashboard() {
   const classes = useStyles(theme);
   const fixedHeightPaper = clsx(classes.paper, classes.fixedHeight);
 
-  const data = [
-    {
-      name: 'Page A', uv: 4000, pv: 2400, amt: 2400,
-    },
-    {
-      name: 'Page B', uv: 3000, pv: 1398, amt: 2210,
-    },
-    {
-      name: 'Page C', uv: 2000, pv: 9800, amt: 2290,
-    },
-    {
-      name: 'Page D', uv: 2780, pv: 3908, amt: 2000,
-    },
-    {
-      name: 'Page E', uv: 1890, pv: 4800, amt: 2181,
-    },
-    {
-      name: 'Page F', uv: 2390, pv: 3800, amt: 2500,
-    },
-    {
-      name: 'Page G', uv: 3490, pv: 4300, amt: 2100,
-    },
-  ];
+  const data = [39,31,37,29,28,31,31,34,39,40,35,40,24,25,30,20,28,38,23,28,22,39,37,37,40,28,28,28,24,31].map((usage, day ) => ({ usage, day }));
+  const data2 = [25,32,21,40,31,30,23,40,26,32].map((usage, day ) => ({ usage, day }));
 
   return (
-    <Grid container xs={10}>
+    <Grid container xs={12}>
       <Grid container xs={12} spacing={3} className={classes.container}>
         <Grid item xs={12} md={4} lg={4}>
           <Paper className={fixedHeightPaper}>
-            <Typography variant="h6">All Buckets</Typography>
+            <Grid container direction="row" alignItems="center">
+              <Grid item className={classes.icon}>
+                <ViewHeadlineIcon/>
+              </Grid>
+              <Grid item>
+                <Typography variant="h6">All Buckets</Typography>
+              </Grid>
+            </Grid>
             <Typography className={classes.consumptionValue}>238</Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={4} lg={4}>
           <Paper className={fixedHeightPaper}>
-            <Typography variant="h6">Usage</Typography>
-            <Typography className={classes.consumptionValue}>375TB</Typography>
+            <Grid container direction="row" alignItems="center">
+              <Grid item className={classes.icon}>
+                <PieChartIcon/>
+              </Grid>
+              <Grid item>
+                <Typography variant="h6">Usage</Typography>
+              </Grid>
+            </Grid>
+            <Typography className={classes.consumptionValue}>375<span>TB</span></Typography>
           </Paper>
         </Grid>
         <Grid item xs={12} md={4} lg={4}>
           <Paper className={fixedHeightPaper}>
-            <Typography variant="h6">Egress this Month</Typography>
-            <Typography className={classes.consumptionValue}>1.5TB</Typography>
+            <Grid container direction="row" alignItems="center">
+              <Grid item className={classes.icon}>
+                <NetworkCheckIcon/>
+              </Grid>
+              <Grid item>
+                <Typography variant="h6"> Egress this Month</Typography>
+              </Grid>
+            </Grid>
+            <Typography className={classes.consumptionValue}>1.5<span>TB</span></Typography>
           </Paper>
         </Grid>
       </Grid>
@@ -159,20 +171,35 @@ export default function Dashboard() {
             <Typography variant="h6">Daily Average Usage</Typography>
             <ResponsiveContainer width="100%" height={400}>
               <LineChart
-                width={500}
-                height={300}
                 data={data}
-                margin={{
-                  top: 5, right: 30, left: 20, bottom: 5,
-                }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
+                <XAxis
+                  type="number"
+                  domain={[1, 31]}
+                  interval={0}
+                  dataKey="day"
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  dataKey="usage"
+                  width={80}
+                  tick={{ fill: "#737373" }}
+                  dx={-5}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} />
-                <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
+                <Line
+                  strokeWidth={2}
+                  yAxisId={0}
+                  type="monotone"
+                  dataKey="usage"
+                  stroke="#8884d8"
+                  activeDot={{ r: 8 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </Paper>
@@ -180,6 +207,36 @@ export default function Dashboard() {
         <Grid item xs={4}>
           <Paper className={fixedHeightPaper}>
             <Typography variant="h6">Daily Network Egress</Typography>
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart
+                data={data2}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  type="number"
+                  dataKey="day"
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  dataKey="usage"
+                  tick={{ fill: "#737373" }}
+                  dx={-5}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip />
+                <Legend />
+                <Line
+                  strokeWidth={2}
+                  yAxisId={0}
+                  type="monotone"
+                  dataKey="usage"
+                  stroke="#8884d8"
+                  activeDot={{ r: 8 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </Paper>
         </Grid>
       </Grid>
