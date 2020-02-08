@@ -77,5 +77,7 @@ func VerifyIdentity(address string) (map[string]interface{}, error) {
 	if err := idToken.Claims(&profile); err != nil {
 		return nil, err
 	}
+	//token will be valid for token.Expiry amount of seconds
+	profile["expires_at"] = token.Expiry
 	return profile, nil
 }

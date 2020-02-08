@@ -45,7 +45,13 @@ func login(_ *cli.Context) error {
 		return err
 	}
 	defer cnxs.Conn.Close()
-	idpConfigResp, _ := cnxs.Client.GetLoginConfiguration(cnxs.Context, &pb.AdminEmpty{})
+	idpConfigResp, err := cnxs.Client.GetLoginConfiguration(cnxs.Context, &pb.AdminEmpty{})
+
+	if err != nil {
+		fmt.Print("\n")
+		fmt.Println("Using normal authentication, reason: ", err)
+		fmt.Print("\n")
+	}
 
 	if idpConfigResp != nil {
 		// Authenticate via idp, ie: auth0
