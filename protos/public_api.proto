@@ -38,17 +38,16 @@ service PublicAPI {
     // Change Password allows to change an existing password
     rpc ChangePassword (ChangePasswordRequest) returns (Empty) {
     }
-    // UserAddInvite sends an email invitation for sign up 
+    // Sends an email invitation for sign up 
     rpc UserAddInvite (InviteRequest) returns (Empty) {
     }
-    // UserResetPasswordInvite sends an email invitation for resetting a user's password
+    // Sends an email invitation for resetting a user's password
     rpc UserResetPasswordInvite (InviteRequest) returns (Empty) {
     }
     // ValidateInvite validates url token sent for resetting password or sign Up
     rpc ValidateInvite (ValidateInviteRequest) returns (ValidateEmailInviteResponse) {
     }
-
-    // Returns metrics around the authenticated tenant account if the tenant is an admin or has access
+    // Returns metrics around the authenticated tenant account
     rpc Metrics (MetricsRequest) returns (MetricsResponse) {
     }
 
@@ -63,67 +62,62 @@ service PublicAPI {
     // Delete Bucket
     rpc DeleteBucket (DeleteBucketRequest) returns (Bucket) {
     }
-
     // Change Bucket access control between private and public.
     rpc ChangeBucketAccessControl (AccessControlRequest) returns (Empty) {
     }
 
     // User
-    // List Users
+
+    // Tells current users's info
     rpc UserWhoAmI (Empty) returns (WhoAmIResponse) {
     }
+    // List Users
     rpc ListUsers (ListUsersRequest) returns (ListUsersResponse) {
     }
-
     // Add a User
     rpc AddUser (AddUserRequest) returns (User) {
     }
-
     // Disable a User
     rpc DisableUser (UserActionRequest) returns (UserActionResponse) {
     }
-
+    // Sends an email to set a new password
     rpc ForgotPassword (ForgotPasswordRequest) returns (Empty) {
     }
-
     // Enable a User
     rpc EnableUser (UserActionRequest) returns (UserActionResponse) {
     }
     // Remove a User
-    // To be depracated
     rpc RemoveUser (UserActionRequest) returns (UserActionResponse) {
     }
-    // Get details for an individual User
+    // Get details for an individual user
     rpc InfoUser (UserActionRequest) returns (User) {
     }
 
     // ServiceAccount
 
-    // List ServiceAccounts
+    // List Service Accounts
     rpc ListServiceAccounts (ListServiceAccountsRequest) returns (ListServiceAccountsResponse) {
     }
-
-    // Generates a ServiceAccount for the given user
+    // Generates a Service Account for the given user.
     // This is the only time the secret key will be returned
     rpc CreateServiceAccount (CreateServiceAccountRequest) returns (CreateServiceAccountResponse) {
     }
-    // Disable a ServiceAccount
+    // Disable a Service Account
     rpc DisableServiceAccount (ServiceAccountActionRequest) returns (ServiceAccount) {
     }
-
-    // Enable a ServiceAccount
+    // Enable a Service Account
     rpc EnableServiceAccount (ServiceAccountActionRequest) returns (ServiceAccount) {
     }
-    // Remove a ServiceAccount
+    // Remove a Service Account
     rpc RemoveServiceAccount (ServiceAccountActionRequest) returns (Empty) {
     }
-    // Get details of an individual ServiceAccount
+    // Get details of an individual Service Account
     rpc InfoServiceAccount (ServiceAccountActionRequest) returns (InfoServiceAccountResponse) {
     }
     // Updates a Service Account with the selected permissions
     rpc UpdateServiceAccount (UpdateServiceAccountRequest) returns (InfoServiceAccountResponse) {
     }
-    // Assign multiple permissions to this service account
+    // Assign multiple permissions to this Service Account
     rpc AssignPermissionsToServiceAccount (AddPermissionsSARequest) returns (Empty) {
     }
 
@@ -132,26 +126,21 @@ service PublicAPI {
     // List Permissions
     rpc ListPermissions (ListPermissionsRequest) returns (ListPermissionsResponse) {
     }
-
     // Add a Permission
     rpc AddPermission (AddPermissionRequest) returns (Permission) {
     }
-
     // Remove a Permission
     rpc RemovePermission (PermissionActionRequest) returns (Empty) {
     }
-
     // Update a Permission
     rpc UpdatePermission (UpdatePermissionRequest) returns (Permission) {
     }
     // Get details of a Permission
     rpc InfoPermission (PermissionActionRequest) returns (Permission) {
     }
-
     // Assign this permission to multiple service accounts
     rpc AssignPermissionToMultipleServiceAccounts (MultiAddPermissionToSAsRequest) returns (MultiAddPermissionToSAsResponse) {
     }
-
     // Version returns the current version of the system components and storage groups
     rpc Version (Empty) returns (VersionResponse) {
     }
@@ -177,30 +166,39 @@ message RegisterAccountResponse {
 }
 
 message LoginRequest {
+    // Company short name
     string company = 1;
+    // User's email
     string email = 2;
+    // User's password
     string password = 3;
 }
 
 message LoginResponse {
     string error = 1;
+    // Session token required for login
     string jwt_token = 2;
 }
 
 // Used for Signing Up a new User and Resetting a Password
 message SetPasswordRequest {
     string url_token = 1;
+    // User's password to set
     string password = 2;
 }
 
 message ChangePasswordRequest {
+    // User's current password 
     string old_password = 1;
+    // User's new password to set
     string new_password = 2;
 }
 
 // Sends an invite to signup a new user or reset a user's password
 message InviteRequest {
+    // Name of new user to be created
     string name = 1;
+    // Email of the new user who will receive the invitation email
     string email = 2;
 }
 
