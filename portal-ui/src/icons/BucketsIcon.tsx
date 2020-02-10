@@ -14,13 +14,22 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-export interface Bucket {
-  name: string;
-  size: string;
-  accessType: string;
+
+import React from "react";
+import {SvgIcon} from "@material-ui/core";
+class BucketsIcon extends React.Component {
+    render() {
+        return (<SvgIcon>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+                <title>ic_h_buckets</title>
+                <g id="Layer_2" data-name="Layer 2">
+                    <g id="Layer_1-2" data-name="Layer 1">
+                        <polygon className="cls-1" points="13.428 16 2.572 16 0 0 16 0 13.428 16"/>
+                    </g>
+                </g>
+            </svg>
+        </SvgIcon>)
+    }
 }
 
-export interface BucketList {
-  buckets: Bucket[];
-  total_buckets: number;
-}
+export default BucketsIcon;

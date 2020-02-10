@@ -14,13 +14,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-export interface Bucket {
-  name: string;
-  size: string;
-  accessType: string;
+export interface User {
+    name: string;
+    id: string;
+    email: string;
+    is_me: boolean;
+    enabled: boolean;
 }
 
-export interface BucketList {
-  buckets: Bucket[];
-  total_buckets: number;
+export interface UsersList {
+    users: User[];
+    total_users:number;
 }

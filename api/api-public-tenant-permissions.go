@@ -100,6 +100,9 @@ func (s *server) AddPermission(ctx context.Context, in *pb.AddPermissionRequest)
 
 	permissionObj, err := cluster.AddPermissionToDB(appCtx, permissionName, description, effect, resources, actions)
 	if err != nil {
+		if err == cluster.ErrPermissionName {
+			return nil, status.New(codes.InvalidArgument, err.Error()).Err()
+		}
 		return nil, status.New(codes.Internal, "There was an error creating the permission").Err()
 	}
 	// if we reach here, all is good, commit
@@ -133,9 +136,6 @@ func (s *server) UpdatePermission(ctx context.Context, in *pb.UpdatePermissionRe
 	}
 	if permissionName == "" {
 		return nil, status.New(codes.InvalidArgument, "a valid permission name  is needed").Err()
-	}
-	if description == "" {
-		return nil, status.New(codes.InvalidArgument, "a valid description is needed").Err()
 	}
 	effect := cluster.EffectFromString(permissionEffect)
 	if err := effect.IsValid(); err != nil {
@@ -340,6 +340,18 @@ func (s *server) RemovePermission(ctx context.Context, in *pb.PermissionActionRe
 	permission, err := cluster.GetPermissionByID(appCtx, id)
 	if err != nil {
 		return nil, status.New(codes.InvalidArgument, "permission not found").Err()
+	}
+
+	// check that Service Accounts will not end up with no permissions.
+	solelyUsed, err := cluster.ServiceAccountSolePermission(appCtx, &permission.ID)
+	if err != nil {
+		log.Println("error deleting permission:", err)
+		return nil, status.New(codes.Internal, "error deleting permission").Err()
+	}
+	// If the permission to be deleted is the only assigned to one or more Service Accounts,
+	// the request is denied.
+	if solelyUsed {
+		return nil, status.New(codes.FailedPrecondition, "permission is uniquely assigned to one or more Service Accounts").Err()
 	}
 
 	// delete permission

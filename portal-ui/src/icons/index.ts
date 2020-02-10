@@ -14,13 +14,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-export interface Bucket {
-  name: string;
-  size: string;
-  accessType: string;
-}
-
-export interface BucketList {
-  buckets: Bucket[];
-  total_buckets: number;
-}
+export { default as PermissionIcon } from './PermissionIcon';
+export { default as CreateIcon } from './CreateIcon';
+export { default as DeleteIcon } from './DeleteIcon';
+export { default as ServiceAccountIcon } from './ServiceAccountIcon';
+export { default as DashboardIcon } from './DashboardIcon';
+export { default as BucketsIcon } from './BucketsIcon';
+export { default as UsersIcon } from './UsersIcon';

@@ -25,40 +25,39 @@ import {
 import CssBaseline from "@material-ui/core/CssBaseline";
 import Drawer from "@material-ui/core/Drawer";
 import Box from "@material-ui/core/Box";
-import AppBar from "@material-ui/core/AppBar";
-import Toolbar from "@material-ui/core/Toolbar";
-import List from "@material-ui/core/List";
 import Typography from "@material-ui/core/Typography";
-import Divider from "@material-ui/core/Divider";
-import IconButton from "@material-ui/core/IconButton";
-import Badge from "@material-ui/core/Badge";
 import Container from "@material-ui/core/Container";
 import Link from "@material-ui/core/Link";
-import MenuIcon from "@material-ui/icons/Menu";
-import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
-import NotificationsIcon from "@material-ui/icons/Notifications";
-import { mainListItems, secondaryListItems } from "./ListItems";
-import Dashboard from "./Dashboard";
+
 import history from "../../history";
 import {
-  Route,
-  RouteComponentProps,
-  Router,
-  Switch,
-  withRouter
+    Redirect,
+    Route,
+    RouteComponentProps,
+    Router,
+    Switch,
+    withRouter
 } from "react-router-dom";
 import { connect } from "react-redux";
 import { AppState } from "../../store";
-import {setMenuOpen, userLoggedIn} from "../../actions";
+import { setMenuOpen } from "../../actions";
 import { ThemedComponentProps } from "@material-ui/core/styles/withTheme";
-import Buckets from "./Buckets";
+import Buckets from "./Buckets/Buckets";
+import Permissions from "./Permissions/Permissions";
+import Dashboard from "./Dashboard/Dashboard";
+import Menu from "./Menu";
+import api from "../../common/api";
+import storage from "local-storage-fallback";
+import NotFoundPage from "../NotFoundPage";
+import ServiceAccounts from "./ServiceAccounts/ServiceAccounts";
+import Users from "./Users/Users";
 
 function Copyright() {
   return (
     <Typography variant="body2" color="textSecondary" align="center">
       {"Copyright © "}
       <Link color="inherit" href="https://material-ui.com/">
-        Your Website
+        MinIO
       </Link>{" "}
       {new Date().getFullYear()}
       {"."}
@@ -66,7 +65,7 @@ function Copyright() {
   );
 }
 
-const drawerWidth = 240;
+const drawerWidth = 254;
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -74,6 +73,8 @@ const styles = (theme: Theme) =>
       display: "flex"
     },
     toolbar: {
+      background: theme.palette.background.default,
+      color: "black",
       paddingRight: 24 // keep right padding when drawer closed
     },
     toolbarIcon: {
@@ -127,7 +128,9 @@ const styles = (theme: Theme) =>
         width: theme.spacing(9)
       }
     },
-    appBarSpacer: theme.mixins.toolbar,
+    appBarSpacer: {
+      height: "5px"
+    },
     content: {
       flexGrow: 1,
       height: "100vh",
@@ -144,7 +147,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column"
     },
     fixedHeight: {
-      height: 240
+      minHeight: 240,
     }
   });
 
@@ -158,16 +161,24 @@ interface ConsoleProps {
   open: boolean;
   title: string;
   classes: any;
-    setMenuOpen: typeof setMenuOpen;
+  setMenuOpen: typeof setMenuOpen;
 }
 
-// const Console = withRouter(
-//     class Console extends React.Component<ConsoleProps & RouteComponentProps & StyledProps & ThemedComponentProps> {
 class Console extends React.Component<
   ConsoleProps & RouteComponentProps & StyledProps & ThemedComponentProps
 > {
+  componentDidMount(): void {
+    api
+      .invoke("GET", `/api/v1/users/whoami`)
+      .then(res => {})
+      .catch(err => {
+        storage.removeItem("token");
+        history.push("/");
+      });
+  }
+
   render() {
-    const { classes, open} = this.props;
+    const { classes, open } = this.props;
     return (
       <div className={classes.root}>
         <CssBaseline />
@@ -178,68 +189,19 @@ class Console extends React.Component<
           }}
           open={open}
         >
-          <div className={classes.toolbarIcon}>
-            <IconButton
-              onClick={() => {
-                this.props.setMenuOpen(false);
-              }}
-            >
-              <ChevronLeftIcon />
-            </IconButton>
-          </div>
-          <Divider />
-          <List>{mainListItems}</List>
-          <Divider />
-          <List>{secondaryListItems}</List>
-        </Drawer>
-        <AppBar
-          position="absolute"
-          className={clsx(classes.appBar, open && classes.appBarShift)}
-        >
-          <Toolbar className={classes.toolbar}>
-            <IconButton
-              edge="start"
-              color="inherit"
-              aria-label="open drawer"
-              onClick={() => {
-                  this.props.setMenuOpen(true);
-              }}
-              className={clsx(
-                classes.menuButton,
-                open && classes.menuButtonHidden
-              )}
-            >
-              <MenuIcon />
-            </IconButton>
-            <Typography
-              component="h1"
-              variant="h6"
-              color="inherit"
-              noWrap
-              className={classes.title}
-            >
-              <Router history={history}>
-                <Switch>
-                  <Route exact path="/buckets">
-                    Buckets
-                  </Route>
-                  <Route exact path="/dashboard">
-                    Dashboard
-                  </Route>
-                  <Route exact path="/">
-                    Dashboard
-                  </Route>
-                </Switch>
-              </Router>
-            </Typography>
+          {/*<div className={classes.toolbarIcon}>*/}
+          {/*  <IconButton*/}
+          {/*    onClick={() => {*/}
+          {/*      this.props.setMenuOpen(false);*/}
+          {/*    }}*/}
+          {/*  >*/}
+          {/*    <ChevronLeftIcon />*/}
+          {/*  </IconButton>*/}
+          {/*</div>*/}
+          {/*<Divider />*/}
 
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="secondary">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-          </Toolbar>
-        </AppBar>
+          <Menu />
+        </Drawer>
 
         <main className={classes.content}>
           <div className={classes.appBarSpacer} />
@@ -247,8 +209,18 @@ class Console extends React.Component<
             <Router history={history}>
               <Switch>
                 <Route exact path="/buckets" component={Buckets} />
+                <Route exact path="/permissions" component={Permissions} />
+                <Route
+                  exact
+                  path="/service_accounts"
+                  component={ServiceAccounts}
+                />
+                <Route exact path="/users" component={Users} />
                 <Route exact path="/dashboard" component={Dashboard} />
-                <Route exact path="/" component={Dashboard} />
+                <Route exact path="/" >
+                    <Redirect to="/dashboard" />
+                </Route>
+                <Route component={NotFoundPage} />
               </Switch>
             </Router>
 

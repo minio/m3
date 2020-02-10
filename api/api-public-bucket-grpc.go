@@ -49,11 +49,9 @@ func (s *server) MakeBucket(ctx context.Context, in *pb.MakeBucketRequest) (*pb.
 
 	// get tenant short name from context
 	tenantShortName := ctx.Value(cluster.TenantShortNameKey).(string)
-	// TODO: Update to use context
 	err = cluster.MakeBucket(appCtx, tenantShortName, in.Name, accessType)
 	if err != nil {
-		log.Println(err)
-		return nil, status.New(codes.Internal, "Failed to make bucket").Err()
+		return nil, status.New(codes.Internal, err.Error()).Err()
 	}
 	return &pb.Bucket{Name: in.Name, Size: 0}, nil
 }
@@ -104,14 +102,29 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 		return nil, status.New(codes.Internal, "Failed to list buckets").Err()
 	}
 
-	// Get latest bucket sizes, if an error occurs, continue listing the buckets
-	bucketsSizes, err := cluster.GetLatestBucketsSizes(appCtx, bucketInfos)
+	// make sure we don't overflow
+	totalBuckets := int32(len(bucketInfos))
+	// grab only offset,limit buckets
+	limit := in.Limit
+	var bucketSliced []*cluster.BucketInfo
+	// if no limit, send all buckets
+	if limit <= 0 {
+		bucketSliced = bucketInfos
+	} else {
+		toMax := in.Offset + limit
+		if toMax > totalBuckets {
+			toMax = totalBuckets
+		}
+		bucketSliced = bucketInfos[in.Offset:toMax]
+	}
+
+	bucketsSizes, err := cluster.GetLatestBucketsSizes(appCtx, bucketSliced)
 	if err != nil {
 		log.Println("error getting buckets sizes:", err)
 	}
 
 	var buckets []*pb.Bucket
-	for _, bucketInfo := range bucketInfos {
+	for _, bucketInfo := range bucketSliced {
 		// if size not in bucketsSizes Default size is 0
 		size := bucketsSizes[bucketInfo.Name]
 		buckets = append(buckets, &pb.Bucket{
@@ -122,7 +135,7 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 	}
 	return &pb.ListBucketsResponse{
 		Buckets:      buckets,
-		TotalBuckets: int32(len(buckets)),
+		TotalBuckets: totalBuckets,
 	}, nil
 }
 

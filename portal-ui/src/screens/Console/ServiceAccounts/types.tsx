@@ -14,13 +14,27 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-export interface Bucket {
-  name: string;
-  size: string;
-  accessType: string;
+import {Permission} from "../Permissions/types";
+
+export interface ServiceAccount {
+    id: string;
+    name: string;
+    slug: string;
+    access_key: string;
+    enabled: boolean;
 }
 
-export interface BucketList {
-  buckets: Bucket[];
-  total_buckets: number;
+export interface ServiceAccountsList {
+    service_accounts: ServiceAccount[];
+    total:number;
+}
+
+export interface NewServiceAccount {
+    service_account: ServiceAccount,
+    secret_key:string,
+}
+
+export interface ServiceAccountDetails {
+    service_account: ServiceAccount,
+    permissions: Permission[],
 }
