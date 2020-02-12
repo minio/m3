@@ -232,6 +232,8 @@ class Permissions extends React.Component<
           return "Read Only";
         case "write":
           return "Write Only";
+        case "trace":
+          return "Tracing";
         default:
           return "n/a";
       }
