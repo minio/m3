@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Start using "changelog" file.
 - Cli command to get storage group tenant's bucket's average usage in a defined period `./m3 cluster sc sg usage`.
 - Cli command to get storage group tenant's summary in a defined period `./m3 cluster sc sg summary`.
+- Support for MinIO's `admin:ServerTrace` via the `trace` action on permissions, can be added using CLI `./m3 tenant permission add acme permName Allow trace "arn:aws:s3:::*"`.
 
 ### Changed
 

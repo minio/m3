@@ -25,8 +25,8 @@ import (
 
 	"github.com/lib/pq"
 
+	minioPolicy "github.com/minio/minio/pkg/bucket/policy"
 	minioIAMPolicy "github.com/minio/minio/pkg/iam/policy"
-	minioPolicy "github.com/minio/minio/pkg/policy"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -349,6 +349,8 @@ func UpdateMinioPolicyForServiceAccount(ctx *Context, sgt *StorageGroupTenant, s
 					aSet.Add(minioIAMPolicy.ListBucketAction)
 				case Readwrite:
 					aSet.Add(minioIAMPolicy.AllActions)
+				case Trace:
+					aSet.Add(minioIAMPolicy.TraceAdminAction)
 				}
 			}
 			statement.Actions = aSet

@@ -22,6 +22,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   LinearProgress,
   TextField
 } from "@material-ui/core";
@@ -52,6 +53,7 @@ import {
   ServiceAccount,
   ServiceAccountDetails
 } from "./types";
+import Switch from "@material-ui/core/Switch";
 
 const useToolbarStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -133,6 +135,7 @@ interface IAddServiceAccountContentState {
   addLoading: boolean;
   addError: string;
   name: string;
+  enabled: boolean;
   selectedPermissions: Permission[];
   rowsPerPage: number;
   page: number;
@@ -150,6 +153,7 @@ class AddServiceAccountContent extends React.Component<
     addLoading: false,
     addError: "",
     name: "",
+    enabled: true,
     selectedPermissions: [],
     rowsPerPage: 5,
     page: 0,
@@ -189,6 +193,7 @@ class AddServiceAccountContent extends React.Component<
             this.setState({
               loadingServiceAccount: false,
               name: selectedServiceAccount.name,
+              enabled: selectedServiceAccount.enabled,
               selectedPermissions:
                 res.permissions === undefined || res.permissions === null
                   ? []
@@ -204,7 +209,7 @@ class AddServiceAccountContent extends React.Component<
 
   saveRecord(event: React.FormEvent) {
     event.preventDefault();
-    const { name, addLoading, selectedPermissions } = this.state;
+    const { name, addLoading, selectedPermissions,enabled } = this.state;
     const { selectedServiceAccount } = this.props;
     if (addLoading) {
       return;
@@ -218,6 +223,7 @@ class AddServiceAccountContent extends React.Component<
             {
               id: selectedServiceAccount.id,
               name: name,
+              enabled: enabled,
               permission_ids: selectedPermissions.map(p => p.id)
             }
           )
@@ -266,7 +272,7 @@ class AddServiceAccountContent extends React.Component<
   }
 
   render() {
-    const { classes, selectedServiceAccount} = this.props;
+    const { classes, selectedServiceAccount } = this.props;
     const {
       addLoading,
       addError,
@@ -332,6 +338,12 @@ class AddServiceAccountContent extends React.Component<
     const emptyRows =
       rowsPerPage -
       Math.min(rowsPerPage, permissions.length - page * rowsPerPage);
+
+    const handleChange = (name: string) => (
+      event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+      this.setState({enabled:event.target.checked})
+    };
 
     return (
       <React.Fragment>
@@ -463,6 +475,21 @@ class AddServiceAccountContent extends React.Component<
                     onChangeRowsPerPage={handleChangeRowsPerPage}
                   />
                 </div>
+              </Grid>
+              <Grid item xs={12}>
+                <br />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      onChange={handleChange("enabled")}
+                      value="checkedA"
+                    />
+                  }
+                  label="Enabled"
+
+                />
               </Grid>
               <Grid item xs={12}>
                 <br />
