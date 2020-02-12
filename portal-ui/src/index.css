@@ -11,3 +11,17 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+@font-face {
+  font-family: 'Mark';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/mark/Mark-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Mark';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/mark/Mark-Bold.woff2') format('woff2');
+}
