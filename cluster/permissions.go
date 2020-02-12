@@ -36,6 +36,7 @@ const (
 	Write     ActionType = "write"
 	Read                 = "read"
 	Readwrite            = "readwrite"
+	Trace                = "trace"
 	Invalid              = "invalid"
 )
 
@@ -44,7 +45,7 @@ var ErrPermissionName = errors.New("Permission name not valid or already exists"
 
 func (at ActionType) IsValid() error {
 	switch at {
-	case Write, Read, Readwrite:
+	case Write, Read, Readwrite, Trace:
 		return nil
 	}
 	return errors.New("invalid action type")
@@ -58,6 +59,8 @@ func ActionTypeFromString(actionTypeStr string) ActionType {
 		return Read
 	case "readwrite":
 		return Readwrite
+	case "trace":
+		return Trace
 	default:
 		return Invalid
 	}

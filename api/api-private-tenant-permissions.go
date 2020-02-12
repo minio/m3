@@ -57,7 +57,6 @@ func (ps *privateServer) TenantPermissionAdd(ctx context.Context, in *pb.TenantP
 	appCtx.Tenant = &tenant
 
 	if _, err := cluster.AddPermissionToDB(appCtx, in.Name, in.Description, effect, in.Resources, in.Actions); err != nil {
-		appCtx.Rollback()
 		return nil, err
 	}
 	// if we reach here, all is good, commit
