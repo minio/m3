@@ -64,7 +64,7 @@ func CreateAdminSession(ctx *Context, adminID *uuid.UUID, idpSession bool, expir
 		`INSERT INTO
 				admin_sessions ("id","admin_id","refresh_token", "status", "occurred_at", "expires_at","refresh_expires_at")
 			  VALUES
-				($1,$2,$3,$4,NOW(),(NOW() + interval '1 day'),(NOW() + interval '1 month'))`
+				($1,$2,$3,$4,$5,$6,$7)`
 	tx, err := ctx.MainTx()
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func CreateAdminSession(ctx *Context, adminID *uuid.UUID, idpSession bool, expir
 		Status:           "valid",
 	}
 	// Execute Query
-	_, err = tx.Exec(query, newSession.ID, newSession.AdminID, newSession.RefreshToken, newSession.Status)
+	_, err = tx.Exec(query, newSession.ID, newSession.AdminID, newSession.RefreshToken, newSession.Status, time.Now(), newSession.ExpiresAt, newSession.RefreshExpiresAt)
 	if err != nil {
 		return nil, err
 	}
