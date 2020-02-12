@@ -87,7 +87,8 @@ func dev(ctx *cli.Context) error {
 	publicCh := servicePortForwardPort(m3PFCtx, "m3", "50051", color.FgYellow)
 	privateCh := servicePortForwardPort(m3PFCtx, "m3", "50052", color.FgGreen)
 	nginxCh := servicePortForwardPort(nginxCtx, "nginx-resolver", "9000:80", color.FgCyan)
-	portalCh := servicePortForwardPort(m3PFCtx, "m3-portal-backend", "5050", color.FgMagenta)
+	portalCh := servicePortForwardPort(nginxCtx, "portal-proxy", "9080:80", color.FgBlue)
+	portalBackendCh := servicePortForwardPort(m3PFCtx, "m3-portal-backend", "5050", color.FgMagenta)
 	initialized := false
 	nginxInitialized := false
 
@@ -147,7 +148,7 @@ OuterLoop:
 			fmt.Println("Public port forward closed, restarting it after 2 seconds")
 			numTries++
 			time.Sleep(time.Second * 2)
-			publicCh = servicePortForwardPort(m3PFCtx, "m3", "50051", color.FgBlue)
+			publicCh = servicePortForwardPort(m3PFCtx, "m3", "50051", color.FgYellow)
 			// if more than 100 tries, probs the container is down, stop trying
 			if numTries > 100 {
 				break OuterLoop
@@ -161,11 +162,11 @@ OuterLoop:
 			if numTries > 100 {
 				break OuterLoop
 			}
-		case <-portalCh:
+		case <-portalBackendCh:
 			fmt.Println("Portal port forward closed, restarting it after 2 seconds")
 			numTries++
 			time.Sleep(time.Second * 2)
-			portalCh = servicePortForwardPort(m3PFCtx, "m3-portal-backend", "5050", color.FgMagenta)
+			portalBackendCh = servicePortForwardPort(m3PFCtx, "m3-portal-backend", "5050", color.FgMagenta)
 			// if more than 100 tries, probs the container is down, stop trying
 			if numTries > 100 {
 				break OuterLoop
@@ -175,6 +176,15 @@ OuterLoop:
 			numTries++
 			time.Sleep(time.Second * 2)
 			nginxCh = servicePortForwardPort(m3PFCtx, "nginx-resolver", "9000:80", color.FgCyan)
+			// if more than 100 tries, probs the container is down, stop trying
+			if numTries > 100 {
+				break OuterLoop
+			}
+		case <-portalCh:
+			fmt.Println("Portal Proxy port forward closed, restarting it after 2 seconds")
+			numTries++
+			time.Sleep(time.Second * 2)
+			portalCh = servicePortForwardPort(m3PFCtx, "portal-proxy", "9080:80", color.FgBlue)
 			// if more than 100 tries, probs the container is down, stop trying
 			if numTries > 100 {
 				break OuterLoop
