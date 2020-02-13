@@ -211,3 +211,153 @@ spec:
           envFrom:
             - configMapRef:
                 name: m3-env
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: m3-portal-backend
+  labels:
+    name: m3-portal-backend
+spec:
+  ports:
+    - port: 5050
+      name: webserver
+  selector:
+    app: m3-portal-backend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: m3-portal-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: m3-portal-backend
+  template:
+    metadata:
+      labels:
+        app: m3-portal-backend
+    spec:
+      containers:
+        - name: m3-portal-backend
+          image: minio/m3:edge
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - /m3
+            - portal
+          env:
+            - name: M3_HOSTNAME
+              value: "m3"
+            - name: M3_PUBLIC_PORT
+              value: "50051"
+          ports:
+            - containerPort: 5050
+              name: webserver
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portal-proxy
+  labels:
+    name: portal-proxy
+spec:
+  ports:
+    - port: 80
+      name: webserver
+  selector:
+    app: portal-proxy
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portal-proxy-config
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /dev/stdout debug;
+    pid /var/run/nginx.pid;
+
+    events {
+      worker_connections  1024;
+    }
+
+    http {
+      log_format  main  '$http_host - $remote_addr - $remote_user [$time_local] "$request" '
+      '$status $body_bytes_sent "$http_referer" '
+      '"$http_user_agent" "$http_x_forwarded_for"';
+
+      server {
+
+        location ~ ^/api/v[0-9]+/(.*)$ {
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection "upgrade";
+          client_max_body_size 50M;
+          proxy_set_header Host $http_host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_set_header X-Frame-Options SAMEORIGIN;
+          proxy_buffers 256 16k;
+          proxy_buffer_size 16k;
+          client_body_timeout 60;
+          send_timeout 300;
+          lingering_timeout 5;
+          proxy_connect_timeout 90;
+          proxy_send_timeout 300;
+          proxy_read_timeout 90s;
+          proxy_pass http://m3-portal-backend:5050;
+        }
+
+        location / {
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection "upgrade";
+          client_max_body_size 50M;
+          proxy_set_header Host $http_host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_set_header X-Frame-Options SAMEORIGIN;
+          proxy_buffers 256 16k;
+          proxy_buffer_size 16k;
+          client_body_timeout 60;
+          send_timeout 300;
+          lingering_timeout 5;
+          proxy_connect_timeout 90;
+          proxy_send_timeout 300;
+          proxy_read_timeout 90s;
+          proxy_pass http://m3-portal-frontend:80;
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portal-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portal-proxy
+  template:
+    metadata:
+      labels:
+        app: portal-proxy
+    spec:
+      volumes:
+        - name: portal-proxy-volume
+          configMap:
+            name: portal-proxy-config
+      containers:
+        - name: portal-proxy
+          image: nginx:latest
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 80
+              name: webserver
+          volumeMounts:
+            - name: portal-proxy-volume
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf

@@ -89,27 +89,6 @@ func getLocalBucketNamespaceConfiguration(ctx *Context) string {
 			log_format  main  '$http_host - $remote_addr - $remote_user [$time_local] "$request" '
 																		'$status $body_bytes_sent "$http_referer" '
 																		'"$http_user_agent" "$http_x_forwarded_for"';
-				server {
-					location / {
-						 proxy_set_header Upgrade $http_upgrade;
-						 proxy_set_header Connection "upgrade";
-						 client_max_body_size 0;
-						 proxy_set_header Host $http_host;
-						 proxy_set_header X-Real-IP $remote_addr;
-						 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-						 proxy_set_header X-Forwarded-Proto $scheme;
-						 proxy_set_header X-Frame-Options SAMEORIGIN;
-						 proxy_buffers 256 16k;
-						 proxy_buffer_size 16k;
-						 client_body_timeout 60;
-						 send_timeout 300;
-						 lingering_timeout 5;
-						 proxy_connect_timeout 90;
-						 proxy_send_timeout 300;
-						 proxy_read_timeout 90s;
-						 proxy_pass http://portal-proxy:80;
-					}
-				}
 		`)
 	s3Domain := getS3Domain()
 	tenantRoutes := <-GetAllTenantRoutes(ctx)
@@ -191,12 +170,6 @@ func getGlobalBucketNamespaceConfiguration(ctx *Context) string {
 	nginxConfiguration.WriteString(fmt.Sprintf(`
 			http {
 			server_names_hash_bucket_size  128;
-			upstream portalproxy {
-				server portal-proxy:80;
-			}
-			upstream tenancy {
-				server portal-proxy:80;
-			}
 
 			%s
 		
@@ -212,50 +185,21 @@ func getGlobalBucketNamespaceConfiguration(ctx *Context) string {
 
 	nginxConfiguration.WriteString(destinationMapping.String())
 	appDomain := getS3Domain()
-	nginxConfiguration.WriteString(fmt.Sprintf(`
+	nginxConfiguration.WriteString(`
 			}
-
-
-			log_format  main  '$http_host - $remote_addr - $remote_user [$time_local] "$request" '
-																		'$status $body_bytes_sent "$http_referer" '
-																		'"$http_user_agent" "$http_x_forwarded_for"';
-				server {
-					access_log /var/log/nginx/access.log main;
-					location / {
-						 proxy_set_header Upgrade $http_upgrade;
-						 proxy_set_header Connection "upgrade";
-						 client_max_body_size 0;
-						 proxy_set_header Host $http_host;
-						 proxy_set_header X-Real-IP $remote_addr;
-						 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-						 proxy_set_header X-Forwarded-Proto $scheme;
-						 proxy_set_header X-Frame-Options SAMEORIGIN;
-						 proxy_buffers 256 16k;
-						 proxy_buffer_size 16k;
-						 client_body_timeout 60;
-						 send_timeout 300;
-						 lingering_timeout 5;
-						 proxy_connect_timeout 90;
-						 proxy_send_timeout 300;
-						 proxy_read_timeout 90s;
-						 proxy_pass http://portal-proxy:80;
-					}
+			server {
+				ignore_invalid_headers off;
+				client_max_body_size 0;
+				proxy_buffering off;
+				location / {
+					proxy_http_version 1.1;
+					proxy_set_header Host $http_host;
+					proxy_read_timeout 15m;
+					proxy_request_buffering off;
+					proxy_pass http://$pool;
 				}
-
-				server {
-					server_name %s;
-					ignore_invalid_headers off;
-					client_max_body_size 0;
-					proxy_buffering off;
-					location / {
-						proxy_http_version 1.1;
-						proxy_set_header Host $http_host;
-						proxy_read_timeout 15m;
-						proxy_request_buffering off;
-						proxy_pass http://$pool;
-					}
-				}
-		`, appDomain))
+			}
+		`)
 
 	bucketRoutes := streamBucketToTenantServices()
 	for bucketRouteResult := range bucketRoutes {
