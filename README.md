@@ -235,20 +235,15 @@ cd ..
 kubectl apply -f k8s/deployments/m3-portal-frontend-deployment.yaml
 ```
 
-- Build and prepare the backend, portal backend uses the existing `m3`
+
+- Do port-forward to `nginx-resolver` service that should be able to route to Minio tenants
 
 ```
-kubectl apply -f k8s/deployments/m3-portal-backend-deployment.yaml
+kubectl port-forward svc/nginx-resolver 9000:80
 ```
 
-- Build and prepare the portal-proxy that connect frontend and backend
+- Do port-forward to `portal-proxy` service that should be able to route to the Portal UI.
 
 ```
-kubectl apply -f k8s/deployments/portal-proxy-deployment.yaml
-```
-
-- Do port-forward to `nginx-resolver` service that should be able to route to both, portal and Minio tenants
-
-```
-kubectl port-forward svc/nginx-resolver 1337:80
+kubectl port-forward svc/portal-proxy 9080:80
 ```

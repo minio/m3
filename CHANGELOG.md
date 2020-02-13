@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved development `etcd` and `prometheus`  to `etcd-dev.yaml` and `prometheus-dev.yaml` respectivelys
 - the development `postgres` was moved to  `postgres-dev.yaml`
 - `nginx-resolver` service and deployment are now exposed on the `m3-deployment.yaml`
-- `Mkube` will honor the expiration token time when operators authenticate via `IDP` 
+- `Mkube` will honor the expiration token time when operators authenticate via `IDP`
+- `portal-proxy` and `m3-portal-backend` service and deployment are now exposed on the `m3-deployment.yaml` 
 
 ### Removed
 
