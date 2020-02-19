@@ -49,7 +49,7 @@ var storageGroupSummaryCmd = cli.Command{
 		},
 		cli.StringFlag{
 			Name:  "to-date",
-			Usage: "end date (inclusive) for the report (YYYY-MM-DD)",
+			Usage: "end date (not inclusive) for the report (YYYY-MM-DD)",
 		},
 		cli.BoolFlag{
 			Name:  "export-to-csv",
