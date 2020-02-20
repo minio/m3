@@ -1145,6 +1145,9 @@
         },
         "access": {
           "$ref": "#/definitions/m3Access"
+        },
+        "creation_date": {
+          "type": "string"
         }
       }
     },
