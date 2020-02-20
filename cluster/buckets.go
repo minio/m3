@@ -38,6 +38,14 @@ import (
 
 type BucketAccess int32
 
+type BucketInfo struct {
+	// Name of the bucket.
+	Name   string
+	Access BucketAccess
+	// Date and time when the bucket was created.
+	CreationDate time.Time
+}
+
 const (
 	BucketPrivate BucketAccess = iota
 	BucketPublic
@@ -71,11 +79,6 @@ func MakeBucket(ctx *Context, tenantShortname, bucketName string, accessType Buc
 	}
 
 	return nil
-}
-
-type BucketInfo struct {
-	Name   string
-	Access BucketAccess
 }
 
 func SetBucketAccess(minioClient *minio.Client, bucketName string, accessType BucketAccess) (err error) {
@@ -162,7 +165,7 @@ func ListBuckets(tenantShortname string) ([]*BucketInfo, error) {
 		bucketInfos []*BucketInfo
 	)
 	for _, bucket := range buckets {
-		bucketInfos = append(bucketInfos, &BucketInfo{Name: bucket.Name})
+		bucketInfos = append(bucketInfos, &BucketInfo{Name: bucket.Name, CreationDate: bucket.CreationDate})
 	}
 
 	return bucketInfos, nil
