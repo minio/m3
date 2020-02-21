@@ -128,9 +128,10 @@ func (s *server) ListBuckets(ctx context.Context, in *pb.ListBucketsRequest) (*p
 		// if size not in bucketsSizes Default size is 0
 		size := bucketsSizes[bucketInfo.Name]
 		buckets = append(buckets, &pb.Bucket{
-			Name:   bucketInfo.Name,
-			Access: getAccessType(bucketInfo.Access),
-			Size:   int64(size),
+			Name:         bucketInfo.Name,
+			Access:       getAccessType(bucketInfo.Access),
+			Size:         int64(size),
+			CreationDate: bucketInfo.CreationDate.String(),
 		})
 	}
 	return &pb.ListBucketsResponse{
