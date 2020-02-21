@@ -205,8 +205,11 @@ func (m *RegisterAccountResponse) GetJwtToken() string {
 }
 
 type LoginRequest struct {
-	Company              string   `protobuf:"bytes,1,opt,name=company,proto3" json:"company,omitempty"`
-	Email                string   `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	// Company short name
+	Company string `protobuf:"bytes,1,opt,name=company,proto3" json:"company,omitempty"`
+	// User's email
+	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	// User's password
 	Password             string   `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -260,7 +263,8 @@ func (m *LoginRequest) GetPassword() string {
 }
 
 type LoginResponse struct {
-	Error                string   `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Error string `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// Session token required for login
 	JwtToken             string   `protobuf:"bytes,2,opt,name=jwt_token,json=jwtToken,proto3" json:"jwt_token,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -308,7 +312,8 @@ func (m *LoginResponse) GetJwtToken() string {
 
 // Used for Signing Up a new User and Resetting a Password
 type SetPasswordRequest struct {
-	UrlToken             string   `protobuf:"bytes,1,opt,name=url_token,json=urlToken,proto3" json:"url_token,omitempty"`
+	UrlToken string `protobuf:"bytes,1,opt,name=url_token,json=urlToken,proto3" json:"url_token,omitempty"`
+	// User's password to set
 	Password             string   `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -355,7 +360,9 @@ func (m *SetPasswordRequest) GetPassword() string {
 }
 
 type ChangePasswordRequest struct {
-	OldPassword          string   `protobuf:"bytes,1,opt,name=old_password,json=oldPassword,proto3" json:"old_password,omitempty"`
+	// User's current password
+	OldPassword string `protobuf:"bytes,1,opt,name=old_password,json=oldPassword,proto3" json:"old_password,omitempty"`
+	// User's new password to set
 	NewPassword          string   `protobuf:"bytes,2,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -403,7 +410,9 @@ func (m *ChangePasswordRequest) GetNewPassword() string {
 
 // Sends an invite to signup a new user or reset a user's password
 type InviteRequest struct {
-	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Name of new user to be created
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Email of the new user who will receive the invitation email
 	Email                string   `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -2771,13 +2780,13 @@ type PublicAPIClient interface {
 	SetPassword(ctx context.Context, in *SetPasswordRequest, opts ...grpc.CallOption) (*Empty, error)
 	// Change Password allows to change an existing password
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*Empty, error)
-	// UserAddInvite sends an email invitation for sign up
+	// Sends an email invitation for sign up
 	UserAddInvite(ctx context.Context, in *InviteRequest, opts ...grpc.CallOption) (*Empty, error)
-	// UserResetPasswordInvite sends an email invitation for resetting a user's password
+	// Sends an email invitation for resetting a user's password
 	UserResetPasswordInvite(ctx context.Context, in *InviteRequest, opts ...grpc.CallOption) (*Empty, error)
 	// ValidateInvite validates url token sent for resetting password or sign Up
 	ValidateInvite(ctx context.Context, in *ValidateInviteRequest, opts ...grpc.CallOption) (*ValidateEmailInviteResponse, error)
-	// Returns metrics around the authenticated tenant account if the tenant is an admin or has access
+	// Returns metrics around the authenticated tenant account
 	Metrics(ctx context.Context, in *MetricsRequest, opts ...grpc.CallOption) (*MetricsResponse, error)
 	// List Buckets
 	ListBuckets(ctx context.Context, in *ListBucketsRequest, opts ...grpc.CallOption) (*ListBucketsResponse, error)
@@ -2787,38 +2796,38 @@ type PublicAPIClient interface {
 	DeleteBucket(ctx context.Context, in *DeleteBucketRequest, opts ...grpc.CallOption) (*Bucket, error)
 	// Change Bucket access control between private and public.
 	ChangeBucketAccessControl(ctx context.Context, in *AccessControlRequest, opts ...grpc.CallOption) (*Empty, error)
-	// User
-	// List Users
+	// Tells current users's info
 	UserWhoAmI(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*WhoAmIResponse, error)
+	// List Users
 	ListUsers(ctx context.Context, in *ListUsersRequest, opts ...grpc.CallOption) (*ListUsersResponse, error)
 	// Add a User
 	AddUser(ctx context.Context, in *AddUserRequest, opts ...grpc.CallOption) (*User, error)
 	// Disable a User
 	DisableUser(ctx context.Context, in *UserActionRequest, opts ...grpc.CallOption) (*UserActionResponse, error)
+	// Sends an email to set a new password
 	ForgotPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*Empty, error)
 	// Enable a User
 	EnableUser(ctx context.Context, in *UserActionRequest, opts ...grpc.CallOption) (*UserActionResponse, error)
 	// Remove a User
-	// To be depracated
 	RemoveUser(ctx context.Context, in *UserActionRequest, opts ...grpc.CallOption) (*UserActionResponse, error)
-	// Get details for an individual User
+	// Get details for an individual user
 	InfoUser(ctx context.Context, in *UserActionRequest, opts ...grpc.CallOption) (*User, error)
-	// List ServiceAccounts
+	// List Service Accounts
 	ListServiceAccounts(ctx context.Context, in *ListServiceAccountsRequest, opts ...grpc.CallOption) (*ListServiceAccountsResponse, error)
-	// Generates a ServiceAccount for the given user
+	// Generates a Service Account for the given user.
 	// This is the only time the secret key will be returned
 	CreateServiceAccount(ctx context.Context, in *CreateServiceAccountRequest, opts ...grpc.CallOption) (*CreateServiceAccountResponse, error)
-	// Disable a ServiceAccount
+	// Disable a Service Account
 	DisableServiceAccount(ctx context.Context, in *ServiceAccountActionRequest, opts ...grpc.CallOption) (*ServiceAccount, error)
-	// Enable a ServiceAccount
+	// Enable a Service Account
 	EnableServiceAccount(ctx context.Context, in *ServiceAccountActionRequest, opts ...grpc.CallOption) (*ServiceAccount, error)
-	// Remove a ServiceAccount
+	// Remove a Service Account
 	RemoveServiceAccount(ctx context.Context, in *ServiceAccountActionRequest, opts ...grpc.CallOption) (*Empty, error)
-	// Get details of an individual ServiceAccount
+	// Get details of an individual Service Account
 	InfoServiceAccount(ctx context.Context, in *ServiceAccountActionRequest, opts ...grpc.CallOption) (*InfoServiceAccountResponse, error)
 	// Updates a Service Account with the selected permissions
 	UpdateServiceAccount(ctx context.Context, in *UpdateServiceAccountRequest, opts ...grpc.CallOption) (*InfoServiceAccountResponse, error)
-	// Assign multiple permissions to this service account
+	// Assign multiple permissions to this Service Account
 	AssignPermissionsToServiceAccount(ctx context.Context, in *AddPermissionsSARequest, opts ...grpc.CallOption) (*Empty, error)
 	// List Permissions
 	ListPermissions(ctx context.Context, in *ListPermissionsRequest, opts ...grpc.CallOption) (*ListPermissionsResponse, error)
@@ -3180,13 +3189,13 @@ type PublicAPIServer interface {
 	SetPassword(context.Context, *SetPasswordRequest) (*Empty, error)
 	// Change Password allows to change an existing password
 	ChangePassword(context.Context, *ChangePasswordRequest) (*Empty, error)
-	// UserAddInvite sends an email invitation for sign up
+	// Sends an email invitation for sign up
 	UserAddInvite(context.Context, *InviteRequest) (*Empty, error)
-	// UserResetPasswordInvite sends an email invitation for resetting a user's password
+	// Sends an email invitation for resetting a user's password
 	UserResetPasswordInvite(context.Context, *InviteRequest) (*Empty, error)
 	// ValidateInvite validates url token sent for resetting password or sign Up
 	ValidateInvite(context.Context, *ValidateInviteRequest) (*ValidateEmailInviteResponse, error)
-	// Returns metrics around the authenticated tenant account if the tenant is an admin or has access
+	// Returns metrics around the authenticated tenant account
 	Metrics(context.Context, *MetricsRequest) (*MetricsResponse, error)
 	// List Buckets
 	ListBuckets(context.Context, *ListBucketsRequest) (*ListBucketsResponse, error)
@@ -3196,38 +3205,38 @@ type PublicAPIServer interface {
 	DeleteBucket(context.Context, *DeleteBucketRequest) (*Bucket, error)
 	// Change Bucket access control between private and public.
 	ChangeBucketAccessControl(context.Context, *AccessControlRequest) (*Empty, error)
-	// User
-	// List Users
+	// Tells current users's info
 	UserWhoAmI(context.Context, *Empty) (*WhoAmIResponse, error)
+	// List Users
 	ListUsers(context.Context, *ListUsersRequest) (*ListUsersResponse, error)
 	// Add a User
 	AddUser(context.Context, *AddUserRequest) (*User, error)
 	// Disable a User
 	DisableUser(context.Context, *UserActionRequest) (*UserActionResponse, error)
+	// Sends an email to set a new password
 	ForgotPassword(context.Context, *ForgotPasswordRequest) (*Empty, error)
 	// Enable a User
 	EnableUser(context.Context, *UserActionRequest) (*UserActionResponse, error)
 	// Remove a User
-	// To be depracated
 	RemoveUser(context.Context, *UserActionRequest) (*UserActionResponse, error)
-	// Get details for an individual User
+	// Get details for an individual user
 	InfoUser(context.Context, *UserActionRequest) (*User, error)
-	// List ServiceAccounts
+	// List Service Accounts
 	ListServiceAccounts(context.Context, *ListServiceAccountsRequest) (*ListServiceAccountsResponse, error)
-	// Generates a ServiceAccount for the given user
+	// Generates a Service Account for the given user.
 	// This is the only time the secret key will be returned
 	CreateServiceAccount(context.Context, *CreateServiceAccountRequest) (*CreateServiceAccountResponse, error)
-	// Disable a ServiceAccount
+	// Disable a Service Account
 	DisableServiceAccount(context.Context, *ServiceAccountActionRequest) (*ServiceAccount, error)
-	// Enable a ServiceAccount
+	// Enable a Service Account
 	EnableServiceAccount(context.Context, *ServiceAccountActionRequest) (*ServiceAccount, error)
-	// Remove a ServiceAccount
+	// Remove a Service Account
 	RemoveServiceAccount(context.Context, *ServiceAccountActionRequest) (*Empty, error)
-	// Get details of an individual ServiceAccount
+	// Get details of an individual Service Account
 	InfoServiceAccount(context.Context, *ServiceAccountActionRequest) (*InfoServiceAccountResponse, error)
 	// Updates a Service Account with the selected permissions
 	UpdateServiceAccount(context.Context, *UpdateServiceAccountRequest) (*InfoServiceAccountResponse, error)
-	// Assign multiple permissions to this service account
+	// Assign multiple permissions to this Service Account
 	AssignPermissionsToServiceAccount(context.Context, *AddPermissionsSARequest) (*Empty, error)
 	// List Permissions
 	ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error)

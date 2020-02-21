@@ -41,6 +41,10 @@ done
 
 echo "Provisioning Kind"
 kind create cluster --name m3cluster --config kind-cluster.yaml
+
+echo "Remove Master Taint"
+kubectl taint nodes --all node-role.kubernetes.io/master-
+
 echo "install metrics server"
 kubectl apply -f deployments/metrics-dev.yaml
 echo "installing dashboard"
@@ -91,9 +95,12 @@ kubectl apply -f deployments/postgres-dev.yaml
 kubectl apply -f deployments/etcd-dev.yaml
 # install prometheus
 kubectl apply -f deployments/prometheus-dev.yaml
-kubectl apply -f deployments/m3-portal-frontend-deployment.yaml
-kubectl apply -f deployments/m3-vault-deployment.yaml
-kubectl apply -f deployments/portal-proxy-deployment.yaml
+# install rest of the services
+kubectl apply -f deployments/m3-vault.yaml
+kubectl apply -f deployments/m3-portal-backend.yaml
+kubectl apply -f deployments/m3-portal-frontend.yaml
+kubectl apply -f deployments/m3-portal-proxy.yaml
+kubectl apply -f deployments/m3-nginx-resolver.yaml
 
 # Whether or not to build the m3 container and load it to kind or just load it
 if [[ $M3_DOCKER == "true" ]]; then
@@ -103,14 +110,13 @@ else
 	kind load docker-image minio/m3:dev --name m3cluster
 fi
 
-
 # Wait for etcd-operator custom resource to be ready, then create the etcd cluster
 CR_COUNT=0
 while [[ $CR_COUNT == 0 ]]; do CR_COUNT=$(kubectl get customresourcedefinitions.apiextensions.k8s.io | grep etcdclusters | wc -l) && echo "Waiting on etcd-operator" &&sleep 1; done
 kubectl apply -f deployments/etcd-dev-cr.yaml
 
 # Apply mkube
-kubectl apply -f deployments/m3-deployment.yaml
+kubectl apply -f deployments/m3.yaml
 
 # Extract and save vault token into config map
 while [[ $(kubectl get pods -l app=m3-vault -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}') != "True" ]]; do echo "waiting for pod" && sleep 1; done

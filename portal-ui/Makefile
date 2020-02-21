@@ -1,4 +1,4 @@
-default: build
+default: ../portal/build
 
 build:
 	@echo "Building frontend static assets to 'build'"

@@ -18,6 +18,10 @@ swagger-def:
 	@echo "Generating swagger-def stubs"
 	@protoc -I=protos --swagger_out=logtostderr=true,grpc_api_configuration=protos/public_api_rest.yaml:. protos/public_api.proto
 
+swagger-gen-server:
+	@protoc -I=protos --swagger_out=logtostderr=true,grpc_api_configuration=protos/public_api_rest.yaml:. protos/public_api.proto
+	@swagger generate server -f public_api.swagger.json -A portal -t ./portal
+
 .PHONY: m3
 m3:
 	@echo "Building m3 binary to './m3'"

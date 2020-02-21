@@ -19,15 +19,9 @@ package portal
 import (
 	"context"
 	"log"
-	"net"
 	"net/http"
-	"strings"
 
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	gw "github.com/minio/m3/api/stubs"
-	"github.com/minio/minio/pkg/env"
-	"github.com/rs/cors"
-	"google.golang.org/grpc"
+	"github.com/gorilla/mux"
 )
 
 func StartPortal() error {
@@ -35,38 +29,17 @@ func StartPortal() error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// Initialize Mux and transform request headers to grpc metadata
-	mux := runtime.NewServeMux(runtime.WithIncomingHeaderMatcher(func(h string) (string, bool) {
-		if strings.EqualFold(h, "sessionId") {
-			return h, true
-		}
-		return "", false
-	}))
+	router := mux.NewRouter()
 
-	m3Hostname := env.Get("M3_HOSTNAME", "localhost")
-	m3PublicPort := env.Get("M3_PUBLIC_PORT", "50051")
-	m3Address := net.JoinHostPort(m3Hostname, m3PublicPort)
+	// Serve static files
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./portal/build/static/"))))
+	router.PathPrefix("/images/").Handler(http.StripPrefix("/images/", http.FileServer(http.Dir("./portal/build/images/"))))
 
-	opts := []grpc.DialOption{grpc.WithInsecure()}
-	err := gw.RegisterPublicAPIHandlerFromEndpoint(ctx, mux, m3Address, opts)
-	if err != nil {
-		return err
-	}
-
-	//Set CORS allowed origins
-	c := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:5050", "http://localdev"},
-		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPatch},
-		// AllowCredentials indicates whether the request can include user credentials like
-		// cookies, HTTP authentication or client side SSL certificates.
-		AllowCredentials: true,
-		// Enable Debugging for testing, consider disabling in production
-		Debug:          true,
-		AllowedHeaders: []string{"Content-Type", "Sessionid"},
+	// Serve index page on all unhandled routes
+	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./portal/build/index.html")
 	})
 
-	// Insert the middleware
-	handler := c.Handler(mux)
 	log.Println("Starting Portal server...")
-	return http.ListenAndServe(":5050", handler)
+	return http.ListenAndServe(":5050", router)
 }

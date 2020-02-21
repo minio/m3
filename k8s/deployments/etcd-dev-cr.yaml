@@ -5,6 +5,6 @@ metadata:
   name: m3-etcd-cluster
 spec:
   repository: quay.io/coreos/etcd
-  size: 3
+  size: 1
   version: 3.4.0
 ---
