@@ -133,7 +133,7 @@ func getMaxNumberOfTenantsPerSg() int {
 
 // AppURL returns the main application url
 func getAppURL() string {
-	appDomain := getS3Domain()
+	appDomain := "localhost"
 	return env.Get("APP_URL", fmt.Sprintf("http://%s", appDomain))
 }
 

@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `nginx-resolver` service and deployment are now exposed on the `m3-deployment.yaml`
 - `Mkube` will honor the expiration token time when operators authenticate via `IDP`
 - `portal-proxy` and `m3-portal-backend` service and deployment are now exposed on the `m3-deployment.yaml` 
+- `getAppURL()` in `cluster/conf.go` now returns by default `http://localhost/` instead of `http://$S3_DOMAIN/`
 
 ### Removed
 
