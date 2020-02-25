@@ -17,7 +17,6 @@
 package cluster
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
