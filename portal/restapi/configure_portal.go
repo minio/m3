@@ -9,7 +9,6 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/minio/m3/portal/models"
 
 	"github.com/minio/m3/portal/restapi/operations"
 	"github.com/minio/m3/portal/restapi/operations/public_api"
@@ -212,12 +211,7 @@ func configureAPI(api *operations.PortalAPI) http.Handler {
 	}
 	if api.PublicAPIVersionHandler == nil {
 		api.PublicAPIVersionHandler = public_api.VersionHandlerFunc(func(params public_api.VersionParams) middleware.Responder {
-			return public_api.NewVersionOK().WithPayload(&models.M3VersionResponse{
-				Components: map[string]string{
-					"m3":         "eaeae",
-					"build_time": "huehuehue",
-				},
-			})
+			return middleware.NotImplemented("operation public_api.Version has not yet been implemented")
 		})
 	}
 

@@ -19,6 +19,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
+	"github.com/minio/m3/portal/models"
 	"github.com/minio/m3/portal/restapi/operations/public_api"
 )
 
@@ -146,7 +147,12 @@ func NewPortalAPI(spec *loads.Document) *PortalAPI {
 			return middleware.NotImplemented("operation public_api.ValidateInvite has not yet been implemented")
 		}),
 		PublicAPIVersionHandler: public_api.VersionHandlerFunc(func(params public_api.VersionParams) middleware.Responder {
-			return middleware.NotImplemented("operation public_api.Version has not yet been implemented")
+			return public_api.NewVersionOK().WithPayload(&models.M3VersionResponse{
+				Components: map[string]string{
+					"m3":         "0.1",
+					"build_time": "Tue Feb 25 14:12:42 PST 2020",
+				},
+			})
 		}),
 	}
 }
