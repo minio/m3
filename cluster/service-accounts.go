@@ -672,7 +672,7 @@ func DeleteServiceAccountDB(ctx *Context, serviceAccount *ServiceAccount) error 
 
 // RemoveServiceAccount deletes a serviceAccount related to a particular tenant
 func RemoveServiceAccount(ctx *Context, serviceAccount *ServiceAccount) error {
-	err := UpdateServiceAccountDB(ctx, serviceAccount)
+	err := DeleteServiceAccountDB(ctx, serviceAccount)
 	if err != nil {
 		return err
 	}

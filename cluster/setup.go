@@ -342,7 +342,7 @@ func SetupJwtSecrets(clientset *kubernetes.Clientset) <-chan struct{} {
 	return doneCh
 }
 
-// SetupDBAction runs all the operations to setup the DB or migrate it
+// SetupMigrateAction runs all the up migrations for the main schema and for each tenant schema
 func SetupMigrateAction() error {
 	log.Println("Starting migrations for all schemas")
 	// run the migrations for the main schema
