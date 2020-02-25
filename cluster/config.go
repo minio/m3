@@ -133,8 +133,7 @@ func getMaxNumberOfTenantsPerSg() int {
 
 // AppURL returns the main application url
 func getAppURL() string {
-	appDomain := "localhost"
-	return env.Get("APP_URL", fmt.Sprintf("http://%s", appDomain))
+	return env.Get("APP_URL", "http://localhost")
 }
 
 // CliCommand returns the command used for the cli
