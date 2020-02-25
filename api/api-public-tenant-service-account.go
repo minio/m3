@@ -357,13 +357,7 @@ func (s *server) RemoveServiceAccount(ctx context.Context, in *pb.ServiceAccount
 	serviceAccount, err := cluster.GetServiceAccountByID(appCtx, &id)
 	if err != nil {
 		log.Println(err.Error())
-		return nil, status.New(codes.NotFound, "Serrvice Account Not Found").Err()
-	}
-
-	err = cluster.DeleteServiceAccountDB(appCtx, serviceAccount)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, status.New(codes.Internal, "Error deleting Service Account").Err()
+		return nil, status.New(codes.NotFound, "Service Account Not Found").Err()
 	}
 
 	err = cluster.RemoveServiceAccount(appCtx, serviceAccount)
