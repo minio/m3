@@ -265,6 +265,7 @@ message Bucket {
     string name = 1;
     int64 size = 2;
     Access access = 3;
+    string creation_date = 4;
 }
 
 enum Access {

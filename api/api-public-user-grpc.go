@@ -105,7 +105,9 @@ func (s *server) UserAddInvite(ctx context.Context, in *pb.InviteRequest) (*pb.E
 // UserResetPasswordInvite invites a new user to reset their password by sending them an email
 func (s *server) UserResetPasswordInvite(ctx context.Context, in *pb.InviteRequest) (*pb.Empty, error) {
 	reqEmail := in.GetEmail()
-
+	if reqEmail == "" {
+		return nil, status.New(codes.InvalidArgument, "email can't be empty").Err()
+	}
 	appCtx, err := cluster.NewTenantContextWithGrpcContext(ctx)
 	if err != nil {
 		return nil, err
