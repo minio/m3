@@ -117,7 +117,7 @@ func storageGroupUsage(ctx *cli.Context) error {
 		return nil
 	}
 
-	var tableHeader = []string{"Period", "Account Holder", "Tenant", "Customer", "Bucket", "Region", "AVG Usage [TB]"}
+	var tableHeader = []string{"Period", "Account Holder", "Tenant", "Customer", "Bucket", "Region", "AVG Usage [TiB]"}
 
 	var tableData [][]string
 	var writer *csv.Writer
