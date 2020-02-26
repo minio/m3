@@ -550,7 +550,7 @@ func GetTenantsBucketUsageDb(db *sql.DB, fromDate time.Time, toDate time.Time) (
 	query := `
 		SELECT year, month,
 		bucket, 
-		avg(daily_avg_usage) / pow(1024.0, 4.0) as monthly_avg_usage
+		avg(daily_avg_usage) / pow(1000.0, 4.0) as monthly_avg_usage
 		FROM (
 			SELECT 
 			year, month, day,
@@ -642,7 +642,7 @@ func GetTenantsSummaryDb(db *sql.DB, fromDate time.Time, toDate time.Time) ([]*S
 		LEFT JOIN (
 			SELECT
 				year, month,
-				avg(daily_avg_usage) / pow(1024.0, 4.0) as monthly_avg_usage
+				avg(daily_avg_usage) / pow(1000.0, 4.0) as monthly_avg_usage
 			FROM (
 				SELECT
 					EXTRACT (YEAR FROM bm.sys_created_date) as year,
