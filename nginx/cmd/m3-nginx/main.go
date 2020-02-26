@@ -141,11 +141,13 @@ func startNginx(config string) {
 }
 
 func reloadNginx(config string) {
+	var stderr bytes.Buffer
 	writeNginxConf(config)
 	log.Println("Reloading Nginx")
 	cmd := exec.Command("nginx", "-s", "reload")
+	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		log.Println("cmd.Run() failed with %s\n", err)
+		log.Printf("cmd.Run() failed with %s: %s\n", err, stderr.String())
 	}
 }
