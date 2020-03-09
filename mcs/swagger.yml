@@ -1,0 +1,86 @@
+swagger: "2.0"
+info:
+  title: MinIO Cloud Server
+  version: 0.1.0
+consumes:
+- application/json
+produces:
+- application/json
+schemes:
+- http
+paths:
+  /api/v1/buckets:
+    get:
+      summary: List Buckets
+      operationId: ListBuckets
+      parameters:
+        - name: sort_by
+          in: query
+          required: false
+          type: string
+        - name: offset
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: limit
+          in: query
+          required: false
+          type: integer
+          format: int32
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/listBucketsResponse"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - UserAPI
+definitions:
+  bucketAccess:
+    type: string
+    enum:
+      - PRIVATE
+      - PUBLIC
+      - CUSTOM
+    default: PRIVATE
+  bucket:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        minLength: 3
+      size:
+        type: integer
+        format: int64
+      access:
+        $ref: "#/definitions/bucketAccess"
+      creation_date:
+        type: string
+  listBucketsResponse:
+    type: object
+    properties:
+      buckets:
+        type: array
+        items:
+          $ref: "#/definitions/bucket"
+        title: list of resulting buckets
+      total_buckets:
+        type: integer
+        format: int64
+        title: number of buckets accessible to tenant user
+  error:
+    type: object
+    required: 
+      - message
+    properties:
+      code:
+        type: integer
+        format: int64
+      message:
+        type: string
