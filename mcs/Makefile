@@ -8,4 +8,4 @@ mcs:
 
 swagger-gen:
 	@echo "Generating swagger server code from yaml"
-	@swagger generate server -A mcs -f ./swagger.yml
+	@swagger generate server -A mcs -f ./swagger.yml -r minio_copyright.txt
