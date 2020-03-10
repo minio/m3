@@ -59,46 +59,6 @@ func GetZoneCRD(namespace string) *apiextensionsv1.CustomResourceDefinition {
 											Type: "integer",
 											Ref:  nil,
 										},
-										//"node_template": {
-										//	Type: "object",
-										//	Properties: map[string]apiextensionsv1.JSONSchemaProps{
-										//		"volumes": {
-										//			Type: "array",
-										//			Items: &apiextensionsv1.JSONSchemaPropsOrArray{
-										//				Schema: &apiextensionsv1.JSONSchemaProps{
-										//					Type: "object",
-										//					Properties: map[string]apiextensionsv1.JSONSchemaProps{
-										//						"metadata": {
-										//							Type: "object",
-										//							AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
-										//								Allows: true,
-										//							},
-										//						},
-										//						"volumes": {
-										//							Type: "array",
-										//							Items: &apiextensionsv1.JSONSchemaPropsOrArray{
-										//								Schema: &apiextensionsv1.JSONSchemaProps{
-										//									Type: "object",
-										//									Properties: map[string]apiextensionsv1.JSONSchemaProps{
-										//										"mount_path": {
-										//											Type: "string",
-										//										},
-										//										"volume_type": {
-										//											Type: "string",
-										//										},
-										//									},
-										//									Required: []string{
-										//										"volume_type",
-										//									},
-										//								},
-										//							},
-										//						},
-										//					},
-										//				},
-										//			},
-										//		},
-										//	},
-										//},
 									},
 								},
 							},
