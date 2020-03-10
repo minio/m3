@@ -26,6 +26,10 @@ import (
 	"github.com/minio/minio/pkg/env"
 )
 
+func getNs() string {
+	return "default"
+}
+
 func getS3Domain() string {
 	return env.Get(s3Domain, "s3.localhost")
 }

@@ -1,4 +1,4 @@
-FROM golang:1.13.7
+FROM golang:1.14.0
 
 ADD go.mod /go/src/github.com/minio/m3/go.mod
 ADD go.sum /go/src/github.com/minio/m3/go.sum

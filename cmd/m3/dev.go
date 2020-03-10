@@ -41,16 +41,10 @@ import (
 
 // Development command, will port-forward the public and private interfaces of m3 and the
 var devCmd = cli.Command{
-	Name:   "dev",
-	Usage:  "dev command",
-	Action: dev,
-	Subcommands: []cli.Command{
-		addTenantCmd,
-		tenantBucketCmd,
-		tenantUserCmd,
-		tenantDeleteCmd,
-		tenantServiceAccountCmd,
-	},
+	Name:        "dev",
+	Usage:       "dev command",
+	Action:      dev,
+	Subcommands: []cli.Command{},
 }
 
 func dev(ctx *cli.Context) error {

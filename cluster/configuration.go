@@ -16,13 +16,6 @@
 
 package cluster
 
-import (
-	"database/sql"
-	"log"
-
-	"github.com/minio/m3/cluster/db"
-)
-
 type Configuration struct {
 	Key       string
 	Value     interface{}
@@ -45,69 +38,4 @@ func (c *Configuration) ValBool() bool {
 		}
 	}
 	return false
-}
-
-func SetConfig(ctx *Context, key, val, valType string) error {
-	return SetConfigWithLock(ctx, key, val, valType, false)
-}
-
-func SetConfigWithLock(ctx *Context, key, val, valType string, locked bool) error {
-	// insert the new configuration
-	query :=
-		`INSERT INTO
-				configurations ("key", "value", "type", "locked", "sys_created_by")
-			  VALUES
-				($1, $2, $3, $4, $5)`
-	// If we were provided context, query inside a transaction
-	if ctx != nil {
-		tx, err := ctx.MainTx()
-		if err != nil {
-			return err
-		}
-		if _, err = tx.Exec(query, key, val, valType, locked, ctx.WhoAmI); err != nil {
-			return err
-		}
-	} else {
-		// no context? straight to db
-		if _, err := db.GetInstance().Db.Exec(query, key, val, valType, locked, ""); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func GetConfig(ctx *Context, key string, fallback interface{}) (*Configuration, error) {
-	query :=
-		`SELECT 
-				c.key, c.value, c.type, c.locked
-			FROM 
-				configurations c
-			WHERE c.key=$1`
-	// non-transactional query
-	var row *sql.Row
-	// did we got a context? query inside of it
-	if ctx != nil {
-		tx, err := ctx.MainTx()
-		if err != nil {
-			return nil, err
-		}
-		row = tx.QueryRow(query, key)
-	} else {
-		// no context? straight to db
-		row = db.GetInstance().Db.QueryRow(query, key)
-	}
-	config := Configuration{}
-	// Save the resulted query on the User struct
-	err := row.Scan(&config.Key, &config.Value, &config.ValueType, &config.locked)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Println("missing config")
-			log.Println(err)
-			config.Value = fallback
-			config.ValueType = "string"
-			return &config, err
-		}
-		return nil, err
-	}
-	return &config, nil
 }

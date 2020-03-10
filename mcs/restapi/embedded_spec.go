@@ -45,7 +45,7 @@ func init() {
   ],
   "swagger": "2.0",
   "info": {
-    "title": "MinIO Cloud Server",
+    "title": "MinIO Console Server",
     "version": "0.1.0"
   },
   "paths": {
@@ -170,7 +170,7 @@ func init() {
   ],
   "swagger": "2.0",
   "info": {
-    "title": "MinIO Cloud Server",
+    "title": "MinIO Console Server",
     "version": "0.1.0"
   },
   "paths": {

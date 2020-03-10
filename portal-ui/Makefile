@@ -15,5 +15,5 @@ docker:
 
 k8sdev:
 	@docker build -t minio/m3-portal-frontend:dev .
-	@kind load docker-image minio/m3-portal-frontend:dev --name m3cluster
+	@kind load docker-image minio/m3-portal-frontend:dev
 	@echo "Done, now restart your m3-portal-frontend deployment"

@@ -17,14 +17,9 @@
 package main
 
 import (
-	"log"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"sort"
-	"syscall"
-
-	"github.com/minio/m3/cluster/db"
 
 	"github.com/minio/cli"
 	"github.com/minio/minio/pkg/console"
@@ -53,54 +48,11 @@ VERSION:
 `
 
 var appCmds = []cli.Command{
-	serviceCmd,
-	clusterCmd,
-	tenantCmd,
-	setupCmd,
-	adminCmd,
-	signupCmd,
-	loginCmd,
-	setPasswordCmd,
+	controllerCmd,
 	devCmd,
-	portalCmd,
-	emailTemplateCmd,
-	schedulerCmd,
-	runTaskCmd,
 }
 
 func main() {
-	// catch sig kill
-	var gracefulStop = make(chan os.Signal)
-	signal.Notify(gracefulStop, syscall.SIGTERM)
-	signal.Notify(gracefulStop, syscall.SIGINT)
-	go func() {
-		sig := <-gracefulStop
-		log.Printf("caught sig: %+v", sig)
-		log.Println("Closing all connections")
-		if err := db.GetInstance().Close(); err != nil {
-			log.Println("Error closing connections:", err)
-		}
-		// exit code OK
-		os.Exit(0)
-	}()
-
-	// if the m3 fails close all connections
-	defer func() {
-		if err := recover(); err != nil { //catch
-			log.Println("Closing all connections after a panic")
-			if err := db.GetInstance().Close(); err != nil {
-				log.Println("Error closing connections:", err)
-			}
-			// exit code NOT OK
-			os.Exit(1)
-		} else {
-			// Natural kind of exit, close connections
-			if err := db.GetInstance().Close(); err != nil {
-				log.Println("Error closing connections:", err)
-			}
-		}
-	}()
-
 	args := os.Args
 	// Set the m3 app name.
 	appName := filepath.Base(args[0])

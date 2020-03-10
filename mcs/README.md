@@ -1,4 +1,4 @@
-# MCS Minio Cloud Service
+# MCS Minio Console Service
 
 This is a REST portal server created using [go-swagger](https://github.com/go-swagger/go-swagger)
 
