@@ -3,24 +3,19 @@
 
 # setup environment variables based on flags to see if we should build the docker containers again
 M3_DOCKER="true"
-NGINX_DOCKER="true"
 VAULT_DOCKER="true"
 PORTAL_DOCKER="true"
 
 # evaluate flags
 # `-m` for mkube
-# `-n` for m3-nginx
 # `-v` for m3-vault
 # `-p` for portal-ui
 
 
-while getopts ":m:n:v:p:" opt; do
+while getopts ":m:v:p:" opt; do
   case $opt in
     m)
 	  M3_DOCKER="$OPTARG"
-      ;;
-    n)
-	  NGINX_DOCKER="$OPTARG"
       ;;
     v)
 	  VAULT_DOCKER="$OPTARG"
@@ -52,9 +47,7 @@ kubectl apply -f deployments/metrics-dev.yaml
 #kubectl create clusterrolebinding dashboard-admin -n default --clusterrole=cluster-admin --serviceaccount=default:dashboard
 # pre-load MinIO, postgres to speed up setup
 docker pull minio/minio:RELEASE.2020-02-07T23-28-16Z
-docker pull postgres:12
 kind load docker-image minio/minio:RELEASE.2020-02-07T23-28-16Z
-kind load docker-image postgres:12
 
 # Whether or not to build the portal container and load it to kind or just load it
 if [[ $PORTAL_DOCKER == "true" ]]; then
@@ -62,14 +55,6 @@ if [[ $PORTAL_DOCKER == "true" ]]; then
   make --directory="../portal-ui" k8sdev
 else
 	kind load docker-image minio/m3-portal-frontend:dev
-fi
-
-# Whether or not to build the m3-nginx container and load it to kind or just load it
-if [[ $NGINX_DOCKER == "true" ]]; then
-	# Build nginx
-  make --directory="../nginx" k8sdev
-else
-	kind load docker-image minio/m3-nginx:edge
 fi
 
 
@@ -82,8 +67,6 @@ fi
 #fi
 
 # Setup development postgres
-kubectl apply -f deployments/postgres-dev.yaml
-kubectl apply -f deployments/m3-portal-frontend-deployment.yaml
 #kubectl apply -f deployments/m3-vault-deployment.yaml
 #kubectl apply -f deployments/portal-proxy-deployment.yaml
 
