@@ -39,6 +39,24 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - UserAPI
+    post:
+      summary: Make a bucket
+      operationId: MakeBucket
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/makeBucketRequest'
+      responses:
+        200:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - UserAPI
 definitions:
   bucketAccess:
     type: string
@@ -74,6 +92,15 @@ definitions:
         type: integer
         format: int64
         title: number of buckets accessible to tenant user
+  makeBucketRequest:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+      access:
+        $ref: "#/definitions/bucketAccess"
   error:
     type: object
     required: 
