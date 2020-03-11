@@ -32,5 +32,6 @@ jobs:
           GOOS: linux
         run: |
           go mod vendor
-          go test -v -d -race ./...
+          go get -d k8s.io/code-generator
+          go test -d -v -race ./...
           make m3
