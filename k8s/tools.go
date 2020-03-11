@@ -17,4 +17,4 @@
 // This package imports things required by build scripts, to force `go mod` to see them as dependencies
 package k8s
 
-import _ "k8s.io/code-generator"
+//import _ "k8s.io/code-generator"
