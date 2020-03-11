@@ -33,8 +33,6 @@ rules:
   - ""
   resources:
   - configmaps
-  resourceNames:
-  - nginx-configuration
   verbs:
   - get
   - list
