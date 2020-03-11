@@ -40,7 +40,7 @@ paths:
       tags:
         - UserAPI
     post:
-      summary: Make a bucket
+      summary: Make bucket
       operationId: MakeBucket
       parameters:
         - name: body
@@ -49,7 +49,25 @@ paths:
           schema:
             $ref: '#/definitions/makeBucketRequest'
       responses:
-        200:
+        201:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - UserAPI
+  /api/v1/buckets/{name}:
+    delete:
+      summary: Delete Bucket
+      operationId: DeleteBucket
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+      responses:
+        204:
           description: A successful response.
         default:
           description: Generic error response.
