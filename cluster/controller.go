@@ -416,6 +416,10 @@ func (c *Controller) syncHandler(key string) error {
 		}
 
 		statefulset, err = c.kubeclientset.AppsV1().StatefulSets(zone.Namespace).Create(newStatefulset(zone, command, searchDomains))
+		if err != nil {
+			log.Println(err)
+			return err
+		}
 	}
 
 	// If an error occurs during Get/Create, we'll requeue the item so we can

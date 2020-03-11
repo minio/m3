@@ -16,8 +16,6 @@
 
 package cluster
 
-type key int
-
 const (
 	kesImage                       = "KES_IMAGE"
 	kesPort                        = "KES_PORT"

@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// Define your schema name and the version
+// SchemeGroupVersion is the group of our crds and the version
 var SchemeGroupVersion = schema.GroupVersion{
 	Group:   "mkube.min.io",
 	Version: "v1",
