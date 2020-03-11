@@ -31,6 +31,5 @@ jobs:
           GO111MODULE: on
           GOOS: linux
         run: |
-          go mod vendor
-          go test -v -race ./...
+          go test -v -d -race ./...
           make m3

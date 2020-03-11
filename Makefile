@@ -21,7 +21,7 @@ swagger-def:
 .PHONY: m3
 m3:
 	@echo "Building m3 binary to './m3'"
-	@(cd cmd/m3; CGO_ENABLED=0 GOOS=linux go build --ldflags "-s -w" -o ../../m3)
+	@(cd cmd/m3; CGO_ENABLED=0 go build --ldflags "-s -w" -o ../../m3)
 
 clean:
 	@echo "Cleaning up all the generated files"
