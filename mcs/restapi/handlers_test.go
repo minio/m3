@@ -24,7 +24,7 @@ import (
 
 	"time"
 
-	"github.com/cesnietor/mcs/models"
+	"github.com/minio/m3/mcs/models"
 	"github.com/minio/minio-go/v6"
 	"github.com/stretchr/testify/assert"
 )

@@ -35,7 +35,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
-	"github.com/cesnietor/mcs/restapi/operations/user_api"
+	"github.com/minio/m3/mcs/restapi/operations/user_api"
 )
 
 // NewMcsAPI creates a new Mcs instance

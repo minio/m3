@@ -29,7 +29,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 
-	"github.com/cesnietor/mcs/models"
+	"github.com/minio/m3/mcs/models"
 )
 
 // NewMakeBucketParams creates a new MakeBucketParams object

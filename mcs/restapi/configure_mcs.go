@@ -31,10 +31,10 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
+	"github.com/minio/m3/mcs/models"
+	"github.com/minio/m3/mcs/restapi/operations"
+	"github.com/minio/m3/mcs/restapi/operations/user_api"
 
-	"github.com/cesnietor/mcs/models"
-	"github.com/cesnietor/mcs/restapi/operations"
-	"github.com/cesnietor/mcs/restapi/operations/user_api"
 	"github.com/minio/minio-go/v6"
 	"github.com/minio/minio-go/v6/pkg/policy"
 	minioIAMPolicy "github.com/minio/minio/pkg/iam/policy"

@@ -26,7 +26,7 @@ import (
 
 	"github.com/go-openapi/runtime"
 
-	"github.com/cesnietor/mcs/models"
+	"github.com/minio/m3/mcs/models"
 )
 
 // ListBucketsOKCode is the HTTP code returned for type ListBucketsOK
