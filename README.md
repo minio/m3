@@ -19,7 +19,7 @@ kind: "Zone"
 metadata:
   name: "zone-1"
 spec:
-  clusterL my-cluster
+  cluster: my-cluster
   image: minio/minio:RELEASE.2020-02-27T00-23-05Z
   replicas: 4
   nodeTemplate:
