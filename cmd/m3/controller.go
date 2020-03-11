@@ -26,9 +26,9 @@ import (
 
 // starts the controller
 var controllerCmd = cli.Command{
-	Name:    "service",
-	Aliases: []string{"s"},
-	Usage:   "starts m3 services, public and private APIs.",
+	Name:    "controller",
+	Aliases: []string{"ctl"},
+	Usage:   "starts m3 controller",
 	Action:  startController,
 }
 

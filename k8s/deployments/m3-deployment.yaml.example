@@ -54,7 +54,7 @@ spec:
           imagePullPolicy: "IfNotPresent"
           args:
             - /m3
-            - service
+            - controller
           ports:
             - containerPort: 50051
               name: public-grpc
