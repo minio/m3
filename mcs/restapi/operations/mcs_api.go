@@ -59,6 +59,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		UserAPIListBucketsHandler: user_api.ListBucketsHandlerFunc(func(params user_api.ListBucketsParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.ListBuckets has not yet been implemented")
 		}),
+		UserAPIMakeBucketHandler: user_api.MakeBucketHandlerFunc(func(params user_api.MakeBucketParams) middleware.Responder {
+			return middleware.NotImplemented("operation user_api.MakeBucket has not yet been implemented")
+		}),
 	}
 }
 
@@ -92,6 +95,8 @@ type McsAPI struct {
 
 	// UserAPIListBucketsHandler sets the operation handler for the list buckets operation
 	UserAPIListBucketsHandler user_api.ListBucketsHandler
+	// UserAPIMakeBucketHandler sets the operation handler for the make bucket operation
+	UserAPIMakeBucketHandler user_api.MakeBucketHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -160,6 +165,10 @@ func (o *McsAPI) Validate() error {
 
 	if o.UserAPIListBucketsHandler == nil {
 		unregistered = append(unregistered, "UserAPI.ListBucketsHandler")
+	}
+
+	if o.UserAPIMakeBucketHandler == nil {
+		unregistered = append(unregistered, "UserAPI.MakeBucketHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -258,6 +267,11 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/api/v1/buckets"] = user_api.NewListBuckets(o.context, o.UserAPIListBucketsHandler)
+
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/api/v1/buckets"] = user_api.NewMakeBucket(o.context, o.UserAPIMakeBucketHandler)
 
 }
 

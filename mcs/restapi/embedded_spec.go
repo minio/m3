@@ -89,123 +89,26 @@ func init() {
             }
           }
         }
-      }
-    }
-  },
-  "definitions": {
-    "bucket": {
-      "type": "object",
-      "required": [
-        "name"
-      ],
-      "properties": {
-        "access": {
-          "$ref": "#/definitions/bucketAccess"
-        },
-        "creation_date": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string",
-          "minLength": 3
-        },
-        "size": {
-          "type": "integer",
-          "format": "int64"
-        }
-      }
-    },
-    "bucketAccess": {
-      "type": "string",
-      "default": "PRIVATE",
-      "enum": [
-        "PRIVATE",
-        "PUBLIC",
-        "CUSTOM"
-      ]
-    },
-    "error": {
-      "type": "object",
-      "required": [
-        "message"
-      ],
-      "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "listBucketsResponse": {
-      "type": "object",
-      "properties": {
-        "buckets": {
-          "type": "array",
-          "title": "list of resulting buckets",
-          "items": {
-            "$ref": "#/definitions/bucket"
-          }
-        },
-        "total_buckets": {
-          "type": "integer",
-          "format": "int64",
-          "title": "number of buckets accessible to tenant user"
-        }
-      }
-    }
-  }
-}`))
-	FlatSwaggerJSON = json.RawMessage([]byte(`{
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
-  "schemes": [
-    "http"
-  ],
-  "swagger": "2.0",
-  "info": {
-    "title": "MinIO Cloud Server",
-    "version": "0.1.0"
-  },
-  "paths": {
-    "/api/v1/buckets": {
-      "get": {
+      },
+      "post": {
         "tags": [
           "UserAPI"
         ],
-        "summary": "List Buckets",
-        "operationId": "ListBuckets",
+        "summary": "Make a bucket",
+        "operationId": "MakeBucket",
         "parameters": [
           {
-            "type": "string",
-            "name": "sort_by",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int32",
-            "name": "offset",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int32",
-            "name": "limit",
-            "in": "query"
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/makeBucketRequest"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/listBucketsResponse"
-            }
+            "description": "A successful response."
           },
           "default": {
             "description": "Generic error response.",
@@ -278,6 +181,187 @@ func init() {
           "type": "integer",
           "format": "int64",
           "title": "number of buckets accessible to tenant user"
+        }
+      }
+    },
+    "makeBucketRequest": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "access": {
+          "$ref": "#/definitions/bucketAccess"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}`))
+	FlatSwaggerJSON = json.RawMessage([]byte(`{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "title": "MinIO Cloud Server",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/buckets": {
+      "get": {
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "List Buckets",
+        "operationId": "ListBuckets",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "sort_by",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/listBucketsResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "Make a bucket",
+        "operationId": "MakeBucket",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/makeBucketRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "bucket": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "access": {
+          "$ref": "#/definitions/bucketAccess"
+        },
+        "creation_date": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 3
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "bucketAccess": {
+      "type": "string",
+      "default": "PRIVATE",
+      "enum": [
+        "PRIVATE",
+        "PUBLIC",
+        "CUSTOM"
+      ]
+    },
+    "error": {
+      "type": "object",
+      "required": [
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "listBucketsResponse": {
+      "type": "object",
+      "properties": {
+        "buckets": {
+          "type": "array",
+          "title": "list of resulting buckets",
+          "items": {
+            "$ref": "#/definitions/bucket"
+          }
+        },
+        "total_buckets": {
+          "type": "integer",
+          "format": "int64",
+          "title": "number of buckets accessible to tenant user"
+        }
+      }
+    },
+    "makeBucketRequest": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "access": {
+          "$ref": "#/definitions/bucketAccess"
+        },
+        "name": {
+          "type": "string"
         }
       }
     }
