@@ -29,6 +29,7 @@ jobs:
       - name: Build on ${{ matrix.os }}
         env:
           GO111MODULE: on
+          GOOS: linux
         run: |
           go mod vendor
           go test -v -race ./...
