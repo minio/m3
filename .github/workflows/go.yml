@@ -30,5 +30,6 @@ jobs:
         env:
           GO111MODULE: on
         run: |
+          go mod vendor
           go test -v -race ./...
           make m3
