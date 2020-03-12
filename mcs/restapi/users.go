@@ -39,7 +39,7 @@ type adminClient struct {
 	client *madmin.AdminClient
 }
 
-// implements minio.ListBucketsWithContext(ctx)
+// implements madmin.ListUsers(ctx)
 func (ac adminClient) listUsers() (map[string]madmin.UserInfo, error) {
 	return ac.client.ListUsers()
 }
@@ -56,19 +56,19 @@ func listUsers(client MinioAdmin) ([]*models.User, error) {
 
 	var users []*models.User
 	for accessKey, user := range userMap {
-		bucketElem := &models.User{
+		userElem := &models.User{
 			AccessKey: accessKey,
 			Status:    string(user.Status),
 			Policy:    user.PolicyName,
 			MemberOf:  user.MemberOf,
 		}
-		users = append(users, bucketElem)
+		users = append(users, userElem)
 	}
 
 	return users, nil
 }
 
-// getListBucketsResponse performs listBuckets() and serializes it to the handler's output
+// getListUsersResponse performs listUsers() and serializes it to the handler's output
 func getListUsersResponse() (*models.ListUsersResponse, error) {
 	mAdmin, err := newMadminClient()
 	if err != nil {
@@ -81,7 +81,7 @@ func getListUsersResponse() (*models.ListUsersResponse, error) {
 
 	users, err := listUsers(adminClient)
 	if err != nil {
-		log.Println("error listing buckets:", err)
+		log.Println("error listing users:", err)
 		return nil, err
 	}
 	// serialize output

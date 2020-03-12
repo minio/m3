@@ -76,6 +76,8 @@ func TestListUsers(t *testing.T) {
 	for _, b := range userMap {
 		assert.Contains(mockUserMap, b.AccessKey)
 		assert.Equal(string(mockUserMap[b.AccessKey].Status), b.Status)
+		assert.Equal(mockUserMap[b.AccessKey].PolicyName, b.Policy)
+		assert.ElementsMatch(mockUserMap[b.AccessKey].MemberOf, []string{"group1", "group2"})
 	}
 
 	// Test-2 : listUsers() Return and see that the error is handled correctly and returned
