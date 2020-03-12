@@ -12,8 +12,8 @@ require (
 	github.com/hashicorp/vault/api v1.0.4
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/minio/cli v1.22.0
-	github.com/minio/minio v0.0.0-20200212044500-7d6766adc682
-	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9 // indirect
+	github.com/minio/m3/mcs v0.0.0-20200312010634-f3df8f4fcc54 // indirect
+	github.com/minio/minio v0.0.0-20200311155636-0af62d35a0c8
 	golang.org/x/sys v0.0.0-20191029155521-f43be2a4598c // indirect
 	google.golang.org/genproto v0.0.0-20191115221424-83cc0476cb11 // indirect
 	google.golang.org/grpc v1.24.0 // indirect

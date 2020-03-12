@@ -27,7 +27,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/minio/mcs/restapi/operations/admin_api"
+	"github.com/minio/m3/mcs/restapi/operations/admin_api"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
