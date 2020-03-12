@@ -3,11 +3,11 @@ info:
   title: MinIO Console Server
   version: 0.1.0
 consumes:
-- application/json
+  - application/json
 produces:
-- application/json
+  - application/json
 schemes:
-- http
+  - http
 paths:
   /api/v1/buckets:
     get:
@@ -75,6 +75,32 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - UserAPI
+  /api/v1/users:
+    get:
+      summary: List Users
+      operationId: ListUsers
+      parameters:
+        - name: offset
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: limit
+          in: query
+          required: false
+          type: integer
+          format: int32
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/listUsersResponse"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
 definitions:
   bucketAccess:
     type: string
@@ -121,7 +147,7 @@ definitions:
         $ref: "#/definitions/bucketAccess"
   error:
     type: object
-    required: 
+    required:
       - message
     properties:
       code:
@@ -129,3 +155,24 @@ definitions:
         format: int64
       message:
         type: string
+  user:
+    type: object
+    properties:
+      accessKey:
+        type: string
+      policy:
+        type: string
+      memberOf:
+        type: array
+        items:
+          type: string
+      status:
+        type: string
+  listUsersResponse:
+    type: object
+    properties:
+      users:
+        type: array
+        items:
+          $ref: "#/definitions/user"
+        title: list of resulting users
