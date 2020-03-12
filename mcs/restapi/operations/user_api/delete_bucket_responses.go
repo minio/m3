@@ -29,35 +29,35 @@ import (
 	"github.com/minio/m3/mcs/models"
 )
 
-// MakeBucketCreatedCode is the HTTP code returned for type MakeBucketCreated
-const MakeBucketCreatedCode int = 201
+// DeleteBucketNoContentCode is the HTTP code returned for type DeleteBucketNoContent
+const DeleteBucketNoContentCode int = 204
 
-/*MakeBucketCreated A successful response.
+/*DeleteBucketNoContent A successful response.
 
-swagger:response makeBucketCreated
+swagger:response deleteBucketNoContent
 */
-type MakeBucketCreated struct {
+type DeleteBucketNoContent struct {
 }
 
-// NewMakeBucketCreated creates MakeBucketCreated with default headers values
-func NewMakeBucketCreated() *MakeBucketCreated {
+// NewDeleteBucketNoContent creates DeleteBucketNoContent with default headers values
+func NewDeleteBucketNoContent() *DeleteBucketNoContent {
 
-	return &MakeBucketCreated{}
+	return &DeleteBucketNoContent{}
 }
 
 // WriteResponse to the client
-func (o *MakeBucketCreated) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *DeleteBucketNoContent) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
 
-	rw.WriteHeader(201)
+	rw.WriteHeader(204)
 }
 
-/*MakeBucketDefault Generic error response.
+/*DeleteBucketDefault Generic error response.
 
-swagger:response makeBucketDefault
+swagger:response deleteBucketDefault
 */
-type MakeBucketDefault struct {
+type DeleteBucketDefault struct {
 	_statusCode int
 
 	/*
@@ -66,41 +66,41 @@ type MakeBucketDefault struct {
 	Payload *models.Error `json:"body,omitempty"`
 }
 
-// NewMakeBucketDefault creates MakeBucketDefault with default headers values
-func NewMakeBucketDefault(code int) *MakeBucketDefault {
+// NewDeleteBucketDefault creates DeleteBucketDefault with default headers values
+func NewDeleteBucketDefault(code int) *DeleteBucketDefault {
 	if code <= 0 {
 		code = 500
 	}
 
-	return &MakeBucketDefault{
+	return &DeleteBucketDefault{
 		_statusCode: code,
 	}
 }
 
-// WithStatusCode adds the status to the make bucket default response
-func (o *MakeBucketDefault) WithStatusCode(code int) *MakeBucketDefault {
+// WithStatusCode adds the status to the delete bucket default response
+func (o *DeleteBucketDefault) WithStatusCode(code int) *DeleteBucketDefault {
 	o._statusCode = code
 	return o
 }
 
-// SetStatusCode sets the status to the make bucket default response
-func (o *MakeBucketDefault) SetStatusCode(code int) {
+// SetStatusCode sets the status to the delete bucket default response
+func (o *DeleteBucketDefault) SetStatusCode(code int) {
 	o._statusCode = code
 }
 
-// WithPayload adds the payload to the make bucket default response
-func (o *MakeBucketDefault) WithPayload(payload *models.Error) *MakeBucketDefault {
+// WithPayload adds the payload to the delete bucket default response
+func (o *DeleteBucketDefault) WithPayload(payload *models.Error) *DeleteBucketDefault {
 	o.Payload = payload
 	return o
 }
 
-// SetPayload sets the payload to the make bucket default response
-func (o *MakeBucketDefault) SetPayload(payload *models.Error) {
+// SetPayload sets the payload to the delete bucket default response
+func (o *DeleteBucketDefault) SetPayload(payload *models.Error) {
 	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *MakeBucketDefault) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *DeleteBucketDefault) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(o._statusCode)
 	if o.Payload != nil {

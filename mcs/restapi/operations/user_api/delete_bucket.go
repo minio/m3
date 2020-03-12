@@ -27,40 +27,40 @@ import (
 	middleware "github.com/go-openapi/runtime/middleware"
 )
 
-// MakeBucketHandlerFunc turns a function with the right signature into a make bucket handler
-type MakeBucketHandlerFunc func(MakeBucketParams) middleware.Responder
+// DeleteBucketHandlerFunc turns a function with the right signature into a delete bucket handler
+type DeleteBucketHandlerFunc func(DeleteBucketParams) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn MakeBucketHandlerFunc) Handle(params MakeBucketParams) middleware.Responder {
+func (fn DeleteBucketHandlerFunc) Handle(params DeleteBucketParams) middleware.Responder {
 	return fn(params)
 }
 
-// MakeBucketHandler interface for that can handle valid make bucket params
-type MakeBucketHandler interface {
-	Handle(MakeBucketParams) middleware.Responder
+// DeleteBucketHandler interface for that can handle valid delete bucket params
+type DeleteBucketHandler interface {
+	Handle(DeleteBucketParams) middleware.Responder
 }
 
-// NewMakeBucket creates a new http.Handler for the make bucket operation
-func NewMakeBucket(ctx *middleware.Context, handler MakeBucketHandler) *MakeBucket {
-	return &MakeBucket{Context: ctx, Handler: handler}
+// NewDeleteBucket creates a new http.Handler for the delete bucket operation
+func NewDeleteBucket(ctx *middleware.Context, handler DeleteBucketHandler) *DeleteBucket {
+	return &DeleteBucket{Context: ctx, Handler: handler}
 }
 
-/*MakeBucket swagger:route POST /api/v1/buckets UserAPI makeBucket
+/*DeleteBucket swagger:route DELETE /api/v1/buckets/{name} UserAPI deleteBucket
 
-Make bucket
+Delete Bucket
 
 */
-type MakeBucket struct {
+type DeleteBucket struct {
 	Context *middleware.Context
-	Handler MakeBucketHandler
+	Handler DeleteBucketHandler
 }
 
-func (o *MakeBucket) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (o *DeleteBucket) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
 		r = rCtx
 	}
-	var Params = NewMakeBucketParams()
+	var Params = NewDeleteBucketParams()
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)

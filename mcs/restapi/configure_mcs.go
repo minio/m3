@@ -31,10 +31,10 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
+	"github.com/minio/m3/mcs/models"
+	"github.com/minio/m3/mcs/restapi/operations"
+	"github.com/minio/m3/mcs/restapi/operations/user_api"
 
-	"github.com/cesnietor/mcs/models"
-	"github.com/cesnietor/mcs/restapi/operations"
-	"github.com/cesnietor/mcs/restapi/operations/user_api"
 	"github.com/minio/minio-go/v6"
 	"github.com/minio/minio-go/v6/pkg/policy"
 	minioIAMPolicy "github.com/minio/minio/pkg/iam/policy"
@@ -72,7 +72,15 @@ func configureAPI(api *operations.McsAPI) http.Handler {
 		if err := getMakeBucketResponse(params.Body); err != nil {
 			return user_api.NewMakeBucketDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
-		return user_api.NewMakeBucketOK()
+		return user_api.NewMakeBucketCreated()
+	})
+
+	api.UserAPIDeleteBucketHandler = user_api.DeleteBucketHandlerFunc(func(params user_api.DeleteBucketParams) middleware.Responder {
+		if err := getDeleteBucketResponse(params); err != nil {
+			return user_api.NewMakeBucketDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+
+		}
+		return user_api.NewDeleteBucketNoContent()
 	})
 
 	api.PreServerShutdown = func() {}
@@ -113,6 +121,7 @@ type MinioClient interface {
 	listBucketsWithContext(ctx context.Context) ([]minio.BucketInfo, error)
 	makeBucketWithContext(ctx context.Context, bucketName, location string) error
 	setBucketPolicyWithContext(ctx context.Context, bucketName, policy string) error
+	removeBucket(bucketName string) error
 }
 
 // Interface implementation
@@ -136,6 +145,11 @@ func (mc minioClient) makeBucketWithContext(ctx context.Context, bucketName, loc
 // implements minio.SetBucketPolicyWithContext(ctx, bucketName, policy)
 func (mc minioClient) setBucketPolicyWithContext(ctx context.Context, bucketName, policy string) error {
 	return mc.client.SetBucketPolicyWithContext(ctx, bucketName, policy)
+}
+
+// implements minio.RemoveBucket(bucketName)
+func (mc minioClient) removeBucket(bucketName string) error {
+	return mc.client.RemoveBucket(bucketName)
 }
 
 // listBuckets fetches a list of all buckets from MinIO Servers
@@ -248,6 +262,34 @@ func getMakeBucketResponse(br *models.MakeBucketRequest) error {
 		return err
 	}
 	return nil
+}
+
+// removeBucket deletes a bucket
+func removeBucket(client MinioClient, bucketName string) error {
+	if err := client.removeBucket(bucketName); err != nil {
+		return err
+	}
+	return nil
+}
+
+// getDeleteBucketResponse performs removeBucket() to delete a bucket
+func getDeleteBucketResponse(params user_api.DeleteBucketParams) error {
+	if params.Name == "" {
+		log.Println("error bucket name not in request")
+		return errors.New(500, "error bucket name not in request")
+	}
+	bucketName := params.Name
+
+	mClient, err := newMinioClient()
+	if err != nil {
+		log.Println("error creating MinIO Client:", err)
+		return err
+	}
+	// create a minioClient interface implementation
+	// defining the client to be used
+	minioClient := minioClient{client: mClient}
+
+	return removeBucket(minioClient, bucketName)
 }
 
 // newMinioClient creates a new MinIO client to talk to the server

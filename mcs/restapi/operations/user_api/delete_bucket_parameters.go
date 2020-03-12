@@ -22,72 +22,68 @@ package user_api
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"io"
 	"net/http"
 
 	"github.com/go-openapi/errors"
-	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 
-	"github.com/minio/m3/mcs/models"
+	strfmt "github.com/go-openapi/strfmt"
 )
 
-// NewMakeBucketParams creates a new MakeBucketParams object
+// NewDeleteBucketParams creates a new DeleteBucketParams object
 // no default values defined in spec.
-func NewMakeBucketParams() MakeBucketParams {
+func NewDeleteBucketParams() DeleteBucketParams {
 
-	return MakeBucketParams{}
+	return DeleteBucketParams{}
 }
 
-// MakeBucketParams contains all the bound params for the make bucket operation
+// DeleteBucketParams contains all the bound params for the delete bucket operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters MakeBucket
-type MakeBucketParams struct {
+// swagger:parameters DeleteBucket
+type DeleteBucketParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
 	/*
 	  Required: true
-	  In: body
+	  In: path
 	*/
-	Body *models.MakeBucketRequest
+	Name string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewMakeBucketParams() beforehand.
-func (o *MakeBucketParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewDeleteBucketParams() beforehand.
+func (o *DeleteBucketParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
 
-	if runtime.HasBody(r) {
-		defer r.Body.Close()
-		var body models.MakeBucketRequest
-		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if err == io.EOF {
-				res = append(res, errors.Required("body", "body"))
-			} else {
-				res = append(res, errors.NewParseError("body", "body", "", err))
-			}
-		} else {
-			// validate body object
-			if err := body.Validate(route.Formats); err != nil {
-				res = append(res, err)
-			}
-
-			if len(res) == 0 {
-				o.Body = &body
-			}
-		}
-	} else {
-		res = append(res, errors.Required("body", "body"))
+	rName, rhkName, _ := route.Params.GetOK("name")
+	if err := o.bindName(rName, rhkName, route.Formats); err != nil {
+		res = append(res, err)
 	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindName binds and validates parameter Name from path.
+func (o *DeleteBucketParams) bindName(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: true
+	// Parameter is provided by construction from the route
+
+	o.Name = raw
+
 	return nil
 }

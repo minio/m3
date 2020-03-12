@@ -35,7 +35,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
-	"github.com/cesnietor/mcs/restapi/operations/user_api"
+	"github.com/minio/m3/mcs/restapi/operations/user_api"
 )
 
 // NewMcsAPI creates a new Mcs instance
@@ -56,6 +56,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		BearerAuthenticator: security.BearerAuth,
 		JSONConsumer:        runtime.JSONConsumer(),
 		JSONProducer:        runtime.JSONProducer(),
+		UserAPIDeleteBucketHandler: user_api.DeleteBucketHandlerFunc(func(params user_api.DeleteBucketParams) middleware.Responder {
+			return middleware.NotImplemented("operation user_api.DeleteBucket has not yet been implemented")
+		}),
 		UserAPIListBucketsHandler: user_api.ListBucketsHandlerFunc(func(params user_api.ListBucketsParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.ListBuckets has not yet been implemented")
 		}),
@@ -93,6 +96,8 @@ type McsAPI struct {
 	//   - application/json
 	JSONProducer runtime.Producer
 
+	// UserAPIDeleteBucketHandler sets the operation handler for the delete bucket operation
+	UserAPIDeleteBucketHandler user_api.DeleteBucketHandler
 	// UserAPIListBucketsHandler sets the operation handler for the list buckets operation
 	UserAPIListBucketsHandler user_api.ListBucketsHandler
 	// UserAPIMakeBucketHandler sets the operation handler for the make bucket operation
@@ -161,6 +166,10 @@ func (o *McsAPI) Validate() error {
 
 	if o.JSONProducer == nil {
 		unregistered = append(unregistered, "JSONProducer")
+	}
+
+	if o.UserAPIDeleteBucketHandler == nil {
+		unregistered = append(unregistered, "UserAPI.DeleteBucketHandler")
 	}
 
 	if o.UserAPIListBucketsHandler == nil {
@@ -262,6 +271,11 @@ func (o *McsAPI) initHandlerCache() {
 	if o.handlers == nil {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
+
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/api/v1/buckets/{name}"] = user_api.NewDeleteBucket(o.context, o.UserAPIDeleteBucketHandler)
 
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)

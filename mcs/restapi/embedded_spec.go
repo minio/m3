@@ -94,7 +94,7 @@ func init() {
         "tags": [
           "UserAPI"
         ],
-        "summary": "Make a bucket",
+        "summary": "Make bucket",
         "operationId": "MakeBucket",
         "parameters": [
           {
@@ -107,7 +107,35 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
+          "201": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/buckets/{name}": {
+      "delete": {
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "Delete Bucket",
+        "operationId": "DeleteBucket",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
             "description": "A successful response."
           },
           "default": {
@@ -261,7 +289,7 @@ func init() {
         "tags": [
           "UserAPI"
         ],
-        "summary": "Make a bucket",
+        "summary": "Make bucket",
         "operationId": "MakeBucket",
         "parameters": [
           {
@@ -274,7 +302,35 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
+          "201": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/buckets/{name}": {
+      "delete": {
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "Delete Bucket",
+        "operationId": "DeleteBucket",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
             "description": "A successful response."
           },
           "default": {
