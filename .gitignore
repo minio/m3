@@ -13,6 +13,7 @@
 *.out
 
 .idea/
+vendor/
 
 # Ignore executables
 target/

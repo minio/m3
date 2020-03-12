@@ -1,40 +1,28 @@
 module github.com/minio/m3
 
-go 1.13
+go 1.14
 
 require (
 	github.com/Microsoft/go-winio v0.4.12 // indirect
-	github.com/coreos/etcd v3.3.12+incompatible
-	github.com/coreos/go-oidc v2.0.0+incompatible
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fatih/color v1.7.0
+	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang-migrate/migrate/v4 v4.7.0
-	github.com/golang/protobuf v1.3.2
+	github.com/golang/groupcache v0.0.0-20191002201903-404acd9df4cc // indirect
 	github.com/googleapis/gnostic v0.3.1 // indirect
-	github.com/gosimple/slug v1.9.0
-	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
-	github.com/grpc-ecosystem/grpc-gateway v1.12.1
 	github.com/hashicorp/vault/api v1.0.4
-	github.com/lib/pq v1.2.0
+	github.com/lib/pq v1.2.0 // indirect
 	github.com/minio/cli v1.22.0
-	github.com/minio/mc v0.0.0-20200119010100-6a2da1a6ef6a
 	github.com/minio/minio v0.0.0-20200212044500-7d6766adc682
-	github.com/minio/minio-go/v6 v6.0.45
-	github.com/olekukonko/tablewriter v0.0.4
-	github.com/pelletier/go-toml v1.6.0
-	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
-	github.com/rs/cors v1.6.0
-	github.com/satori/go.uuid v1.2.0
-	github.com/schollz/progressbar/v2 v2.15.0
-	golang.org/x/crypto v0.0.0-20191117063200-497ca9f6d64f
-	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9 // indirect
 	golang.org/x/sys v0.0.0-20191029155521-f43be2a4598c // indirect
 	google.golang.org/genproto v0.0.0-20191115221424-83cc0476cb11 // indirect
-	google.golang.org/grpc v1.24.0
-	gopkg.in/yaml.v2 v2.2.7 // indirect
-	k8s.io/api v0.16.4
-	k8s.io/apimachinery v0.16.4
-	k8s.io/client-go v0.16.4
-	k8s.io/utils v0.0.0-20190923111123-69764acb6e8e // indirect
+	google.golang.org/grpc v1.24.0 // indirect
+	k8s.io/api v0.17.3
+	k8s.io/apiextensions-apiserver v0.17.3
+	k8s.io/apimachinery v0.17.3
+	k8s.io/client-go v0.17.3
+	k8s.io/klog v1.0.0
+	k8s.io/kube-openapi v0.0.0-20200121204235-bf4fb3bd569c // indirect
+	k8s.io/sample-controller v0.17.3
+	sigs.k8s.io/yaml v1.2.0 // indirect
 )

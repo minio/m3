@@ -1,6 +1,6 @@
 swagger: "2.0"
 info:
-  title: MinIO Cloud Server
+  title: MinIO Console Server
   version: 0.1.0
 consumes:
 - application/json
@@ -33,6 +33,42 @@ paths:
           description: A successful response.
           schema:
             $ref: "#/definitions/listBucketsResponse"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - UserAPI
+    post:
+      summary: Make bucket
+      operationId: MakeBucket
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/makeBucketRequest'
+      responses:
+        201:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - UserAPI
+  /api/v1/buckets/{name}:
+    delete:
+      summary: Delete Bucket
+      operationId: DeleteBucket
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+      responses:
+        204:
+          description: A successful response.
         default:
           description: Generic error response.
           schema:
@@ -74,6 +110,15 @@ definitions:
         type: integer
         format: int64
         title: number of buckets accessible to tenant user
+  makeBucketRequest:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+      access:
+        $ref: "#/definitions/bucketAccess"
   error:
     type: object
     required: 

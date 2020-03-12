@@ -21,6 +21,12 @@
             "schema": {
               "$ref": "#/definitions/m3RegisterAccountResponse"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -47,6 +53,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3ListBucketsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -92,6 +104,12 @@
             "schema": {
               "$ref": "#/definitions/m3Bucket"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -119,6 +137,12 @@
             "schema": {
               "$ref": "#/definitions/m3Bucket"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -143,6 +167,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3Empty"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -177,6 +207,12 @@
             "schema": {
               "$ref": "#/definitions/m3MetricsResponse"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -201,6 +237,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3ListPermissionsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -239,6 +281,12 @@
             "schema": {
               "$ref": "#/definitions/m3Permission"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -266,6 +314,12 @@
             "schema": {
               "$ref": "#/definitions/m3Permission"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -290,6 +344,12 @@
             "schema": {
               "$ref": "#/definitions/m3Empty"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -313,6 +373,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3Permission"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -347,6 +413,12 @@
             "schema": {
               "$ref": "#/definitions/m3MultiAddPermissionToSAsResponse"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -379,6 +451,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3ListServiceAccountsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -424,6 +502,12 @@
             "schema": {
               "$ref": "#/definitions/m3CreateServiceAccountResponse"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -451,6 +535,12 @@
             "schema": {
               "$ref": "#/definitions/m3InfoServiceAccountResponse"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -474,6 +564,12 @@
             "schema": {
               "$ref": "#/definitions/m3Empty"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -496,6 +592,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3InfoServiceAccountResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -530,6 +632,12 @@
             "schema": {
               "$ref": "#/definitions/m3Empty"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -562,6 +670,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3ServiceAccount"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -596,6 +710,12 @@
             "schema": {
               "$ref": "#/definitions/m3ServiceAccount"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -628,6 +748,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3ListUsersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -674,6 +800,12 @@
             "schema": {
               "$ref": "#/definitions/m3User"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -700,6 +832,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3Empty"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -728,6 +866,12 @@
             "schema": {
               "$ref": "#/definitions/m3Empty"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -754,6 +898,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3Empty"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -782,6 +932,12 @@
             "schema": {
               "$ref": "#/definitions/m3LoginResponse"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -808,6 +964,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3Empty"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -836,6 +998,12 @@
             "schema": {
               "$ref": "#/definitions/m3Empty"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -862,6 +1030,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3Empty"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -890,6 +1064,12 @@
             "schema": {
               "$ref": "#/definitions/m3WhoAmIResponse"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "tags": [
@@ -906,6 +1086,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3User"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -929,6 +1115,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3UserActionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -954,6 +1146,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3UserActionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -988,6 +1186,12 @@
             "schema": {
               "$ref": "#/definitions/m3UserActionResponse"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -1021,6 +1225,12 @@
             "schema": {
               "$ref": "#/definitions/m3ValidateEmailInviteResponse"
             }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -1047,6 +1257,12 @@
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/m3VersionResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
             }
           }
         },
@@ -1678,6 +1894,39 @@
         },
         "company": {
           "type": "string"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
         }
       }
     }

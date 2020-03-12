@@ -45,7 +45,7 @@ func init() {
   ],
   "swagger": "2.0",
   "info": {
-    "title": "MinIO Cloud Server",
+    "title": "MinIO Console Server",
     "version": "0.1.0"
   },
   "paths": {
@@ -81,6 +81,62 @@ func init() {
             "schema": {
               "$ref": "#/definitions/listBucketsResponse"
             }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "Make bucket",
+        "operationId": "MakeBucket",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/makeBucketRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/buckets/{name}": {
+      "delete": {
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "Delete Bucket",
+        "operationId": "DeleteBucket",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
           },
           "default": {
             "description": "Generic error response.",
@@ -153,6 +209,20 @@ func init() {
           "type": "integer",
           "format": "int64",
           "title": "number of buckets accessible to tenant user"
+        }
+      }
+    },
+    "makeBucketRequest": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "access": {
+          "$ref": "#/definitions/bucketAccess"
+        },
+        "name": {
+          "type": "string"
         }
       }
     }
@@ -170,7 +240,7 @@ func init() {
   ],
   "swagger": "2.0",
   "info": {
-    "title": "MinIO Cloud Server",
+    "title": "MinIO Console Server",
     "version": "0.1.0"
   },
   "paths": {
@@ -206,6 +276,62 @@ func init() {
             "schema": {
               "$ref": "#/definitions/listBucketsResponse"
             }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "Make bucket",
+        "operationId": "MakeBucket",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/makeBucketRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/buckets/{name}": {
+      "delete": {
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "Delete Bucket",
+        "operationId": "DeleteBucket",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
           },
           "default": {
             "description": "Generic error response.",
@@ -278,6 +404,20 @@ func init() {
           "type": "integer",
           "format": "int64",
           "title": "number of buckets accessible to tenant user"
+        }
+      }
+    },
+    "makeBucketRequest": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "access": {
+          "$ref": "#/definitions/bucketAccess"
+        },
+        "name": {
+          "type": "string"
         }
       }
     }

@@ -21,6 +21,8 @@ package restapi
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -29,11 +31,13 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
+	"github.com/minio/m3/mcs/models"
+	"github.com/minio/m3/mcs/restapi/operations"
+	"github.com/minio/m3/mcs/restapi/operations/user_api"
 
-	"github.com/cesnietor/mcs/models"
-	"github.com/cesnietor/mcs/restapi/operations"
-	"github.com/cesnietor/mcs/restapi/operations/user_api"
 	"github.com/minio/minio-go/v6"
+	"github.com/minio/minio-go/v6/pkg/policy"
+	minioIAMPolicy "github.com/minio/minio/pkg/iam/policy"
 )
 
 //go:generate swagger generate server --target ../../mcs --name Mcs --spec ../swagger.yml
@@ -57,12 +61,26 @@ func configureAPI(api *operations.McsAPI) http.Handler {
 	api.JSONProducer = runtime.JSONProducer()
 
 	api.UserAPIListBucketsHandler = user_api.ListBucketsHandlerFunc(func(params user_api.ListBucketsParams) middleware.Responder {
-		// perform list buckets request to the MinIO servers
 		listBucketsResponse, err := getListBucketsResponse()
 		if err != nil {
-			return user_api.NewListBucketsDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String("internal error")})
+			return user_api.NewListBucketsDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
 		return user_api.NewListBucketsOK().WithPayload(listBucketsResponse)
+	})
+
+	api.UserAPIMakeBucketHandler = user_api.MakeBucketHandlerFunc(func(params user_api.MakeBucketParams) middleware.Responder {
+		if err := getMakeBucketResponse(params.Body); err != nil {
+			return user_api.NewMakeBucketDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+		}
+		return user_api.NewMakeBucketCreated()
+	})
+
+	api.UserAPIDeleteBucketHandler = user_api.DeleteBucketHandlerFunc(func(params user_api.DeleteBucketParams) middleware.Responder {
+		if err := getDeleteBucketResponse(params); err != nil {
+			return user_api.NewMakeBucketDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+
+		}
+		return user_api.NewDeleteBucketNoContent()
 	})
 
 	api.PreServerShutdown = func() {}
@@ -100,7 +118,10 @@ func setupGlobalMiddleware(handler http.Handler) http.Handler {
 // by mock when testing, it should include all MinioClient respective api calls
 // that are used within this project.
 type MinioClient interface {
-	listBucketsWithContext(context.Context) ([]minio.BucketInfo, error)
+	listBucketsWithContext(ctx context.Context) ([]minio.BucketInfo, error)
+	makeBucketWithContext(ctx context.Context, bucketName, location string) error
+	setBucketPolicyWithContext(ctx context.Context, bucketName, policy string) error
+	removeBucket(bucketName string) error
 }
 
 // Interface implementation
@@ -116,8 +137,23 @@ func (mc minioClient) listBucketsWithContext(ctx context.Context) ([]minio.Bucke
 	return mc.client.ListBucketsWithContext(ctx)
 }
 
-// getlistBuckets fetches a list of all buckets from MinIO Servers
-func getListBuckets(client MinioClient) ([]*models.Bucket, error) {
+// implements minio.MakeBucketWithContext(ctx, bucketName, location)
+func (mc minioClient) makeBucketWithContext(ctx context.Context, bucketName, location string) error {
+	return mc.client.MakeBucketWithContext(ctx, bucketName, location)
+}
+
+// implements minio.SetBucketPolicyWithContext(ctx, bucketName, policy)
+func (mc minioClient) setBucketPolicyWithContext(ctx context.Context, bucketName, policy string) error {
+	return mc.client.SetBucketPolicyWithContext(ctx, bucketName, policy)
+}
+
+// implements minio.RemoveBucket(bucketName)
+func (mc minioClient) removeBucket(bucketName string) error {
+	return mc.client.RemoveBucket(bucketName)
+}
+
+// listBuckets fetches a list of all buckets from MinIO Servers
+func listBuckets(client MinioClient) ([]*models.Bucket, error) {
 	tCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
@@ -131,13 +167,14 @@ func getListBuckets(client MinioClient) ([]*models.Bucket, error) {
 
 	var bucketInfos []*models.Bucket
 	for _, bucket := range buckets {
-		bucketInfos = append(bucketInfos, &models.Bucket{Name: &bucket.Name, CreationDate: bucket.CreationDate.String()})
+		bucketElem := &models.Bucket{Name: swag.String(bucket.Name), CreationDate: bucket.CreationDate.String()}
+		bucketInfos = append(bucketInfos, bucketElem)
 	}
 
 	return bucketInfos, nil
 }
 
-// getListBucketsResponse perform getListBuckets() and serializes it to the handler's output
+// getListBucketsResponse performs listBuckets() and serializes it to the handler's output
 func getListBucketsResponse() (*models.ListBucketsResponse, error) {
 	mClient, err := newMinioClient()
 	if err != nil {
@@ -148,7 +185,7 @@ func getListBucketsResponse() (*models.ListBucketsResponse, error) {
 	// defining the client to be used
 	minioClient := minioClient{client: mClient}
 
-	buckets, err := getListBuckets(minioClient)
+	buckets, err := listBuckets(minioClient)
 	if err != nil {
 		log.Println("error listing buckets:", err)
 		return nil, err
@@ -159,6 +196,100 @@ func getListBucketsResponse() (*models.ListBucketsResponse, error) {
 		TotalBuckets: int64(len(buckets)),
 	}
 	return listBucketsResponse, nil
+}
+
+// makeBucket creates a bucket for an specific minio client
+func makeBucket(client MinioClient, bucketName string, access models.BucketAccess) error {
+	tCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
+
+	// creates a new bucket with bucketName with a context to control cancellations and timeouts.
+	if err := client.makeBucketWithContext(tCtx, bucketName, "us-east-1"); err != nil {
+		return err
+	}
+
+	if err := setBucketAccessPolicy(tCtx, client, bucketName, access); err != nil {
+		return err
+	}
+	return nil
+}
+
+// setBucketAccessPolicy set the access permissions on an existing bucket.
+func setBucketAccessPolicy(ctx context.Context, client MinioClient, bucketName string, access models.BucketAccess) error {
+	// Prepare policyJSON corresponding to the access type
+	var bucketPolicy policy.BucketPolicy
+	switch access {
+	case models.BucketAccessPUBLIC:
+		bucketPolicy = policy.BucketPolicyReadWrite
+	case models.BucketAccessPRIVATE:
+		bucketPolicy = policy.BucketPolicyNone
+	default:
+		return fmt.Errorf("access: `%s` not supported", access)
+	}
+
+	bucketAccessPolicy := policy.BucketAccessPolicy{Version: minioIAMPolicy.DefaultVersion}
+
+	bucketAccessPolicy.Statements = policy.SetPolicy(bucketAccessPolicy.Statements,
+		policy.BucketPolicy(bucketPolicy), bucketName, "")
+
+	policyJSON, err := json.Marshal(bucketAccessPolicy)
+	if err != nil {
+		return err
+	}
+
+	return client.setBucketPolicyWithContext(ctx, bucketName, string(policyJSON))
+}
+
+// getMakeBucketResponse performs makeBucket() to create a bucket with its access policy
+func getMakeBucketResponse(br *models.MakeBucketRequest) error {
+	// bucker request needed to proceed
+	if br == nil {
+		log.Println("error bucket body not in request")
+		return errors.New(500, "error bucket body not in request")
+	}
+
+	mClient, err := newMinioClient()
+	if err != nil {
+		log.Println("error creating MinIO Client:", err)
+		return err
+	}
+	// create a minioClient interface implementation
+	// defining the client to be used
+	minioClient := minioClient{client: mClient}
+
+	if err := makeBucket(minioClient, *br.Name, br.Access); err != nil {
+		log.Println("error making bucket:", err)
+		return err
+	}
+	return nil
+}
+
+// removeBucket deletes a bucket
+func removeBucket(client MinioClient, bucketName string) error {
+	if err := client.removeBucket(bucketName); err != nil {
+		return err
+	}
+	return nil
+}
+
+// getDeleteBucketResponse performs removeBucket() to delete a bucket
+func getDeleteBucketResponse(params user_api.DeleteBucketParams) error {
+	if params.Name == "" {
+		log.Println("error bucket name not in request")
+		return errors.New(500, "error bucket name not in request")
+	}
+	bucketName := params.Name
+
+	mClient, err := newMinioClient()
+	if err != nil {
+		log.Println("error creating MinIO Client:", err)
+		return err
+	}
+	// create a minioClient interface implementation
+	// defining the client to be used
+	minioClient := minioClient{client: mClient}
+
+	return removeBucket(minioClient, bucketName)
 }
 
 // newMinioClient creates a new MinIO client to talk to the server

@@ -35,7 +35,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
-	"github.com/cesnietor/mcs/restapi/operations/user_api"
+	"github.com/minio/m3/mcs/restapi/operations/user_api"
 )
 
 // NewMcsAPI creates a new Mcs instance
@@ -56,8 +56,14 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		BearerAuthenticator: security.BearerAuth,
 		JSONConsumer:        runtime.JSONConsumer(),
 		JSONProducer:        runtime.JSONProducer(),
+		UserAPIDeleteBucketHandler: user_api.DeleteBucketHandlerFunc(func(params user_api.DeleteBucketParams) middleware.Responder {
+			return middleware.NotImplemented("operation user_api.DeleteBucket has not yet been implemented")
+		}),
 		UserAPIListBucketsHandler: user_api.ListBucketsHandlerFunc(func(params user_api.ListBucketsParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.ListBuckets has not yet been implemented")
+		}),
+		UserAPIMakeBucketHandler: user_api.MakeBucketHandlerFunc(func(params user_api.MakeBucketParams) middleware.Responder {
+			return middleware.NotImplemented("operation user_api.MakeBucket has not yet been implemented")
 		}),
 	}
 }
@@ -90,8 +96,12 @@ type McsAPI struct {
 	//   - application/json
 	JSONProducer runtime.Producer
 
+	// UserAPIDeleteBucketHandler sets the operation handler for the delete bucket operation
+	UserAPIDeleteBucketHandler user_api.DeleteBucketHandler
 	// UserAPIListBucketsHandler sets the operation handler for the list buckets operation
 	UserAPIListBucketsHandler user_api.ListBucketsHandler
+	// UserAPIMakeBucketHandler sets the operation handler for the make bucket operation
+	UserAPIMakeBucketHandler user_api.MakeBucketHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -158,8 +168,16 @@ func (o *McsAPI) Validate() error {
 		unregistered = append(unregistered, "JSONProducer")
 	}
 
+	if o.UserAPIDeleteBucketHandler == nil {
+		unregistered = append(unregistered, "UserAPI.DeleteBucketHandler")
+	}
+
 	if o.UserAPIListBucketsHandler == nil {
 		unregistered = append(unregistered, "UserAPI.ListBucketsHandler")
+	}
+
+	if o.UserAPIMakeBucketHandler == nil {
+		unregistered = append(unregistered, "UserAPI.MakeBucketHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -254,10 +272,20 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
 
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/api/v1/buckets/{name}"] = user_api.NewDeleteBucket(o.context, o.UserAPIDeleteBucketHandler)
+
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/api/v1/buckets"] = user_api.NewListBuckets(o.context, o.UserAPIListBucketsHandler)
+
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/api/v1/buckets"] = user_api.NewMakeBucket(o.context, o.UserAPIMakeBucketHandler)
 
 }
 

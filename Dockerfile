@@ -1,4 +1,4 @@
-FROM golang:1.13.7
+FROM golang:1.14.0
 
 ADD go.mod /go/src/github.com/minio/m3/go.mod
 ADD go.sum /go/src/github.com/minio/m3/go.sum
@@ -25,8 +25,5 @@ EXPOSE 9009
 
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=0 /go/src/github.com/minio/m3/m3 .
-ADD ./cluster/templates /cluster/templates
-ADD ./cluster/migrations /cluster/migrations
-ADD ./cluster/tenant-migrations /cluster/tenant-migrations
 
-CMD ["/m3"]
+CMD ["/m3","controller"]
