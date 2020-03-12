@@ -43,7 +43,7 @@ func main() {
 	defer server.Shutdown()
 
 	parser := flags.NewParser(server, flags.Default)
-	parser.ShortDescription = "MinIO Cloud Server"
+	parser.ShortDescription = "MinIO Console Server"
 	parser.LongDescription = swaggerSpec.Spec().Info.Description
 	server.ConfigureFlags()
 	for _, optsGroup := range api.CommandLineOptionsGroups {

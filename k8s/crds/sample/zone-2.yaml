@@ -1,0 +1,51 @@
+apiVersion: "mkube.min.io/v1"
+kind: "Zone"
+metadata:
+  name: "zone-2"
+spec:
+#  image: minio/minio:RELEASE.2020-02-27T00-23-05Z
+  image: minio/minio:RELEASE.2020-01-03T19-12-21Z
+  replicas: 4
+  nodeTemplate:
+    env:
+      - name: MINIO_ACCESS_KEY
+        value: minio
+      - name: MINIO_SECRET_KEY
+        value: minio123
+    volumes:
+      - metadata:
+          name: data1
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: standard
+          resources:
+            requests:
+              storage: 1Gi
+      - metadata:
+          name: data2
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: standard
+          resources:
+            requests:
+              storage: 1Gi
+      - metadata:
+          name: data1
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: standard
+          resources:
+            requests:
+              storage: 1Gi
+      - metadata:
+          name: data2
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: standard
+          resources:
+            requests:
+              storage: 1Gi

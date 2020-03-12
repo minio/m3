@@ -34,5 +34,5 @@ docker:
 
 k8sdev:
 	@docker build -t $(TAG) --build-arg build_version=$(BUILD_VERSION) --build-arg build_time='$(BUILD_TIME)' .
-	@kind load docker-image $(TAG) --name m3cluster
+	@kind load docker-image $(TAG)
 	@echo "Done, now restart your m3 deployment"

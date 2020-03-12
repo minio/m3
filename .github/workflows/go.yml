@@ -29,8 +29,10 @@ jobs:
       - name: Build on ${{ matrix.os }}
         env:
           GO111MODULE: on
+          GOOS: linux
         run: |
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.21.0
           $(go env GOPATH)/bin/golangci-lint run --timeout=5m --config ./.golangci.yml
+          go mod vendor
           go test -v -race ./...
           make m3
