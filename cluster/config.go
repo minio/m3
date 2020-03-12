@@ -19,19 +19,13 @@ package cluster
 import (
 	"regexp"
 	"strconv"
-	"strings"
-
-	"github.com/minio/m3/version"
 
 	"github.com/minio/minio/pkg/env"
 )
 
-func getS3Domain() string {
-	return env.Get(s3Domain, "s3.localhost")
-}
-
-func getM3ContainerImage() string {
-	return env.Get(m3Image, "minio/m3:edge")
+// Returns the namespace in which the controller is installed
+func getNs() string {
+	return "default"
 }
 
 func getKesContainerImage() string {
@@ -66,10 +60,6 @@ func getKesConfigPath() string {
 	return configPath
 }
 
-func getM3ImagePullPolicy() string {
-	return env.Get(m3ImagePullPolicy, "IfNotPresent")
-}
-
 func getLivenessMaxInitialDelaySeconds() int32 {
 	var maxSeconds int32
 	if v := env.Get(maxLivenessInitialSecondsDelay, "120"); v != "" {
@@ -80,18 +70,6 @@ func getLivenessMaxInitialDelaySeconds() int32 {
 		maxSeconds = int32(maxSecondsInt)
 	}
 	return maxSeconds
-}
-
-func getPublishNotReadyAddress() bool {
-	return strings.ToLower(env.Get(pubNotReadyAddress, "false")) == "true"
-}
-
-func getMinIOImage() string {
-	return env.Get(minIOImage, "minio/minio:RELEASE.2020-02-07T23-28-16Z")
-}
-
-func getMinIOImagePullPolicy() string {
-	return env.Get(minIOImagePullPolicy, "IfNotPresent")
 }
 
 func getKmsAddress() string {
@@ -112,46 +90,4 @@ func getKmsCACertFileName() string {
 
 func getCACertDefaultMounPath() string {
 	return env.Get(CACertDefaultMountPath, "/usr/local/share/ca-certificates")
-}
-
-func getDevUseEmptyDir() bool {
-	return strings.ToLower(env.Get(devUseEmptyDir, "false")) == "true"
-}
-
-func getMaxNumberOfTenantsPerSg() int {
-	var maxTenantsPerSg = 16
-	if v := env.Get(maxNumberOfTenantsPerSg, "16"); v != "" {
-		var err error
-		maxTenantsPerSg, err = strconv.Atoi(v)
-		if err != nil {
-			return maxTenantsPerSg
-		}
-	}
-	return maxTenantsPerSg
-}
-
-// AppURL returns the main application url
-func getAppURL() string {
-	return env.Get("APP_URL", "http://localhost")
-}
-
-// CliCommand returns the command used for the cli
-func getCliCommand() string {
-	return env.Get("CLI_COMMAND", "m3")
-}
-
-func GetBuildVersion() string {
-	defVersion := "DEVELOPMENT"
-	if version.BuildVersion != "" {
-		defVersion = version.BuildVersion
-	}
-	return defVersion
-}
-
-func GetBuildTime() string {
-	defVersion := ""
-	if version.BuildTime != "" {
-		defVersion = version.BuildTime
-	}
-	return defVersion
 }
