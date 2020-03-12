@@ -4,7 +4,6 @@ default: mcs
 mcs:
 	@echo "Building mcs binary to './mcs'"
 	@(cd cmd/mcs-server; CGO_ENABLED=0 go build --ldflags "-s -w" -o ../../mcs-server)
-	@golangci-lint run
 	
 swagger-gen:
 	@echo "Generating swagger server code from yaml"
