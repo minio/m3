@@ -19,8 +19,33 @@ package restapi
 import (
 	"log"
 
+	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/swag"
+	"github.com/minio/m3/mcs/restapi/operations"
+
+	"github.com/minio/m3/mcs/restapi/operations/admin_api"
+
 	"github.com/minio/m3/mcs/models"
 )
+
+func registerUsersHandlers(api *operations.McsAPI) {
+	// List Users
+	api.AdminAPIListUsersHandler = admin_api.ListUsersHandlerFunc(func(params admin_api.ListUsersParams) middleware.Responder {
+		listUsersResponse, err := getListUsersResponse()
+		if err != nil {
+			return admin_api.NewListUsersDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+		}
+		return admin_api.NewListUsersOK().WithPayload(listUsersResponse)
+	})
+	// Add User
+	api.AdminAPIAddUserHandler = admin_api.AddUserHandlerFunc(func(params admin_api.AddUserParams) middleware.Responder {
+		userResponse, err := getUserAddResponse(params)
+		if err != nil {
+			return admin_api.NewAddUserDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+		}
+		return admin_api.NewAddUserCreated().WithPayload(userResponse)
+	})
+}
 
 func listUsers(client MinioAdmin) ([]*models.User, error) {
 
@@ -67,4 +92,37 @@ func getListUsersResponse() (*models.ListUsersResponse, error) {
 		Users: users,
 	}
 	return listUsersResponse, nil
+}
+
+// addUser invokes adding a users on `MinioAdmin` and builds the response `models.User`
+func addUser(client MinioAdmin, accessKey, secretKey *string) (*models.User, error) {
+	// Calls into MinIO to add a new user if there's an error return it
+	err := client.addUser(*accessKey, *secretKey)
+	if err != nil {
+		return nil, err
+	}
+
+	userElem := &models.User{
+		AccessKey: *accessKey,
+	}
+
+	return userElem, nil
+}
+
+func getUserAddResponse(params admin_api.AddUserParams) (*models.User, error) {
+	mAdmin, err := newMAdminClient()
+	if err != nil {
+		log.Println("error creating Madmin Client:", err)
+		return nil, err
+	}
+	// create a minioClient interface implementation
+	// defining the client to be used
+	adminClient := adminClient{client: mAdmin}
+
+	user, err := addUser(adminClient, params.Body.AccessKey, params.Body.SecretKey)
+	if err != nil {
+		log.Println("error adding user:", err)
+		return nil, err
+	}
+	return user, nil
 }

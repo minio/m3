@@ -137,6 +137,7 @@ var s3AdminNew = newAdminFactory()
 // that are used within this project.
 type MinioAdmin interface {
 	listUsers() (map[string]madmin.UserInfo, error)
+	addUser(acessKey, SecretKey string) error
 }
 
 // Interface implementation
@@ -150,6 +151,11 @@ type adminClient struct {
 // implements madmin.ListUsers(ctx)
 func (ac adminClient) listUsers() (map[string]madmin.UserInfo, error) {
 	return ac.client.ListUsers()
+}
+
+// implements madmin.ListUsers(ctx)
+func (ac adminClient) addUser(acessKey, secretKey string) error {
+	return ac.client.AddUser(acessKey, secretKey)
 }
 
 func newMAdminClient() (*madmin.AdminClient, error) {
