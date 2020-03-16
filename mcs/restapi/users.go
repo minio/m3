@@ -19,30 +19,8 @@ package restapi
 import (
 	"log"
 
-	"github.com/minio/minio/pkg/madmin"
-
 	"github.com/minio/m3/mcs/models"
 )
-
-// Define MinioAdmin interface with all functions to be implemented
-// by mock when testing, it should include all MinioAdmin respective api calls
-// that are used within this project.
-type MinioAdmin interface {
-	listUsers() (map[string]madmin.UserInfo, error)
-}
-
-// Interface implementation
-//
-// Define the structure of a minIO Client and define the functions that are actually used
-// from minIO api.
-type adminClient struct {
-	client *madmin.AdminClient
-}
-
-// implements madmin.ListUsers(ctx)
-func (ac adminClient) listUsers() (map[string]madmin.UserInfo, error) {
-	return ac.client.ListUsers()
-}
 
 func listUsers(client MinioAdmin) ([]*models.User, error) {
 
@@ -70,7 +48,7 @@ func listUsers(client MinioAdmin) ([]*models.User, error) {
 
 // getListUsersResponse performs listUsers() and serializes it to the handler's output
 func getListUsersResponse() (*models.ListUsersResponse, error) {
-	mAdmin, err := newMadminClient()
+	mAdmin, err := newMAdminClient()
 	if err != nil {
 		log.Println("error creating Madmin Client:", err)
 		return nil, err
@@ -89,16 +67,4 @@ func getListUsersResponse() (*models.ListUsersResponse, error) {
 		Users: users,
 	}
 	return listUsersResponse, nil
-}
-
-func newMadminClient() (*madmin.AdminClient, error) {
-	endpoint := "https://play.min.io"
-	accessKeyID := "Q3AM3UQ867SPQQA43P2F"
-	secretAccessKey := "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-
-	adminClient, pErr := NewAdminClient(endpoint, accessKeyID, secretAccessKey)
-	if pErr != nil {
-		return nil, pErr.Cause
-	}
-	return adminClient, nil
 }
