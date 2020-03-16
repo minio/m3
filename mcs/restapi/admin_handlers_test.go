@@ -24,11 +24,12 @@ import (
 
 	"errors"
 
-	"github.com/stretchr/testify/assert"
+	asrt "github.com/stretchr/testify/assert"
 )
 
 // assigning mock at runtime instead of compile time
 var minioListUsersMock func() (map[string]madmin.UserInfo, error)
+var minioAddUserMock func(accessKey, secreyKey string) error
 
 // Define a mock struct of Admin Client interface implementation
 type adminClientMock struct {
@@ -39,8 +40,13 @@ func (ac adminClientMock) listUsers() (map[string]madmin.UserInfo, error) {
 	return minioListUsersMock()
 }
 
+// mock function of addUser()
+func (ac adminClientMock) addUser(accessKey, secretKey string) error {
+	return minioAddUserMock(accessKey, secretKey)
+}
+
 func TestListUsers(t *testing.T) {
-	assert := assert.New(t)
+	assert := asrt.New(t)
 	adminClient := adminClientMock{}
 	// Test-1 : listUsers() Get response from minio client with two users and return the same number on listUsers()
 	// mock minIO client
@@ -88,4 +94,47 @@ func TestListUsers(t *testing.T) {
 	if assert.Error(err) {
 		assert.Equal("error", err.Error())
 	}
+}
+
+func TestAddUser(t *testing.T) {
+	assert := asrt.New(t)
+	adminClient := adminClientMock{}
+
+	// Test-1: valid case of adding a user with a proper access key
+	accessKey := "ABCDEFGHI"
+	secretKey := "ABCDEFGHIABCDEFGHI"
+
+	// mock function response from addUser() return no error
+	minioAddUserMock = func(accessKey, secretKey string) error {
+		return nil
+	}
+	// adds a valid user to MinIO
+	function := "addUser()"
+	user, err := addUser(adminClient, &accessKey, &secretKey)
+	if err != nil {
+		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
+	}
+	// no error should have been returned
+	assert.Nil(err, "Error is not null")
+	// the same access key should be in the model users
+	assert.Equal(user.AccessKey, accessKey)
+	// Test-1: valid case
+	accessKey = "AB"
+	secretKey = "ABCDEFGHIABCDEFGHI"
+
+	// mock function response from addUser() return no error
+	minioAddUserMock = func(accessKey, secretKey string) error {
+		return errors.New("error")
+	}
+
+	user, err = addUser(adminClient, &accessKey, &secretKey)
+
+	// no error should have been returned
+	assert.Nil(user, "User is not null")
+	assert.NotNil(err, "An error should have been returned")
+
+	if assert.Error(err) {
+		assert.Equal("error", err.Error())
+	}
+
 }

@@ -101,6 +101,26 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - AdminAPI
+    post:
+      summary: Add User
+      operationId: AddUser
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/addUserRequest'
+      responses:
+        201:
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/user'
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
 definitions:
   bucketAccess:
     type: string
@@ -176,3 +196,13 @@ definitions:
         items:
           $ref: "#/definitions/user"
         title: list of resulting users
+  addUserRequest:
+    type: object
+    required:
+      - accessKey
+      - secretKey
+    properties:
+      accessKey:
+        type: string
+      secretKey:
+        type: string

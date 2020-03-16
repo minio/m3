@@ -58,6 +58,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		BearerAuthenticator: security.BearerAuth,
 		JSONConsumer:        runtime.JSONConsumer(),
 		JSONProducer:        runtime.JSONProducer(),
+		AdminAPIAddUserHandler: admin_api.AddUserHandlerFunc(func(params admin_api.AddUserParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.AddUser has not yet been implemented")
+		}),
 		UserAPIDeleteBucketHandler: user_api.DeleteBucketHandlerFunc(func(params user_api.DeleteBucketParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.DeleteBucket has not yet been implemented")
 		}),
@@ -101,6 +104,8 @@ type McsAPI struct {
 	//   - application/json
 	JSONProducer runtime.Producer
 
+	// AdminAPIAddUserHandler sets the operation handler for the add user operation
+	AdminAPIAddUserHandler admin_api.AddUserHandler
 	// UserAPIDeleteBucketHandler sets the operation handler for the delete bucket operation
 	UserAPIDeleteBucketHandler user_api.DeleteBucketHandler
 	// UserAPIListBucketsHandler sets the operation handler for the list buckets operation
@@ -173,6 +178,10 @@ func (o *McsAPI) Validate() error {
 
 	if o.JSONProducer == nil {
 		unregistered = append(unregistered, "JSONProducer")
+	}
+
+	if o.AdminAPIAddUserHandler == nil {
+		unregistered = append(unregistered, "AdminAPI.AddUserHandler")
 	}
 
 	if o.UserAPIDeleteBucketHandler == nil {
@@ -282,6 +291,11 @@ func (o *McsAPI) initHandlerCache() {
 	if o.handlers == nil {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
+
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/api/v1/users"] = admin_api.NewAddUser(o.context, o.AdminAPIAddUserHandler)
 
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)

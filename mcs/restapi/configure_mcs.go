@@ -22,8 +22,6 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	"github.com/minio/m3/mcs/restapi/operations/admin_api"
-
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
@@ -75,14 +73,8 @@ func configureAPI(api *operations.McsAPI) http.Handler {
 		}
 		return user_api.NewDeleteBucketNoContent()
 	})
-
-	api.AdminAPIListUsersHandler = admin_api.ListUsersHandlerFunc(func(params admin_api.ListUsersParams) middleware.Responder {
-		listUsersResponse, err := getListUsersResponse()
-		if err != nil {
-			return admin_api.NewListUsersDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
-		}
-		return admin_api.NewListUsersOK().WithPayload(listUsersResponse)
-	})
+	// Register all users handlers
+	registerUsersHandlers(api)
 
 	api.PreServerShutdown = func() {}
 
