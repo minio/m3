@@ -131,3 +131,35 @@ func NewAdminClient(url string, accessKey string, secretKey string) (*madmin.Adm
 // s3AdminNew returns an initialized minioAdmin structure. If debug is enabled,
 // it also enables an internal trace transport.
 var s3AdminNew = newAdminFactory()
+
+// Define MinioAdmin interface with all functions to be implemented
+// by mock when testing, it should include all MinioAdmin respective api calls
+// that are used within this project.
+type MinioAdmin interface {
+	listUsers() (map[string]madmin.UserInfo, error)
+}
+
+// Interface implementation
+//
+// Define the structure of a minIO Client and define the functions that are actually used
+// from minIO api.
+type adminClient struct {
+	client *madmin.AdminClient
+}
+
+// implements madmin.ListUsers(ctx)
+func (ac adminClient) listUsers() (map[string]madmin.UserInfo, error) {
+	return ac.client.ListUsers()
+}
+
+func newMAdminClient() (*madmin.AdminClient, error) {
+	endpoint := "https://play.min.io"
+	accessKeyID := "Q3AM3UQ867SPQQA43P2F"
+	secretAccessKey := "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+
+	adminClient, pErr := NewAdminClient(endpoint, accessKeyID, secretAccessKey)
+	if pErr != nil {
+		return nil, pErr.Cause
+	}
+	return adminClient, nil
+}
