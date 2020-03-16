@@ -100,7 +100,7 @@ func TestAddUser(t *testing.T) {
 	assert := asrt.New(t)
 	adminClient := adminClientMock{}
 
-	// Test-1: valid case
+	// Test-1: valid case of adding a user with a proper access key
 	accessKey := "ABCDEFGHI"
 	secretKey := "ABCDEFGHIABCDEFGHI"
 
@@ -108,8 +108,7 @@ func TestAddUser(t *testing.T) {
 	minioAddUserMock = func(accessKey, secretKey string) error {
 		return nil
 	}
-	// get list users response this response should have Name, CreationDate, Size and Access
-	// as part of of each user
+	// adds a valid user to MinIO
 	function := "addUser()"
 	user, err := addUser(adminClient, &accessKey, &secretKey)
 	if err != nil {
@@ -133,5 +132,9 @@ func TestAddUser(t *testing.T) {
 	// no error should have been returned
 	assert.Nil(user, "User is not null")
 	assert.NotNil(err, "An error should have been returned")
+
+	if assert.Error(err) {
+		assert.Equal("error", err.Error())
+	}
 
 }
