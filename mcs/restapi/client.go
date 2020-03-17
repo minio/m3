@@ -17,6 +17,8 @@
 package restapi
 
 import (
+	"context"
+
 	"github.com/minio/minio-go/v6"
 )
 
@@ -38,4 +40,59 @@ type Config struct {
 	Debug       bool
 	Insecure    bool
 	Lookup      minio.BucketLookupType
+}
+
+// Define MinioClient interface with all functions to be implemented
+// by mock when testing, it should include all MinioClient respective api calls
+// that are used within this project.
+type MinioClient interface {
+	listBucketsWithContext(ctx context.Context) ([]minio.BucketInfo, error)
+	makeBucketWithContext(ctx context.Context, bucketName, location string) error
+	setBucketPolicyWithContext(ctx context.Context, bucketName, policy string) error
+	removeBucket(bucketName string) error
+}
+
+// Interface implementation
+//
+// Define the structure of a minIO Client and define the functions that are actually used
+// from minIO api.
+type minioClient struct {
+	client *minio.Client
+}
+
+// implements minio.ListBucketsWithContext(ctx)
+func (mc minioClient) listBucketsWithContext(ctx context.Context) ([]minio.BucketInfo, error) {
+	return mc.client.ListBucketsWithContext(ctx)
+}
+
+// implements minio.MakeBucketWithContext(ctx, bucketName, location)
+func (mc minioClient) makeBucketWithContext(ctx context.Context, bucketName, location string) error {
+	return mc.client.MakeBucketWithContext(ctx, bucketName, location)
+}
+
+// implements minio.SetBucketPolicyWithContext(ctx, bucketName, policy)
+func (mc minioClient) setBucketPolicyWithContext(ctx context.Context, bucketName, policy string) error {
+	return mc.client.SetBucketPolicyWithContext(ctx, bucketName, policy)
+}
+
+// implements minio.RemoveBucket(bucketName)
+func (mc minioClient) removeBucket(bucketName string) error {
+	return mc.client.RemoveBucket(bucketName)
+}
+
+// newMinioClient creates a new MinIO client to talk to the server
+func newMinioClient() (*minio.Client, error) {
+	// TODO: abstract this to fetch from different endpoints
+	endpoint := "play.min.io"
+	accessKeyID := "Q3AM3UQ867SPQQA43P2F"
+	secretAccessKey := "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+	useSSL := true
+
+	// Initialize minio client object.
+	minioClient, err := minio.NewV4(endpoint, accessKeyID, secretAccessKey, useSSL)
+	if err != nil {
+		return nil, err
+	}
+
+	return minioClient, nil
 }

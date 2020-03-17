@@ -19,29 +19,32 @@ package restapi
 import (
 	"log"
 
-	"github.com/minio/minio/pkg/madmin"
+	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/swag"
+	"github.com/minio/m3/mcs/restapi/operations"
+
+	"github.com/minio/m3/mcs/restapi/operations/admin_api"
 
 	"github.com/minio/m3/mcs/models"
 )
 
-// Define MinioAdmin interface with all functions to be implemented
-// by mock when testing, it should include all MinioAdmin respective api calls
-// that are used within this project.
-type MinioAdmin interface {
-	listUsers() (map[string]madmin.UserInfo, error)
-}
-
-// Interface implementation
-//
-// Define the structure of a minIO Client and define the functions that are actually used
-// from minIO api.
-type adminClient struct {
-	client *madmin.AdminClient
-}
-
-// implements madmin.ListUsers(ctx)
-func (ac adminClient) listUsers() (map[string]madmin.UserInfo, error) {
-	return ac.client.ListUsers()
+func registerUsersHandlers(api *operations.McsAPI) {
+	// List Users
+	api.AdminAPIListUsersHandler = admin_api.ListUsersHandlerFunc(func(params admin_api.ListUsersParams) middleware.Responder {
+		listUsersResponse, err := getListUsersResponse()
+		if err != nil {
+			return admin_api.NewListUsersDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+		}
+		return admin_api.NewListUsersOK().WithPayload(listUsersResponse)
+	})
+	// Add User
+	api.AdminAPIAddUserHandler = admin_api.AddUserHandlerFunc(func(params admin_api.AddUserParams) middleware.Responder {
+		userResponse, err := getUserAddResponse(params)
+		if err != nil {
+			return admin_api.NewAddUserDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+		}
+		return admin_api.NewAddUserCreated().WithPayload(userResponse)
+	})
 }
 
 func listUsers(client MinioAdmin) ([]*models.User, error) {
@@ -70,7 +73,7 @@ func listUsers(client MinioAdmin) ([]*models.User, error) {
 
 // getListUsersResponse performs listUsers() and serializes it to the handler's output
 func getListUsersResponse() (*models.ListUsersResponse, error) {
-	mAdmin, err := newMadminClient()
+	mAdmin, err := newMAdminClient()
 	if err != nil {
 		log.Println("error creating Madmin Client:", err)
 		return nil, err
@@ -91,14 +94,35 @@ func getListUsersResponse() (*models.ListUsersResponse, error) {
 	return listUsersResponse, nil
 }
 
-func newMadminClient() (*madmin.AdminClient, error) {
-	endpoint := "https://play.min.io"
-	accessKeyID := "Q3AM3UQ867SPQQA43P2F"
-	secretAccessKey := "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-
-	adminClient, pErr := NewAdminClient(endpoint, accessKeyID, secretAccessKey)
-	if pErr != nil {
-		return nil, pErr.Cause
+// addUser invokes adding a users on `MinioAdmin` and builds the response `models.User`
+func addUser(client MinioAdmin, accessKey, secretKey *string) (*models.User, error) {
+	// Calls into MinIO to add a new user if there's an error return it
+	err := client.addUser(*accessKey, *secretKey)
+	if err != nil {
+		return nil, err
 	}
-	return adminClient, nil
+
+	userElem := &models.User{
+		AccessKey: *accessKey,
+	}
+
+	return userElem, nil
+}
+
+func getUserAddResponse(params admin_api.AddUserParams) (*models.User, error) {
+	mAdmin, err := newMAdminClient()
+	if err != nil {
+		log.Println("error creating Madmin Client:", err)
+		return nil, err
+	}
+	// create a minioClient interface implementation
+	// defining the client to be used
+	adminClient := adminClient{client: mAdmin}
+
+	user, err := addUser(adminClient, params.Body.AccessKey, params.Body.SecretKey)
+	if err != nil {
+		log.Println("error adding user:", err)
+		return nil, err
+	}
+	return user, nil
 }
