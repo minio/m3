@@ -1,5 +1,5 @@
 // This file is part of MinIO Orchestrator
-// Copyright (c) 2019 MinIO, Inc.
+// Copyright (c) 2020 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -138,6 +138,8 @@ var s3AdminNew = newAdminFactory()
 type MinioAdmin interface {
 	listUsers() (map[string]madmin.UserInfo, error)
 	addUser(acessKey, SecretKey string) error
+	listGroups() ([]string, error)
+	updateGroupMembers(madmin.GroupAddRemove) error
 }
 
 // Interface implementation
@@ -156,6 +158,16 @@ func (ac adminClient) listUsers() (map[string]madmin.UserInfo, error) {
 // implements madmin.AddUser()
 func (ac adminClient) addUser(acessKey, secretKey string) error {
 	return ac.client.AddUser(acessKey, secretKey)
+}
+
+// implements madmin.ListGroups()
+func (ac adminClient) listGroups() ([]string, error) {
+	return ac.client.ListGroups()
+}
+
+// implements madmin.UpdateGroupMembers()
+func (ac adminClient) updateGroupMembers(greq madmin.GroupAddRemove) error {
+	return ac.client.UpdateGroupMembers(greq)
 }
 
 func newMAdminClient() (*madmin.AdminClient, error) {

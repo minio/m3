@@ -1,5 +1,5 @@
 // This file is part of MinIO Kubernetes Cloud
-// Copyright (c) 2019 MinIO, Inc.
+// Copyright (c) 2020 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -24,12 +24,39 @@ import (
 	"time"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
 	"github.com/minio/m3/mcs/models"
+	"github.com/minio/m3/mcs/restapi/operations"
 	"github.com/minio/m3/mcs/restapi/operations/user_api"
 	"github.com/minio/minio-go/v6/pkg/policy"
 	minioIAMPolicy "github.com/minio/minio/pkg/iam/policy"
 )
+
+func registerBucketsHandlers(api *operations.McsAPI) {
+	api.UserAPIListBucketsHandler = user_api.ListBucketsHandlerFunc(func(params user_api.ListBucketsParams) middleware.Responder {
+		listBucketsResponse, err := getListBucketsResponse()
+		if err != nil {
+			return user_api.NewListBucketsDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+		}
+		return user_api.NewListBucketsOK().WithPayload(listBucketsResponse)
+	})
+
+	api.UserAPIMakeBucketHandler = user_api.MakeBucketHandlerFunc(func(params user_api.MakeBucketParams) middleware.Responder {
+		if err := getMakeBucketResponse(params.Body); err != nil {
+			return user_api.NewMakeBucketDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+		}
+		return user_api.NewMakeBucketCreated()
+	})
+
+	api.UserAPIDeleteBucketHandler = user_api.DeleteBucketHandlerFunc(func(params user_api.DeleteBucketParams) middleware.Responder {
+		if err := getDeleteBucketResponse(params); err != nil {
+			return user_api.NewMakeBucketDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+
+		}
+		return user_api.NewDeleteBucketNoContent()
+	})
+}
 
 // listBuckets fetches a list of all buckets from MinIO Servers
 func listBuckets(client MinioClient) ([]*models.Bucket, error) {
@@ -121,7 +148,7 @@ func setBucketAccessPolicy(ctx context.Context, client MinioClient, bucketName s
 
 // getMakeBucketResponse performs makeBucket() to create a bucket with its access policy
 func getMakeBucketResponse(br *models.MakeBucketRequest) error {
-	// bucker request needed to proceed
+	// bucket request needed to proceed
 	if br == nil {
 		log.Println("error bucket body not in request")
 		return errors.New(500, "error bucket body not in request")
