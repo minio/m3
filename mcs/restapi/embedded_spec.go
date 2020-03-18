@@ -148,6 +148,99 @@ func init() {
         }
       }
     },
+    "/api/v1/groups": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "List Groups",
+        "operationId": "ListGroups",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/listGroupsResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Add Group",
+        "operationId": "AddGroup",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/addGroupRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/groups/{name}": {
+      "delete": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Remove group",
+        "operationId": "RemoveGroup",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users": {
       "get": {
         "tags": [
@@ -218,6 +311,24 @@ func init() {
     }
   },
   "definitions": {
+    "addGroupRequest": {
+      "type": "object",
+      "required": [
+        "group",
+        "members"
+      ],
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "addUserRequest": {
       "type": "object",
       "required": [
@@ -279,6 +390,26 @@ func init() {
         }
       }
     },
+    "group": {
+      "type": "object",
+      "properties": {
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": "string"
+        },
+        "policy": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
     "listBucketsResponse": {
       "type": "object",
       "properties": {
@@ -293,6 +424,23 @@ func init() {
           "type": "integer",
           "format": "int64",
           "title": "number of buckets accessible to tenant user"
+        }
+      }
+    },
+    "listGroupsResponse": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "type": "array",
+          "title": "list of groups",
+          "items": {
+            "type": "string"
+          }
+        },
+        "total_groups": {
+          "type": "integer",
+          "format": "int64",
+          "title": "total number of groups"
         }
       }
     },
@@ -458,6 +606,99 @@ func init() {
         }
       }
     },
+    "/api/v1/groups": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "List Groups",
+        "operationId": "ListGroups",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/listGroupsResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Add Group",
+        "operationId": "AddGroup",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/addGroupRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/groups/{name}": {
+      "delete": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Remove group",
+        "operationId": "RemoveGroup",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users": {
       "get": {
         "tags": [
@@ -528,6 +769,24 @@ func init() {
     }
   },
   "definitions": {
+    "addGroupRequest": {
+      "type": "object",
+      "required": [
+        "group",
+        "members"
+      ],
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "addUserRequest": {
       "type": "object",
       "required": [
@@ -589,6 +848,26 @@ func init() {
         }
       }
     },
+    "group": {
+      "type": "object",
+      "properties": {
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": "string"
+        },
+        "policy": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
     "listBucketsResponse": {
       "type": "object",
       "properties": {
@@ -603,6 +882,23 @@ func init() {
           "type": "integer",
           "format": "int64",
           "title": "number of buckets accessible to tenant user"
+        }
+      }
+    },
+    "listGroupsResponse": {
+      "type": "object",
+      "properties": {
+        "groups": {
+          "type": "array",
+          "title": "list of groups",
+          "items": {
+            "type": "string"
+          }
+        },
+        "total_groups": {
+          "type": "integer",
+          "format": "int64",
+          "title": "total number of groups"
         }
       }
     },

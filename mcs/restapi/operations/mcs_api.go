@@ -58,6 +58,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		BearerAuthenticator: security.BearerAuth,
 		JSONConsumer:        runtime.JSONConsumer(),
 		JSONProducer:        runtime.JSONProducer(),
+		AdminAPIAddGroupHandler: admin_api.AddGroupHandlerFunc(func(params admin_api.AddGroupParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.AddGroup has not yet been implemented")
+		}),
 		AdminAPIAddUserHandler: admin_api.AddUserHandlerFunc(func(params admin_api.AddUserParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.AddUser has not yet been implemented")
 		}),
@@ -67,11 +70,17 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		UserAPIListBucketsHandler: user_api.ListBucketsHandlerFunc(func(params user_api.ListBucketsParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.ListBuckets has not yet been implemented")
 		}),
+		AdminAPIListGroupsHandler: admin_api.ListGroupsHandlerFunc(func(params admin_api.ListGroupsParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.ListGroups has not yet been implemented")
+		}),
 		AdminAPIListUsersHandler: admin_api.ListUsersHandlerFunc(func(params admin_api.ListUsersParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.ListUsers has not yet been implemented")
 		}),
 		UserAPIMakeBucketHandler: user_api.MakeBucketHandlerFunc(func(params user_api.MakeBucketParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.MakeBucket has not yet been implemented")
+		}),
+		AdminAPIRemoveGroupHandler: admin_api.RemoveGroupHandlerFunc(func(params admin_api.RemoveGroupParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.RemoveGroup has not yet been implemented")
 		}),
 	}
 }
@@ -104,16 +113,22 @@ type McsAPI struct {
 	//   - application/json
 	JSONProducer runtime.Producer
 
+	// AdminAPIAddGroupHandler sets the operation handler for the add group operation
+	AdminAPIAddGroupHandler admin_api.AddGroupHandler
 	// AdminAPIAddUserHandler sets the operation handler for the add user operation
 	AdminAPIAddUserHandler admin_api.AddUserHandler
 	// UserAPIDeleteBucketHandler sets the operation handler for the delete bucket operation
 	UserAPIDeleteBucketHandler user_api.DeleteBucketHandler
 	// UserAPIListBucketsHandler sets the operation handler for the list buckets operation
 	UserAPIListBucketsHandler user_api.ListBucketsHandler
+	// AdminAPIListGroupsHandler sets the operation handler for the list groups operation
+	AdminAPIListGroupsHandler admin_api.ListGroupsHandler
 	// AdminAPIListUsersHandler sets the operation handler for the list users operation
 	AdminAPIListUsersHandler admin_api.ListUsersHandler
 	// UserAPIMakeBucketHandler sets the operation handler for the make bucket operation
 	UserAPIMakeBucketHandler user_api.MakeBucketHandler
+	// AdminAPIRemoveGroupHandler sets the operation handler for the remove group operation
+	AdminAPIRemoveGroupHandler admin_api.RemoveGroupHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -180,6 +195,10 @@ func (o *McsAPI) Validate() error {
 		unregistered = append(unregistered, "JSONProducer")
 	}
 
+	if o.AdminAPIAddGroupHandler == nil {
+		unregistered = append(unregistered, "AdminAPI.AddGroupHandler")
+	}
+
 	if o.AdminAPIAddUserHandler == nil {
 		unregistered = append(unregistered, "AdminAPI.AddUserHandler")
 	}
@@ -192,12 +211,20 @@ func (o *McsAPI) Validate() error {
 		unregistered = append(unregistered, "UserAPI.ListBucketsHandler")
 	}
 
+	if o.AdminAPIListGroupsHandler == nil {
+		unregistered = append(unregistered, "AdminAPI.ListGroupsHandler")
+	}
+
 	if o.AdminAPIListUsersHandler == nil {
 		unregistered = append(unregistered, "AdminAPI.ListUsersHandler")
 	}
 
 	if o.UserAPIMakeBucketHandler == nil {
 		unregistered = append(unregistered, "UserAPI.MakeBucketHandler")
+	}
+
+	if o.AdminAPIRemoveGroupHandler == nil {
+		unregistered = append(unregistered, "AdminAPI.RemoveGroupHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -295,6 +322,11 @@ func (o *McsAPI) initHandlerCache() {
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
+	o.handlers["POST"]["/api/v1/groups"] = admin_api.NewAddGroup(o.context, o.AdminAPIAddGroupHandler)
+
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
 	o.handlers["POST"]["/api/v1/users"] = admin_api.NewAddUser(o.context, o.AdminAPIAddUserHandler)
 
 	if o.handlers["DELETE"] == nil {
@@ -310,12 +342,22 @@ func (o *McsAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/api/v1/groups"] = admin_api.NewListGroups(o.context, o.AdminAPIListGroupsHandler)
+
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/api/v1/users"] = admin_api.NewListUsers(o.context, o.AdminAPIListUsersHandler)
 
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/api/v1/buckets"] = user_api.NewMakeBucket(o.context, o.UserAPIMakeBucketHandler)
+
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/api/v1/groups/{name}"] = admin_api.NewRemoveGroup(o.context, o.AdminAPIRemoveGroupHandler)
 
 }
 
