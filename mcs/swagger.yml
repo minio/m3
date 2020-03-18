@@ -121,6 +121,68 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - AdminAPI
+  /api/v1/groups:
+    get:
+      summary: List Groups
+      operationId: ListGroups
+      parameters:
+        - name: offset
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: limit
+          in: query
+          required: false
+          type: integer
+          format: int32
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/listGroupsResponse"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
+    post:
+      summary: Add Group
+      operationId: AddGroup
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/addGroupRequest'
+      responses:
+        201:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
+  /api/v1/groups/{name}:
+    delete:
+      summary: Remove group 
+      operationId: RemoveGroup
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+      responses:
+        204:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
 definitions:
   bucketAccess:
     type: string
@@ -206,3 +268,41 @@ definitions:
         type: string
       secretKey:
         type: string
+  group:
+    type: object
+    properties:
+      name:
+        type: string
+      status:
+        type: string
+      members:
+        type: array
+        items:
+          type: string
+      policy:
+        type: string
+  addGroupRequest:
+    type: object
+    required:
+      - group
+      - members
+    properties:
+      group:
+        type: string
+      members:
+        type: array
+        items:
+          type: string
+  listGroupsResponse:
+    type: object
+    properties:
+      groups:
+        type: array
+        items:
+          type: string
+        title: list of groups
+      total_groups:
+        type: integer
+        format: int64
+        title: total number of groups
+

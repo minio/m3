@@ -138,6 +138,8 @@ var s3AdminNew = newAdminFactory()
 type MinioAdmin interface {
 	listUsers() (map[string]madmin.UserInfo, error)
 	addUser(acessKey, SecretKey string) error
+	listGroups() ([]string, error)
+	updateGroupMembers(madmin.GroupAddRemove) error
 }
 
 // Interface implementation
@@ -156,6 +158,16 @@ func (ac adminClient) listUsers() (map[string]madmin.UserInfo, error) {
 // implements madmin.AddUser()
 func (ac adminClient) addUser(acessKey, secretKey string) error {
 	return ac.client.AddUser(acessKey, secretKey)
+}
+
+// implements madmin.ListGroups()
+func (ac adminClient) listGroups() ([]string, error) {
+	return ac.client.ListGroups()
+}
+
+// implements madmin.UpdateGroupMembers()
+func (ac adminClient) updateGroupMembers(greq madmin.GroupAddRemove) error {
+	return ac.client.UpdateGroupMembers(greq)
 }
 
 func newMAdminClient() (*madmin.AdminClient, error) {
