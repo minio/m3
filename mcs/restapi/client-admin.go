@@ -140,6 +140,8 @@ type MinioAdmin interface {
 	addUser(acessKey, SecretKey string) error
 	listGroups() ([]string, error)
 	updateGroupMembers(madmin.GroupAddRemove) error
+	getGroupDescription(grouo string) (*madmin.GroupDesc, error)
+	setGroupStatus(group string, status madmin.GroupStatus) error
 }
 
 // Interface implementation
@@ -168,6 +170,16 @@ func (ac adminClient) listGroups() ([]string, error) {
 // implements madmin.UpdateGroupMembers()
 func (ac adminClient) updateGroupMembers(greq madmin.GroupAddRemove) error {
 	return ac.client.UpdateGroupMembers(greq)
+}
+
+// implements madmin.GetGroupDescription(group)
+func (ac adminClient) getGroupDescription(group string) (*madmin.GroupDesc, error) {
+	return ac.client.GetGroupDescription(group)
+}
+
+// implements madmin.SetGroupStatus(group, status)
+func (ac adminClient) setGroupStatus(group string, status madmin.GroupStatus) error {
+	return ac.client.SetGroupStatus(group, status)
 }
 
 func newMAdminClient() (*madmin.AdminClient, error) {

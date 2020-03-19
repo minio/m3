@@ -67,6 +67,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		UserAPIDeleteBucketHandler: user_api.DeleteBucketHandlerFunc(func(params user_api.DeleteBucketParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.DeleteBucket has not yet been implemented")
 		}),
+		AdminAPIGroupInfoHandler: admin_api.GroupInfoHandlerFunc(func(params admin_api.GroupInfoParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.GroupInfo has not yet been implemented")
+		}),
 		UserAPIListBucketsHandler: user_api.ListBucketsHandlerFunc(func(params user_api.ListBucketsParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.ListBuckets has not yet been implemented")
 		}),
@@ -81,6 +84,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		}),
 		AdminAPIRemoveGroupHandler: admin_api.RemoveGroupHandlerFunc(func(params admin_api.RemoveGroupParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.RemoveGroup has not yet been implemented")
+		}),
+		AdminAPIUpdateGroupHandler: admin_api.UpdateGroupHandlerFunc(func(params admin_api.UpdateGroupParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.UpdateGroup has not yet been implemented")
 		}),
 	}
 }
@@ -119,6 +125,8 @@ type McsAPI struct {
 	AdminAPIAddUserHandler admin_api.AddUserHandler
 	// UserAPIDeleteBucketHandler sets the operation handler for the delete bucket operation
 	UserAPIDeleteBucketHandler user_api.DeleteBucketHandler
+	// AdminAPIGroupInfoHandler sets the operation handler for the group info operation
+	AdminAPIGroupInfoHandler admin_api.GroupInfoHandler
 	// UserAPIListBucketsHandler sets the operation handler for the list buckets operation
 	UserAPIListBucketsHandler user_api.ListBucketsHandler
 	// AdminAPIListGroupsHandler sets the operation handler for the list groups operation
@@ -129,6 +137,8 @@ type McsAPI struct {
 	UserAPIMakeBucketHandler user_api.MakeBucketHandler
 	// AdminAPIRemoveGroupHandler sets the operation handler for the remove group operation
 	AdminAPIRemoveGroupHandler admin_api.RemoveGroupHandler
+	// AdminAPIUpdateGroupHandler sets the operation handler for the update group operation
+	AdminAPIUpdateGroupHandler admin_api.UpdateGroupHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -207,6 +217,10 @@ func (o *McsAPI) Validate() error {
 		unregistered = append(unregistered, "UserAPI.DeleteBucketHandler")
 	}
 
+	if o.AdminAPIGroupInfoHandler == nil {
+		unregistered = append(unregistered, "AdminAPI.GroupInfoHandler")
+	}
+
 	if o.UserAPIListBucketsHandler == nil {
 		unregistered = append(unregistered, "UserAPI.ListBucketsHandler")
 	}
@@ -225,6 +239,10 @@ func (o *McsAPI) Validate() error {
 
 	if o.AdminAPIRemoveGroupHandler == nil {
 		unregistered = append(unregistered, "AdminAPI.RemoveGroupHandler")
+	}
+
+	if o.AdminAPIUpdateGroupHandler == nil {
+		unregistered = append(unregistered, "AdminAPI.UpdateGroupHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -337,6 +355,11 @@ func (o *McsAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/api/v1/groups/{name}"] = admin_api.NewGroupInfo(o.context, o.AdminAPIGroupInfoHandler)
+
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/api/v1/buckets"] = user_api.NewListBuckets(o.context, o.UserAPIListBucketsHandler)
 
 	if o.handlers["GET"] == nil {
@@ -358,6 +381,11 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/api/v1/groups/{name}"] = admin_api.NewRemoveGroup(o.context, o.AdminAPIRemoveGroupHandler)
+
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/api/v1/groups/{name}"] = admin_api.NewUpdateGroup(o.context, o.AdminAPIUpdateGroupHandler)
 
 }
 
