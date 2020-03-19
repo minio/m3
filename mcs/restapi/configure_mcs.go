@@ -53,6 +53,8 @@ func configureAPI(api *operations.McsAPI) http.Handler {
 	registerUsersHandlers(api)
 	// Register groups handlers
 	registerGroupsHandlers(api)
+	// Register policies handlers
+	registersPoliciesHandler(api)
 
 	api.PreServerShutdown = func() {}
 

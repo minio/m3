@@ -183,6 +183,50 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - AdminAPI
+  /api/v1/policies:
+    get:
+      summary: List Policies
+      operationId: ListPolicies
+      parameters:
+        - name: offset
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: limit
+          in: query
+          required: false
+          type: integer
+          format: int32
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/listPoliciesResponse"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
+    post:
+      summary: Add Policy
+      operationId: AddPolicy
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/addPolicyRequest'
+      responses:
+        201:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
 definitions:
   bucketAccess:
     type: string
@@ -305,4 +349,48 @@ definitions:
         type: integer
         format: int64
         title: total number of groups
-
+  statement:
+    type: object
+    properties:
+      Effect:
+        type: string
+      Action:
+        type: array
+        items:
+          type: string
+      Resource:
+        type: array
+        items:
+          type: string
+  policy:
+    type: object
+    properties:
+      Name:
+        type: string
+      Version:
+        type: string
+      Statement:
+        type: array
+        items:
+          $ref: "#/definitions/statement"
+  addPolicyRequest:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+      definition:
+        type: string
+  listPoliciesResponse:
+    type: object
+    properties:
+      policies:
+        type: array
+        items:
+          $ref: "#/definitions/policy"
+        title: list of policies
+      total_policies:
+        type: integer
+        format: int64
+        title: total number of policies

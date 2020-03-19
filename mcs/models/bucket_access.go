@@ -26,11 +26,12 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/errors"
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/validate"
 )
 
 // BucketAccess bucket access
+//
 // swagger:model bucketAccess
 type BucketAccess string
 

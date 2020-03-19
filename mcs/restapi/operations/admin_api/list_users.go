@@ -25,7 +25,7 @@ package admin_api
 import (
 	"net/http"
 
-	middleware "github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/runtime/middleware"
 )
 
 // ListUsersHandlerFunc turns a function with the right signature into a list users handler

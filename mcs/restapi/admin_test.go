@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/minio/m3/mcs/models"
 	"github.com/minio/minio/pkg/madmin"
 
 	"errors"
@@ -33,6 +34,7 @@ var minioListUsersMock func() (map[string]madmin.UserInfo, error)
 var minioAddUserMock func(accessKey, secreyKey string) error
 var minioListGroupsMock func() ([]string, error)
 var minioUpdateGroupMembersMock func(madmin.GroupAddRemove) error
+var minioListPoliciesMock func() (map[string][]byte, error)
 
 // Define a mock struct of Admin Client interface implementation
 type adminClientMock struct {
@@ -55,6 +57,10 @@ func (ac adminClientMock) listGroups() ([]string, error) {
 
 func (ac adminClientMock) updateGroupMembers(req madmin.GroupAddRemove) error {
 	return minioUpdateGroupMembersMock(req)
+}
+
+func (ac adminClientMock) listPolicies() (map[string][]byte, error) {
+	return minioListPoliciesMock()
 }
 
 func TestListUsers(t *testing.T) {
@@ -228,6 +234,101 @@ func TestRemoveGroup(t *testing.T) {
 		return errors.New("error")
 	}
 	if err := removeGroup(adminClient, groupToRemove); assert.Error(err) {
+		assert.Equal("error", err.Error())
+	}
+}
+
+func TestListPolicies(t *testing.T) {
+	assert := assert.New(t)
+	adminClient := adminClientMock{}
+	mockPoliciesList := map[string][]byte{
+		"readonly":    []byte("{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:GetBucketLocation\",\"s3:GetObject\"],\"Resource\":[\"arn:aws:s3:::*\"]}]}"),
+		"readwrite":   []byte("{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:*\"],\"Resource\":[\"arn:aws:s3:::*\"]}]}"),
+		"diagnostics": []byte("{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"admin:ServerInfo\",\"admin:HardwareInfo\",\"admin:TopLocksInfo\",\"admin:PerfInfo\",\"admin:Profiling\",\"admin:ServerTrace\",\"admin:ConsoleLog\"],\"Resource\":[\"arn:aws:s3:::*\"]}]}"),
+	}
+	assertPoliciesMap := map[string]models.Policy{
+		"readonly": {
+			Name: "readonly",
+			Statement: []*models.Statement{
+				{
+					Action:   []string{"s3:GetBucketLocation", "s3:GetObject"},
+					Effect:   "Allow",
+					Resource: []string{"arn:aws:s3:::*"},
+				},
+			},
+			Version: "2012-10-17",
+		},
+		"readwrite": {
+			Name: "readwrite",
+			Statement: []*models.Statement{
+				{
+					Action:   []string{"s3:*"},
+					Effect:   "Allow",
+					Resource: []string{"arn:aws:s3:::*"},
+				},
+			},
+			Version: "2012-10-17",
+		},
+		"diagnostics": {
+			Name: "diagnostics",
+			Statement: []*models.Statement{
+				{
+					Action: []string{
+						"admin:ServerInfo",
+						"admin:HardwareInfo",
+						"admin:TopLocksInfo",
+						"admin:PerfInfo",
+						"admin:Profiling",
+						"admin:ServerTrace",
+						"admin:ConsoleLog",
+					},
+					Effect:   "Allow",
+					Resource: []string{"arn:aws:s3:::*"},
+				},
+			},
+			Version: "2012-10-17",
+		},
+	}
+	// mock function response from listPolicies()
+	minioListPoliciesMock = func() (map[string][]byte, error) {
+		return mockPoliciesList, nil
+	}
+	// Test-1 : listPolicies() Get response from minio client with three Canned Policies and return the same number on listPolicies()
+	function := "listPolicies()"
+	policiesList, err := listPolicies(adminClient)
+	if err != nil {
+		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
+	}
+	// verify length of Policies is correct
+	assert.Equal(len(mockPoliciesList), len(policiesList), fmt.Sprintf("Failed on %s: length of Groups's lists is not the same", function))
+
+	// Test-2 :
+	// get list policies response, this response should have Name, Version and Statement
+	// as part of each Policy
+	for _, policy := range policiesList {
+		assertPolicy := assertPoliciesMap[policy.Name]
+		// Check if policy statement has the same length as in the assertPoliciesMap
+		assert.Equal(len(policy.Statement), len(assertPolicy.Statement))
+		// Check if policy name is the same as in the assertPoliciesMap
+		assert.Equal(policy.Name, assertPolicy.Name)
+		// Check if policy version is the same as in the assertPoliciesMap
+		assert.Equal(policy.Version, assertPolicy.Version)
+		// Iterate over each policy statement
+		for i, statement := range policy.Statement {
+			// Check if each statement effect is the same as in the assertPoliciesMap statement
+			assert.Equal(statement.Effect, assertPolicy.Statement[i].Effect)
+			// Check if each statement action is the same as in the assertPoliciesMap statement
+			assert.Equal(statement.Action, assertPolicy.Statement[i].Action)
+			// Check if each statement resource is the same as in the assertPoliciesMap resource
+			assert.Equal(statement.Resource, assertPolicy.Statement[i].Resource)
+		}
+	}
+	// Test-3 : listPolicies() Return error and see that the error is handled correctly and returned
+	minioListGroupsMock = func() ([]string, error) {
+		return nil, errors.New("error")
+	}
+	_, err = listGroups(adminClient)
+	if assert.Error(err) {
 		assert.Equal("error", err.Error())
 	}
 }
