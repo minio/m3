@@ -352,24 +352,24 @@ definitions:
   statement:
     type: object
     properties:
-      Effect:
+      effect:
         type: string
-      Action:
+      actions:
         type: array
         items:
           type: string
-      Resource:
+      resources:
         type: array
         items:
           type: string
   policy:
     type: object
     properties:
-      Name:
+      name:
         type: string
-      Version:
+      version:
         type: string
-      Statement:
+      statements:
         type: array
         items:
           $ref: "#/definitions/statement"

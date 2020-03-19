@@ -249,31 +249,31 @@ func TestListPolicies(t *testing.T) {
 	assertPoliciesMap := map[string]models.Policy{
 		"readonly": {
 			Name: "readonly",
-			Statement: []*models.Statement{
+			Statements: []*models.Statement{
 				{
-					Action:   []string{"s3:GetBucketLocation", "s3:GetObject"},
-					Effect:   "Allow",
-					Resource: []string{"arn:aws:s3:::*"},
+					Actions:   []string{"s3:GetBucketLocation", "s3:GetObject"},
+					Effect:    "Allow",
+					Resources: []string{"arn:aws:s3:::*"},
 				},
 			},
 			Version: "2012-10-17",
 		},
 		"readwrite": {
 			Name: "readwrite",
-			Statement: []*models.Statement{
+			Statements: []*models.Statement{
 				{
-					Action:   []string{"s3:*"},
-					Effect:   "Allow",
-					Resource: []string{"arn:aws:s3:::*"},
+					Actions:   []string{"s3:*"},
+					Effect:    "Allow",
+					Resources: []string{"arn:aws:s3:::*"},
 				},
 			},
 			Version: "2012-10-17",
 		},
 		"diagnostics": {
 			Name: "diagnostics",
-			Statement: []*models.Statement{
+			Statements: []*models.Statement{
 				{
-					Action: []string{
+					Actions: []string{
 						"admin:ServerInfo",
 						"admin:HardwareInfo",
 						"admin:TopLocksInfo",
@@ -282,8 +282,8 @@ func TestListPolicies(t *testing.T) {
 						"admin:ServerTrace",
 						"admin:ConsoleLog",
 					},
-					Effect:   "Allow",
-					Resource: []string{"arn:aws:s3:::*"},
+					Effect:    "Allow",
+					Resources: []string{"arn:aws:s3:::*"},
 				},
 			},
 			Version: "2012-10-17",
@@ -308,19 +308,19 @@ func TestListPolicies(t *testing.T) {
 	for _, policy := range policiesList {
 		assertPolicy := assertPoliciesMap[policy.Name]
 		// Check if policy statement has the same length as in the assertPoliciesMap
-		assert.Equal(len(policy.Statement), len(assertPolicy.Statement))
+		assert.Equal(len(policy.Statements), len(assertPolicy.Statements))
 		// Check if policy name is the same as in the assertPoliciesMap
 		assert.Equal(policy.Name, assertPolicy.Name)
 		// Check if policy version is the same as in the assertPoliciesMap
 		assert.Equal(policy.Version, assertPolicy.Version)
 		// Iterate over each policy statement
-		for i, statement := range policy.Statement {
+		for i, statement := range policy.Statements {
 			// Check if each statement effect is the same as in the assertPoliciesMap statement
-			assert.Equal(statement.Effect, assertPolicy.Statement[i].Effect)
+			assert.Equal(statement.Effect, assertPolicy.Statements[i].Effect)
 			// Check if each statement action is the same as in the assertPoliciesMap statement
-			assert.Equal(statement.Action, assertPolicy.Statement[i].Action)
+			assert.Equal(statement.Actions, assertPolicy.Statements[i].Actions)
 			// Check if each statement resource is the same as in the assertPoliciesMap resource
-			assert.Equal(statement.Resource, assertPolicy.Statement[i].Resource)
+			assert.Equal(statement.Resources, assertPolicy.Statements[i].Resources)
 		}
 	}
 	// Test-3 : listPolicies() Return error and see that the error is handled correctly and returned

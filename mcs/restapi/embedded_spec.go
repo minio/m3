@@ -569,16 +569,16 @@ func init() {
     "policy": {
       "type": "object",
       "properties": {
-        "Name": {
+        "name": {
           "type": "string"
         },
-        "Statement": {
+        "statements": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/statement"
           }
         },
-        "Version": {
+        "version": {
           "type": "string"
         }
       }
@@ -586,16 +586,16 @@ func init() {
     "statement": {
       "type": "object",
       "properties": {
-        "Action": {
+        "actions": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
-        "Effect": {
+        "effect": {
           "type": "string"
         },
-        "Resource": {
+        "resources": {
           "type": "array",
           "items": {
             "type": "string"
@@ -1160,16 +1160,16 @@ func init() {
     "policy": {
       "type": "object",
       "properties": {
-        "Name": {
+        "name": {
           "type": "string"
         },
-        "Statement": {
+        "statements": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/statement"
           }
         },
-        "Version": {
+        "version": {
           "type": "string"
         }
       }
@@ -1177,16 +1177,16 @@ func init() {
     "statement": {
       "type": "object",
       "properties": {
-        "Action": {
+        "actions": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
-        "Effect": {
+        "effect": {
           "type": "string"
         },
-        "Resource": {
+        "resources": {
           "type": "array",
           "items": {
             "type": "string"
