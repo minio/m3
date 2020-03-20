@@ -35,6 +35,7 @@ var minioAddUserMock func(accessKey, secreyKey string) error
 var minioListGroupsMock func() ([]string, error)
 var minioUpdateGroupMembersMock func(madmin.GroupAddRemove) error
 var minioListPoliciesMock func() (map[string][]byte, error)
+var minioRemovePolicyMock func(name string) error
 
 // Define a mock struct of Admin Client interface implementation
 type adminClientMock struct {
@@ -61,6 +62,10 @@ func (ac adminClientMock) updateGroupMembers(req madmin.GroupAddRemove) error {
 
 func (ac adminClientMock) listPolicies() (map[string][]byte, error) {
 	return minioListPoliciesMock()
+}
+
+func (ac adminClientMock) removePolicy(name string) error {
+	return minioRemovePolicyMock(name)
 }
 
 func TestListUsers(t *testing.T) {
@@ -300,8 +305,7 @@ func TestListPolicies(t *testing.T) {
 		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
 	}
 	// verify length of Policies is correct
-	assert.Equal(len(mockPoliciesList), len(policiesList), fmt.Sprintf("Failed on %s: length of Groups's lists is not the same", function))
-
+	assert.Equal(len(mockPoliciesList), len(policiesList), fmt.Sprintf("Failed on %s: length of Policies's lists is not the same", function))
 	// Test-2 :
 	// get list policies response, this response should have Name, Version and Statement
 	// as part of each Policy
@@ -324,11 +328,43 @@ func TestListPolicies(t *testing.T) {
 		}
 	}
 	// Test-3 : listPolicies() Return error and see that the error is handled correctly and returned
-	minioListGroupsMock = func() ([]string, error) {
+	minioListPoliciesMock = func() (map[string][]byte, error) {
 		return nil, errors.New("error")
 	}
-	_, err = listGroups(adminClient)
+	_, err = listPolicies(adminClient)
 	if assert.Error(err) {
+		assert.Equal("error", err.Error())
+	}
+	//Test-4 : listPolicies() handles malformed json
+	minioListPoliciesMock = func() (map[string][]byte, error) {
+		malformedData := map[string][]byte{
+			"malformed-policy": []byte("asdasdasdasdasd"),
+		}
+		return malformedData, nil
+	}
+	_, err = listPolicies(adminClient)
+	if assert.Error(err) {
+		assert.NotEmpty(err.Error())
+	}
+}
+
+func TestRemovePolicy(t *testing.T) {
+	assert := assert.New(t)
+	adminClient := adminClientMock{}
+	// Test-1 : removePolicy() remove an existing policy
+	policyToRemove := "mcs-policy"
+	minioRemovePolicyMock = func(name string) error {
+		return nil
+	}
+	function := "removePolicy()"
+	if err := removePolicy(adminClient, policyToRemove); err != nil {
+		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
+	}
+	// Test-2 : removePolicy() Return error and see that the error is handled correctly and returned
+	minioRemovePolicyMock = func(name string) error {
+		return errors.New("error")
+	}
+	if err := removePolicy(adminClient, policyToRemove); assert.Error(err) {
 		assert.Equal("error", err.Error())
 	}
 }

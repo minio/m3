@@ -141,6 +141,7 @@ type MinioAdmin interface {
 	listGroups() ([]string, error)
 	updateGroupMembers(madmin.GroupAddRemove) error
 	listPolicies() (map[string][]byte, error)
+	removePolicy(name string) error
 }
 
 // Interface implementation
@@ -174,6 +175,11 @@ func (ac adminClient) updateGroupMembers(greq madmin.GroupAddRemove) error {
 // implements madmin.ListCannedPolicies()
 func (ac adminClient) listPolicies() (map[string][]byte, error) {
 	return ac.client.ListCannedPolicies()
+}
+
+// implements madmin.RemoveCannedPolicy()
+func (ac adminClient) removePolicy(name string) error {
+	return ac.client.RemoveCannedPolicy(name)
 }
 
 func newMAdminClient() (*madmin.AdminClient, error) {

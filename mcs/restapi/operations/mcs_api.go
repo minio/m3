@@ -91,6 +91,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		AdminAPIRemoveGroupHandler: admin_api.RemoveGroupHandlerFunc(func(params admin_api.RemoveGroupParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.RemoveGroup has not yet been implemented")
 		}),
+		AdminAPIRemovePolicyHandler: admin_api.RemovePolicyHandlerFunc(func(params admin_api.RemovePolicyParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.RemovePolicy has not yet been implemented")
+		}),
 	}
 }
 
@@ -144,6 +147,8 @@ type McsAPI struct {
 	UserAPIMakeBucketHandler user_api.MakeBucketHandler
 	// AdminAPIRemoveGroupHandler sets the operation handler for the remove group operation
 	AdminAPIRemoveGroupHandler admin_api.RemoveGroupHandler
+	// AdminAPIRemovePolicyHandler sets the operation handler for the remove policy operation
+	AdminAPIRemovePolicyHandler admin_api.RemovePolicyHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -239,6 +244,9 @@ func (o *McsAPI) Validate() error {
 	}
 	if o.AdminAPIRemoveGroupHandler == nil {
 		unregistered = append(unregistered, "admin_api.RemoveGroupHandler")
+	}
+	if o.AdminAPIRemovePolicyHandler == nil {
+		unregistered = append(unregistered, "admin_api.RemovePolicyHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -368,6 +376,10 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/api/v1/groups/{name}"] = admin_api.NewRemoveGroup(o.context, o.AdminAPIRemoveGroupHandler)
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/api/v1/policies/{name}"] = admin_api.NewRemovePolicy(o.context, o.AdminAPIRemovePolicyHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

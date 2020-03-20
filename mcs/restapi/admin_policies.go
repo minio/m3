@@ -20,6 +20,8 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/go-openapi/errors"
+
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
 	"github.com/minio/m3/mcs/models"
@@ -38,6 +40,12 @@ func registersPoliciesHandler(api *operations.McsAPI) {
 	})
 	// Add Policy
 	// Remove Policy
+	api.AdminAPIRemovePolicyHandler = admin_api.RemovePolicyHandlerFunc(func(params admin_api.RemovePolicyParams) middleware.Responder {
+		if err := getRemovePolicyResponse(params); err != nil {
+			return admin_api.NewRemovePolicyDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+		}
+		return admin_api.NewRemovePolicyNoContent()
+	})
 }
 
 type rawStatement struct {
@@ -81,12 +89,12 @@ func listPolicies(client MinioAdmin) ([]*models.Policy, error) {
 	policyRawMap, err := client.listPolicies()
 	var policies []*models.Policy
 	if err != nil {
-		return policies, nil
+		return nil, err
 	}
 	for name, policyRaw := range policyRawMap {
 		var rawPolicy *rawPolicy
 		if err := json.Unmarshal(policyRaw, &rawPolicy); err != nil {
-			panic(err)
+			return nil, err
 		}
 		policy := parseRawPolicy(rawPolicy)
 		policy.Name = name
@@ -117,4 +125,35 @@ func getListPoliciesResponse() (*models.ListPoliciesResponse, error) {
 		TotalPolicies: int64(len(policies)),
 	}
 	return listGroupsResponse, nil
+}
+
+// removePolicy deletes a minIO canned policy
+func removePolicy(client MinioAdmin, name string) error {
+	err := client.removePolicy(name)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// getRemovePolicyResponse performs removePolicy() and serializes it to the handler's output
+func getRemovePolicyResponse(params admin_api.RemovePolicyParams) error {
+	if params.Name == "" {
+		log.Println("error policy name not in request")
+		return errors.New(500, "error policy name not in request")
+	}
+	mAdmin, err := newMAdminClient()
+	if err != nil {
+		log.Println("error creating Madmin Client:", err)
+		return err
+	}
+	// create a MinIO Admin Client interface implementation
+	// defining the client to be used
+	adminClient := adminClient{client: mAdmin}
+
+	if err := removePolicy(adminClient, params.Name); err != nil {
+		log.Println("error removing policy:", err)
+		return err
+	}
+	return nil
 }

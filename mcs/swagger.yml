@@ -227,6 +227,24 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - AdminAPI
+  /api/v1/policies/{name}:
+    delete:
+      summary: Remove policy
+      operationId: RemovePolicy
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+      responses:
+        204:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
 definitions:
   bucketAccess:
     type: string

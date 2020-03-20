@@ -306,6 +306,34 @@ func init() {
         }
       }
     },
+    "/api/v1/policies/{name}": {
+      "delete": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Remove policy",
+        "operationId": "RemovePolicy",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users": {
       "get": {
         "tags": [
@@ -886,6 +914,34 @@ func init() {
         ],
         "responses": {
           "201": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/policies/{name}": {
+      "delete": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Remove policy",
+        "operationId": "RemovePolicy",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
             "description": "A successful response."
           },
           "default": {
