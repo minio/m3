@@ -29,26 +29,22 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// MakeBucketRequest make bucket request
+// AddPolicyRequest add policy request
 //
-// swagger:model makeBucketRequest
-type MakeBucketRequest struct {
+// swagger:model addPolicyRequest
+type AddPolicyRequest struct {
 
-	// access
-	Access BucketAccess `json:"access,omitempty"`
+	// definition
+	Definition string `json:"definition,omitempty"`
 
 	// name
 	// Required: true
 	Name *string `json:"name"`
 }
 
-// Validate validates this make bucket request
-func (m *MakeBucketRequest) Validate(formats strfmt.Registry) error {
+// Validate validates this add policy request
+func (m *AddPolicyRequest) Validate(formats strfmt.Registry) error {
 	var res []error
-
-	if err := m.validateAccess(formats); err != nil {
-		res = append(res, err)
-	}
 
 	if err := m.validateName(formats); err != nil {
 		res = append(res, err)
@@ -60,23 +56,7 @@ func (m *MakeBucketRequest) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *MakeBucketRequest) validateAccess(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Access) { // not required
-		return nil
-	}
-
-	if err := m.Access.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("access")
-		}
-		return err
-	}
-
-	return nil
-}
-
-func (m *MakeBucketRequest) validateName(formats strfmt.Registry) error {
+func (m *AddPolicyRequest) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
 		return err
@@ -86,7 +66,7 @@ func (m *MakeBucketRequest) validateName(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *MakeBucketRequest) MarshalBinary() ([]byte, error) {
+func (m *AddPolicyRequest) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -94,8 +74,8 @@ func (m *MakeBucketRequest) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *MakeBucketRequest) UnmarshalBinary(b []byte) error {
-	var res MakeBucketRequest
+func (m *AddPolicyRequest) UnmarshalBinary(b []byte) error {
+	var res AddPolicyRequest
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

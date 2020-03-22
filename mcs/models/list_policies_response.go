@@ -23,34 +23,30 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"strconv"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 )
 
-// MakeBucketRequest make bucket request
+// ListPoliciesResponse list policies response
 //
-// swagger:model makeBucketRequest
-type MakeBucketRequest struct {
+// swagger:model listPoliciesResponse
+type ListPoliciesResponse struct {
 
-	// access
-	Access BucketAccess `json:"access,omitempty"`
+	// list of policies
+	Policies []*Policy `json:"policies"`
 
-	// name
-	// Required: true
-	Name *string `json:"name"`
+	// total number of policies
+	TotalPolicies int64 `json:"total_policies,omitempty"`
 }
 
-// Validate validates this make bucket request
-func (m *MakeBucketRequest) Validate(formats strfmt.Registry) error {
+// Validate validates this list policies response
+func (m *ListPoliciesResponse) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateAccess(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateName(formats); err != nil {
+	if err := m.validatePolicies(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -60,33 +56,33 @@ func (m *MakeBucketRequest) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *MakeBucketRequest) validateAccess(formats strfmt.Registry) error {
+func (m *ListPoliciesResponse) validatePolicies(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Access) { // not required
+	if swag.IsZero(m.Policies) { // not required
 		return nil
 	}
 
-	if err := m.Access.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("access")
+	for i := 0; i < len(m.Policies); i++ {
+		if swag.IsZero(m.Policies[i]) { // not required
+			continue
 		}
-		return err
-	}
 
-	return nil
-}
+		if m.Policies[i] != nil {
+			if err := m.Policies[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("policies" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
 
-func (m *MakeBucketRequest) validateName(formats strfmt.Registry) error {
-
-	if err := validate.Required("name", "body", m.Name); err != nil {
-		return err
 	}
 
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *MakeBucketRequest) MarshalBinary() ([]byte, error) {
+func (m *ListPoliciesResponse) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -94,8 +90,8 @@ func (m *MakeBucketRequest) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *MakeBucketRequest) UnmarshalBinary(b []byte) error {
-	var res MakeBucketRequest
+func (m *ListPoliciesResponse) UnmarshalBinary(b []byte) error {
+	var res ListPoliciesResponse
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

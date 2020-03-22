@@ -307,6 +307,102 @@ func init() {
         }
       }
     },
+    "/api/v1/policies": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "List Policies",
+        "operationId": "ListPolicies",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/listPoliciesResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Add Policy",
+        "operationId": "AddPolicy",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/addPolicyRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/policy"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/policies/{name}": {
+      "delete": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Remove policy",
+        "operationId": "RemovePolicy",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users": {
       "get": {
         "tags": [
@@ -392,6 +488,20 @@ func init() {
           "items": {
             "type": "string"
           }
+        }
+      }
+    },
+    "addPolicyRequest": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "definition": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
         }
       }
     },
@@ -510,6 +620,23 @@ func init() {
         }
       }
     },
+    "listPoliciesResponse": {
+      "type": "object",
+      "properties": {
+        "policies": {
+          "type": "array",
+          "title": "list of policies",
+          "items": {
+            "$ref": "#/definitions/policy"
+          }
+        },
+        "total_policies": {
+          "type": "integer",
+          "format": "int64",
+          "title": "total number of policies"
+        }
+      }
+    },
     "listUsersResponse": {
       "type": "object",
       "properties": {
@@ -533,6 +660,43 @@ func init() {
         },
         "name": {
           "type": "string"
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "statements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/statement"
+          }
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "statement": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "effect": {
+          "type": "string"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -849,6 +1013,102 @@ func init() {
         }
       }
     },
+    "/api/v1/policies": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "List Policies",
+        "operationId": "ListPolicies",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/listPoliciesResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Add Policy",
+        "operationId": "AddPolicy",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/addPolicyRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/policy"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/policies/{name}": {
+      "delete": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Remove policy",
+        "operationId": "RemovePolicy",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users": {
       "get": {
         "tags": [
@@ -934,6 +1194,20 @@ func init() {
           "items": {
             "type": "string"
           }
+        }
+      }
+    },
+    "addPolicyRequest": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "definition": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
         }
       }
     },
@@ -1052,6 +1326,23 @@ func init() {
         }
       }
     },
+    "listPoliciesResponse": {
+      "type": "object",
+      "properties": {
+        "policies": {
+          "type": "array",
+          "title": "list of policies",
+          "items": {
+            "$ref": "#/definitions/policy"
+          }
+        },
+        "total_policies": {
+          "type": "integer",
+          "format": "int64",
+          "title": "total number of policies"
+        }
+      }
+    },
     "listUsersResponse": {
       "type": "object",
       "properties": {
@@ -1075,6 +1366,43 @@ func init() {
         },
         "name": {
           "type": "string"
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "statements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/statement"
+          }
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "statement": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "effect": {
+          "type": "string"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },

@@ -26,11 +26,12 @@ import (
 	"strconv"
 
 	"github.com/go-openapi/errors"
-	strfmt "github.com/go-openapi/strfmt"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
 
 // ListBucketsResponse list buckets response
+//
 // swagger:model listBucketsResponse
 type ListBucketsResponse struct {
 
