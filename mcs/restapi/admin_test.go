@@ -35,7 +35,9 @@ var minioAddUserMock func(accessKey, secreyKey string) error
 var minioListGroupsMock func() ([]string, error)
 var minioUpdateGroupMembersMock func(madmin.GroupAddRemove) error
 var minioListPoliciesMock func() (map[string][]byte, error)
+var minioGetPolicyMock func(name string) ([]byte, error)
 var minioRemovePolicyMock func(name string) error
+var minioAddPolicyMock func(name, policy string) error
 
 // Define a mock struct of Admin Client interface implementation
 type adminClientMock struct {
@@ -64,8 +66,16 @@ func (ac adminClientMock) listPolicies() (map[string][]byte, error) {
 	return minioListPoliciesMock()
 }
 
+func (ac adminClientMock) getPolicy(name string) ([]byte, error) {
+	return minioGetPolicyMock(name)
+}
+
 func (ac adminClientMock) removePolicy(name string) error {
 	return minioRemovePolicyMock(name)
+}
+
+func (ac adminClientMock) addPolicy(name, policy string) error {
+	return minioAddPolicyMock(name, policy)
 }
 
 func TestListUsers(t *testing.T) {
@@ -366,5 +376,62 @@ func TestRemovePolicy(t *testing.T) {
 	}
 	if err := removePolicy(adminClient, policyToRemove); assert.Error(err) {
 		assert.Equal("error", err.Error())
+	}
+}
+
+func TestAddPolicy(t *testing.T) {
+	assert := assert.New(t)
+	adminClient := adminClientMock{}
+	policyName := "new-policy"
+	policyDefinition := "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:GetBucketLocation\",\"s3:GetObject\",\"s3:ListAllMyBuckets\"],\"Resource\":[\"arn:aws:s3:::*\"]}]}"
+	minioAddPolicyMock = func(name, policy string) error {
+		return nil
+	}
+	minioGetPolicyMock = func(name string) (bytes []byte, err error) {
+		return []byte(policyDefinition), nil
+	}
+	assertPolicy := models.Policy{
+		Name: "new-policy",
+		Statements: []*models.Statement{
+			{
+				Actions:   []string{"s3:GetBucketLocation", "s3:GetObject", "s3:ListAllMyBuckets"},
+				Effect:    "Allow",
+				Resources: []string{"arn:aws:s3:::*"},
+			},
+		},
+		Version: "2012-10-17",
+	}
+	// Test-1 : addPolicy() adds a new policy
+	function := "addPolicy()"
+	policy, err := addPolicy(adminClient, policyName, policyDefinition)
+	if err != nil {
+		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
+	}
+	assert.Equal(policy.Name, assertPolicy.Name)
+	assert.Equal(policy.Version, assertPolicy.Version)
+	assert.Equal(len(policy.Statements), len(assertPolicy.Statements))
+	// Test-2 : addPolicy() got an error while adding policy
+	minioAddPolicyMock = func(name, policy string) error {
+		return errors.New("error")
+	}
+	if _, err := addPolicy(adminClient, policyName, policyDefinition); assert.Error(err) {
+		assert.Equal("error", err.Error())
+	}
+	// Test-3 : addPolicy() got an error while retrieving policy
+	minioAddPolicyMock = func(name, policy string) error {
+		return nil
+	}
+	minioGetPolicyMock = func(name string) (bytes []byte, err error) {
+		return nil, errors.New("error")
+	}
+	if _, err := addPolicy(adminClient, policyName, policyDefinition); assert.Error(err) {
+		assert.Equal("error", err.Error())
+	}
+	// Test-4 : addPolicy() got an error while parsing policy
+	minioGetPolicyMock = func(name string) (bytes []byte, err error) {
+		return []byte("eaeaeaeae"), nil
+	}
+	if _, err := addPolicy(adminClient, policyName, policyDefinition); assert.Error(err) {
+		assert.NotEmpty(err.Error())
 	}
 }

@@ -38,6 +38,11 @@ const AddPolicyCreatedCode int = 201
 swagger:response addPolicyCreated
 */
 type AddPolicyCreated struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Policy `json:"body,omitempty"`
 }
 
 // NewAddPolicyCreated creates AddPolicyCreated with default headers values
@@ -46,12 +51,27 @@ func NewAddPolicyCreated() *AddPolicyCreated {
 	return &AddPolicyCreated{}
 }
 
+// WithPayload adds the payload to the add policy created response
+func (o *AddPolicyCreated) WithPayload(payload *models.Policy) *AddPolicyCreated {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the add policy created response
+func (o *AddPolicyCreated) SetPayload(payload *models.Policy) {
+	o.Payload = payload
+}
+
 // WriteResponse to the client
 func (o *AddPolicyCreated) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
 	rw.WriteHeader(201)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }
 
 /*AddPolicyDefault Generic error response.

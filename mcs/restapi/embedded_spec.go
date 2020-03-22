@@ -295,7 +295,10 @@ func init() {
         ],
         "responses": {
           "201": {
-            "description": "A successful response."
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/policy"
+            }
           },
           "default": {
             "description": "Generic error response.",
@@ -914,7 +917,10 @@ func init() {
         ],
         "responses": {
           "201": {
-            "description": "A successful response."
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/policy"
+            }
           },
           "default": {
             "description": "Generic error response.",

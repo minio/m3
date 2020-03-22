@@ -39,6 +39,16 @@ func registersPoliciesHandler(api *operations.McsAPI) {
 		return admin_api.NewListPoliciesOK().WithPayload(listPoliciesResponse)
 	})
 	// Add Policy
+	api.AdminAPIAddPolicyHandler = admin_api.AddPolicyHandlerFunc(func(params admin_api.AddPolicyParams) middleware.Responder {
+		policyResponse, err := getAddPolicyResponse(params.Body)
+		if err != nil {
+			return admin_api.NewAddPolicyDefault(500).WithPayload(&models.Error{
+				Code:    500,
+				Message: swag.String(err.Error()),
+			})
+		}
+		return admin_api.NewAddPolicyCreated().WithPayload(policyResponse)
+	})
 	// Remove Policy
 	api.AdminAPIRemovePolicyHandler = admin_api.RemovePolicyHandlerFunc(func(params admin_api.RemovePolicyParams) middleware.Responder {
 		if err := getRemovePolicyResponse(params); err != nil {
@@ -120,14 +130,14 @@ func getListPoliciesResponse() (*models.ListPoliciesResponse, error) {
 		return nil, err
 	}
 	// serialize output
-	listGroupsResponse := &models.ListPoliciesResponse{
+	listPoliciesResponse := &models.ListPoliciesResponse{
 		Policies:      policies,
 		TotalPolicies: int64(len(policies)),
 	}
-	return listGroupsResponse, nil
+	return listPoliciesResponse, nil
 }
 
-// removePolicy deletes a minIO canned policy
+// removePolicy() calls MinIO server to remove a policy based on name.
 func removePolicy(client MinioAdmin, name string) error {
 	err := client.removePolicy(name)
 	if err != nil {
@@ -136,7 +146,7 @@ func removePolicy(client MinioAdmin, name string) error {
 	return nil
 }
 
-// getRemovePolicyResponse performs removePolicy() and serializes it to the handler's output
+// getRemovePolicyResponse() performs removePolicy() and serializes it to the handler's output
 func getRemovePolicyResponse(params admin_api.RemovePolicyParams) error {
 	if params.Name == "" {
 		log.Println("error policy name not in request")
@@ -156,4 +166,48 @@ func getRemovePolicyResponse(params admin_api.RemovePolicyParams) error {
 		return err
 	}
 	return nil
+}
+
+// addPolicy calls MinIO server to add a canned policy.
+// addPolicy() takes name and policy in string format, policy
+// policy must be string in json format, in the future this will change
+// to a Policy struct{} - https://github.com/minio/minio/issues/9171
+func addPolicy(client MinioAdmin, name, policy string) (*models.Policy, error) {
+	if err := client.addPolicy(name, policy); err != nil {
+		return nil, err
+	}
+	policyRaw, err := client.getPolicy(name)
+	if err != nil {
+		return nil, err
+	}
+	var rawPolicy *rawPolicy
+	if err := json.Unmarshal(policyRaw, &rawPolicy); err != nil {
+		return nil, err
+	}
+	policyObject := parseRawPolicy(rawPolicy)
+	policyObject.Name = name
+	return policyObject, nil
+}
+
+// getAddPolicyResponse performs addPolicy() and serializes it to the handler's output
+func getAddPolicyResponse(params *models.AddPolicyRequest) (*models.Policy, error) {
+	if params == nil {
+		log.Println("error AddPolicy body not in request")
+		return nil, errors.New(500, "error AddPolicy body not in request")
+	}
+
+	mAdmin, err := newMAdminClient()
+	if err != nil {
+		log.Println("error creating Madmin Client:", err)
+		return nil, err
+	}
+	// create a MinIO Admin Client interface implementation
+	// defining the client to be used
+	adminClient := adminClient{client: mAdmin}
+	policy, err := addPolicy(adminClient, *params.Name, params.Definition)
+	if err != nil {
+		log.Println("error adding policy")
+		return nil, err
+	}
+	return policy, nil
 }
