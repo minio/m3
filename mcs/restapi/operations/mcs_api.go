@@ -56,10 +56,16 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		BasicAuthenticator:  security.BasicAuth,
 		APIKeyAuthenticator: security.APIKeyAuth,
 		BearerAuthenticator: security.BearerAuth,
-		JSONConsumer:        runtime.JSONConsumer(),
-		JSONProducer:        runtime.JSONProducer(),
+
+		JSONConsumer: runtime.JSONConsumer(),
+
+		JSONProducer: runtime.JSONProducer(),
+
 		AdminAPIAddGroupHandler: admin_api.AddGroupHandlerFunc(func(params admin_api.AddGroupParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.AddGroup has not yet been implemented")
+		}),
+		AdminAPIAddPolicyHandler: admin_api.AddPolicyHandlerFunc(func(params admin_api.AddPolicyParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.AddPolicy has not yet been implemented")
 		}),
 		AdminAPIAddUserHandler: admin_api.AddUserHandlerFunc(func(params admin_api.AddUserParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.AddUser has not yet been implemented")
@@ -76,6 +82,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		AdminAPIListGroupsHandler: admin_api.ListGroupsHandlerFunc(func(params admin_api.ListGroupsParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.ListGroups has not yet been implemented")
 		}),
+		AdminAPIListPoliciesHandler: admin_api.ListPoliciesHandlerFunc(func(params admin_api.ListPoliciesParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.ListPolicies has not yet been implemented")
+		}),
 		AdminAPIListUsersHandler: admin_api.ListUsersHandlerFunc(func(params admin_api.ListUsersParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.ListUsers has not yet been implemented")
 		}),
@@ -84,6 +93,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		}),
 		AdminAPIRemoveGroupHandler: admin_api.RemoveGroupHandlerFunc(func(params admin_api.RemoveGroupParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.RemoveGroup has not yet been implemented")
+		}),
+		AdminAPIRemovePolicyHandler: admin_api.RemovePolicyHandlerFunc(func(params admin_api.RemovePolicyParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.RemovePolicy has not yet been implemented")
 		}),
 		AdminAPIUpdateGroupHandler: admin_api.UpdateGroupHandlerFunc(func(params admin_api.UpdateGroupParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.UpdateGroup has not yet been implemented")
@@ -112,15 +124,19 @@ type McsAPI struct {
 	// BearerAuthenticator generates a runtime.Authenticator from the supplied bearer token auth function.
 	// It has a default implementation in the security package, however you can replace it for your particular usage.
 	BearerAuthenticator func(string, security.ScopedTokenAuthentication) runtime.Authenticator
+
 	// JSONConsumer registers a consumer for the following mime types:
 	//   - application/json
 	JSONConsumer runtime.Consumer
+
 	// JSONProducer registers a producer for the following mime types:
 	//   - application/json
 	JSONProducer runtime.Producer
 
 	// AdminAPIAddGroupHandler sets the operation handler for the add group operation
 	AdminAPIAddGroupHandler admin_api.AddGroupHandler
+	// AdminAPIAddPolicyHandler sets the operation handler for the add policy operation
+	AdminAPIAddPolicyHandler admin_api.AddPolicyHandler
 	// AdminAPIAddUserHandler sets the operation handler for the add user operation
 	AdminAPIAddUserHandler admin_api.AddUserHandler
 	// UserAPIDeleteBucketHandler sets the operation handler for the delete bucket operation
@@ -131,12 +147,16 @@ type McsAPI struct {
 	UserAPIListBucketsHandler user_api.ListBucketsHandler
 	// AdminAPIListGroupsHandler sets the operation handler for the list groups operation
 	AdminAPIListGroupsHandler admin_api.ListGroupsHandler
+	// AdminAPIListPoliciesHandler sets the operation handler for the list policies operation
+	AdminAPIListPoliciesHandler admin_api.ListPoliciesHandler
 	// AdminAPIListUsersHandler sets the operation handler for the list users operation
 	AdminAPIListUsersHandler admin_api.ListUsersHandler
 	// UserAPIMakeBucketHandler sets the operation handler for the make bucket operation
 	UserAPIMakeBucketHandler user_api.MakeBucketHandler
 	// AdminAPIRemoveGroupHandler sets the operation handler for the remove group operation
 	AdminAPIRemoveGroupHandler admin_api.RemoveGroupHandler
+	// AdminAPIRemovePolicyHandler sets the operation handler for the remove policy operation
+	AdminAPIRemovePolicyHandler admin_api.RemovePolicyHandler
 	// AdminAPIUpdateGroupHandler sets the operation handler for the update group operation
 	AdminAPIUpdateGroupHandler admin_api.UpdateGroupHandler
 	// ServeError is called when an error is received, there is a default handler
@@ -206,43 +226,43 @@ func (o *McsAPI) Validate() error {
 	}
 
 	if o.AdminAPIAddGroupHandler == nil {
-		unregistered = append(unregistered, "AdminAPI.AddGroupHandler")
+		unregistered = append(unregistered, "admin_api.AddGroupHandler")
 	}
-
+	if o.AdminAPIAddPolicyHandler == nil {
+		unregistered = append(unregistered, "admin_api.AddPolicyHandler")
+	}
 	if o.AdminAPIAddUserHandler == nil {
-		unregistered = append(unregistered, "AdminAPI.AddUserHandler")
+		unregistered = append(unregistered, "admin_api.AddUserHandler")
 	}
-
 	if o.UserAPIDeleteBucketHandler == nil {
-		unregistered = append(unregistered, "UserAPI.DeleteBucketHandler")
+		unregistered = append(unregistered, "user_api.DeleteBucketHandler")
 	}
-
 	if o.AdminAPIGroupInfoHandler == nil {
-		unregistered = append(unregistered, "AdminAPI.GroupInfoHandler")
+		unregistered = append(unregistered, "admin_api.GroupInfoHandler")
 	}
-
 	if o.UserAPIListBucketsHandler == nil {
-		unregistered = append(unregistered, "UserAPI.ListBucketsHandler")
+		unregistered = append(unregistered, "user_api.ListBucketsHandler")
 	}
-
 	if o.AdminAPIListGroupsHandler == nil {
-		unregistered = append(unregistered, "AdminAPI.ListGroupsHandler")
+		unregistered = append(unregistered, "admin_api.ListGroupsHandler")
 	}
-
+	if o.AdminAPIListPoliciesHandler == nil {
+		unregistered = append(unregistered, "admin_api.ListPoliciesHandler")
+	}
 	if o.AdminAPIListUsersHandler == nil {
-		unregistered = append(unregistered, "AdminAPI.ListUsersHandler")
+		unregistered = append(unregistered, "admin_api.ListUsersHandler")
 	}
-
 	if o.UserAPIMakeBucketHandler == nil {
-		unregistered = append(unregistered, "UserAPI.MakeBucketHandler")
+		unregistered = append(unregistered, "user_api.MakeBucketHandler")
 	}
-
 	if o.AdminAPIRemoveGroupHandler == nil {
-		unregistered = append(unregistered, "AdminAPI.RemoveGroupHandler")
+		unregistered = append(unregistered, "admin_api.RemoveGroupHandler")
 	}
-
+	if o.AdminAPIRemovePolicyHandler == nil {
+		unregistered = append(unregistered, "admin_api.RemovePolicyHandler")
+	}
 	if o.AdminAPIUpdateGroupHandler == nil {
-		unregistered = append(unregistered, "AdminAPI.UpdateGroupHandler")
+		unregistered = append(unregistered, "admin_api.UpdateGroupHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -259,16 +279,12 @@ func (o *McsAPI) ServeErrorFor(operationID string) func(http.ResponseWriter, *ht
 
 // AuthenticatorsFor gets the authenticators for the specified security schemes
 func (o *McsAPI) AuthenticatorsFor(schemes map[string]spec.SecurityScheme) map[string]runtime.Authenticator {
-
 	return nil
-
 }
 
 // Authorizer returns the registered authorizer
 func (o *McsAPI) Authorizer() runtime.Authorizer {
-
 	return nil
-
 }
 
 // ConsumersFor gets the consumers for the specified media types.
@@ -332,7 +348,6 @@ func (o *McsAPI) Context() *middleware.Context {
 
 func (o *McsAPI) initHandlerCache() {
 	o.Context() // don't care about the result, just that the initialization happened
-
 	if o.handlers == nil {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
@@ -341,52 +356,54 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/api/v1/groups"] = admin_api.NewAddGroup(o.context, o.AdminAPIAddGroupHandler)
-
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/api/v1/policies"] = admin_api.NewAddPolicy(o.context, o.AdminAPIAddPolicyHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/api/v1/users"] = admin_api.NewAddUser(o.context, o.AdminAPIAddUserHandler)
-
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/api/v1/buckets/{name}"] = user_api.NewDeleteBucket(o.context, o.UserAPIDeleteBucketHandler)
-
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/api/v1/groups/{name}"] = admin_api.NewGroupInfo(o.context, o.AdminAPIGroupInfoHandler)
-
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/api/v1/buckets"] = user_api.NewListBuckets(o.context, o.UserAPIListBucketsHandler)
-
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/api/v1/groups"] = admin_api.NewListGroups(o.context, o.AdminAPIListGroupsHandler)
-
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/api/v1/policies"] = admin_api.NewListPolicies(o.context, o.AdminAPIListPoliciesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/api/v1/users"] = admin_api.NewListUsers(o.context, o.AdminAPIListUsersHandler)
-
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/api/v1/buckets"] = user_api.NewMakeBucket(o.context, o.UserAPIMakeBucketHandler)
-
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/api/v1/groups/{name}"] = admin_api.NewRemoveGroup(o.context, o.AdminAPIRemoveGroupHandler)
-
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
+	o.handlers["DELETE"]["/api/v1/policies/{name}"] = admin_api.NewRemovePolicy(o.context, o.AdminAPIRemovePolicyHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
 	o.handlers["PUT"]["/api/v1/groups/{name}"] = admin_api.NewUpdateGroup(o.context, o.AdminAPIUpdateGroupHandler)
-
 }
 
 // Serve creates a http handler to serve the API over HTTP
@@ -415,4 +432,16 @@ func (o *McsAPI) RegisterConsumer(mediaType string, consumer runtime.Consumer) {
 // RegisterProducer allows you to add (or override) a producer for a media type.
 func (o *McsAPI) RegisterProducer(mediaType string, producer runtime.Producer) {
 	o.customProducers[mediaType] = producer
+}
+
+// AddMiddlewareFor adds a http middleware to existing handler
+func (o *McsAPI) AddMiddlewareFor(method, path string, builder middleware.Builder) {
+	um := strings.ToUpper(method)
+	if path == "/" {
+		path = ""
+	}
+	o.Init()
+	if h, ok := o.handlers[um][path]; ok {
+		o.handlers[method][path] = builder(h)
+	}
 }

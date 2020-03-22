@@ -23,7 +23,7 @@ import (
 	"log"
 	"os"
 
-	loads "github.com/go-openapi/loads"
+	"github.com/go-openapi/loads"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/minio/m3/mcs/restapi"
 	"github.com/minio/m3/mcs/restapi/operations"

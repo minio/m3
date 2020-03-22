@@ -25,7 +25,7 @@ package user_api
 import (
 	"net/http"
 
-	middleware "github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/runtime/middleware"
 )
 
 // ListBucketsHandlerFunc turns a function with the right signature into a list buckets handler

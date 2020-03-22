@@ -32,18 +32,18 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// NewListUsersParams creates a new ListUsersParams object
+// NewListPoliciesParams creates a new ListPoliciesParams object
 // no default values defined in spec.
-func NewListUsersParams() ListUsersParams {
+func NewListPoliciesParams() ListPoliciesParams {
 
-	return ListUsersParams{}
+	return ListPoliciesParams{}
 }
 
-// ListUsersParams contains all the bound params for the list users operation
+// ListPoliciesParams contains all the bound params for the list policies operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters ListUsers
-type ListUsersParams struct {
+// swagger:parameters ListPolicies
+type ListPoliciesParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
@@ -61,8 +61,8 @@ type ListUsersParams struct {
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewListUsersParams() beforehand.
-func (o *ListUsersParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewListPoliciesParams() beforehand.
+func (o *ListPoliciesParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
@@ -86,7 +86,7 @@ func (o *ListUsersParams) BindRequest(r *http.Request, route *middleware.Matched
 }
 
 // bindLimit binds and validates parameter Limit from query.
-func (o *ListUsersParams) bindLimit(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *ListPoliciesParams) bindLimit(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -108,7 +108,7 @@ func (o *ListUsersParams) bindLimit(rawData []string, hasKey bool, formats strfm
 }
 
 // bindOffset binds and validates parameter Offset from query.
-func (o *ListUsersParams) bindOffset(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *ListPoliciesParams) bindOffset(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]

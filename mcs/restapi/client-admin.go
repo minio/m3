@@ -142,6 +142,10 @@ type MinioAdmin interface {
 	updateGroupMembers(madmin.GroupAddRemove) error
 	getGroupDescription(grouo string) (*madmin.GroupDesc, error)
 	setGroupStatus(group string, status madmin.GroupStatus) error
+	listPolicies() (map[string][]byte, error)
+	getPolicy(name string) ([]byte, error)
+	removePolicy(name string) error
+	addPolicy(name, policy string) error
 }
 
 // Interface implementation
@@ -180,6 +184,26 @@ func (ac adminClient) getGroupDescription(group string) (*madmin.GroupDesc, erro
 // implements madmin.SetGroupStatus(group, status)
 func (ac adminClient) setGroupStatus(group string, status madmin.GroupStatus) error {
 	return ac.client.SetGroupStatus(group, status)
+}
+
+// implements madmin.ListCannedPolicies()
+func (ac adminClient) listPolicies() (map[string][]byte, error) {
+	return ac.client.ListCannedPolicies()
+}
+
+// implements madmin.ListCannedPolicies()
+func (ac adminClient) getPolicy(name string) ([]byte, error) {
+	return ac.client.InfoCannedPolicy(name)
+}
+
+// implements madmin.RemoveCannedPolicy()
+func (ac adminClient) removePolicy(name string) error {
+	return ac.client.RemoveCannedPolicy(name)
+}
+
+// implements madmin.RemoveCannedPolicy()
+func (ac adminClient) addPolicy(name, policy string) error {
+	return ac.client.AddCannedPolicy(name, policy)
 }
 
 func newMAdminClient() (*madmin.AdminClient, error) {
