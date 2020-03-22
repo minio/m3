@@ -166,6 +166,25 @@ paths:
       tags:
         - AdminAPI
   /api/v1/groups/{name}:
+    get:
+      summary: Group info
+      operationId: GroupInfo
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/group"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
     delete:
       summary: Remove group 
       operationId: RemoveGroup
@@ -177,6 +196,30 @@ paths:
       responses:
         204:
           description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
+    put:
+      summary: Update Group Members or Status
+      operationId: UpdateGroup
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/updateGroupRequest"
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/group"
         default:
           description: Generic error response.
           schema:
@@ -305,4 +348,16 @@ definitions:
         type: integer
         format: int64
         title: total number of groups
+  updateGroupRequest:
+    type: object
+    required:
+      - members
+      - status
+    properties:
+      members:
+        type: array
+        items:
+          type: string
+      status:
+        type: string
 
