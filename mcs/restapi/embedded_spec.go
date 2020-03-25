@@ -148,6 +148,74 @@ func init() {
         }
       }
     },
+    "/api/v1/configs": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "List Configurations",
+        "operationId": "ListConfig",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/listConfigResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/configs/{name}": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Configuration info",
+        "operationId": "ConfigInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/configuration"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/groups": {
       "get": {
         "tags": [
@@ -551,6 +619,42 @@ func init() {
         "CUSTOM"
       ]
     },
+    "configDescription": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "properties": {
+        "keyvalue": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/configurationKV"
+          }
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "configurationKV": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
     "error": {
       "type": "object",
       "required": [
@@ -600,6 +704,17 @@ func init() {
           "type": "integer",
           "format": "int64",
           "title": "number of buckets accessible to tenant user"
+        }
+      }
+    },
+    "listConfigResponse": {
+      "type": "object",
+      "properties": {
+        "configurations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/configDescription"
+          }
         }
       }
     },
@@ -854,6 +969,74 @@ func init() {
         }
       }
     },
+    "/api/v1/configs": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "List Configurations",
+        "operationId": "ListConfig",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/listConfigResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/configs/{name}": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Configuration info",
+        "operationId": "ConfigInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/configuration"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/groups": {
       "get": {
         "tags": [
@@ -1257,6 +1440,42 @@ func init() {
         "CUSTOM"
       ]
     },
+    "configDescription": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "properties": {
+        "keyvalue": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/configurationKV"
+          }
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "configurationKV": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
     "error": {
       "type": "object",
       "required": [
@@ -1306,6 +1525,17 @@ func init() {
           "type": "integer",
           "format": "int64",
           "title": "number of buckets accessible to tenant user"
+        }
+      }
+    },
+    "listConfigResponse": {
+      "type": "object",
+      "properties": {
+        "configurations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/configDescription"
+          }
         }
       }
     },
