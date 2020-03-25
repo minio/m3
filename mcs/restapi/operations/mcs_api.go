@@ -70,6 +70,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		AdminAPIAddUserHandler: admin_api.AddUserHandlerFunc(func(params admin_api.AddUserParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.AddUser has not yet been implemented")
 		}),
+		AdminAPIConfigInfoHandler: admin_api.ConfigInfoHandlerFunc(func(params admin_api.ConfigInfoParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.ConfigInfo has not yet been implemented")
+		}),
 		UserAPIDeleteBucketHandler: user_api.DeleteBucketHandlerFunc(func(params user_api.DeleteBucketParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.DeleteBucket has not yet been implemented")
 		}),
@@ -78,6 +81,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		}),
 		UserAPIListBucketsHandler: user_api.ListBucketsHandlerFunc(func(params user_api.ListBucketsParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.ListBuckets has not yet been implemented")
+		}),
+		AdminAPIListConfigHandler: admin_api.ListConfigHandlerFunc(func(params admin_api.ListConfigParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.ListConfig has not yet been implemented")
 		}),
 		AdminAPIListGroupsHandler: admin_api.ListGroupsHandlerFunc(func(params admin_api.ListGroupsParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.ListGroups has not yet been implemented")
@@ -139,12 +145,16 @@ type McsAPI struct {
 	AdminAPIAddPolicyHandler admin_api.AddPolicyHandler
 	// AdminAPIAddUserHandler sets the operation handler for the add user operation
 	AdminAPIAddUserHandler admin_api.AddUserHandler
+	// AdminAPIConfigInfoHandler sets the operation handler for the config info operation
+	AdminAPIConfigInfoHandler admin_api.ConfigInfoHandler
 	// UserAPIDeleteBucketHandler sets the operation handler for the delete bucket operation
 	UserAPIDeleteBucketHandler user_api.DeleteBucketHandler
 	// AdminAPIGroupInfoHandler sets the operation handler for the group info operation
 	AdminAPIGroupInfoHandler admin_api.GroupInfoHandler
 	// UserAPIListBucketsHandler sets the operation handler for the list buckets operation
 	UserAPIListBucketsHandler user_api.ListBucketsHandler
+	// AdminAPIListConfigHandler sets the operation handler for the list config operation
+	AdminAPIListConfigHandler admin_api.ListConfigHandler
 	// AdminAPIListGroupsHandler sets the operation handler for the list groups operation
 	AdminAPIListGroupsHandler admin_api.ListGroupsHandler
 	// AdminAPIListPoliciesHandler sets the operation handler for the list policies operation
@@ -234,6 +244,9 @@ func (o *McsAPI) Validate() error {
 	if o.AdminAPIAddUserHandler == nil {
 		unregistered = append(unregistered, "admin_api.AddUserHandler")
 	}
+	if o.AdminAPIConfigInfoHandler == nil {
+		unregistered = append(unregistered, "admin_api.ConfigInfoHandler")
+	}
 	if o.UserAPIDeleteBucketHandler == nil {
 		unregistered = append(unregistered, "user_api.DeleteBucketHandler")
 	}
@@ -242,6 +255,9 @@ func (o *McsAPI) Validate() error {
 	}
 	if o.UserAPIListBucketsHandler == nil {
 		unregistered = append(unregistered, "user_api.ListBucketsHandler")
+	}
+	if o.AdminAPIListConfigHandler == nil {
+		unregistered = append(unregistered, "admin_api.ListConfigHandler")
 	}
 	if o.AdminAPIListGroupsHandler == nil {
 		unregistered = append(unregistered, "admin_api.ListGroupsHandler")
@@ -364,6 +380,10 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/api/v1/users"] = admin_api.NewAddUser(o.context, o.AdminAPIAddUserHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/api/v1/configs/{name}"] = admin_api.NewConfigInfo(o.context, o.AdminAPIConfigInfoHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
@@ -376,6 +396,10 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/api/v1/buckets"] = user_api.NewListBuckets(o.context, o.UserAPIListBucketsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/api/v1/configs"] = admin_api.NewListConfig(o.context, o.AdminAPIListConfigHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

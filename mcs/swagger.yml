@@ -290,6 +290,52 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - AdminAPI
+  /api/v1/configs:
+    get:
+      summary: List Configurations
+      operationId: ListConfig
+      parameters:
+        - name: offset
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: limit
+          in: query
+          required: false
+          type: integer
+          format: int32
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/listConfigResponse"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
+  /api/v1/configs/{name}:
+    get:
+      summary: Configuration info
+      operationId: ConfigInfo
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/configuration"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
 definitions:
   bucketAccess:
     type: string
@@ -469,3 +515,33 @@ definitions:
           type: string
       status:
         type: string
+  configDescription:
+    type: object
+    properties:
+      key:
+        type: string
+      description:
+        type: string
+  configurationKV:
+    type: object
+    properties:
+      key:
+        type: string
+      value:
+        type: string
+  configuration:
+    type: object
+    properties:
+      name:
+        type: string
+      keyvalue:
+        type: array
+        items:
+          $ref: "#/definitions/configurationKV"
+  listConfigResponse:
+    type: object
+    properties:
+      configurations:
+        type: array
+        items:
+          $ref: '#/definitions/configDescription'
