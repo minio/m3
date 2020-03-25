@@ -46,7 +46,7 @@ func NewSetPolicy(ctx *middleware.Context, handler SetPolicyHandler) *SetPolicy 
 	return &SetPolicy{Context: ctx, Handler: handler}
 }
 
-/*SetPolicy swagger:route POST /api/v1/set-policy/{name} AdminAPI setPolicy
+/*SetPolicy swagger:route PUT /api/v1/set-policy/{name} AdminAPI setPolicy
 
 Set policy
 

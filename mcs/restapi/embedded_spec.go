@@ -433,7 +433,7 @@ func init() {
       }
     },
     "/api/v1/set-policy/{name}": {
-      "post": {
+      "put": {
         "tags": [
           "AdminAPI"
         ],
@@ -1219,7 +1219,7 @@ func init() {
       }
     },
     "/api/v1/set-policy/{name}": {
-      "post": {
+      "put": {
         "tags": [
           "AdminAPI"
         ],

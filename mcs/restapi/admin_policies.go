@@ -64,6 +64,13 @@ func registersPoliciesHandler(api *operations.McsAPI) {
 		}
 		return admin_api.NewRemovePolicyNoContent()
 	})
+	// Set Policy
+	api.AdminAPISetPolicyHandler = admin_api.SetPolicyHandlerFunc(func(params admin_api.SetPolicyParams) middleware.Responder {
+		if err := getSetPolicyResponse(params.Name, params.Body); err != nil {
+			return admin_api.NewSetPolicyDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+		}
+		return admin_api.NewSetPolicyNoContent()
+	})
 }
 
 type rawStatement struct {
@@ -248,4 +255,39 @@ func getPolicyInfoResponse(params admin_api.PolicyInfoParams) (*models.Policy, e
 		return nil, err
 	}
 	return policy, nil
+}
+
+// setPolicy() calls MinIO server to assign policy to a group or user.
+func setPolicy(client MinioAdmin, name string, params *models.SetPolicyRequest) error {
+	isGroup := false
+	if *params.EntityType == "group" {
+		isGroup = true
+	}
+	entityName := *params.EntityName
+	if err := client.setPolicy(name, entityName, isGroup); err != nil {
+		return err
+	}
+	return nil
+}
+
+// getSetPolicyResponse() performs setPolicy() and serializes it to the handler's output
+func getSetPolicyResponse(name string, params *models.SetPolicyRequest) error {
+	if name == "" {
+		log.Println("error policy name not in request")
+		return errors.New(500, "error policy name not in request")
+	}
+	mAdmin, err := newMAdminClient()
+	if err != nil {
+		log.Println("error creating Madmin Client:", err)
+		return err
+	}
+	// create a MinIO Admin Client interface implementation
+	// defining the client to be used
+	adminClient := adminClient{client: mAdmin}
+
+	if err := setPolicy(adminClient, name, params); err != nil {
+		log.Println("error setting policy:", err)
+		return err
+	}
+	return nil
 }

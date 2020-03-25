@@ -310,7 +310,7 @@ paths:
       tags:
         - AdminAPI
   /api/v1/set-policy/{name}:
-    post:
+    put: 
       summary: Set policy
       operationId: SetPolicy
       parameters:
