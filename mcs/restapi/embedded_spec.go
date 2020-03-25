@@ -376,6 +376,35 @@ func init() {
       }
     },
     "/api/v1/policies/{name}": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Policy info",
+        "operationId": "PolicyInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/policy"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
           "AdminAPI"
@@ -388,6 +417,42 @@ func init() {
             "name": "name",
             "in": "path",
             "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/set-policy/{name}": {
+      "post": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Set policy",
+        "operationId": "SetPolicy",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/setPolicyRequest"
+            }
           }
         ],
         "responses": {
@@ -676,6 +741,21 @@ func init() {
           }
         },
         "version": {
+          "type": "string"
+        }
+      }
+    },
+    "setPolicyRequest": {
+      "type": "object",
+      "required": [
+        "entityType",
+        "entityName"
+      ],
+      "properties": {
+        "entityName": {
+          "type": "string"
+        },
+        "entityType": {
           "type": "string"
         }
       }
@@ -1082,6 +1162,35 @@ func init() {
       }
     },
     "/api/v1/policies/{name}": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Policy info",
+        "operationId": "PolicyInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/policy"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
           "AdminAPI"
@@ -1094,6 +1203,42 @@ func init() {
             "name": "name",
             "in": "path",
             "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/set-policy/{name}": {
+      "post": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Set policy",
+        "operationId": "SetPolicy",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/setPolicyRequest"
+            }
           }
         ],
         "responses": {
@@ -1382,6 +1527,21 @@ func init() {
           }
         },
         "version": {
+          "type": "string"
+        }
+      }
+    },
+    "setPolicyRequest": {
+      "type": "object",
+      "required": [
+        "entityType",
+        "entityName"
+      ],
+      "properties": {
+        "entityName": {
+          "type": "string"
+        },
+        "entityType": {
           "type": "string"
         }
       }

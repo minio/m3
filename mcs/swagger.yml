@@ -290,6 +290,48 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - AdminAPI
+    get:
+      summary: Policy info
+      operationId: PolicyInfo
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/policy"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
+  /api/v1/set-policy/{name}:
+    post:
+      summary: Set policy
+      operationId: SetPolicy
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/setPolicyRequest'
+      responses:
+        204:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
 definitions:
   bucketAccess:
     type: string
@@ -436,6 +478,16 @@ definitions:
         type: array
         items:
           $ref: "#/definitions/statement"
+  setPolicyRequest:
+    type: object
+    required:
+      - entityType
+      - entityName
+    properties:
+      entityType:
+        type: string
+      entityName:
+        type: string
   addPolicyRequest:
     type: object
     required:

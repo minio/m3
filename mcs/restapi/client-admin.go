@@ -206,6 +206,10 @@ func (ac adminClient) addPolicy(name, policy string) error {
 	return ac.client.AddCannedPolicy(name, policy)
 }
 
+func (ac adminClient) setPolicy(policyName, entityName string, isGroup bool) error {
+	return ac.client.SetPolicy(policyName, entityName, isGroup)
+}
+
 func newMAdminClient() (*madmin.AdminClient, error) {
 	endpoint := "https://play.min.io"
 	accessKeyID := "Q3AM3UQ867SPQQA43P2F"
