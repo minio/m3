@@ -19,7 +19,6 @@ package restapi
 import (
 	"crypto/tls"
 	"hash/fnv"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -209,9 +208,6 @@ func (ac adminClient) addPolicy(name, policy string) error {
 }
 
 func (ac adminClient) setPolicy(policyName, entityName string, isGroup bool) error {
-	log.Println("policyName", policyName)
-	log.Println("entityName", entityName)
-	log.Println("isGroup", isGroup)
 	return ac.client.SetPolicy(policyName, entityName, isGroup)
 }
 
