@@ -780,6 +780,11 @@ func init() {
           "items": {
             "$ref": "#/definitions/configDescription"
           }
+        },
+        "total_configurations": {
+          "type": "integer",
+          "format": "int64",
+          "title": "total number of configurations"
         }
       }
     },
@@ -1689,6 +1694,11 @@ func init() {
           "items": {
             "$ref": "#/definitions/configDescription"
           }
+        },
+        "total_configurations": {
+          "type": "integer",
+          "format": "int64",
+          "title": "total number of configurations"
         }
       }
     },
