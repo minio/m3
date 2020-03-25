@@ -860,6 +860,14 @@ func init() {
         }
       }
     },
+    "policyEntity": {
+      "type": "string",
+      "default": "user",
+      "enum": [
+        "user",
+        "group"
+      ]
+    },
     "setPolicyRequest": {
       "type": "object",
       "required": [
@@ -871,7 +879,7 @@ func init() {
           "type": "string"
         },
         "entityType": {
-          "type": "string"
+          "$ref": "#/definitions/policyEntity"
         }
       }
     },
@@ -1761,6 +1769,14 @@ func init() {
         }
       }
     },
+    "policyEntity": {
+      "type": "string",
+      "default": "user",
+      "enum": [
+        "user",
+        "group"
+      ]
+    },
     "setPolicyRequest": {
       "type": "object",
       "required": [
@@ -1772,7 +1788,7 @@ func init() {
           "type": "string"
         },
         "entityType": {
-          "type": "string"
+          "$ref": "#/definitions/policyEntity"
         }
       }
     },

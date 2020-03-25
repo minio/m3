@@ -53,7 +53,7 @@ func (ac adminClientMock) addPolicy(name, policy string) error {
 	return minioAddPolicyMock(name, policy)
 }
 
-// mock function setGroupStatus()
+// mock function setPolicy()
 func (ac adminClientMock) setPolicy(policyName, entityName string, isGroup bool) error {
 	return minioSetPolicyMock(policyName, entityName, isGroup)
 }
@@ -246,7 +246,7 @@ func TestSetPolicy(t *testing.T) {
 	adminClient := adminClientMock{}
 	policyName := "readOnly"
 	entityName := "alevsk"
-	entityObject := "user"
+	entityObject := models.PolicyEntityUser
 	minioSetPolicyMock = func(policyName, entityName string, isGroup bool) error {
 		return nil
 	}
@@ -257,13 +257,13 @@ func TestSetPolicy(t *testing.T) {
 		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
 	}
 	// Test-2 : setPolicy() set policy to group
-	entityObject = "group"
+	entityObject = models.PolicyEntityGroup
 	err = setPolicy(adminClient, policyName, entityName, entityObject)
 	if err != nil {
 		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
 	}
 	// Test-3 : setPolicy() set policy to user and get error
-	entityObject = "user"
+	entityObject = models.PolicyEntityUser
 	minioSetPolicyMock = func(policyName, entityName string, isGroup bool) error {
 		return errors.New("error")
 	}
@@ -271,7 +271,7 @@ func TestSetPolicy(t *testing.T) {
 		assert.Equal("error", err.Error())
 	}
 	// Test-4 : setPolicy() set policy to group and get error
-	entityObject = "group"
+	entityObject = models.PolicyEntityGroup
 	minioSetPolicyMock = func(policyName, entityName string, isGroup bool) error {
 		return errors.New("error")
 	}

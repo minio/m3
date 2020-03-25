@@ -524,6 +524,12 @@ definitions:
         type: array
         items:
           $ref: "#/definitions/statement"
+  policyEntity:
+    type: string
+    enum:
+      - user
+      - group
+    default: user
   setPolicyRequest:
     type: object
     required:
@@ -531,7 +537,7 @@ definitions:
       - entityName
     properties:
       entityType:
-        type: string
+        $ref: "#/definitions/policyEntity"
       entityName:
         type: string
   addPolicyRequest:

@@ -258,7 +258,7 @@ func getPolicyInfoResponse(params admin_api.PolicyInfoParams) (*models.Policy, e
 }
 
 // setPolicy() calls MinIO server to assign policy to a group or user.
-func setPolicy(client MinioAdmin, name, entityName, entityType string) error {
+func setPolicy(client MinioAdmin, name, entityName string, entityType models.PolicyEntity) error {
 	isGroup := false
 	if entityType == "group" {
 		isGroup = true
@@ -284,7 +284,7 @@ func getSetPolicyResponse(name string, params *models.SetPolicyRequest) error {
 	// defining the client to be used
 	adminClient := adminClient{client: mAdmin}
 
-	if err := setPolicy(adminClient, name, *params.EntityType, *params.EntityName); err != nil {
+	if err := setPolicy(adminClient, name, *params.EntityName, params.EntityType); err != nil {
 		log.Println("error setting policy:", err)
 		return err
 	}

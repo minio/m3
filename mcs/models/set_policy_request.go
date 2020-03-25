@@ -40,7 +40,7 @@ type SetPolicyRequest struct {
 
 	// entity type
 	// Required: true
-	EntityType *string `json:"entityType"`
+	EntityType PolicyEntity `json:"entityType"`
 }
 
 // Validate validates this set policy request
@@ -72,7 +72,10 @@ func (m *SetPolicyRequest) validateEntityName(formats strfmt.Registry) error {
 
 func (m *SetPolicyRequest) validateEntityType(formats strfmt.Registry) error {
 
-	if err := validate.Required("entityType", "body", m.EntityType); err != nil {
+	if err := m.EntityType.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("entityType")
+		}
 		return err
 	}
 
