@@ -72,12 +72,12 @@ func registerGroupsHandlers(api *operations.McsAPI) {
 }
 
 // listGroups calls MinIO server to list all groups names present on the server.
-func listGroups(client MinioAdmin) ([]string, error) {
+func listGroups(client MinioAdmin) (*[]string, error) {
 	groupList, err := client.listGroups()
 	if err != nil {
-		return []string{}, err
+		return nil, err
 	}
-	return groupList, nil
+	return &groupList, nil
 }
 
 // getListGroupsResponse performs listGroups() and serializes it to the handler's output
@@ -98,8 +98,8 @@ func getListGroupsResponse() (*models.ListGroupsResponse, error) {
 	}
 	// serialize output
 	listGroupsResponse := &models.ListGroupsResponse{
-		Groups:      groups,
-		TotalGroups: int64(len(groups)),
+		Groups:      *groups,
+		TotalGroups: int64(len(*groups)),
 	}
 	return listGroupsResponse, nil
 }

@@ -19,11 +19,11 @@ package restapi
 import (
 	"log"
 
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
 	"github.com/minio/m3/mcs/models"
 	"github.com/minio/m3/mcs/restapi/operations"
-	"github.com/minio/minio/pkg/madmin"
 
 	"github.com/minio/m3/mcs/restapi/operations/admin_api"
 )
@@ -49,12 +49,20 @@ func registerConfigHandlers(api *operations.McsAPI) {
 }
 
 // listConfig gets all configurations' names and their descriptions
-func listConfig(client MinioAdmin) (madmin.Help, error) {
-	hr, err := client.helpConfigKV("", "", false)
+func listConfig(client MinioAdmin) ([]*models.ConfigDescription, error) {
+	configKeysHelp, err := client.helpConfigKV("", "", false)
 	if err != nil {
-		return madmin.Help{}, err
+		return nil, err
 	}
-	return hr, nil
+	var configDescs []*models.ConfigDescription
+	for _, c := range configKeysHelp.KeysHelp {
+		desc := &models.ConfigDescription{
+			Key:         c.Key,
+			Description: c.Description,
+		}
+		configDescs = append(configDescs, desc)
+	}
+	return configDescs, nil
 }
 
 // getListConfigResponse performs listConfig() and serializes it to the handler's output
@@ -68,38 +76,35 @@ func getListConfigResponse() (*models.ListConfigResponse, error) {
 	// defining the client to be used
 	adminClient := adminClient{client: mAdmin}
 
-	configKeys, err := listConfig(adminClient)
+	configDescs, err := listConfig(adminClient)
 	if err != nil {
 		log.Println("error listing configurations:", err)
 		return nil, err
 	}
-	// serialize output
-	var configDescs []*models.ConfigDescription
-	for _, c := range configKeys.KeysHelp {
-		desc := &models.ConfigDescription{
-			Key:         c.Key,
-			Description: c.Description,
-		}
-		configDescs = append(configDescs, desc)
-	}
 	listGroupsResponse := &models.ListConfigResponse{
-		Configurations: configDescs,
+		Configurations:      configDescs,
+		TotalConfigurations: int64(len(configDescs)),
 	}
 	return listGroupsResponse, nil
 }
 
 // getConfig gets the key values for a defined configuration
-func getConfig(client MinioAdmin, name string) (madmin.Target, error) {
-	config, err := client.getConfigKV(name)
+func getConfig(client MinioAdmin, name string) ([]*models.ConfigurationKV, error) {
+	configTarget, err := client.getConfigKV(name)
 	if err != nil {
-		return madmin.Target{}, err
+		return nil, err
 	}
-	// config comes as an array []madmin.Target
-	if len(config) > 0 {
+	// configTarget comes as an array []madmin.Target
+	if len(configTarget) > 0 {
 		// return Key Values, first element contains info
-		return config[0], nil
+		var confkv []*models.ConfigurationKV
+		for _, kv := range configTarget[0].KVS {
+			confkv = append(confkv, &models.ConfigurationKV{Key: kv.Key, Value: kv.Value})
+		}
+		return confkv, nil
 	}
-	return madmin.Target{}, nil
+
+	return nil, errors.New(500, "error getting config: empty info")
 }
 
 // getConfigResponse performs getConfig() and serializes it to the handler's output
@@ -113,21 +118,14 @@ func getConfigResponse(params admin_api.ConfigInfoParams) (*models.Configuration
 	// defining the client to be used
 	adminClient := adminClient{client: mAdmin}
 
-	configTarget, err := getConfig(adminClient, params.Name)
+	configkv, err := getConfig(adminClient, params.Name)
 	if err != nil {
 		log.Println("error listing configurations:", err)
 		return nil, err
 	}
-
-	// serialize output
-	var confkv []*models.ConfigurationKV
-	confName := params.Name
-	for _, kv := range configTarget.KVS {
-		confkv = append(confkv, &models.ConfigurationKV{Key: kv.Key, Value: kv.Value})
-	}
 	configurationObj := &models.Configuration{
-		Name:     confName,
-		Keyvalue: confkv,
+		Name:     params.Name,
+		Keyvalue: configkv,
 	}
 	return configurationObj, nil
 }
