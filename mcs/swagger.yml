@@ -290,6 +290,25 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - AdminAPI
+    get:
+      summary: Policy info
+      operationId: PolicyInfo
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/policy"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
   /api/v1/configs:
     get:
       summary: List Configurations
@@ -310,6 +329,29 @@ paths:
           description: A successful response.
           schema:
             $ref: "#/definitions/listConfigResponse"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
+  /api/v1/set-policy/{name}:
+    put:
+      summary: Set policy
+      operationId: SetPolicy
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/setPolicyRequest'
+      responses:
+        204:
+          description: A successful response.
         default:
           description: Generic error response.
           schema:
@@ -482,6 +524,22 @@ definitions:
         type: array
         items:
           $ref: "#/definitions/statement"
+  policyEntity:
+    type: string
+    enum:
+      - user
+      - group
+    default: user
+  setPolicyRequest:
+    type: object
+    required:
+      - entityType
+      - entityName
+    properties:
+      entityType:
+        $ref: "#/definitions/policyEntity"
+      entityName:
+        type: string
   addPolicyRequest:
     type: object
     required:
