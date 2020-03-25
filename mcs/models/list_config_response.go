@@ -37,6 +37,9 @@ type ListConfigResponse struct {
 
 	// configurations
 	Configurations []*ConfigDescription `json:"configurations"`
+
+	// total number of configurations
+	TotalConfigurations int64 `json:"total_configurations,omitempty"`
 }
 
 // Validate validates this list config response

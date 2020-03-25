@@ -35,8 +35,6 @@ var minioListGroupsMock func() ([]string, error)
 var minioUpdateGroupMembersMock func(madmin.GroupAddRemove) error
 var minioGetGroupDescriptionMock func(group string) (*madmin.GroupDesc, error)
 var minioSetGroupStatusMock func(group string, status madmin.GroupStatus) error
-var minioHelpConfigKVMock func(subSys, key string, envOnly bool) (madmin.Help, error)
-var minioGetConfigKVMock func(name string) (madmin.Targets, error)
 
 // Define a mock struct of Admin Client interface implementation
 type adminClientMock struct {
@@ -70,16 +68,6 @@ func (ac adminClientMock) getGroupDescription(group string) (*madmin.GroupDesc, 
 // mock function setGroupStatus()
 func (ac adminClientMock) setGroupStatus(group string, status madmin.GroupStatus) error {
 	return minioSetGroupStatusMock(group, status)
-}
-
-// mock function helpConfigKV()
-func (ac adminClientMock) helpConfigKV(subSys, key string, envOnly bool) (madmin.Help, error) {
-	return minioHelpConfigKVMock(subSys, key, envOnly)
-}
-
-// mock function getConfigKV()
-func (ac adminClientMock) getConfigKV(name string) (madmin.Targets, error) {
-	return minioGetConfigKVMock(name)
 }
 
 func TestListUsers(t *testing.T) {
@@ -193,9 +181,9 @@ func TestListGroups(t *testing.T) {
 		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
 	}
 	// verify length of Groupss is correct
-	assert.Equal(len(mockGroupsList), len(groupsList), fmt.Sprintf("Failed on %s: length of Groups's lists is not the same", function))
+	assert.Equal(len(mockGroupsList), len(*groupsList), fmt.Sprintf("Failed on %s: length of Groups's lists is not the same", function))
 
-	for i, g := range groupsList {
+	for i, g := range *groupsList {
 		assert.Equal(mockGroupsList[i], g)
 	}
 
@@ -376,123 +364,4 @@ func TestSetGroupStatus(t *testing.T) {
 	if err := setGroupStatus(adminClient, groupName, expectedStatus); assert.Error(err) {
 		assert.Equal("error", err.Error())
 	}
-}
-
-func TestListConfig(t *testing.T) {
-	assert := assert.New(t)
-	adminClient := adminClientMock{}
-	function := "listConfig()"
-	// Test-1 : listConfig() get list of two configurations and ensure is output correctly
-	configListMock := []madmin.HelpKV{
-		madmin.HelpKV{
-			Key:         "region",
-			Description: "label the location of the server",
-		},
-		madmin.HelpKV{
-			Key:         "notify_nsq",
-			Description: "publish bucket notifications to NSQ endpoints",
-		},
-	}
-	mockConfigList := madmin.Help{
-		SubSys:          "sys",
-		Description:     "desc",
-		MultipleTargets: false,
-		KeysHelp:        configListMock,
-	}
-
-	// mock function response from listConfig()
-	minioHelpConfigKVMock = func(subSys, key string, envOnly bool) (madmin.Help, error) {
-		return mockConfigList, nil
-	}
-
-	configList, err := listConfig(adminClient)
-	if err != nil {
-		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
-	}
-	// verify length of keys is correct
-	assert.Equal(len(configListMock), len(configList.KeysHelp), fmt.Sprintf("Failed on %s: length of Configs's lists is not the same", function))
-	// verify KeysHelp content
-	for i, g := range configList.KeysHelp {
-		assert.Equal(mockConfigList.KeysHelp[i], g)
-	}
-	assert.Equal(mockConfigList.SubSys, configList.SubSys)
-	assert.Equal(mockConfigList.Description, configList.Description)
-	assert.Equal(mockConfigList.MultipleTargets, configList.MultipleTargets)
-
-	// Test-2 : listConfig() Return error and see that the error is handled correctly and returned
-	// mock function response from listConfig()
-	minioHelpConfigKVMock = func(subSys, key string, envOnly bool) (madmin.Help, error) {
-		return madmin.Help{}, errors.New("error")
-	}
-
-	_, err = listConfig(adminClient)
-	if assert.Error(err) {
-		assert.Equal("error", err.Error())
-	}
-}
-
-func TestGetConfigInfo(t *testing.T) {
-	assert := assert.New(t)
-	adminClient := adminClientMock{}
-	function := "getConfig()"
-	// Test-1 : getConfig() get info of postgres configuration, has 3 key-value pairs
-	configMock := []madmin.Target{
-		madmin.Target{
-			SubSystem: "notify_postgres",
-			KVS: []madmin.KV{
-				madmin.KV{
-					Key:   "enable",
-					Value: "off",
-				},
-				madmin.KV{
-					Key:   "format",
-					Value: "namespace",
-				},
-				madmin.KV{
-					Key:   "connection",
-					Value: "",
-				},
-			},
-		},
-	}
-	// mock function response from getConfig()
-	minioGetConfigKVMock = func(key string) (madmin.Targets, error) {
-		return configMock, nil
-	}
-	configNameToGet := "notify_postgres"
-	configInfo, err := getConfig(adminClient, configNameToGet)
-	if err != nil {
-		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
-	}
-	// verify length of keys is correct
-	assert.Equal(len(configMock[0].KVS), len(configInfo.KVS), fmt.Sprintf("Failed on %s: length of Configs's lists is not the same", function))
-	// verify KeysHelp content
-	for i, kv := range configInfo.KVS {
-		assert.Equal(configMock[0].KVS[i], kv)
-	}
-	assert.Equal(configNameToGet, configInfo.SubSystem)
-
-	// Test-2 : getConfig() Return error and see that the error is handled correctly and returned
-	minioGetConfigKVMock = func(key string) (madmin.Targets, error) {
-		return madmin.Targets{}, errors.New("error")
-	}
-	_, err = getConfig(adminClient, configNameToGet)
-	if assert.Error(err) {
-		assert.Equal("error", err.Error())
-	}
-
-	// Test-3 : getConfig() get info but Response has empty results (possible)
-	configMock = []madmin.Target{}
-	// mock function response from getConfig()
-	minioGetConfigKVMock = func(key string) (madmin.Targets, error) {
-		return configMock, nil
-	}
-	configNameToGet = "notify_postgres"
-	configInfo, err = getConfig(adminClient, configNameToGet)
-	if err != nil {
-		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
-	}
-	// verify length of keys is correct
-	assert.Equal(0, len(configInfo.KVS), fmt.Sprintf("Failed on %s: length of Configs's lists is not the same", function))
-	assert.Equal("", configInfo.SubSystem)
 }
