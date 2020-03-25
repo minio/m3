@@ -18,6 +18,7 @@ package restapi
 
 import (
 	"log"
+	"strings"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime/middleware"
@@ -45,7 +46,13 @@ func registerConfigHandlers(api *operations.McsAPI) {
 		}
 		return admin_api.NewConfigInfoOK().WithPayload(config)
 	})
-
+	// Set Configuration
+	api.AdminAPISetConfigHandler = admin_api.SetConfigHandlerFunc(func(params admin_api.SetConfigParams) middleware.Responder {
+		if err := setConfigResponse(params); err != nil {
+			return admin_api.NewSetConfigDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+		}
+		return admin_api.NewSetConfigNoContent()
+	})
 }
 
 // listConfig gets all configurations' names and their descriptions
@@ -124,8 +131,45 @@ func getConfigResponse(params admin_api.ConfigInfoParams) (*models.Configuration
 		return nil, err
 	}
 	configurationObj := &models.Configuration{
-		Name:     params.Name,
-		Keyvalue: configkv,
+		Name:      params.Name,
+		KeyValues: configkv,
 	}
 	return configurationObj, nil
+}
+
+// setConfig sets a configuration with the defined key values
+func setConfig(client MinioAdmin, name *string, kvs []*models.ConfigurationKV) error {
+	config := buildConfig(name, kvs)
+	if err := client.setConfigKV(*config); err != nil {
+		return err
+	}
+	return nil
+}
+
+// buildConfig builds a concatenated string including name and keyvalues
+// e.g. `region name=us-west-1`
+func buildConfig(name *string, kvs []*models.ConfigurationKV) *string {
+	configElements := []string{*name}
+	for _, kv := range kvs {
+		configElements = append(configElements, kv.Key+"="+kv.Value)
+	}
+	config := strings.Join(configElements, " ")
+	return &config
+}
+
+// setConfigResponse implements setConfig() to be used by handler
+func setConfigResponse(params admin_api.SetConfigParams) error {
+	mAdmin, err := newMAdminClient()
+	if err != nil {
+		log.Println("error creating Madmin Client:", err)
+		return err
+	}
+	// create a MinIO Admin Client interface implementation
+	// defining the client to be used
+	adminClient := adminClient{client: mAdmin}
+	if err := setConfig(adminClient, swag.String(params.Name), params.Body.KeyValues); err != nil {
+		log.Println("error listing configurations:", err)
+		return err
+	}
+	return nil
 }

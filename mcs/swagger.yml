@@ -378,6 +378,28 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - AdminAPI
+    put:
+      summary: Set Configuration
+      operationId: SetConfig
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/setConfigRequest"
+      responses:
+        204:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
 definitions:
   bucketAccess:
     type: string
@@ -592,7 +614,7 @@ definitions:
     properties:
       name:
         type: string
-      keyvalue:
+      key_values:
         type: array
         items:
           $ref: "#/definitions/configurationKV"
@@ -607,3 +629,13 @@ definitions:
         type: integer
         format: int64
         title: total number of configurations
+  setConfigRequest:
+    type: object
+    required:
+      - key_values
+    properties:
+      key_values:
+        type: array
+        minItems: 1
+        items:
+          $ref: "#/definitions/configurationKV"
