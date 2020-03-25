@@ -5,6 +5,7 @@
 *.so
 *.dylib
 .DS_Store
+*.swp
 
 # Test binary, build with `go test -c`
 *.test
