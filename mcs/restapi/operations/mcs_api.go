@@ -97,11 +97,17 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		UserAPIMakeBucketHandler: user_api.MakeBucketHandlerFunc(func(params user_api.MakeBucketParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.MakeBucket has not yet been implemented")
 		}),
+		AdminAPIPolicyInfoHandler: admin_api.PolicyInfoHandlerFunc(func(params admin_api.PolicyInfoParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.PolicyInfo has not yet been implemented")
+		}),
 		AdminAPIRemoveGroupHandler: admin_api.RemoveGroupHandlerFunc(func(params admin_api.RemoveGroupParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.RemoveGroup has not yet been implemented")
 		}),
 		AdminAPIRemovePolicyHandler: admin_api.RemovePolicyHandlerFunc(func(params admin_api.RemovePolicyParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.RemovePolicy has not yet been implemented")
+		}),
+		AdminAPISetPolicyHandler: admin_api.SetPolicyHandlerFunc(func(params admin_api.SetPolicyParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.SetPolicy has not yet been implemented")
 		}),
 		AdminAPIUpdateGroupHandler: admin_api.UpdateGroupHandlerFunc(func(params admin_api.UpdateGroupParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.UpdateGroup has not yet been implemented")
@@ -163,10 +169,14 @@ type McsAPI struct {
 	AdminAPIListUsersHandler admin_api.ListUsersHandler
 	// UserAPIMakeBucketHandler sets the operation handler for the make bucket operation
 	UserAPIMakeBucketHandler user_api.MakeBucketHandler
+	// AdminAPIPolicyInfoHandler sets the operation handler for the policy info operation
+	AdminAPIPolicyInfoHandler admin_api.PolicyInfoHandler
 	// AdminAPIRemoveGroupHandler sets the operation handler for the remove group operation
 	AdminAPIRemoveGroupHandler admin_api.RemoveGroupHandler
 	// AdminAPIRemovePolicyHandler sets the operation handler for the remove policy operation
 	AdminAPIRemovePolicyHandler admin_api.RemovePolicyHandler
+	// AdminAPISetPolicyHandler sets the operation handler for the set policy operation
+	AdminAPISetPolicyHandler admin_api.SetPolicyHandler
 	// AdminAPIUpdateGroupHandler sets the operation handler for the update group operation
 	AdminAPIUpdateGroupHandler admin_api.UpdateGroupHandler
 	// ServeError is called when an error is received, there is a default handler
@@ -271,11 +281,17 @@ func (o *McsAPI) Validate() error {
 	if o.UserAPIMakeBucketHandler == nil {
 		unregistered = append(unregistered, "user_api.MakeBucketHandler")
 	}
+	if o.AdminAPIPolicyInfoHandler == nil {
+		unregistered = append(unregistered, "admin_api.PolicyInfoHandler")
+	}
 	if o.AdminAPIRemoveGroupHandler == nil {
 		unregistered = append(unregistered, "admin_api.RemoveGroupHandler")
 	}
 	if o.AdminAPIRemovePolicyHandler == nil {
 		unregistered = append(unregistered, "admin_api.RemovePolicyHandler")
+	}
+	if o.AdminAPISetPolicyHandler == nil {
+		unregistered = append(unregistered, "admin_api.SetPolicyHandler")
 	}
 	if o.AdminAPIUpdateGroupHandler == nil {
 		unregistered = append(unregistered, "admin_api.UpdateGroupHandler")
@@ -416,6 +432,10 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/api/v1/buckets"] = user_api.NewMakeBucket(o.context, o.UserAPIMakeBucketHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/api/v1/policies/{name}"] = admin_api.NewPolicyInfo(o.context, o.AdminAPIPolicyInfoHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
@@ -424,6 +444,10 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/api/v1/policies/{name}"] = admin_api.NewRemovePolicy(o.context, o.AdminAPIRemovePolicyHandler)
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/api/v1/set-policy/{name}"] = admin_api.NewSetPolicy(o.context, o.AdminAPISetPolicyHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}

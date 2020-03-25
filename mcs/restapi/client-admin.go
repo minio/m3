@@ -146,6 +146,7 @@ type MinioAdmin interface {
 	getPolicy(name string) ([]byte, error)
 	removePolicy(name string) error
 	addPolicy(name, policy string) error
+	setPolicy(policyName, entityName string, isGroup bool) error
 	getConfigKV(key string) (madmin.Targets, error)
 	helpConfigKV(subSys, key string, envOnly bool) (madmin.Help, error)
 }
@@ -206,6 +207,11 @@ func (ac adminClient) removePolicy(name string) error {
 // implements madmin.AddCannedPolicy()
 func (ac adminClient) addPolicy(name, policy string) error {
 	return ac.client.AddCannedPolicy(name, policy)
+}
+
+// implements madmin.SetPolicy()
+func (ac adminClient) setPolicy(policyName, entityName string, isGroup bool) error {
+	return ac.client.SetPolicy(policyName, entityName, isGroup)
 }
 
 // implements madmin.GetConfigKV()
