@@ -17,6 +17,7 @@
 package restapi
 
 import (
+	"context"
 	"log"
 	"strings"
 
@@ -57,7 +58,8 @@ func registerConfigHandlers(api *operations.McsAPI) {
 
 // listConfig gets all configurations' names and their descriptions
 func listConfig(client MinioAdmin) ([]*models.ConfigDescription, error) {
-	configKeysHelp, err := client.helpConfigKV("", "", false)
+	ctx := context.Background()
+	configKeysHelp, err := client.helpConfigKV(ctx, "", "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +99,8 @@ func getListConfigResponse() (*models.ListConfigResponse, error) {
 
 // getConfig gets the key values for a defined configuration
 func getConfig(client MinioAdmin, name string) ([]*models.ConfigurationKV, error) {
-	configTarget, err := client.getConfigKV(name)
+	ctx := context.Background()
+	configTarget, err := client.getConfigKV(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +143,8 @@ func getConfigResponse(params admin_api.ConfigInfoParams) (*models.Configuration
 // setConfig sets a configuration with the defined key values
 func setConfig(client MinioAdmin, name *string, kvs []*models.ConfigurationKV) error {
 	config := buildConfig(name, kvs)
-	if err := client.setConfigKV(*config); err != nil {
+	ctx := context.Background()
+	if err := client.setConfigKV(ctx, *config); err != nil {
 		return err
 	}
 	return nil

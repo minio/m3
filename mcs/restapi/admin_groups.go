@@ -17,6 +17,7 @@
 package restapi
 
 import (
+	"context"
 	"log"
 
 	"github.com/go-openapi/errors"
@@ -73,7 +74,8 @@ func registerGroupsHandlers(api *operations.McsAPI) {
 
 // listGroups calls MinIO server to list all groups names present on the server.
 func listGroups(client MinioAdmin) (*[]string, error) {
-	groupList, err := client.listGroups()
+	ctx := context.Background()
+	groupList, err := client.listGroups(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +108,8 @@ func getListGroupsResponse() (*models.ListGroupsResponse, error) {
 
 // groupInfo calls MinIO server get Group's info
 func groupInfo(client MinioAdmin, group string) (*madmin.GroupDesc, error) {
-	groupDesc, err := client.getGroupDescription(group)
+	ctx := context.Background()
+	groupDesc, err := client.getGroupDescription(ctx, group)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +149,8 @@ func addGroup(client MinioAdmin, group string, members []string) error {
 		Members:  members,
 		IsRemove: false,
 	}
-	err := client.updateGroupMembers(gAddRemove)
+	ctx := context.Background()
+	err := client.updateGroupMembers(ctx, gAddRemove)
 	if err != nil {
 		return err
 	}
@@ -184,7 +188,8 @@ func removeGroup(client MinioAdmin, group string) error {
 		Members:  []string{},
 		IsRemove: true,
 	}
-	err := client.updateGroupMembers(gAddRemove)
+	ctx := context.Background()
+	err := client.updateGroupMembers(ctx, gAddRemove)
 	if err != nil {
 		return err
 	}
@@ -222,7 +227,8 @@ func updateGroupMembers(client MinioAdmin, group string, members []string, isRem
 		Members:  members,
 		IsRemove: isRemove,
 	}
-	err := client.updateGroupMembers(gAddRemove)
+	ctx := context.Background()
+	err := client.updateGroupMembers(ctx, gAddRemove)
 	if err != nil {
 		return err
 	}
@@ -261,7 +267,8 @@ func setGroupStatus(client MinioAdmin, group, status string) error {
 	default:
 		return errors.New(500, "status not valid")
 	}
-	if err := client.setGroupStatus(group, setStatus); err != nil {
+	ctx := context.Background()
+	if err := client.setGroupStatus(ctx, group, setStatus); err != nil {
 		return err
 	}
 	return nil

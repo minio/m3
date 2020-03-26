@@ -17,6 +17,7 @@
 package restapi
 
 import (
+	"context"
 	"crypto/tls"
 	"hash/fnv"
 	"net"
@@ -136,20 +137,20 @@ var s3AdminNew = newAdminFactory()
 // by mock when testing, it should include all MinioAdmin respective api calls
 // that are used within this project.
 type MinioAdmin interface {
-	listUsers() (map[string]madmin.UserInfo, error)
-	addUser(acessKey, SecretKey string) error
-	listGroups() ([]string, error)
-	updateGroupMembers(madmin.GroupAddRemove) error
-	getGroupDescription(grouo string) (*madmin.GroupDesc, error)
-	setGroupStatus(group string, status madmin.GroupStatus) error
-	listPolicies() (map[string][]byte, error)
-	getPolicy(name string) ([]byte, error)
-	removePolicy(name string) error
-	addPolicy(name, policy string) error
-	setPolicy(policyName, entityName string, isGroup bool) error
-	getConfigKV(key string) (madmin.Targets, error)
-	helpConfigKV(subSys, key string, envOnly bool) (madmin.Help, error)
-	setConfigKV(kv string) (err error)
+	listUsers(ctx context.Context) (map[string]madmin.UserInfo, error)
+	addUser(ctx context.Context, acessKey, SecretKey string) error
+	listGroups(ctx context.Context) ([]string, error)
+	updateGroupMembers(ctx context.Context, greq madmin.GroupAddRemove) error
+	getGroupDescription(ctx context.Context, grouo string) (*madmin.GroupDesc, error)
+	setGroupStatus(ctx context.Context, group string, status madmin.GroupStatus) error
+	listPolicies(ctx context.Context) (map[string][]byte, error)
+	getPolicy(ctx context.Context, name string) ([]byte, error)
+	removePolicy(ctx context.Context, name string) error
+	addPolicy(ctx context.Context, name, policy string) error
+	setPolicy(ctx context.Context, policyName, entityName string, isGroup bool) error
+	getConfigKV(ctx context.Context, key string) (madmin.Targets, error)
+	helpConfigKV(ctx context.Context, subSys, key string, envOnly bool) (madmin.Help, error)
+	setConfigKV(ctx context.Context, kv string) (err error)
 }
 
 // Interface implementation
@@ -161,73 +162,73 @@ type adminClient struct {
 }
 
 // implements madmin.ListUsers()
-func (ac adminClient) listUsers() (map[string]madmin.UserInfo, error) {
-	return ac.client.ListUsers()
+func (ac adminClient) listUsers(ctx context.Context) (map[string]madmin.UserInfo, error) {
+	return ac.client.ListUsers(ctx)
 }
 
 // implements madmin.AddUser()
-func (ac adminClient) addUser(acessKey, secretKey string) error {
-	return ac.client.AddUser(acessKey, secretKey)
+func (ac adminClient) addUser(ctx context.Context, acessKey, secretKey string) error {
+	return ac.client.AddUser(ctx, acessKey, secretKey)
 }
 
 // implements madmin.ListGroups()
-func (ac adminClient) listGroups() ([]string, error) {
-	return ac.client.ListGroups()
+func (ac adminClient) listGroups(ctx context.Context) ([]string, error) {
+	return ac.client.ListGroups(ctx)
 }
 
 // implements madmin.UpdateGroupMembers()
-func (ac adminClient) updateGroupMembers(greq madmin.GroupAddRemove) error {
-	return ac.client.UpdateGroupMembers(greq)
+func (ac adminClient) updateGroupMembers(ctx context.Context, greq madmin.GroupAddRemove) error {
+	return ac.client.UpdateGroupMembers(ctx, greq)
 }
 
 // implements madmin.GetGroupDescription(group)
-func (ac adminClient) getGroupDescription(group string) (*madmin.GroupDesc, error) {
-	return ac.client.GetGroupDescription(group)
+func (ac adminClient) getGroupDescription(ctx context.Context, group string) (*madmin.GroupDesc, error) {
+	return ac.client.GetGroupDescription(ctx, group)
 }
 
 // implements madmin.SetGroupStatus(group, status)
-func (ac adminClient) setGroupStatus(group string, status madmin.GroupStatus) error {
-	return ac.client.SetGroupStatus(group, status)
+func (ac adminClient) setGroupStatus(ctx context.Context, group string, status madmin.GroupStatus) error {
+	return ac.client.SetGroupStatus(ctx, group, status)
 }
 
 // implements madmin.ListCannedPolicies()
-func (ac adminClient) listPolicies() (map[string][]byte, error) {
-	return ac.client.ListCannedPolicies()
+func (ac adminClient) listPolicies(ctx context.Context) (map[string][]byte, error) {
+	return ac.client.ListCannedPolicies(ctx)
 }
 
 // implements madmin.ListCannedPolicies()
-func (ac adminClient) getPolicy(name string) ([]byte, error) {
-	return ac.client.InfoCannedPolicy(name)
+func (ac adminClient) getPolicy(ctx context.Context, name string) ([]byte, error) {
+	return ac.client.InfoCannedPolicy(ctx, name)
 }
 
 // implements madmin.RemoveCannedPolicy()
-func (ac adminClient) removePolicy(name string) error {
-	return ac.client.RemoveCannedPolicy(name)
+func (ac adminClient) removePolicy(ctx context.Context, name string) error {
+	return ac.client.RemoveCannedPolicy(ctx, name)
 }
 
 // implements madmin.AddCannedPolicy()
-func (ac adminClient) addPolicy(name, policy string) error {
-	return ac.client.AddCannedPolicy(name, policy)
+func (ac adminClient) addPolicy(ctx context.Context, name, policy string) error {
+	return ac.client.AddCannedPolicy(ctx, name, policy)
 }
 
 // implements madmin.SetPolicy()
-func (ac adminClient) setPolicy(policyName, entityName string, isGroup bool) error {
-	return ac.client.SetPolicy(policyName, entityName, isGroup)
+func (ac adminClient) setPolicy(ctx context.Context, policyName, entityName string, isGroup bool) error {
+	return ac.client.SetPolicy(ctx, policyName, entityName, isGroup)
 }
 
 // implements madmin.GetConfigKV()
-func (ac adminClient) getConfigKV(key string) (madmin.Targets, error) {
-	return ac.client.GetConfigKV(key)
+func (ac adminClient) getConfigKV(ctx context.Context, key string) (madmin.Targets, error) {
+	return ac.client.GetConfigKV(ctx, key)
 }
 
 // implements madmin.HelpConfigKV()
-func (ac adminClient) helpConfigKV(subSys, key string, envOnly bool) (madmin.Help, error) {
-	return ac.client.HelpConfigKV(subSys, key, envOnly)
+func (ac adminClient) helpConfigKV(ctx context.Context, subSys, key string, envOnly bool) (madmin.Help, error) {
+	return ac.client.HelpConfigKV(ctx, subSys, key, envOnly)
 }
 
 // implements madmin.SetConfigKV()
-func (ac adminClient) setConfigKV(kv string) (err error) {
-	return ac.client.SetConfigKV(kv)
+func (ac adminClient) setConfigKV(ctx context.Context, kv string) (err error) {
+	return ac.client.SetConfigKV(ctx, kv)
 }
 
 func newMAdminClient() (*madmin.AdminClient, error) {

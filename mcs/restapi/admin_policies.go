@@ -17,6 +17,7 @@
 package restapi
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 
@@ -111,7 +112,8 @@ func parseRawPolicy(rawPolicy *rawPolicy) *models.Policy {
 // to []*models.Policy by iterating over each key in policyRawMap and
 // then using Unmarshal on the raw bytes to create a *models.Policy
 func listPolicies(client MinioAdmin) ([]*models.Policy, error) {
-	policyRawMap, err := client.listPolicies()
+	ctx := context.Background()
+	policyRawMap, err := client.listPolicies(ctx)
 	var policies []*models.Policy
 	if err != nil {
 		return nil, err
@@ -154,7 +156,8 @@ func getListPoliciesResponse() (*models.ListPoliciesResponse, error) {
 
 // removePolicy() calls MinIO server to remove a policy based on name.
 func removePolicy(client MinioAdmin, name string) error {
-	err := client.removePolicy(name)
+	ctx := context.Background()
+	err := client.removePolicy(ctx, name)
 	if err != nil {
 		return err
 	}
@@ -188,7 +191,8 @@ func getRemovePolicyResponse(params admin_api.RemovePolicyParams) error {
 // policy must be string in json format, in the future this will change
 // to a Policy struct{} - https://github.com/minio/minio/issues/9171
 func addPolicy(client MinioAdmin, name, policy string) (*models.Policy, error) {
-	if err := client.addPolicy(name, policy); err != nil {
+	ctx := context.Background()
+	if err := client.addPolicy(ctx, name, policy); err != nil {
 		return nil, err
 	}
 	policyObject, err := policyInfo(client, name)
@@ -226,7 +230,8 @@ func getAddPolicyResponse(params *models.AddPolicyRequest) (*models.Policy, erro
 // from the MinIO server and then convert it to *models.Policy , in the future this will change
 // to a Policy struct{} - https://github.com/minio/minio/issues/9171
 func policyInfo(client MinioAdmin, name string) (*models.Policy, error) {
-	policyRaw, err := client.getPolicy(name)
+	ctx := context.Background()
+	policyRaw, err := client.getPolicy(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +268,8 @@ func setPolicy(client MinioAdmin, name, entityName string, entityType models.Pol
 	if entityType == "group" {
 		isGroup = true
 	}
-	if err := client.setPolicy(name, entityName, isGroup); err != nil {
+	ctx := context.Background()
+	if err := client.setPolicy(ctx, name, entityName, isGroup); err != nil {
 		return err
 	}
 	return nil

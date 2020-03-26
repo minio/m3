@@ -17,6 +17,7 @@
 package restapi
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -41,32 +42,32 @@ type adminClientMock struct {
 }
 
 // mock function of listUsers()
-func (ac adminClientMock) listUsers() (map[string]madmin.UserInfo, error) {
+func (ac adminClientMock) listUsers(ctx context.Context) (map[string]madmin.UserInfo, error) {
 	return minioListUsersMock()
 }
 
 // mock function of addUser()
-func (ac adminClientMock) addUser(accessKey, secretKey string) error {
+func (ac adminClientMock) addUser(ctx context.Context, accessKey, secretKey string) error {
 	return minioAddUserMock(accessKey, secretKey)
 }
 
 // mock function of listGroups()
-func (ac adminClientMock) listGroups() ([]string, error) {
+func (ac adminClientMock) listGroups(ctx context.Context) ([]string, error) {
 	return minioListGroupsMock()
 }
 
 // mock function of updateGroupMembers()
-func (ac adminClientMock) updateGroupMembers(req madmin.GroupAddRemove) error {
+func (ac adminClientMock) updateGroupMembers(ctx context.Context, req madmin.GroupAddRemove) error {
 	return minioUpdateGroupMembersMock(req)
 }
 
 // mock function of getGroupDescription()
-func (ac adminClientMock) getGroupDescription(group string) (*madmin.GroupDesc, error) {
+func (ac adminClientMock) getGroupDescription(ctx context.Context, group string) (*madmin.GroupDesc, error) {
 	return minioGetGroupDescriptionMock(group)
 }
 
 // mock function setGroupStatus()
-func (ac adminClientMock) setGroupStatus(group string, status madmin.GroupStatus) error {
+func (ac adminClientMock) setGroupStatus(ctx context.Context, group string, status madmin.GroupStatus) error {
 	return minioSetGroupStatusMock(group, status)
 }
 

@@ -17,6 +17,7 @@
 package restapi
 
 import (
+	"context"
 	"log"
 
 	"github.com/go-openapi/runtime/middleware"
@@ -52,7 +53,8 @@ func listUsers(client MinioAdmin) ([]*models.User, error) {
 	// Get list of all users in the MinIO
 	// This call requires explicit authentication, no anonymous requests are
 	// allowed for listing users.
-	userMap, err := client.listUsers()
+	ctx := context.Background()
+	userMap, err := client.listUsers(ctx)
 	if err != nil {
 		return []*models.User{}, err
 	}
@@ -97,7 +99,8 @@ func getListUsersResponse() (*models.ListUsersResponse, error) {
 // addUser invokes adding a users on `MinioAdmin` and builds the response `models.User`
 func addUser(client MinioAdmin, accessKey, secretKey *string) (*models.User, error) {
 	// Calls into MinIO to add a new user if there's an error return it
-	err := client.addUser(*accessKey, *secretKey)
+	ctx := context.Background()
+	err := client.addUser(ctx, *accessKey, *secretKey)
 	if err != nil {
 		return nil, err
 	}
