@@ -28,22 +28,22 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
-// Configuration configuration
+// SetConfigRequest set config request
 //
-// swagger:model configuration
-type Configuration struct {
+// swagger:model setConfigRequest
+type SetConfigRequest struct {
 
 	// key values
+	// Required: true
+	// Min Items: 1
 	KeyValues []*ConfigurationKV `json:"key_values"`
-
-	// name
-	Name string `json:"name,omitempty"`
 }
 
-// Validate validates this configuration
-func (m *Configuration) Validate(formats strfmt.Registry) error {
+// Validate validates this set config request
+func (m *SetConfigRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateKeyValues(formats); err != nil {
@@ -56,10 +56,16 @@ func (m *Configuration) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Configuration) validateKeyValues(formats strfmt.Registry) error {
+func (m *SetConfigRequest) validateKeyValues(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.KeyValues) { // not required
-		return nil
+	if err := validate.Required("key_values", "body", m.KeyValues); err != nil {
+		return err
+	}
+
+	iKeyValuesSize := int64(len(m.KeyValues))
+
+	if err := validate.MinItems("key_values", "body", iKeyValuesSize, 1); err != nil {
+		return err
 	}
 
 	for i := 0; i < len(m.KeyValues); i++ {
@@ -82,7 +88,7 @@ func (m *Configuration) validateKeyValues(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *Configuration) MarshalBinary() ([]byte, error) {
+func (m *SetConfigRequest) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -90,8 +96,8 @@ func (m *Configuration) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *Configuration) UnmarshalBinary(b []byte) error {
-	var res Configuration
+func (m *SetConfigRequest) UnmarshalBinary(b []byte) error {
+	var res SetConfigRequest
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

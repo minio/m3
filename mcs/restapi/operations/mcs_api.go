@@ -106,6 +106,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		AdminAPIRemovePolicyHandler: admin_api.RemovePolicyHandlerFunc(func(params admin_api.RemovePolicyParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.RemovePolicy has not yet been implemented")
 		}),
+		AdminAPISetConfigHandler: admin_api.SetConfigHandlerFunc(func(params admin_api.SetConfigParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.SetConfig has not yet been implemented")
+		}),
 		AdminAPISetPolicyHandler: admin_api.SetPolicyHandlerFunc(func(params admin_api.SetPolicyParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.SetPolicy has not yet been implemented")
 		}),
@@ -175,6 +178,8 @@ type McsAPI struct {
 	AdminAPIRemoveGroupHandler admin_api.RemoveGroupHandler
 	// AdminAPIRemovePolicyHandler sets the operation handler for the remove policy operation
 	AdminAPIRemovePolicyHandler admin_api.RemovePolicyHandler
+	// AdminAPISetConfigHandler sets the operation handler for the set config operation
+	AdminAPISetConfigHandler admin_api.SetConfigHandler
 	// AdminAPISetPolicyHandler sets the operation handler for the set policy operation
 	AdminAPISetPolicyHandler admin_api.SetPolicyHandler
 	// AdminAPIUpdateGroupHandler sets the operation handler for the update group operation
@@ -289,6 +294,9 @@ func (o *McsAPI) Validate() error {
 	}
 	if o.AdminAPIRemovePolicyHandler == nil {
 		unregistered = append(unregistered, "admin_api.RemovePolicyHandler")
+	}
+	if o.AdminAPISetConfigHandler == nil {
+		unregistered = append(unregistered, "admin_api.SetConfigHandler")
 	}
 	if o.AdminAPISetPolicyHandler == nil {
 		unregistered = append(unregistered, "admin_api.SetPolicyHandler")
@@ -444,6 +452,10 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/api/v1/policies/{name}"] = admin_api.NewRemovePolicy(o.context, o.AdminAPIRemovePolicyHandler)
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/api/v1/configs/{name}"] = admin_api.NewSetConfig(o.context, o.AdminAPISetConfigHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}

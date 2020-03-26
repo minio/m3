@@ -214,6 +214,40 @@ func init() {
             }
           }
         }
+      },
+      "put": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Set Configuration",
+        "operationId": "SetConfig",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/setConfigRequest"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
       }
     },
     "/api/v1/groups": {
@@ -698,7 +732,7 @@ func init() {
     "configuration": {
       "type": "object",
       "properties": {
-        "keyvalue": {
+        "key_values": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/configurationKV"
@@ -872,6 +906,21 @@ func init() {
         "user",
         "group"
       ]
+    },
+    "setConfigRequest": {
+      "type": "object",
+      "required": [
+        "key_values"
+      ],
+      "properties": {
+        "key_values": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/configurationKV"
+          }
+        }
+      }
     },
     "setPolicyRequest": {
       "type": "object",
@@ -1128,6 +1177,40 @@ func init() {
             }
           }
         }
+      },
+      "put": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Set Configuration",
+        "operationId": "SetConfig",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/setConfigRequest"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
       }
     },
     "/api/v1/groups": {
@@ -1612,7 +1695,7 @@ func init() {
     "configuration": {
       "type": "object",
       "properties": {
-        "keyvalue": {
+        "key_values": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/configurationKV"
@@ -1786,6 +1869,21 @@ func init() {
         "user",
         "group"
       ]
+    },
+    "setConfigRequest": {
+      "type": "object",
+      "required": [
+        "key_values"
+      ],
+      "properties": {
+        "key_values": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/configurationKV"
+          }
+        }
+      }
     },
     "setPolicyRequest": {
       "type": "object",

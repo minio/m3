@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/go-openapi/swag"
+	"github.com/minio/m3/mcs/models"
 	"github.com/minio/minio/pkg/madmin"
 
 	"errors"
@@ -29,7 +31,8 @@ import (
 
 // assigning mock at runtime instead of compile time
 var minioHelpConfigKVMock func(subSys, key string, envOnly bool) (madmin.Help, error)
-var minioGetConfigKVMock func(name string) (madmin.Targets, error)
+var minioGetConfigKVMock func(key string) (madmin.Targets, error)
+var minioSetConfigKVMock func(kv string) error
 
 // mock function helpConfigKV()
 func (ac adminClientMock) helpConfigKV(subSys, key string, envOnly bool) (madmin.Help, error) {
@@ -37,9 +40,15 @@ func (ac adminClientMock) helpConfigKV(subSys, key string, envOnly bool) (madmin
 }
 
 // mock function getConfigKV()
-func (ac adminClientMock) getConfigKV(name string) (madmin.Targets, error) {
-	return minioGetConfigKVMock(name)
+func (ac adminClientMock) getConfigKV(key string) (madmin.Targets, error) {
+	return minioGetConfigKVMock(key)
 }
+
+// mock function setConfigKV()
+func (ac adminClientMock) setConfigKV(kv string) error {
+	return minioSetConfigKVMock(kv)
+}
+
 func TestListConfig(t *testing.T) {
 	assert := assert.New(t)
 	adminClient := adminClientMock{}
@@ -151,4 +160,42 @@ func TestGetConfigInfo(t *testing.T) {
 	if assert.Error(err) {
 		assert.Equal("error getting config: empty info", err.Error())
 	}
+}
+
+func TestSetConfig(t *testing.T) {
+	assert := assert.New(t)
+	adminClient := adminClientMock{}
+	function := "setConfig()"
+	// Test-1 : setConfig() sets a config with two key value pairs
+	// mock function response from setConfig()
+	minioSetConfigKVMock = func(kv string) error {
+		return nil
+	}
+	configName := "notify_postgres"
+	kvs := []*models.ConfigurationKV{
+		&models.ConfigurationKV{
+			Key:   "enable",
+			Value: "off",
+		},
+		&models.ConfigurationKV{
+			Key:   "connection_string",
+			Value: "",
+		},
+	}
+	err := setConfig(adminClient, swag.String(configName), kvs)
+	if err != nil {
+		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
+	}
+
+	// Test-2 : setConfig() returns error, handle properly
+	minioSetConfigKVMock = func(kv string) error {
+		return errors.New("error")
+	}
+	if err := setConfig(adminClient, swag.String(configName), kvs); assert.Error(err) {
+		assert.Equal("error", err.Error())
+	}
+
+	// Test-3: buildConfig() format correctly configuration as "config_name k=v k2=v2"
+	config := buildConfig(swag.String(configName), kvs)
+	assert.Equal(fmt.Sprintf("%s enable=off connection_string=", configName), *config)
 }
