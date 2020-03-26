@@ -17,6 +17,7 @@
 package restapi
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -35,17 +36,17 @@ var minioGetConfigKVMock func(key string) (madmin.Targets, error)
 var minioSetConfigKVMock func(kv string) error
 
 // mock function helpConfigKV()
-func (ac adminClientMock) helpConfigKV(subSys, key string, envOnly bool) (madmin.Help, error) {
+func (ac adminClientMock) helpConfigKV(ctx context.Context, subSys, key string, envOnly bool) (madmin.Help, error) {
 	return minioHelpConfigKVMock(subSys, key, envOnly)
 }
 
 // mock function getConfigKV()
-func (ac adminClientMock) getConfigKV(key string) (madmin.Targets, error) {
-	return minioGetConfigKVMock(key)
+func (ac adminClientMock) getConfigKV(ctx context.Context, name string) (madmin.Targets, error) {
+	return minioGetConfigKVMock(name)
 }
 
 // mock function setConfigKV()
-func (ac adminClientMock) setConfigKV(kv string) error {
+func (ac adminClientMock) setConfigKV(ctx context.Context, kv string) error {
 	return minioSetConfigKVMock(kv)
 }
 

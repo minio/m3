@@ -17,6 +17,7 @@
 package restapi
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -34,27 +35,27 @@ var minioAddPolicyMock func(name, policy string) error
 var minioSetPolicyMock func(policyName, entityName string, isGroup bool) error
 
 // mock function of listPolicies()
-func (ac adminClientMock) listPolicies() (map[string][]byte, error) {
+func (ac adminClientMock) listPolicies(ctx context.Context) (map[string][]byte, error) {
 	return minioListPoliciesMock()
 }
 
 // mock function of getPolicy()
-func (ac adminClientMock) getPolicy(name string) ([]byte, error) {
+func (ac adminClientMock) getPolicy(ctx context.Context, name string) ([]byte, error) {
 	return minioGetPolicyMock(name)
 }
 
 // mock function of removePolicy()
-func (ac adminClientMock) removePolicy(name string) error {
+func (ac adminClientMock) removePolicy(ctx context.Context, name string) error {
 	return minioRemovePolicyMock(name)
 }
 
 // mock function of addPolicy()
-func (ac adminClientMock) addPolicy(name, policy string) error {
+func (ac adminClientMock) addPolicy(ctx context.Context, name, policy string) error {
 	return minioAddPolicyMock(name, policy)
 }
 
 // mock function setPolicy()
-func (ac adminClientMock) setPolicy(policyName, entityName string, isGroup bool) error {
+func (ac adminClientMock) setPolicy(ctx context.Context, policyName, entityName string, isGroup bool) error {
 	return minioSetPolicyMock(policyName, entityName, isGroup)
 }
 

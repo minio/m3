@@ -7,16 +7,13 @@ require (
 	github.com/fatih/color v1.7.0
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang-migrate/migrate/v4 v4.7.0
-	github.com/golang/groupcache v0.0.0-20191002201903-404acd9df4cc // indirect
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/hashicorp/vault/api v1.0.4
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/minio/cli v1.22.0
-	github.com/minio/minio v0.0.0-20200312144740-ed4bd20a7cfc
-	github.com/stretchr/testify v1.5.1 // indirect
-	golang.org/x/crypto v0.0.0-20200214034016-1d94cc7ab1c6 // indirect
-	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
-	golang.org/x/sys v0.0.0-20200212091648-12a6c2dcc1e4 // indirect
+	github.com/minio/m3/mcs v0.0.0-20200326183412-d9d784dc8221 // indirect
+	github.com/minio/mc v0.0.0-20200323162352-1fb87a492e80 // indirect
+	github.com/minio/minio v0.0.0-20200325062613-ef6304c5c2f0
 	google.golang.org/genproto v0.0.0-20191115221424-83cc0476cb11 // indirect
 	google.golang.org/grpc v1.24.0 // indirect
 	k8s.io/api v0.17.3
