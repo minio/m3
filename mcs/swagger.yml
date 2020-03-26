@@ -639,3 +639,6 @@ definitions:
         minItems: 1
         items:
           $ref: "#/definitions/configurationKV"
+      arn_resource_id:
+        type: string
+        title: Used if configuration is an event notification's target

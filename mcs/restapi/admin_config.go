@@ -49,7 +49,7 @@ func registerConfigHandlers(api *operations.McsAPI) {
 	})
 	// Set Configuration
 	api.AdminAPISetConfigHandler = admin_api.SetConfigHandlerFunc(func(params admin_api.SetConfigParams) middleware.Responder {
-		if err := setConfigResponse(params); err != nil {
+		if err := setConfigResponse(params.Name, params.Body); err != nil {
 			return admin_api.NewSetConfigDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
 		return admin_api.NewSetConfigNoContent()
@@ -141,8 +141,8 @@ func getConfigResponse(params admin_api.ConfigInfoParams) (*models.Configuration
 }
 
 // setConfig sets a configuration with the defined key values
-func setConfig(client MinioAdmin, name *string, kvs []*models.ConfigurationKV) error {
-	config := buildConfig(name, kvs)
+func setConfig(client MinioAdmin, name *string, kvs []*models.ConfigurationKV, arnResourceID string) error {
+	config := buildConfig(name, kvs, arnResourceID)
 	ctx := context.Background()
 	if err := client.setConfigKV(ctx, *config); err != nil {
 		return err
@@ -152,8 +152,15 @@ func setConfig(client MinioAdmin, name *string, kvs []*models.ConfigurationKV) e
 
 // buildConfig builds a concatenated string including name and keyvalues
 // e.g. `region name=us-west-1`
-func buildConfig(name *string, kvs []*models.ConfigurationKV) *string {
-	configElements := []string{*name}
+func buildConfig(name *string, kvs []*models.ConfigurationKV, arnResourceID string) *string {
+	// if arnResourceID is not empty the configuration will be treated as a notification target
+	// arnResourceID will be used as an identifier for that specific target
+	// docs: https://docs.min.io/docs/minio-bucket-notification-guide.html
+	configName := *name
+	if arnResourceID != "" {
+		configName += ":" + arnResourceID
+	}
+	configElements := []string{configName}
 	for _, kv := range kvs {
 		configElements = append(configElements, kv.Key+"="+kv.Value)
 	}
@@ -162,7 +169,7 @@ func buildConfig(name *string, kvs []*models.ConfigurationKV) *string {
 }
 
 // setConfigResponse implements setConfig() to be used by handler
-func setConfigResponse(params admin_api.SetConfigParams) error {
+func setConfigResponse(name string, configRequest *models.SetConfigRequest) error {
 	mAdmin, err := newMAdminClient()
 	if err != nil {
 		log.Println("error creating Madmin Client:", err)
@@ -171,7 +178,7 @@ func setConfigResponse(params admin_api.SetConfigParams) error {
 	// create a MinIO Admin Client interface implementation
 	// defining the client to be used
 	adminClient := adminClient{client: mAdmin}
-	if err := setConfig(adminClient, swag.String(params.Name), params.Body.KeyValues); err != nil {
+	if err := setConfig(adminClient, swag.String(name), configRequest.KeyValues, configRequest.ArnResourceID); err != nil {
 		log.Println("error listing configurations:", err)
 		return err
 	}
