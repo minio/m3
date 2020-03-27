@@ -309,7 +309,6 @@ func getUpdateGroupResponse(params admin_api.UpdateGroupParams) (*models.Group, 
 		return nil, err
 	}
 	// update group status only if different from current status
-	log.Println("expectedStatus:", expectedStatus, " current:", groupDesc.Status)
 	if expectedStatus != groupDesc.Status {
 		err = setGroupStatus(adminClient, groupDesc.Name, expectedStatus)
 		if err != nil {
