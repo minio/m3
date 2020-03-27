@@ -167,7 +167,6 @@ func TestSetConfig(t *testing.T) {
 	assert := assert.New(t)
 	adminClient := adminClientMock{}
 	function := "setConfig()"
-	// Test-1 : setConfig() sets a config with two key value pairs
 	// mock function response from setConfig()
 	minioSetConfigKVMock = func(kv string) error {
 		return nil
@@ -183,7 +182,10 @@ func TestSetConfig(t *testing.T) {
 			Value: "",
 		},
 	}
-	err := setConfig(adminClient, swag.String(configName), kvs)
+	arnResourceID := ""
+
+	// Test-1 : setConfig() sets a config with two key value pairs
+	err := setConfig(adminClient, swag.String(configName), kvs, arnResourceID)
 	if err != nil {
 		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
 	}
@@ -192,11 +194,16 @@ func TestSetConfig(t *testing.T) {
 	minioSetConfigKVMock = func(kv string) error {
 		return errors.New("error")
 	}
-	if err := setConfig(adminClient, swag.String(configName), kvs); assert.Error(err) {
+	if err := setConfig(adminClient, swag.String(configName), kvs, arnResourceID); assert.Error(err) {
 		assert.Equal("error", err.Error())
 	}
 
 	// Test-3: buildConfig() format correctly configuration as "config_name k=v k2=v2"
-	config := buildConfig(swag.String(configName), kvs)
+	config := buildConfig(swag.String(configName), kvs, arnResourceID)
 	assert.Equal(fmt.Sprintf("%s enable=off connection_string=", configName), *config)
+
+	// Test-4: buildConfig() format correctly configuration if it has a non empty arnResourceID as "config_name:resourceid k=v k2=v2"
+	arnResourceID = "postgres"
+	config = buildConfig(swag.String(configName), kvs, arnResourceID)
+	assert.Equal(fmt.Sprintf("%s:%s enable=off connection_string=", configName, arnResourceID), *config)
 }

@@ -913,6 +913,10 @@ func init() {
         "key_values"
       ],
       "properties": {
+        "arn_resource_id": {
+          "type": "string",
+          "title": "Used if configuration is an event notification's target"
+        },
         "key_values": {
           "type": "array",
           "minItems": 1,
@@ -1876,6 +1880,10 @@ func init() {
         "key_values"
       ],
       "properties": {
+        "arn_resource_id": {
+          "type": "string",
+          "title": "Used if configuration is an event notification's target"
+        },
         "key_values": {
           "type": "array",
           "minItems": 1,

@@ -36,6 +36,9 @@ import (
 // swagger:model setConfigRequest
 type SetConfigRequest struct {
 
+	// Used if configuration is an event notification's target
+	ArnResourceID string `json:"arn_resource_id,omitempty"`
+
 	// key values
 	// Required: true
 	// Min Items: 1
