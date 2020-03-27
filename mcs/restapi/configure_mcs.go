@@ -21,6 +21,11 @@ package restapi
 import (
 	"crypto/tls"
 	"net/http"
+	"strings"
+
+	assetfs "github.com/elazarl/go-bindata-assetfs"
+
+	portalUI "github.com/minio/m3/mcs/portal-ui"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
@@ -88,5 +93,22 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 // The middleware configuration happens before anything, this middleware also applies to serving the swagger.json document.
 // So this is a good place to plug in a panic handling middleware, logging and metrics
 func setupGlobalMiddleware(handler http.Handler) http.Handler {
-	return handler
+	// serve static files
+	next := FileServerMiddleware(handler)
+	return next
+}
+
+// FileServerMiddleware serves files from the static folder
+func FileServerMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api") {
+			next.ServeHTTP(w, r)
+		} else {
+			http.FileServer(&assetfs.AssetFS{
+				Asset:     portalUI.Asset,
+				AssetDir:  portalUI.AssetDir,
+				AssetInfo: portalUI.AssetInfo,
+				Prefix:    "build"}).ServeHTTP(w, r)
+		}
+	})
 }

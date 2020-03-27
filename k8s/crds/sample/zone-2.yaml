@@ -32,7 +32,7 @@ spec:
             requests:
               storage: 1Gi
       - metadata:
-          name: data1
+          name: data3
         spec:
           accessModes:
             - ReadWriteOnce
@@ -41,7 +41,7 @@ spec:
             requests:
               storage: 1Gi
       - metadata:
-          name: data2
+          name: data4
         spec:
           accessModes:
             - ReadWriteOnce
