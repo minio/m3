@@ -148,8 +148,8 @@ func getListPoliciesResponse() (*models.ListPoliciesResponse, error) {
 	}
 	// serialize output
 	listPoliciesResponse := &models.ListPoliciesResponse{
-		Policies:      policies,
-		TotalPolicies: int64(len(policies)),
+		Policies: policies,
+		Total:    int64(len(policies)),
 	}
 	return listPoliciesResponse, nil
 }

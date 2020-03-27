@@ -100,8 +100,8 @@ func getListGroupsResponse() (*models.ListGroupsResponse, error) {
 	}
 	// serialize output
 	listGroupsResponse := &models.ListGroupsResponse{
-		Groups:      *groups,
-		TotalGroups: int64(len(*groups)),
+		Groups: *groups,
+		Total:  int64(len(*groups)),
 	}
 	return listGroupsResponse, nil
 }

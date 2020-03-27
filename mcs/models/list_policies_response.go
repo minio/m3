@@ -39,7 +39,7 @@ type ListPoliciesResponse struct {
 	Policies []*Policy `json:"policies"`
 
 	// total number of policies
-	TotalPolicies int64 `json:"total_policies,omitempty"`
+	Total int64 `json:"total,omitempty"`
 }
 
 // Validate validates this list policies response

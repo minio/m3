@@ -36,7 +36,7 @@ type ListGroupsResponse struct {
 	Groups []string `json:"groups"`
 
 	// total number of groups
-	TotalGroups int64 `json:"total_groups,omitempty"`
+	Total int64 `json:"total,omitempty"`
 }
 
 // Validate validates this list groups response
