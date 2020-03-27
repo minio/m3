@@ -50,6 +50,7 @@ type MinioClient interface {
 	makeBucketWithContext(ctx context.Context, bucketName, location string) error
 	setBucketPolicyWithContext(ctx context.Context, bucketName, policy string) error
 	removeBucket(bucketName string) error
+	getBucketNotification(bucketName string) (bucketNotification minio.BucketNotification, err error)
 }
 
 // Interface implementation
@@ -78,6 +79,11 @@ func (mc minioClient) setBucketPolicyWithContext(ctx context.Context, bucketName
 // implements minio.RemoveBucket(bucketName)
 func (mc minioClient) removeBucket(bucketName string) error {
 	return mc.client.RemoveBucket(bucketName)
+}
+
+// implements minio.GetBucketNotification(bucketName)
+func (mc minioClient) getBucketNotification(bucketName string) (bucketNotification minio.BucketNotification, err error) {
+	return mc.client.GetBucketNotification(bucketName)
 }
 
 // newMinioClient creates a new MinIO client to talk to the server

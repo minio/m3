@@ -79,6 +79,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		AdminAPIGroupInfoHandler: admin_api.GroupInfoHandlerFunc(func(params admin_api.GroupInfoParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.GroupInfo has not yet been implemented")
 		}),
+		UserAPIListBucketEventsHandler: user_api.ListBucketEventsHandlerFunc(func(params user_api.ListBucketEventsParams) middleware.Responder {
+			return middleware.NotImplemented("operation user_api.ListBucketEvents has not yet been implemented")
+		}),
 		UserAPIListBucketsHandler: user_api.ListBucketsHandlerFunc(func(params user_api.ListBucketsParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.ListBuckets has not yet been implemented")
 		}),
@@ -160,6 +163,8 @@ type McsAPI struct {
 	UserAPIDeleteBucketHandler user_api.DeleteBucketHandler
 	// AdminAPIGroupInfoHandler sets the operation handler for the group info operation
 	AdminAPIGroupInfoHandler admin_api.GroupInfoHandler
+	// UserAPIListBucketEventsHandler sets the operation handler for the list bucket events operation
+	UserAPIListBucketEventsHandler user_api.ListBucketEventsHandler
 	// UserAPIListBucketsHandler sets the operation handler for the list buckets operation
 	UserAPIListBucketsHandler user_api.ListBucketsHandler
 	// AdminAPIListConfigHandler sets the operation handler for the list config operation
@@ -267,6 +272,9 @@ func (o *McsAPI) Validate() error {
 	}
 	if o.AdminAPIGroupInfoHandler == nil {
 		unregistered = append(unregistered, "admin_api.GroupInfoHandler")
+	}
+	if o.UserAPIListBucketEventsHandler == nil {
+		unregistered = append(unregistered, "user_api.ListBucketEventsHandler")
 	}
 	if o.UserAPIListBucketsHandler == nil {
 		unregistered = append(unregistered, "user_api.ListBucketsHandler")
@@ -416,6 +424,10 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/api/v1/groups/{name}"] = admin_api.NewGroupInfo(o.context, o.AdminAPIGroupInfoHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/api/v1/buckets/{bucket_name}/events"] = user_api.NewListBucketEvents(o.context, o.UserAPIListBucketEventsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

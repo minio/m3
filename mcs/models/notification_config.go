@@ -30,23 +30,32 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// ListBucketsResponse list buckets response
+// NotificationConfig notification config
 //
-// swagger:model listBucketsResponse
-type ListBucketsResponse struct {
+// swagger:model notificationConfig
+type NotificationConfig struct {
 
-	// list of resulting buckets
-	Buckets []*Bucket `json:"buckets"`
+	// arn
+	Arn string `json:"arn,omitempty"`
 
-	// number of buckets accessible to tenant user
-	Total int64 `json:"total,omitempty"`
+	// filter specific type of event. Defaults to all event (default: '[put,delete,get]')
+	Events []NotificationEventType `json:"events"`
+
+	// id
+	ID string `json:"id,omitempty"`
+
+	// filter event associated to the specified prefix
+	Prefix string `json:"prefix,omitempty"`
+
+	// filter event associated to the specified suffix
+	Suffix string `json:"suffix,omitempty"`
 }
 
-// Validate validates this list buckets response
-func (m *ListBucketsResponse) Validate(formats strfmt.Registry) error {
+// Validate validates this notification config
+func (m *NotificationConfig) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateBuckets(formats); err != nil {
+	if err := m.validateEvents(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -56,24 +65,19 @@ func (m *ListBucketsResponse) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ListBucketsResponse) validateBuckets(formats strfmt.Registry) error {
+func (m *NotificationConfig) validateEvents(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Buckets) { // not required
+	if swag.IsZero(m.Events) { // not required
 		return nil
 	}
 
-	for i := 0; i < len(m.Buckets); i++ {
-		if swag.IsZero(m.Buckets[i]) { // not required
-			continue
-		}
+	for i := 0; i < len(m.Events); i++ {
 
-		if m.Buckets[i] != nil {
-			if err := m.Buckets[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("buckets" + "." + strconv.Itoa(i))
-				}
-				return err
+		if err := m.Events[i].Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("events" + "." + strconv.Itoa(i))
 			}
+			return err
 		}
 
 	}
@@ -82,7 +86,7 @@ func (m *ListBucketsResponse) validateBuckets(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *ListBucketsResponse) MarshalBinary() ([]byte, error) {
+func (m *NotificationConfig) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -90,8 +94,8 @@ func (m *ListBucketsResponse) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *ListBucketsResponse) UnmarshalBinary(b []byte) error {
-	var res ListBucketsResponse
+func (m *NotificationConfig) UnmarshalBinary(b []byte) error {
+	var res NotificationConfig
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

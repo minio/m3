@@ -75,6 +75,36 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - UserAPI
+  /api/v1/buckets/{bucket_name}/events:
+    get:
+      summary: List Bucket Events
+      operationId: ListBucketEvents
+      parameters:
+        - name: bucket_name
+          in: path
+          required: true
+          type: string
+        - name: offset
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: limit
+          in: query
+          required: false
+          type: integer
+          format: int32
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/listBucketEventsResponse"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - UserAPI
   /api/v1/users:
     get:
       summary: List Users
@@ -431,7 +461,7 @@ definitions:
         items:
           $ref: "#/definitions/bucket"
         title: list of resulting buckets
-      total_buckets:
+      total:
         type: integer
         format: int64
         title: number of buckets accessible to tenant user
@@ -518,7 +548,7 @@ definitions:
         items:
           type: string
         title: list of groups
-      total_groups:
+      total:
         type: integer
         format: int64
         title: total number of groups
@@ -579,7 +609,7 @@ definitions:
         items:
           $ref: "#/definitions/policy"
         title: list of policies
-      total_policies:
+      total:
         type: integer
         format: int64
         title: total number of policies
@@ -625,7 +655,7 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/configDescription'
-      total_configurations:
+      total:
         type: integer
         format: int64
         title: total number of configurations
@@ -642,3 +672,38 @@ definitions:
       arn_resource_id:
         type: string
         title: Used if configuration is an event notification's target
+  notificationEventType:
+    type: string
+    enum:
+      - put
+      - delete
+      - get
+  notificationConfig:
+    type: object
+    properties:
+      id:
+        type: string
+      arn:
+        type: string
+      events:
+        type: array
+        items:
+          $ref: "#/definitions/notificationEventType"
+        title: "filter specific type of event. Defaults to all event (default: '[put,delete,get]')"
+      prefix:
+        type: string
+        title: "filter event associated to the specified prefix"
+      suffix:
+        type: string
+        title: "filter event associated to the specified suffix"
+  listBucketEventsResponse:
+    type: object
+    properties:
+      events:
+        type: array
+        items:
+          $ref: "#/definitions/notificationConfig"
+      total:
+        type: integer
+        format: int64
+        title: total number of bucket events

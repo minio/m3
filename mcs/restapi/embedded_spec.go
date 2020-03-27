@@ -120,6 +120,49 @@ func init() {
         }
       }
     },
+    "/api/v1/buckets/{bucket_name}/events": {
+      "get": {
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "List Bucket Events",
+        "operationId": "ListBucketEvents",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "bucket_name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/listBucketEventsResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/buckets/{name}": {
       "delete": {
         "tags": [
@@ -789,6 +832,22 @@ func init() {
         }
       }
     },
+    "listBucketEventsResponse": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/notificationConfig"
+          }
+        },
+        "total": {
+          "type": "integer",
+          "format": "int64",
+          "title": "total number of bucket events"
+        }
+      }
+    },
     "listBucketsResponse": {
       "type": "object",
       "properties": {
@@ -799,7 +858,7 @@ func init() {
             "$ref": "#/definitions/bucket"
           }
         },
-        "total_buckets": {
+        "total": {
           "type": "integer",
           "format": "int64",
           "title": "number of buckets accessible to tenant user"
@@ -815,7 +874,7 @@ func init() {
             "$ref": "#/definitions/configDescription"
           }
         },
-        "total_configurations": {
+        "total": {
           "type": "integer",
           "format": "int64",
           "title": "total number of configurations"
@@ -832,7 +891,7 @@ func init() {
             "type": "string"
           }
         },
-        "total_groups": {
+        "total": {
           "type": "integer",
           "format": "int64",
           "title": "total number of groups"
@@ -849,7 +908,7 @@ func init() {
             "$ref": "#/definitions/policy"
           }
         },
-        "total_policies": {
+        "total": {
           "type": "integer",
           "format": "int64",
           "title": "total number of policies"
@@ -881,6 +940,40 @@ func init() {
           "type": "string"
         }
       }
+    },
+    "notificationConfig": {
+      "type": "object",
+      "properties": {
+        "arn": {
+          "type": "string"
+        },
+        "events": {
+          "type": "array",
+          "title": "filter specific type of event. Defaults to all event (default: '[put,delete,get]')",
+          "items": {
+            "$ref": "#/definitions/notificationEventType"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "prefix": {
+          "type": "string",
+          "title": "filter event associated to the specified prefix"
+        },
+        "suffix": {
+          "type": "string",
+          "title": "filter event associated to the specified suffix"
+        }
+      }
+    },
+    "notificationEventType": {
+      "type": "string",
+      "enum": [
+        "put",
+        "delete",
+        "get"
+      ]
     },
     "policy": {
       "type": "object",
@@ -1087,6 +1180,49 @@ func init() {
         }
       }
     },
+    "/api/v1/buckets/{bucket_name}/events": {
+      "get": {
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "List Bucket Events",
+        "operationId": "ListBucketEvents",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "bucket_name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/listBucketEventsResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/buckets/{name}": {
       "delete": {
         "tags": [
@@ -1756,6 +1892,22 @@ func init() {
         }
       }
     },
+    "listBucketEventsResponse": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/notificationConfig"
+          }
+        },
+        "total": {
+          "type": "integer",
+          "format": "int64",
+          "title": "total number of bucket events"
+        }
+      }
+    },
     "listBucketsResponse": {
       "type": "object",
       "properties": {
@@ -1766,7 +1918,7 @@ func init() {
             "$ref": "#/definitions/bucket"
           }
         },
-        "total_buckets": {
+        "total": {
           "type": "integer",
           "format": "int64",
           "title": "number of buckets accessible to tenant user"
@@ -1782,7 +1934,7 @@ func init() {
             "$ref": "#/definitions/configDescription"
           }
         },
-        "total_configurations": {
+        "total": {
           "type": "integer",
           "format": "int64",
           "title": "total number of configurations"
@@ -1799,7 +1951,7 @@ func init() {
             "type": "string"
           }
         },
-        "total_groups": {
+        "total": {
           "type": "integer",
           "format": "int64",
           "title": "total number of groups"
@@ -1816,7 +1968,7 @@ func init() {
             "$ref": "#/definitions/policy"
           }
         },
-        "total_policies": {
+        "total": {
           "type": "integer",
           "format": "int64",
           "title": "total number of policies"
@@ -1848,6 +2000,40 @@ func init() {
           "type": "string"
         }
       }
+    },
+    "notificationConfig": {
+      "type": "object",
+      "properties": {
+        "arn": {
+          "type": "string"
+        },
+        "events": {
+          "type": "array",
+          "title": "filter specific type of event. Defaults to all event (default: '[put,delete,get]')",
+          "items": {
+            "$ref": "#/definitions/notificationEventType"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "prefix": {
+          "type": "string",
+          "title": "filter event associated to the specified prefix"
+        },
+        "suffix": {
+          "type": "string",
+          "title": "filter event associated to the specified suffix"
+        }
+      }
+    },
+    "notificationEventType": {
+      "type": "string",
+      "enum": [
+        "put",
+        "delete",
+        "get"
+      ]
     },
     "policy": {
       "type": "object",

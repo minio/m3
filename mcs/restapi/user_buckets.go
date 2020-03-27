@@ -98,8 +98,8 @@ func getListBucketsResponse() (*models.ListBucketsResponse, error) {
 	}
 	// serialize output
 	listBucketsResponse := &models.ListBucketsResponse{
-		Buckets:      buckets,
-		TotalBuckets: int64(len(buckets)),
+		Buckets: buckets,
+		Total:   int64(len(buckets)),
 	}
 	return listBucketsResponse, nil
 }

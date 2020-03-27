@@ -91,8 +91,8 @@ func getListConfigResponse() (*models.ListConfigResponse, error) {
 		return nil, err
 	}
 	listGroupsResponse := &models.ListConfigResponse{
-		Configurations:      configDescs,
-		TotalConfigurations: int64(len(configDescs)),
+		Configurations: configDescs,
+		Total:          int64(len(configDescs)),
 	}
 	return listGroupsResponse, nil
 }
