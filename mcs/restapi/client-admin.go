@@ -232,9 +232,9 @@ func (ac adminClient) setConfigKV(ctx context.Context, kv string) (err error) {
 }
 
 func newMAdminClient() (*madmin.AdminClient, error) {
-	endpoint := "https://play.min.io"
-	accessKeyID := "Q3AM3UQ867SPQQA43P2F"
-	secretAccessKey := "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
+	endpoint := getMinIOServer()
+	accessKeyID := getAccessKey()
+	secretAccessKey := getSecretKey()
 
 	adminClient, pErr := NewAdminClient(endpoint, accessKeyID, secretAccessKey)
 	if pErr != nil {
