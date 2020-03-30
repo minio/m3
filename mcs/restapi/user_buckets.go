@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/errors"
@@ -66,17 +67,21 @@ func registerBucketsHandlers(api *operations.McsAPI) {
 
 		return user_api.NewBucketInfoOK().WithPayload(bucketInfoResp)
 	})
+	// set bucket policy
+	api.UserAPIBucketSetPolicyHandler = user_api.BucketSetPolicyHandlerFunc(func(params user_api.BucketSetPolicyParams) middleware.Responder {
+		if err := getBucketSetPolicyResponse(params.Name, params.Body); err != nil {
+			return user_api.NewBucketSetPolicyDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+		}
+		return user_api.NewBucketSetPolicyNoContent()
+	})
 }
 
 // listBuckets fetches a list of all buckets from MinIO Servers
-func listBuckets(client MinioClient) ([]*models.Bucket, error) {
-	tCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-	defer cancel()
-
+func listBuckets(ctx context.Context, client MinioClient) ([]*models.Bucket, error) {
 	// Get list of all buckets owned by an authenticated user.
 	// This call requires explicit authentication, no anonymous requests are
 	// allowed for listing buckets.
-	buckets, err := client.listBucketsWithContext(tCtx)
+	buckets, err := client.listBucketsWithContext(ctx)
 	if err != nil {
 		return []*models.Bucket{}, err
 	}
@@ -92,6 +97,9 @@ func listBuckets(client MinioClient) ([]*models.Bucket, error) {
 
 // getListBucketsResponse performs listBuckets() and serializes it to the handler's output
 func getListBucketsResponse() (*models.ListBucketsResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
+
 	mClient, err := newMinioClient()
 	if err != nil {
 		log.Println("error creating MinIO Client:", err)
@@ -101,7 +109,7 @@ func getListBucketsResponse() (*models.ListBucketsResponse, error) {
 	// defining the client to be used
 	minioClient := minioClient{client: mClient}
 
-	buckets, err := listBuckets(minioClient)
+	buckets, err := listBuckets(ctx, minioClient)
 	if err != nil {
 		log.Println("error listing buckets:", err)
 		return nil, err
@@ -115,14 +123,12 @@ func getListBucketsResponse() (*models.ListBucketsResponse, error) {
 }
 
 // makeBucket creates a bucket for an specific minio client
-func makeBucket(client MinioClient, bucketName string, access models.BucketAccess) error {
-	tCtx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-	defer cancel()
+func makeBucket(ctx context.Context, client MinioClient, bucketName string, access models.BucketAccess) error {
 	// creates a new bucket with bucketName with a context to control cancellations and timeouts.
-	if err := client.makeBucketWithContext(tCtx, bucketName, "us-east-1"); err != nil {
+	if err := client.makeBucketWithContext(ctx, bucketName, "us-east-1"); err != nil {
 		return err
 	}
-	if err := setBucketAccessPolicy(tCtx, client, bucketName, access); err != nil {
+	if err := setBucketAccessPolicy(ctx, client, bucketName, access); err != nil {
 		return fmt.Errorf("bucket created but error occurred while setting policy: %s", err.Error())
 	}
 	return nil
@@ -130,6 +136,12 @@ func makeBucket(client MinioClient, bucketName string, access models.BucketAcces
 
 // setBucketAccessPolicy set the access permissions on an existing bucket.
 func setBucketAccessPolicy(ctx context.Context, client MinioClient, bucketName string, access models.BucketAccess) error {
+	if strings.TrimSpace(bucketName) == "" {
+		return fmt.Errorf("error: bucket name not present")
+	}
+	if strings.TrimSpace(string(access)) == "" {
+		return fmt.Errorf("error: bucket access not present")
+	}
 	// Prepare policyJSON corresponding to the access type
 	if access != models.BucketAccessPRIVATE && access != models.BucketAccessPUBLIC {
 		return fmt.Errorf("access: `%s` not supported", access)
@@ -152,11 +164,34 @@ func setBucketAccessPolicy(ctx context.Context, client MinioClient, bucketName s
 
 // getMakeBucketResponse performs makeBucket() to create a bucket with its access policy
 func getMakeBucketResponse(br *models.MakeBucketRequest) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
 	// bucket request needed to proceed
 	if br == nil {
 		log.Println("error bucket body not in request")
 		return errors.New(500, "error bucket body not in request")
 	}
+	mClient, err := newMinioClient()
+	if err != nil {
+		log.Println("error creating MinIO Client:", err)
+		return err
+	}
+	// create a minioClient interface implementation
+	// defining the client to be used
+	minioClient := minioClient{client: mClient}
+
+	if err := makeBucket(ctx, minioClient, *br.Name, br.Access); err != nil {
+		log.Println("error making bucket:", err)
+		return err
+	}
+	return nil
+}
+
+// getBucketSetPolicyResponse calls setBucketAccessPolicy() to set a access policy to a bucket
+//   and returns the serialized output.
+func getBucketSetPolicyResponse(bucketName string, req *models.SetBucketPolicyRequest) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
 
 	mClient, err := newMinioClient()
 	if err != nil {
@@ -167,8 +202,9 @@ func getMakeBucketResponse(br *models.MakeBucketRequest) error {
 	// defining the client to be used
 	minioClient := minioClient{client: mClient}
 
-	if err := makeBucket(minioClient, *br.Name, br.Access); err != nil {
-		log.Println("error making bucket:", err)
+	// set bucket access policy
+	if err := setBucketAccessPolicy(ctx, minioClient, bucketName, req.Access); err != nil {
+		log.Println("error setting bucket access policy:", err)
 		return err
 	}
 	return nil
@@ -231,6 +267,7 @@ func getBucketInfo(client MinioClient, bucketName string) (*models.Bucket, error
 	return bucket, nil
 }
 
+// getBucketInfoResponse calls getBucketInfo() to get the bucket's info
 func getBucketInfoResponse(params user_api.BucketInfoParams) (*models.Bucket, error) {
 	mClient, err := newMinioClient()
 	if err != nil {
@@ -250,6 +287,7 @@ func getBucketInfoResponse(params user_api.BucketInfoParams) (*models.Bucket, er
 
 }
 
+// policyAccess2mcsAccess gets the equivalent of policy.BucketPolicy to models.BucketAccess
 func policyAccess2mcsAccess(bucketPolicy policy.BucketPolicy) (bucketAccess models.BucketAccess) {
 	switch bucketPolicy {
 	case policy.BucketPolicyReadWrite:
@@ -262,6 +300,7 @@ func policyAccess2mcsAccess(bucketPolicy policy.BucketPolicy) (bucketAccess mode
 	return bucketAccess
 }
 
+// mcsAccess2policyAccess gets the equivalent of models.BucketAccess to policy.BucketPolicy
 func mcsAccess2policyAccess(bucketAccess models.BucketAccess) (bucketPolicy policy.BucketPolicy) {
 	switch bucketAccess {
 	case models.BucketAccessPUBLIC:

@@ -94,6 +94,29 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - UserAPI
+  /api/v1/buckets/{name}/set-policy:
+    put:
+      summary: Bucket Set Policy
+      operationId: BucketSetPolicy
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/setBucketPolicyRequest"
+      responses:
+        204:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - UserAPI
   /api/v1/buckets/{bucket_name}/events:
     get:
       summary: List Bucket Events
@@ -726,3 +749,10 @@ definitions:
         type: integer
         format: int64
         title: total number of bucket events
+  setBucketPolicyRequest:
+    type: object
+    required:
+      - access
+    properties:
+      access:
+         $ref: "#/definitions/bucketAccess"

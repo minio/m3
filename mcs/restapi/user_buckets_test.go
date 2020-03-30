@@ -69,6 +69,7 @@ func (mc minioClientMock) getBucketPolicy(bucketName string) (string, error) {
 func TestListBucket(t *testing.T) {
 	assert := assert.New(t)
 	minClient := minioClientMock{}
+	ctx := context.Background()
 	// Test-1 : listBuckets() Get response from minio client with two buckets and return the same number on listBuckets()
 	// mock minIO client
 	mockBucketList := []minio.BucketInfo{
@@ -83,7 +84,7 @@ func TestListBucket(t *testing.T) {
 	// get list buckets response this response should have Name, CreationDate, Size and Access
 	// as part of of each bucket
 	function := "listBuckets()"
-	bucketList, err := listBuckets(minClient)
+	bucketList, err := listBuckets(ctx, minClient)
 	if err != nil {
 		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
 	}
@@ -99,7 +100,7 @@ func TestListBucket(t *testing.T) {
 	minioListBucketsWithContextMock = func(ctx context.Context) ([]minio.BucketInfo, error) {
 		return nil, errors.New("error")
 	}
-	_, err = listBuckets(minClient)
+	_, err = listBuckets(ctx, minClient)
 	if assert.Error(err) {
 		assert.Equal("error", err.Error())
 	}
@@ -110,6 +111,7 @@ func TestMakeBucket(t *testing.T) {
 	// mock minIO client
 	minClient := minioClientMock{}
 	function := "makeBucket()"
+	ctx := context.Background()
 	// Test-1: makeBucket() create a bucket with public access
 	// mock function response from makeBucketWithContext(ctx)
 	minioMakeBucketWithContextMock = func(ctx context.Context, bucketName, location string) error {
@@ -119,17 +121,17 @@ func TestMakeBucket(t *testing.T) {
 	minioSetBucketPolicyWithContextMock = func(ctx context.Context, bucketName, policy string) error {
 		return nil
 	}
-	if err := makeBucket(minClient, "bucktest1", models.BucketAccessPUBLIC); err != nil {
+	if err := makeBucket(ctx, minClient, "bucktest1", models.BucketAccessPUBLIC); err != nil {
 		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
 	}
 
 	// Test-2: makeBucket() create a bucket with private access
-	if err := makeBucket(minClient, "bucktest1", models.BucketAccessPRIVATE); err != nil {
+	if err := makeBucket(ctx, minClient, "bucktest1", models.BucketAccessPRIVATE); err != nil {
 		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
 	}
 
 	// Test-3: makeBucket() create a bucket with an invalid access, expected error
-	if err := makeBucket(minClient, "bucktest1", "other"); assert.Error(err) {
+	if err := makeBucket(ctx, minClient, "bucktest1", "other"); assert.Error(err) {
 		assert.Equal("bucket created but error occurred while setting policy: access: `other` not supported", err.Error())
 	}
 
@@ -140,7 +142,7 @@ func TestMakeBucket(t *testing.T) {
 	minioSetBucketPolicyWithContextMock = func(ctx context.Context, bucketName, policy string) error {
 		return nil
 	}
-	if err := makeBucket(minClient, "bucktest1", models.BucketAccessPUBLIC); assert.Error(err) {
+	if err := makeBucket(ctx, minClient, "bucktest1", models.BucketAccessPUBLIC); assert.Error(err) {
 		assert.Equal("error", err.Error())
 	}
 
@@ -151,7 +153,7 @@ func TestMakeBucket(t *testing.T) {
 	minioSetBucketPolicyWithContextMock = func(ctx context.Context, bucketName, policy string) error {
 		return errors.New("error")
 	}
-	if err := makeBucket(minClient, "bucktest1", models.BucketAccessPUBLIC); assert.Error(err) {
+	if err := makeBucket(ctx, minClient, "bucktest1", models.BucketAccessPUBLIC); assert.Error(err) {
 		assert.Equal("bucket created but error occurred while setting policy: error", err.Error())
 	}
 }
@@ -181,7 +183,7 @@ func TestDeleteBucket(t *testing.T) {
 	}
 }
 
-func TestSetBucketAccess(t *testing.T) {
+func TestBucketInfo(t *testing.T) {
 	assert := assert.New(t)
 	// mock minIO client
 	minClient := minioClientMock{}
@@ -286,4 +288,50 @@ func TestSetBucketAccess(t *testing.T) {
 	if assert.Error(err) {
 		assert.Equal("error", err.Error())
 	}
+}
+
+func TestSetBucketAccess(t *testing.T) {
+	assert := assert.New(t)
+	ctx := context.Background()
+	// mock minIO client
+	minClient := minioClientMock{}
+
+	function := "setBucketAccessPolicy()"
+	// Test-1: setBucketAccessPolicy() set a bucket's access policy
+	// mock function response from setBucketPolicyWithContext(ctx)
+	minioSetBucketPolicyWithContextMock = func(ctx context.Context, bucketName, policy string) error {
+		return nil
+	}
+	if err := setBucketAccessPolicy(ctx, minClient, "bucktest1", models.BucketAccessPUBLIC); err != nil {
+		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
+	}
+
+	// Test-2: setBucketAccessPolicy() set private access
+	if err := setBucketAccessPolicy(ctx, minClient, "bucktest1", models.BucketAccessPRIVATE); err != nil {
+		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
+	}
+
+	// Test-3: setBucketAccessPolicy() set invalid access, expected error
+	if err := setBucketAccessPolicy(ctx, minClient, "bucktest1", "other"); assert.Error(err) {
+		assert.Equal("access: `other` not supported", err.Error())
+	}
+
+	// Test-4: setBucketAccessPolicy() set access on empty bucket name, expected error
+	if err := setBucketAccessPolicy(ctx, minClient, "", models.BucketAccessPRIVATE); assert.Error(err) {
+		assert.Equal("error: bucket name not present", err.Error())
+	}
+
+	// Test-5: setBucketAccessPolicy() set empty access on bucket, expected error
+	if err := setBucketAccessPolicy(ctx, minClient, "bucktest1", ""); assert.Error(err) {
+		assert.Equal("error: bucket access not present", err.Error())
+	}
+
+	// Test-5: setBucketAccessPolicy() handle error on setPolicy call
+	minioSetBucketPolicyWithContextMock = func(ctx context.Context, bucketName, policy string) error {
+		return errors.New("error")
+	}
+	if err := setBucketAccessPolicy(ctx, minClient, "bucktest1", models.BucketAccessPUBLIC); assert.Error(err) {
+		assert.Equal("error", err.Error())
+	}
+
 }
