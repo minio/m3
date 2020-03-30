@@ -73,6 +73,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		UserAPIBucketInfoHandler: user_api.BucketInfoHandlerFunc(func(params user_api.BucketInfoParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.BucketInfo has not yet been implemented")
 		}),
+		UserAPIBucketSetPolicyHandler: user_api.BucketSetPolicyHandlerFunc(func(params user_api.BucketSetPolicyParams) middleware.Responder {
+			return middleware.NotImplemented("operation user_api.BucketSetPolicy has not yet been implemented")
+		}),
 		AdminAPIConfigInfoHandler: admin_api.ConfigInfoHandlerFunc(func(params admin_api.ConfigInfoParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.ConfigInfo has not yet been implemented")
 		}),
@@ -162,6 +165,8 @@ type McsAPI struct {
 	AdminAPIAddUserHandler admin_api.AddUserHandler
 	// UserAPIBucketInfoHandler sets the operation handler for the bucket info operation
 	UserAPIBucketInfoHandler user_api.BucketInfoHandler
+	// UserAPIBucketSetPolicyHandler sets the operation handler for the bucket set policy operation
+	UserAPIBucketSetPolicyHandler user_api.BucketSetPolicyHandler
 	// AdminAPIConfigInfoHandler sets the operation handler for the config info operation
 	AdminAPIConfigInfoHandler admin_api.ConfigInfoHandler
 	// UserAPIDeleteBucketHandler sets the operation handler for the delete bucket operation
@@ -271,6 +276,9 @@ func (o *McsAPI) Validate() error {
 	}
 	if o.UserAPIBucketInfoHandler == nil {
 		unregistered = append(unregistered, "user_api.BucketInfoHandler")
+	}
+	if o.UserAPIBucketSetPolicyHandler == nil {
+		unregistered = append(unregistered, "user_api.BucketSetPolicyHandler")
 	}
 	if o.AdminAPIConfigInfoHandler == nil {
 		unregistered = append(unregistered, "admin_api.ConfigInfoHandler")
@@ -424,6 +432,10 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/api/v1/buckets/{name}"] = user_api.NewBucketInfo(o.context, o.UserAPIBucketInfoHandler)
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/api/v1/buckets/{name}/set-policy"] = user_api.NewBucketSetPolicy(o.context, o.UserAPIBucketSetPolicyHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

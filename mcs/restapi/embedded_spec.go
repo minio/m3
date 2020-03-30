@@ -220,6 +220,42 @@ func init() {
         }
       }
     },
+    "/api/v1/buckets/{name}/set-policy": {
+      "put": {
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "Bucket Set Policy",
+        "operationId": "BucketSetPolicy",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/setBucketPolicyRequest"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/configs": {
       "get": {
         "tags": [
@@ -1028,6 +1064,17 @@ func init() {
         "user",
         "group"
       ]
+    },
+    "setBucketPolicyRequest": {
+      "type": "object",
+      "required": [
+        "access"
+      ],
+      "properties": {
+        "access": {
+          "$ref": "#/definitions/bucketAccess"
+        }
+      }
     },
     "setConfigRequest": {
       "type": "object",
@@ -1309,6 +1356,42 @@ func init() {
         }
       }
     },
+    "/api/v1/buckets/{name}/set-policy": {
+      "put": {
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "Bucket Set Policy",
+        "operationId": "BucketSetPolicy",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/setBucketPolicyRequest"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/configs": {
       "get": {
         "tags": [
@@ -2117,6 +2200,17 @@ func init() {
         "user",
         "group"
       ]
+    },
+    "setBucketPolicyRequest": {
+      "type": "object",
+      "required": [
+        "access"
+      ],
+      "properties": {
+        "access": {
+          "$ref": "#/definitions/bucketAccess"
+        }
+      }
     },
     "setConfigRequest": {
       "type": "object",
