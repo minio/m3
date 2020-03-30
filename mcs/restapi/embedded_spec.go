@@ -476,11 +476,8 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/group"
-            }
+          "204": {
+            "description": "A successful response."
           },
           "default": {
             "description": "Generic error response.",
@@ -1612,11 +1609,8 @@ func init() {
           }
         ],
         "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/group"
-            }
+          "204": {
+            "description": "A successful response."
           },
           "default": {
             "description": "Generic error response.",
