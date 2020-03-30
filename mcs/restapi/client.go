@@ -94,11 +94,10 @@ func (mc minioClient) getBucketPolicy(bucketName string) (string, error) {
 
 // newMinioClient creates a new MinIO client to talk to the server
 func newMinioClient() (*minio.Client, error) {
-	// TODO: abstract this to fetch from different endpoints
-	endpoint := "play.min.io"
-	accessKeyID := "Q3AM3UQ867SPQQA43P2F"
-	secretAccessKey := "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-	useSSL := true
+	endpoint := getMinIOEndpoint()
+	accessKeyID := getAccessKey()
+	secretAccessKey := getSecretKey()
+	useSSL := getMinIOEndpointSSL()
 
 	// Initialize minio client object.
 	minioClient, err := minio.NewV4(endpoint, accessKeyID, secretAccessKey, useSSL)

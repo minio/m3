@@ -16,4 +16,9 @@
 
 package restapi
 
-const Version = `0.1.0`
+const (
+	Version        = `0.1.0`
+	McsAccessKey   = "MCS_ACCESS_KEY"
+	McsSecretKey   = "MCS_SECRET_KEY"
+	McsMinIOServer = "MCS_MINIO_SERVER"
+)
