@@ -24,6 +24,7 @@ import (
 
 	"time"
 
+	"github.com/go-openapi/swag"
 	"github.com/minio/m3/mcs/models"
 	"github.com/minio/minio-go/v6"
 	"github.com/stretchr/testify/assert"
@@ -34,6 +35,7 @@ var minioListBucketsWithContextMock func(ctx context.Context) ([]minio.BucketInf
 var minioMakeBucketWithContextMock func(ctx context.Context, bucketName, location string) error
 var minioSetBucketPolicyWithContextMock func(ctx context.Context, bucketName, policy string) error
 var minioRemoveBucketMock func(bucketName string) error
+var minioGetBucketPolicyMock func(bucketName string) (string, error)
 
 // Define a mock struct of minio Client interface implementation
 type minioClientMock struct {
@@ -57,6 +59,11 @@ func (mc minioClientMock) setBucketPolicyWithContext(ctx context.Context, bucket
 // mock function of removeBucket()
 func (mc minioClientMock) removeBucket(bucketName string) error {
 	return minioRemoveBucketMock(bucketName)
+}
+
+// imock function of getBucketPolicy()
+func (mc minioClientMock) getBucketPolicy(bucketName string) (string, error) {
+	return minioGetBucketPolicyMock(bucketName)
 }
 
 func TestListBucket(t *testing.T) {
@@ -123,7 +130,7 @@ func TestMakeBucket(t *testing.T) {
 
 	// Test-3: makeBucket() create a bucket with an invalid access, expected error
 	if err := makeBucket(minClient, "bucktest1", "other"); assert.Error(err) {
-		assert.Equal("access: `other` not supported", err.Error())
+		assert.Equal("bucket created but error occurred while setting policy: access: `other` not supported", err.Error())
 	}
 
 	// Test-4 makeBucket() make sure errors are handled correctly when error on MakeBucketWithContext
@@ -145,7 +152,7 @@ func TestMakeBucket(t *testing.T) {
 		return errors.New("error")
 	}
 	if err := makeBucket(minClient, "bucktest1", models.BucketAccessPUBLIC); assert.Error(err) {
-		assert.Equal("error", err.Error())
+		assert.Equal("bucket created but error occurred while setting policy: error", err.Error())
 	}
 }
 
@@ -170,6 +177,113 @@ func TestDeleteBucket(t *testing.T) {
 		return errors.New("error")
 	}
 	if err := removeBucket(minClient, "bucktest1"); assert.Error(err) {
+		assert.Equal("error", err.Error())
+	}
+}
+
+func TestSetBucketAccess(t *testing.T) {
+	assert := assert.New(t)
+	// mock minIO client
+	minClient := minioClientMock{}
+	function := "getBucketInfo()"
+
+	// Test-1: getBucketInfo() get a bucket with PRIVATE access
+	// if not policy set on bucket, access should be PRIVATE
+	mockPolicy := ""
+	minioGetBucketPolicyMock = func(bucketName string) (string, error) {
+		return mockPolicy, nil
+	}
+	bucketToSet := "csbucket"
+	outputExpected := &models.Bucket{
+		Name:         swag.String(bucketToSet),
+		Access:       models.BucketAccessPRIVATE,
+		CreationDate: "", // to be implemented
+		Size:         0,  // to be implemented
+	}
+	bucketInfo, err := getBucketInfo(minClient, bucketToSet)
+	if err != nil {
+		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
+	}
+	assert.Equal(outputExpected.Name, bucketInfo.Name)
+	assert.Equal(outputExpected.Access, bucketInfo.Access)
+	assert.Equal(outputExpected.CreationDate, bucketInfo.CreationDate)
+	assert.Equal(outputExpected.Size, bucketInfo.Size)
+
+	// Test-2: getBucketInfo() get a bucket with PUBLIC access
+	// mock policy for bucket csbucket with readWrite access (should return PUBLIC)
+	mockPolicy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":[\"*\"]},\"Action\":[\"s3:GetBucketLocation\",\"s3:ListBucket\",\"s3:ListBucketMultipartUploads\"],\"Resource\":[\"arn:aws:s3:::csbucket\"]},{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":[\"*\"]},\"Action\":[\"s3:GetObject\",\"s3:ListMultipartUploadParts\",\"s3:PutObject\",\"s3:AbortMultipartUpload\",\"s3:DeleteObject\"],\"Resource\":[\"arn:aws:s3:::csbucket/*\"]}]}"
+	minioGetBucketPolicyMock = func(bucketName string) (string, error) {
+		return mockPolicy, nil
+	}
+	bucketToSet = "csbucket"
+	outputExpected = &models.Bucket{
+		Name:         swag.String(bucketToSet),
+		Access:       models.BucketAccessPUBLIC,
+		CreationDate: "", // to be implemented
+		Size:         0,  // to be implemented
+	}
+	bucketInfo, err = getBucketInfo(minClient, bucketToSet)
+	if err != nil {
+		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
+	}
+	assert.Equal(outputExpected.Name, bucketInfo.Name)
+	assert.Equal(outputExpected.Access, bucketInfo.Access)
+	assert.Equal(outputExpected.CreationDate, bucketInfo.CreationDate)
+	assert.Equal(outputExpected.Size, bucketInfo.Size)
+
+	// Test-3: getBucketInfo() get a bucket with CUSTOM access
+	// if bucket has a custom policy set it should return CUSTOM
+	mockPolicy = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
+	minioGetBucketPolicyMock = func(bucketName string) (string, error) {
+		return mockPolicy, nil
+	}
+	bucketToSet = "csbucket"
+	outputExpected = &models.Bucket{
+		Name:         swag.String(bucketToSet),
+		Access:       models.BucketAccessCUSTOM,
+		CreationDate: "", // to be implemented
+		Size:         0,  // to be implemented
+	}
+	bucketInfo, err = getBucketInfo(minClient, bucketToSet)
+	if err != nil {
+		t.Errorf("Failed on %s:, error occurred: %s", function, err.Error())
+	}
+	assert.Equal(outputExpected.Name, bucketInfo.Name)
+	assert.Equal(outputExpected.Access, bucketInfo.Access)
+	assert.Equal(outputExpected.CreationDate, bucketInfo.CreationDate)
+	assert.Equal(outputExpected.Size, bucketInfo.Size)
+
+	// Test-4: getBucketInfo() returns an error while parsing invalid policy
+	mockPolicy = "policyinvalid"
+	minioGetBucketPolicyMock = func(bucketName string) (string, error) {
+		return mockPolicy, nil
+	}
+	bucketToSet = "csbucket"
+	outputExpected = &models.Bucket{
+		Name:         swag.String(bucketToSet),
+		Access:       models.BucketAccessCUSTOM,
+		CreationDate: "", // to be implemented
+		Size:         0,  // to be implemented
+	}
+	_, err = getBucketInfo(minClient, bucketToSet)
+	if assert.Error(err) {
+		assert.Equal("invalid character 'p' looking for beginning of value", err.Error())
+	}
+
+	// Test-4: getBucketInfo() handle GetBucketPolicy error correctly
+	mockPolicy = ""
+	minioGetBucketPolicyMock = func(bucketName string) (string, error) {
+		return "", errors.New("error")
+	}
+	bucketToSet = "csbucket"
+	outputExpected = &models.Bucket{
+		Name:         swag.String(bucketToSet),
+		Access:       models.BucketAccessCUSTOM,
+		CreationDate: "", // to be implemented
+		Size:         0,  // to be implemented
+	}
+	_, err = getBucketInfo(minClient, bucketToSet)
+	if assert.Error(err) {
 		assert.Equal("error", err.Error())
 	}
 }

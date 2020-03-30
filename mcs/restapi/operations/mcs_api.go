@@ -70,6 +70,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		AdminAPIAddUserHandler: admin_api.AddUserHandlerFunc(func(params admin_api.AddUserParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.AddUser has not yet been implemented")
 		}),
+		UserAPIBucketInfoHandler: user_api.BucketInfoHandlerFunc(func(params user_api.BucketInfoParams) middleware.Responder {
+			return middleware.NotImplemented("operation user_api.BucketInfo has not yet been implemented")
+		}),
 		AdminAPIConfigInfoHandler: admin_api.ConfigInfoHandlerFunc(func(params admin_api.ConfigInfoParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.ConfigInfo has not yet been implemented")
 		}),
@@ -157,6 +160,8 @@ type McsAPI struct {
 	AdminAPIAddPolicyHandler admin_api.AddPolicyHandler
 	// AdminAPIAddUserHandler sets the operation handler for the add user operation
 	AdminAPIAddUserHandler admin_api.AddUserHandler
+	// UserAPIBucketInfoHandler sets the operation handler for the bucket info operation
+	UserAPIBucketInfoHandler user_api.BucketInfoHandler
 	// AdminAPIConfigInfoHandler sets the operation handler for the config info operation
 	AdminAPIConfigInfoHandler admin_api.ConfigInfoHandler
 	// UserAPIDeleteBucketHandler sets the operation handler for the delete bucket operation
@@ -263,6 +268,9 @@ func (o *McsAPI) Validate() error {
 	}
 	if o.AdminAPIAddUserHandler == nil {
 		unregistered = append(unregistered, "admin_api.AddUserHandler")
+	}
+	if o.UserAPIBucketInfoHandler == nil {
+		unregistered = append(unregistered, "user_api.BucketInfoHandler")
 	}
 	if o.AdminAPIConfigInfoHandler == nil {
 		unregistered = append(unregistered, "admin_api.ConfigInfoHandler")
@@ -412,6 +420,10 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/api/v1/users"] = admin_api.NewAddUser(o.context, o.AdminAPIAddUserHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/api/v1/buckets/{name}"] = user_api.NewBucketInfo(o.context, o.UserAPIBucketInfoHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
