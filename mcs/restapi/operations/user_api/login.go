@@ -28,60 +28,47 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 )
 
-// ListBucketsHandlerFunc turns a function with the right signature into a list buckets handler
-type ListBucketsHandlerFunc func(ListBucketsParams, interface{}) middleware.Responder
+// LoginHandlerFunc turns a function with the right signature into a login handler
+type LoginHandlerFunc func(LoginParams) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn ListBucketsHandlerFunc) Handle(params ListBucketsParams, principal interface{}) middleware.Responder {
-	return fn(params, principal)
+func (fn LoginHandlerFunc) Handle(params LoginParams) middleware.Responder {
+	return fn(params)
 }
 
-// ListBucketsHandler interface for that can handle valid list buckets params
-type ListBucketsHandler interface {
-	Handle(ListBucketsParams, interface{}) middleware.Responder
+// LoginHandler interface for that can handle valid login params
+type LoginHandler interface {
+	Handle(LoginParams) middleware.Responder
 }
 
-// NewListBuckets creates a new http.Handler for the list buckets operation
-func NewListBuckets(ctx *middleware.Context, handler ListBucketsHandler) *ListBuckets {
-	return &ListBuckets{Context: ctx, Handler: handler}
+// NewLogin creates a new http.Handler for the login operation
+func NewLogin(ctx *middleware.Context, handler LoginHandler) *Login {
+	return &Login{Context: ctx, Handler: handler}
 }
 
-/*ListBuckets swagger:route GET /api/v1/buckets UserAPI listBuckets
+/*Login swagger:route POST /api/v1/login UserAPI login
 
-List Buckets
+Login to mcs
 
 */
-type ListBuckets struct {
+type Login struct {
 	Context *middleware.Context
-	Handler ListBucketsHandler
+	Handler LoginHandler
 }
 
-func (o *ListBuckets) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (o *Login) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
 		r = rCtx
 	}
-	var Params = NewListBucketsParams()
-
-	uprinc, aCtx, err := o.Context.Authorize(r, route)
-	if err != nil {
-		o.Context.Respond(rw, r, route.Produces, route, err)
-		return
-	}
-	if aCtx != nil {
-		r = aCtx
-	}
-	var principal interface{}
-	if uprinc != nil {
-		principal = uprinc
-	}
+	var Params = NewLoginParams()
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
-	res := o.Handler.Handle(Params, principal) // actually handle the request
+	res := o.Handler.Handle(Params) // actually handle the request
 
 	o.Context.Respond(rw, r, route.Produces, route, res)
 

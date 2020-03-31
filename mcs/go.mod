@@ -18,3 +18,5 @@ require (
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 )
+
+replace github.com/minio/mc => github.com/dvaldivia/mc v0.0.0-20200330203654-e8aaf0b56ebd

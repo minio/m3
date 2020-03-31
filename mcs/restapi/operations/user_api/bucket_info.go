@@ -29,16 +29,16 @@ import (
 )
 
 // BucketInfoHandlerFunc turns a function with the right signature into a bucket info handler
-type BucketInfoHandlerFunc func(BucketInfoParams) middleware.Responder
+type BucketInfoHandlerFunc func(BucketInfoParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn BucketInfoHandlerFunc) Handle(params BucketInfoParams) middleware.Responder {
-	return fn(params)
+func (fn BucketInfoHandlerFunc) Handle(params BucketInfoParams, principal interface{}) middleware.Responder {
+	return fn(params, principal)
 }
 
 // BucketInfoHandler interface for that can handle valid bucket info params
 type BucketInfoHandler interface {
-	Handle(BucketInfoParams) middleware.Responder
+	Handle(BucketInfoParams, interface{}) middleware.Responder
 }
 
 // NewBucketInfo creates a new http.Handler for the bucket info operation
@@ -63,12 +63,25 @@ func (o *BucketInfo) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 	var Params = NewBucketInfoParams()
 
+	uprinc, aCtx, err := o.Context.Authorize(r, route)
+	if err != nil {
+		o.Context.Respond(rw, r, route.Produces, route, err)
+		return
+	}
+	if aCtx != nil {
+		r = aCtx
+	}
+	var principal interface{}
+	if uprinc != nil {
+		principal = uprinc
+	}
+
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
-	res := o.Handler.Handle(Params) // actually handle the request
+	res := o.Handler.Handle(Params, principal) // actually handle the request
 
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
