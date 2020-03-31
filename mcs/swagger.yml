@@ -8,12 +8,14 @@ produces:
   - application/json
 schemes:
   - http
+# We are going to be taking `Authorization: Bearer TOKEN` header for our authentication
 securityDefinitions:
   key:
     type: oauth2
     flow: accessCode
     authorizationUrl: http://min.io
     tokenUrl: http://min.io
+# Apply the key security definition to all APIs
 security:
   - key: []
 paths:
@@ -491,6 +493,7 @@ paths:
           description: Generic error response.
           schema:
             $ref: "#/definitions/error"
+      # Exclude this API from the authentication requirement
       security: []
       tags:
         - UserAPI
@@ -512,6 +515,7 @@ paths:
           description: Generic error response.
           schema:
             $ref: "#/definitions/error"
+      # Exclude this API from the authentication requirement
       security: []
       tags:
         - UserAPI
@@ -822,5 +826,6 @@ definitions:
     properties:
       sessionId:
         type: string
+  # Structure that holds the `Bearer {TOKEN}` present on authenticated requests
   principal:
     type: string
