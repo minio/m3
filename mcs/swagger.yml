@@ -109,8 +109,10 @@ paths:
           schema:
             $ref: "#/definitions/setBucketPolicyRequest"
       responses:
-        204:
+        200:
           description: A successful response.
+          schema:
+            $ref: "#/definitions/bucket"
         default:
           description: Generic error response.
           schema:
@@ -288,8 +290,10 @@ paths:
           schema:
             $ref: "#/definitions/updateGroupRequest"
       responses:
-        204:
+        200:
           description: A successful response.
+          schema:
+            $ref: "#/definitions/group"
         default:
           description: Generic error response.
           schema:

@@ -69,10 +69,11 @@ func registerBucketsHandlers(api *operations.McsAPI) {
 	})
 	// set bucket policy
 	api.UserAPIBucketSetPolicyHandler = user_api.BucketSetPolicyHandlerFunc(func(params user_api.BucketSetPolicyParams) middleware.Responder {
-		if err := getBucketSetPolicyResponse(params.Name, params.Body); err != nil {
+		bucketSetPolicyResp, err := getBucketSetPolicyResponse(params.Name, params.Body)
+		if err != nil {
 			return user_api.NewBucketSetPolicyDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
-		return user_api.NewBucketSetPolicyNoContent()
+		return user_api.NewBucketSetPolicyOK().WithPayload(bucketSetPolicyResp)
 	})
 }
 
@@ -189,14 +190,14 @@ func getMakeBucketResponse(br *models.MakeBucketRequest) error {
 
 // getBucketSetPolicyResponse calls setBucketAccessPolicy() to set a access policy to a bucket
 //   and returns the serialized output.
-func getBucketSetPolicyResponse(bucketName string, req *models.SetBucketPolicyRequest) error {
+func getBucketSetPolicyResponse(bucketName string, req *models.SetBucketPolicyRequest) (*models.Bucket, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
 	mClient, err := newMinioClient()
 	if err != nil {
 		log.Println("error creating MinIO Client:", err)
-		return err
+		return nil, err
 	}
 	// create a minioClient interface implementation
 	// defining the client to be used
@@ -205,9 +206,15 @@ func getBucketSetPolicyResponse(bucketName string, req *models.SetBucketPolicyRe
 	// set bucket access policy
 	if err := setBucketAccessPolicy(ctx, minioClient, bucketName, req.Access); err != nil {
 		log.Println("error setting bucket access policy:", err)
-		return err
+		return nil, err
 	}
-	return nil
+	// get updated bucket details and return it
+	bucket, err := getBucketInfo(minioClient, bucketName)
+	if err != nil {
+		log.Println("error getting bucket's info:", err)
+		return nil, err
+	}
+	return bucket, nil
 }
 
 // removeBucket deletes a bucket

@@ -30,28 +30,48 @@ import (
 	"github.com/minio/m3/mcs/models"
 )
 
-// BucketSetPolicyNoContentCode is the HTTP code returned for type BucketSetPolicyNoContent
-const BucketSetPolicyNoContentCode int = 204
+// BucketSetPolicyOKCode is the HTTP code returned for type BucketSetPolicyOK
+const BucketSetPolicyOKCode int = 200
 
-/*BucketSetPolicyNoContent A successful response.
+/*BucketSetPolicyOK A successful response.
 
-swagger:response bucketSetPolicyNoContent
+swagger:response bucketSetPolicyOK
 */
-type BucketSetPolicyNoContent struct {
+type BucketSetPolicyOK struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Bucket `json:"body,omitempty"`
 }
 
-// NewBucketSetPolicyNoContent creates BucketSetPolicyNoContent with default headers values
-func NewBucketSetPolicyNoContent() *BucketSetPolicyNoContent {
+// NewBucketSetPolicyOK creates BucketSetPolicyOK with default headers values
+func NewBucketSetPolicyOK() *BucketSetPolicyOK {
 
-	return &BucketSetPolicyNoContent{}
+	return &BucketSetPolicyOK{}
+}
+
+// WithPayload adds the payload to the bucket set policy o k response
+func (o *BucketSetPolicyOK) WithPayload(payload *models.Bucket) *BucketSetPolicyOK {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the bucket set policy o k response
+func (o *BucketSetPolicyOK) SetPayload(payload *models.Bucket) {
+	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *BucketSetPolicyNoContent) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *BucketSetPolicyOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
-	rw.WriteHeader(204)
+	rw.WriteHeader(200)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }
 
 /*BucketSetPolicyDefault Generic error response.
