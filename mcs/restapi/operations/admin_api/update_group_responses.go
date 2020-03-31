@@ -30,28 +30,48 @@ import (
 	"github.com/minio/m3/mcs/models"
 )
 
-// UpdateGroupNoContentCode is the HTTP code returned for type UpdateGroupNoContent
-const UpdateGroupNoContentCode int = 204
+// UpdateGroupOKCode is the HTTP code returned for type UpdateGroupOK
+const UpdateGroupOKCode int = 200
 
-/*UpdateGroupNoContent A successful response.
+/*UpdateGroupOK A successful response.
 
-swagger:response updateGroupNoContent
+swagger:response updateGroupOK
 */
-type UpdateGroupNoContent struct {
+type UpdateGroupOK struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Group `json:"body,omitempty"`
 }
 
-// NewUpdateGroupNoContent creates UpdateGroupNoContent with default headers values
-func NewUpdateGroupNoContent() *UpdateGroupNoContent {
+// NewUpdateGroupOK creates UpdateGroupOK with default headers values
+func NewUpdateGroupOK() *UpdateGroupOK {
 
-	return &UpdateGroupNoContent{}
+	return &UpdateGroupOK{}
+}
+
+// WithPayload adds the payload to the update group o k response
+func (o *UpdateGroupOK) WithPayload(payload *models.Group) *UpdateGroupOK {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the update group o k response
+func (o *UpdateGroupOK) SetPayload(payload *models.Group) {
+	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *UpdateGroupNoContent) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *UpdateGroupOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
-	rw.WriteHeader(204)
+	rw.WriteHeader(200)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }
 
 /*UpdateGroupDefault Generic error response.

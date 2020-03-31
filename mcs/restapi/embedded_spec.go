@@ -244,8 +244,11 @@ func init() {
           }
         ],
         "responses": {
-          "204": {
-            "description": "A successful response."
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/bucket"
+            }
           },
           "default": {
             "description": "Generic error response.",
@@ -476,8 +479,11 @@ func init() {
           }
         ],
         "responses": {
-          "204": {
-            "description": "A successful response."
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/group"
+            }
           },
           "default": {
             "description": "Generic error response.",
@@ -1377,8 +1383,11 @@ func init() {
           }
         ],
         "responses": {
-          "204": {
-            "description": "A successful response."
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/bucket"
+            }
           },
           "default": {
             "description": "Generic error response.",
@@ -1609,8 +1618,11 @@ func init() {
           }
         ],
         "responses": {
-          "204": {
-            "description": "A successful response."
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/group"
+            }
           },
           "default": {
             "description": "Generic error response.",

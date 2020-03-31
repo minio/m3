@@ -64,10 +64,11 @@ func registerGroupsHandlers(api *operations.McsAPI) {
 	})
 	// Update Group
 	api.AdminAPIUpdateGroupHandler = admin_api.UpdateGroupHandlerFunc(func(params admin_api.UpdateGroupParams) middleware.Responder {
-		if err := getUpdateGroupResponse(params); err != nil {
+		groupUpdateResp, err := getUpdateGroupResponse(params)
+		if err != nil {
 			return admin_api.NewUpdateGroupDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
-		return admin_api.NewUpdateGroupNoContent()
+		return admin_api.NewUpdateGroupOK().WithPayload(groupUpdateResp)
 	})
 }
 
@@ -272,48 +273,76 @@ func setGroupStatus(ctx context.Context, client MinioAdmin, group, status string
 	return nil
 }
 
-// getUpdateGroupResponse performs removeGroup() and serializes it to the handler's output
-func getUpdateGroupResponse(params admin_api.UpdateGroupParams) error {
+// getUpdateGroupResponse updates a group by adding or removing it's members depending on the request,
+// 	also sets the group's status if status in the request is different than the current one.
+//  Then serializes the output to be used by the handler.
+func getUpdateGroupResponse(params admin_api.UpdateGroupParams) (*models.Group, error) {
 	ctx := context.Background()
 	if params.Name == "" {
 		log.Println("error group name not in request")
-		return errors.New(500, "error group name not in request")
+		return nil, errors.New(500, "error group name not in request")
 	}
 	if params.Body == nil {
 		log.Println("error body not in request")
-		return errors.New(500, "error body not in request")
+		return nil, errors.New(500, "error body not in request")
 	}
-	expectedMembers := params.Body.Members
-	expectedStatus := *params.Body.Status
-	group := params.Name
+	expectedGroupUpdate := params.Body
+	groupName := params.Name
 
 	mAdmin, err := newMAdminClient()
 	if err != nil {
 		log.Println("error creating Madmin Client:", err)
-		return err
+		return nil, err
 	}
 	// create a MinIO Admin Client interface implementation
 	// defining the client to be used
 	adminClient := adminClient{client: mAdmin}
-	// get current members and status
-	groupDesc, err := groupInfo(ctx, adminClient, group)
-	if err != nil {
-		log.Println("error getting  group info:", err)
-		return err
-	}
-	// update group members
-	err = addOrDeleteMembers(ctx, adminClient, groupDesc, expectedMembers)
+
+	groupUpdated, err := groupUpdate(ctx, adminClient, groupName, expectedGroupUpdate)
 	if err != nil {
 		log.Println("error updating group:", err)
-		return err
+		return nil, err
+	}
+	groupResponse := &models.Group{
+		Name:    groupUpdated.Name,
+		Members: groupUpdated.Members,
+		Policy:  groupUpdated.Policy,
+		Status:  groupUpdated.Status,
+	}
+	return groupResponse, nil
+}
+
+// groupUpdate updates a group given the expected parameters, compares the expected parameters against the current ones
+//   and updates them accordingly, status is only updated if the expected status is different than the current one.
+//   Then fetches the group again to return the object updated.
+func groupUpdate(ctx context.Context, client MinioAdmin, groupName string, expectedGroup *models.UpdateGroupRequest) (*madmin.GroupDesc, error) {
+	expectedMembers := expectedGroup.Members
+	expectedStatus := *expectedGroup.Status
+	// get current members and status
+	groupDescription, err := groupInfo(ctx, client, groupName)
+	if err != nil {
+		log.Println("error getting  group info:", err)
+		return nil, err
+	}
+	// update group members
+	err = addOrDeleteMembers(ctx, client, groupDescription, expectedMembers)
+	if err != nil {
+		log.Println("error updating group:", err)
+		return nil, err
 	}
 	// update group status only if different from current status
-	if expectedStatus != groupDesc.Status {
-		err = setGroupStatus(ctx, adminClient, groupDesc.Name, expectedStatus)
+	if expectedStatus != groupDescription.Status {
+		err = setGroupStatus(ctx, client, groupDescription.Name, expectedStatus)
 		if err != nil {
 			log.Println("error updating group's status:", err)
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	// return latest group info to verify that changes were applied correctly
+	groupDescription, err = groupInfo(ctx, client, groupName)
+	if err != nil {
+		log.Println("error getting  group info:", err)
+		return nil, err
+	}
+	return groupDescription, nil
 }
