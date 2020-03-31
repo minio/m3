@@ -29,16 +29,16 @@ import (
 )
 
 // ConfigInfoHandlerFunc turns a function with the right signature into a config info handler
-type ConfigInfoHandlerFunc func(ConfigInfoParams) middleware.Responder
+type ConfigInfoHandlerFunc func(ConfigInfoParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn ConfigInfoHandlerFunc) Handle(params ConfigInfoParams) middleware.Responder {
-	return fn(params)
+func (fn ConfigInfoHandlerFunc) Handle(params ConfigInfoParams, principal interface{}) middleware.Responder {
+	return fn(params, principal)
 }
 
 // ConfigInfoHandler interface for that can handle valid config info params
 type ConfigInfoHandler interface {
-	Handle(ConfigInfoParams) middleware.Responder
+	Handle(ConfigInfoParams, interface{}) middleware.Responder
 }
 
 // NewConfigInfo creates a new http.Handler for the config info operation
@@ -63,12 +63,25 @@ func (o *ConfigInfo) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 	var Params = NewConfigInfoParams()
 
+	uprinc, aCtx, err := o.Context.Authorize(r, route)
+	if err != nil {
+		o.Context.Respond(rw, r, route.Produces, route, err)
+		return
+	}
+	if aCtx != nil {
+		r = aCtx
+	}
+	var principal interface{}
+	if uprinc != nil {
+		principal = uprinc
+	}
+
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
-	res := o.Handler.Handle(Params) // actually handle the request
+	res := o.Handler.Handle(Params, principal) // actually handle the request
 
 	o.Context.Respond(rw, r, route.Produces, route, res)
 

@@ -514,6 +514,62 @@ func init() {
         }
       }
     },
+    "/api/v1/login": {
+      "get": {
+        "security": [],
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "Returns login strategy, form or sso.",
+        "operationId": "LoginDetail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/loginDetails"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [],
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "Login to mcs",
+        "operationId": "Login",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/loginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful login.",
+            "schema": {
+              "$ref": "#/definitions/loginResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/policies": {
       "get": {
         "tags": [
@@ -989,6 +1045,44 @@ func init() {
         }
       }
     },
+    "loginDetails": {
+      "type": "object",
+      "properties": {
+        "loginStrategy": {
+          "type": "string",
+          "enum": [
+            "form",
+            "redirect"
+          ]
+        },
+        "redirect": {
+          "type": "string"
+        }
+      }
+    },
+    "loginRequest": {
+      "type": "object",
+      "required": [
+        "accessKey",
+        "secretKey"
+      ],
+      "properties": {
+        "accessKey": {
+          "type": "string"
+        },
+        "secretKey": {
+          "type": "string"
+        }
+      }
+    },
+    "loginResponse": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        }
+      }
+    },
     "makeBucketRequest": {
       "type": "object",
       "required": [
@@ -1061,6 +1155,9 @@ func init() {
         "user",
         "group"
       ]
+    },
+    "principal": {
+      "type": "string"
     },
     "setBucketPolicyRequest": {
       "type": "object",
@@ -1165,7 +1262,20 @@ func init() {
         }
       }
     }
-  }
+  },
+  "securityDefinitions": {
+    "key": {
+      "type": "oauth2",
+      "flow": "accessCode",
+      "authorizationUrl": "http://min.io",
+      "tokenUrl": "http://min.io"
+    }
+  },
+  "security": [
+    {
+      "key": []
+    }
+  ]
 }`))
 	FlatSwaggerJSON = json.RawMessage([]byte(`{
   "consumes": [
@@ -1647,6 +1757,62 @@ func init() {
         }
       }
     },
+    "/api/v1/login": {
+      "get": {
+        "security": [],
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "Returns login strategy, form or sso.",
+        "operationId": "LoginDetail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/loginDetails"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [],
+        "tags": [
+          "UserAPI"
+        ],
+        "summary": "Login to mcs",
+        "operationId": "Login",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/loginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful login.",
+            "schema": {
+              "$ref": "#/definitions/loginResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/policies": {
       "get": {
         "tags": [
@@ -2122,6 +2288,44 @@ func init() {
         }
       }
     },
+    "loginDetails": {
+      "type": "object",
+      "properties": {
+        "loginStrategy": {
+          "type": "string",
+          "enum": [
+            "form",
+            "redirect"
+          ]
+        },
+        "redirect": {
+          "type": "string"
+        }
+      }
+    },
+    "loginRequest": {
+      "type": "object",
+      "required": [
+        "accessKey",
+        "secretKey"
+      ],
+      "properties": {
+        "accessKey": {
+          "type": "string"
+        },
+        "secretKey": {
+          "type": "string"
+        }
+      }
+    },
+    "loginResponse": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        }
+      }
+    },
     "makeBucketRequest": {
       "type": "object",
       "required": [
@@ -2194,6 +2398,9 @@ func init() {
         "user",
         "group"
       ]
+    },
+    "principal": {
+      "type": "string"
     },
     "setBucketPolicyRequest": {
       "type": "object",
@@ -2298,6 +2505,19 @@ func init() {
         }
       }
     }
-  }
+  },
+  "securityDefinitions": {
+    "key": {
+      "type": "oauth2",
+      "flow": "accessCode",
+      "authorizationUrl": "http://min.io",
+      "tokenUrl": "http://min.io"
+    }
+  },
+  "security": [
+    {
+      "key": []
+    }
+  ]
 }`))
 }
