@@ -645,6 +645,26 @@ func init() {
         }
       }
     },
+    "/api/v1/service/restart": {
+      "post": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Restart Service",
+        "operationId": "RestartService",
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/set-policy/{name}": {
       "put": {
         "tags": [
@@ -1771,6 +1791,26 @@ func init() {
             "required": true
           }
         ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/service/restart": {
+      "post": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Restart Service",
+        "operationId": "RestartService",
         "responses": {
           "204": {
             "description": "A successful response."

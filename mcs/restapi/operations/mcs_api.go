@@ -115,6 +115,9 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		AdminAPIRemovePolicyHandler: admin_api.RemovePolicyHandlerFunc(func(params admin_api.RemovePolicyParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.RemovePolicy has not yet been implemented")
 		}),
+		AdminAPIRestartServiceHandler: admin_api.RestartServiceHandlerFunc(func(params admin_api.RestartServiceParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.RestartService has not yet been implemented")
+		}),
 		AdminAPISetConfigHandler: admin_api.SetConfigHandlerFunc(func(params admin_api.SetConfigParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.SetConfig has not yet been implemented")
 		}),
@@ -193,6 +196,8 @@ type McsAPI struct {
 	AdminAPIRemoveGroupHandler admin_api.RemoveGroupHandler
 	// AdminAPIRemovePolicyHandler sets the operation handler for the remove policy operation
 	AdminAPIRemovePolicyHandler admin_api.RemovePolicyHandler
+	// AdminAPIRestartServiceHandler sets the operation handler for the restart service operation
+	AdminAPIRestartServiceHandler admin_api.RestartServiceHandler
 	// AdminAPISetConfigHandler sets the operation handler for the set config operation
 	AdminAPISetConfigHandler admin_api.SetConfigHandler
 	// AdminAPISetPolicyHandler sets the operation handler for the set policy operation
@@ -318,6 +323,9 @@ func (o *McsAPI) Validate() error {
 	}
 	if o.AdminAPIRemovePolicyHandler == nil {
 		unregistered = append(unregistered, "admin_api.RemovePolicyHandler")
+	}
+	if o.AdminAPIRestartServiceHandler == nil {
+		unregistered = append(unregistered, "admin_api.RestartServiceHandler")
 	}
 	if o.AdminAPISetConfigHandler == nil {
 		unregistered = append(unregistered, "admin_api.SetConfigHandler")
@@ -488,6 +496,10 @@ func (o *McsAPI) initHandlerCache() {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/api/v1/policies/{name}"] = admin_api.NewRemovePolicy(o.context, o.AdminAPIRemovePolicyHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/api/v1/service/restart"] = admin_api.NewRestartService(o.context, o.AdminAPIRestartServiceHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
