@@ -288,10 +288,8 @@ paths:
           schema:
             $ref: "#/definitions/updateGroupRequest"
       responses:
-        200:
+        204:
           description: A successful response.
-          schema:
-            $ref: "#/definitions/group"
         default:
           description: Generic error response.
           schema:
