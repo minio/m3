@@ -63,7 +63,7 @@ func registerGroupsHandlers(api *operations.McsAPI) {
 		return admin_api.NewRemoveGroupNoContent()
 	})
 	// Update Group
-	api.AdminAPIUpdateGroupHandler = admin_api.UpdateGroupHandlerFunc(func(params admin_api.UpdateGroupParams, principal interface{})) middleware.Responder {
+	api.AdminAPIUpdateGroupHandler = admin_api.UpdateGroupHandlerFunc(func(params admin_api.UpdateGroupParams, principal interface{}) middleware.Responder {
 		groupUpdateResp, err := getUpdateGroupResponse(params)
 		if err != nil {
 			return admin_api.NewUpdateGroupDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})

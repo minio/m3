@@ -68,7 +68,7 @@ func registerBucketsHandlers(api *operations.McsAPI) {
 		return user_api.NewBucketInfoOK().WithPayload(bucketInfoResp)
 	})
 	// set bucket policy
-	api.UserAPIBucketSetPolicyHandler = user_api.BucketSetPolicyHandlerFunc(func(params user_api.BucketSetPolicyParams, principal interface{})) middleware.Responder {
+	api.UserAPIBucketSetPolicyHandler = user_api.BucketSetPolicyHandlerFunc(func(params user_api.BucketSetPolicyParams, principal interface{}) middleware.Responder {
 		bucketSetPolicyResp, err := getBucketSetPolicyResponse(params.Name, params.Body)
 		if err != nil {
 			return user_api.NewBucketSetPolicyDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
