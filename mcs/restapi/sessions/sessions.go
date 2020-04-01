@@ -46,19 +46,19 @@ func GetInstance() *Singleton {
 }
 
 func (s *Singleton) NewSession(cfg *mcCmd.Config) (string, error) {
-	sessionId := RandomCharString(64)
+	sessionID := RandomCharString(64)
 	// check if this sessions doesn't have a collision
-	if _, ok := s.sessions[sessionId]; ok == false {
-		s.sessions[sessionId] = cfg
+	if _, ok := s.sessions[sessionID]; !ok {
+		s.sessions[sessionID] = cfg
 	} else {
 		// if there's a collision, try again
 		return s.NewSession(cfg)
 	}
-	return sessionId, nil
+	return sessionID, nil
 }
 
-func (s *Singleton) ValidSession(sessionId string) bool {
-	if _, ok := s.sessions[sessionId]; ok == true {
+func (s *Singleton) ValidSession(sessionID string) bool {
+	if _, ok := s.sessions[sessionID]; ok {
 		return true
 	}
 	return false

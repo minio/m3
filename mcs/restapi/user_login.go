@@ -48,10 +48,7 @@ func (mc mcCmdWrapper) BuildS3Config(url, accessKey, secretKey, api, lookup stri
 func registerLoginHandlers(api *operations.McsAPI) {
 	// get login strategy
 	api.UserAPILoginDetailHandler = user_api.LoginDetailHandlerFunc(func(params user_api.LoginDetailParams) middleware.Responder {
-		loginDetails, err := getLoginDetailsResponse()
-		if err != nil {
-			return user_api.NewLoginDetailDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
-		}
+		loginDetails := getLoginDetailsResponse()
 		return user_api.NewLoginDetailOK().WithPayload(loginDetails)
 	})
 	// post login
@@ -76,35 +73,35 @@ func login(mc McCmd, accessKey, secretKey *string) (*string, error) {
 		return nil, ErrInvalidCredentials
 	}
 	// if we made it here, the credentials work, generate a session
-	sessionId, err := sessions.GetInstance().NewSession(cfg)
+	sessionID, err := sessions.GetInstance().NewSession(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	return &sessionId, nil
+	return &sessionID, nil
 }
 
 // getLoginResponse performs login() and serializes it to the handler's output
 func getLoginResponse(lr *models.LoginRequest) (*models.LoginResponse, error) {
 	mc := mcCmdWrapper{}
-	sessionId, err := login(&mc, lr.AccessKey, lr.SecretKey)
+	sessionID, err := login(&mc, lr.AccessKey, lr.SecretKey)
 	if err != nil {
 		log.Println("error login:", err)
 		return nil, err
 	}
 	// serialize output
 	loginResponse := &models.LoginResponse{
-		SessionID: *sessionId,
+		SessionID: *sessionID,
 	}
 	return loginResponse, nil
 }
 
 // getLoginDetailsResponse returns wether an IDP is configured or not.
-func getLoginDetailsResponse() (*models.LoginDetails, error) {
+func getLoginDetailsResponse() *models.LoginDetails {
 	// TODO: Add support for login using external IDPs
 	// serialize output
 	loginDetails := &models.LoginDetails{
 		LoginStrategy: models.LoginDetailsLoginStrategyForm,
 	}
-	return loginDetails, nil
+	return loginDetails
 }

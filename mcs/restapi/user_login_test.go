@@ -43,7 +43,7 @@ func TestLogin(t *testing.T) {
 		return &mcCmd.Config{}, nil
 	}
 
-	sessionId, err := login(mcx, &access, &secret)
-	assert.NotEmpty(sessionId, "Session ID was returned empty")
+	sessionID, err := login(mcx, &access, &secret)
+	assert.NotEmpty(sessionID, "Session ID was returned empty")
 	assert.Nil(err, "error creating a session")
 }

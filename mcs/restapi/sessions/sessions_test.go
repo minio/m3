@@ -29,8 +29,8 @@ func TestNewSession(t *testing.T) {
 	// We will write a test against play
 	// Probe the credentials
 	cfg := mcCmd.Config{}
-	sessionId, err := GetInstance().NewSession(&cfg)
-	assert.NotEmpty(sessionId, "Session ID was returned empty")
+	sessionID, err := GetInstance().NewSession(&cfg)
+	assert.NotEmpty(sessionID, "Session ID was returned empty")
 	assert.Nil(err, "error creating a session")
 }
 
@@ -39,8 +39,8 @@ func TestValidateSession(t *testing.T) {
 	// We will write a test against play
 	// Probe the credentials
 	cfg := mcCmd.Config{}
-	sessionId, _ := GetInstance().NewSession(&cfg)
-	isValid := GetInstance().ValidSession(sessionId)
+	sessionID, _ := GetInstance().NewSession(&cfg)
+	isValid := GetInstance().ValidSession(sessionID)
 	assert.Equal(isValid, true, "Session was not found valid")
 	isInvalid := GetInstance().ValidSession("random")
 	assert.Equal(isInvalid, false, "Session was found valid")
