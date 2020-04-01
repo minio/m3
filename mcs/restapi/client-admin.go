@@ -151,6 +151,8 @@ type MinioAdmin interface {
 	getConfigKV(ctx context.Context, key string) (madmin.Targets, error)
 	helpConfigKV(ctx context.Context, subSys, key string, envOnly bool) (madmin.Help, error)
 	setConfigKV(ctx context.Context, kv string) (err error)
+	serviceRestart(ctx context.Context) error
+	serverInfo(ctx context.Context) (madmin.InfoMessage, error)
 }
 
 // Interface implementation
@@ -229,6 +231,16 @@ func (ac adminClient) helpConfigKV(ctx context.Context, subSys, key string, envO
 // implements madmin.SetConfigKV()
 func (ac adminClient) setConfigKV(ctx context.Context, kv string) (err error) {
 	return ac.client.SetConfigKV(ctx, kv)
+}
+
+// implements madmin.ServiceRestart()
+func (ac adminClient) serviceRestart(ctx context.Context) (err error) {
+	return ac.client.ServiceRestart(ctx)
+}
+
+// implements madmin.ServerInfo()
+func (ac adminClient) serverInfo(ctx context.Context) (madmin.InfoMessage, error) {
+	return ac.client.ServerInfo(ctx)
 }
 
 func newMAdminClient() (*madmin.AdminClient, error) {

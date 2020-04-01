@@ -474,6 +474,19 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - AdminAPI
+  /api/v1/service/restart:
+    post:
+      summary: Restart Service
+      operationId: RestartService
+      responses:
+        204:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
 definitions:
   bucketAccess:
     type: string
