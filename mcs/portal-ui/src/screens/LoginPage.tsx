@@ -98,17 +98,17 @@ interface LoginProps {
 
 class Login extends React.Component<LoginProps> {
   state = {
-    email: "",
-    password: "",
-    company: "",
+    accessKey: "",
+    secretKey: "",
     error: ""
   };
 
   formSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const url = "/api/v1/users/login";
-    const { email, password, company } = this.state;
-    request
+    const { accessKey, secretKey } = this.state;
+    
+    /*request
       .post(url)
       .send({ email: email, password: password, company: company })
       .then((res: any) => {
@@ -128,11 +128,11 @@ class Login extends React.Component<LoginProps> {
       })
       .catch(err => {
         this.setState({ error: `${err}` });
-      });
+      });*/
   };
 
   render() {
-    const { error, email, password, company } = this.state;
+    const { error, accessKey, secretKey } = this.state;
     const { classes } = this.props;
     return (
       <Paper className={classes.paper}>
@@ -163,46 +163,30 @@ class Login extends React.Component<LoginProps> {
                 )}
                 <Grid item xs={12}>
                   <TextField
-                    autoComplete="company_name"
-                    name="company_name"
                     required
                     fullWidth
-                    value={company}
+                    id="accessKey"
+                    value={accessKey}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      this.setState({ company: e.target.value })
+                      this.setState({ accessKey: e.target.value })
                     }
-                    id="company_name"
-                    label="Company"
-                    autoFocus
-                  />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <TextField
-                    required
-                    fullWidth
-                    id="email"
-                    value={email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      this.setState({ email: e.target.value })
-                    }
-                    label="Email Address"
-                    name="email"
-                    autoComplete="email"
+                    label="Access Key"
+                    name="accessKey"
+                    autoComplete="username"
                   />
                 </Grid>
                 <Grid item xs={12}>
                   <TextField
                     required
                     fullWidth
-                    value={password}
+                    value={secretKey}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      this.setState({ password: e.target.value })
+                      this.setState({ secretKey: e.target.value })
                     }
-                    name="password"
-                    label="Password"
+                    name="secretKey"
+                    label="Secret Key"
                     type="password"
-                    id="password"
+                    id="secretKey"
                     autoComplete="current-password"
                   />
                 </Grid>
@@ -216,13 +200,6 @@ class Login extends React.Component<LoginProps> {
               >
                 Login
               </Button>
-              <Grid container justify="flex-end">
-                <Grid item>
-                  <Link href="#" variant="body2">
-                    Forgot Password?
-                  </Link>
-                </Grid>
-              </Grid>
             </form>
           </Grid>
         </Grid>
