@@ -111,20 +111,22 @@ class Login extends React.Component<LoginProps> {
       .post(url)
       .send({ accessKey, secretKey })
       .then((res: any) => {
-          console.log('RES', res);
-        if (res.body.sessionId) {
+        const bodyResponse = res.body;
+
+        if (bodyResponse.sessionId) {
           // store the jwt token
-          storage.setItem("token", res.body.sessionId);
+          storage.setItem("token", bodyResponse.sessionId);
           //return res.body.sessionId;
-        } else if (res.body.error) {
+        } else if (bodyResponse.error) {
           // throw will be moved to catch block once bad login returns 403
-          throw res.body.error;
+          throw bodyResponse.error;
         }
       })
       .then(() => {
-        // push('/dashboard');
+        // We set the state in redux
         this.props.userLoggedIn(true);
-        //history.push("/dashboard");
+        // We push to history the new URL. 
+        history.push("/dashboard");
       })
       .catch(err => {
         this.setState({ error: `${err}` });
