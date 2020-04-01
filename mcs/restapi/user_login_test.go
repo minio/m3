@@ -17,6 +17,7 @@
 package restapi
 
 import (
+	"errors"
 	"testing"
 
 	mcCmd "github.com/minio/mc/cmd"
@@ -32,6 +33,7 @@ func (mc mcCmdMock) BuildS3Config(url, accessKey, secretKey, api, lookup string)
 	return mcBuildS3ConfigMock(url, accessKey, secretKey, api, lookup)
 }
 
+// TestLogin tests the case of passing a valid and an invalid access/secret pair
 func TestLogin(t *testing.T) {
 	assert := assert.New(t)
 	// We will write a test against play
@@ -39,6 +41,8 @@ func TestLogin(t *testing.T) {
 	mcx := mcCmdMock{}
 	access := "ABCDEFHIJK"
 	secret := "ABCDEFHIJKABCDEFHIJK"
+
+	// Test Case 1: Valid credentials
 	mcBuildS3ConfigMock = func(url, accessKey, secretKey, api, lookup string) (config *mcCmd.Config, p *probe.Error) {
 		return &mcCmd.Config{}, nil
 	}
@@ -46,4 +50,13 @@ func TestLogin(t *testing.T) {
 	sessionID, err := login(mcx, &access, &secret)
 	assert.NotEmpty(sessionID, "Session ID was returned empty")
 	assert.Nil(err, "error creating a session")
+
+	// Test Case 2: Invalid credentials
+	mcBuildS3ConfigMock = func(url, accessKey, secretKey, api, lookup string) (config *mcCmd.Config, p *probe.Error) {
+		return nil, probe.NewError(errors.New("Bad credentials"))
+	}
+
+	sessionID, err = login(mcx, &access, &secret)
+	assert.Empty(sessionID, "Session ID was not returned empty")
+	assert.NotNil(err, "not error returned creating a session")
 }
