@@ -72,11 +72,24 @@ const Signup: React.FC = () => {
                     <Grid container spacing={2}>
                         <Grid item xs={12}>
                             <TextField
+                                autoComplete="fullname"
+                                name="fullname"
+                                variant="outlined"
+                                required
+                                fullWidth
+                                id="fullname"
+                                label="Full Name"
+                                autoFocus
+                            />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <TextField
                                 variant="outlined"
                                 required
                                 fullWidth
                                 id="email"
-                                label="Email"
+                                label="Email Address"
                                 name="email"
                                 autoComplete="email"
                             />
