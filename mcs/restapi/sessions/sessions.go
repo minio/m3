@@ -58,7 +58,7 @@ func (s *Singleton) NewSession(cfg *mcCmd.Config) (string, error) {
 }
 
 func (s *Singleton) ValidSession(sessionId string) bool {
-	if _, ok := s.sessions[sessionId]; ok == false {
+	if _, ok := s.sessions[sessionId]; ok == true {
 		return true
 	}
 	return false
