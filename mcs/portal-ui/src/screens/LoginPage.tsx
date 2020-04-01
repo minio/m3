@@ -15,19 +15,18 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import React from "react";
-import Button from "@material-ui/core/Button";
-import TextField from "@material-ui/core/TextField";
-import Link from "@material-ui/core/Link";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import { createStyles, Theme, withStyles } from "@material-ui/core/styles";
 import request from "superagent";
 import storage from "local-storage-fallback";
 import { connect, ConnectedProps } from "react-redux";
+import Button from "@material-ui/core/Button";
+import TextField from "@material-ui/core/TextField";
+import Grid from "@material-ui/core/Grid";
+import Typography from "@material-ui/core/Typography";
+import { Paper } from "@material-ui/core";
+import { createStyles, Theme, withStyles } from "@material-ui/core/styles";
 import { SystemState } from "../types";
 import { userLoggedIn } from "../actions";
 import history from "../history";
-import { Paper } from "@material-ui/core";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -105,17 +104,18 @@ class Login extends React.Component<LoginProps> {
 
   formSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const url = "/api/v1/users/login";
+    const url = "/api/v1/login";
     const { accessKey, secretKey } = this.state;
-    
-    /*request
+
+    request
       .post(url)
-      .send({ email: email, password: password, company: company })
+      .send({ accessKey, secretKey })
       .then((res: any) => {
-        if (res.body.jwt_token) {
+          console.log('RES', res);
+        if (res.body.sessionId) {
           // store the jwt token
-          storage.setItem("token", res.body.jwt_token);
-          return res.body.jwt_token;
+          storage.setItem("token", res.body.sessionId);
+          //return res.body.sessionId;
         } else if (res.body.error) {
           // throw will be moved to catch block once bad login returns 403
           throw res.body.error;
@@ -124,11 +124,11 @@ class Login extends React.Component<LoginProps> {
       .then(() => {
         // push('/dashboard');
         this.props.userLoggedIn(true);
-        history.push("/dashboard");
+        //history.push("/dashboard");
       })
       .catch(err => {
         this.setState({ error: `${err}` });
-      });*/
+      });
   };
 
   render() {
