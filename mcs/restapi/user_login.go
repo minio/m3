@@ -20,6 +20,8 @@ import (
 	"errors"
 	"log"
 
+	"github.com/minio/mc/pkg/probe"
+
 	"github.com/minio/m3/mcs/restapi/sessions"
 
 	"github.com/go-openapi/runtime/middleware"
@@ -29,6 +31,19 @@ import (
 	"github.com/minio/m3/mcs/restapi/operations/user_api"
 	mcCmd "github.com/minio/mc/cmd"
 )
+
+// Wraps the code at mc/cmd
+type McCmd interface {
+	BuildS3Config(url, accessKey, secretKey, api, lookup string) (*mcCmd.Config, *probe.Error)
+}
+
+// Implementation of McCmd
+type mcCmdWrapper struct {
+}
+
+func (mc mcCmdWrapper) BuildS3Config(url, accessKey, secretKey, api, lookup string) (*mcCmd.Config, *probe.Error) {
+	return mcCmd.BuildS3Config(url, accessKey, secretKey, api, lookup)
+}
 
 func registerLoginHandlers(api *operations.McsAPI) {
 	// get login strategy
@@ -53,9 +68,9 @@ func registerLoginHandlers(api *operations.McsAPI) {
 var ErrInvalidCredentials = errors.New("invalid credentials")
 
 // login performs a check of credentials against MinIO
-func login(accessKey, secretKey *string) (*string, error) {
+func login(mc McCmd, accessKey, secretKey *string) (*string, error) {
 	// Probe the credentials
-	cfg, pErr := mcCmd.BuildS3Config(getMinIOServer(), *accessKey, *secretKey, "", "auto")
+	cfg, pErr := mc.BuildS3Config(getMinIOServer(), *accessKey, *secretKey, "", "auto")
 	if pErr != nil {
 		log.Println(pErr)
 		return nil, ErrInvalidCredentials
@@ -71,7 +86,8 @@ func login(accessKey, secretKey *string) (*string, error) {
 
 // getLoginResponse performs login() and serializes it to the handler's output
 func getLoginResponse(lr *models.LoginRequest) (*models.LoginResponse, error) {
-	sessionId, err := login(lr.AccessKey, lr.SecretKey)
+	mc := mcCmdWrapper{}
+	sessionId, err := login(&mc, lr.AccessKey, lr.SecretKey)
 	if err != nil {
 		log.Println("error login:", err)
 		return nil, err
