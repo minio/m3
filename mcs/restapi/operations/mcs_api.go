@@ -121,10 +121,10 @@ func NewMcsAPI(spec *loads.Document) *McsAPI {
 		AdminAPIRemovePolicyHandler: admin_api.RemovePolicyHandlerFunc(func(params admin_api.RemovePolicyParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.RemovePolicy has not yet been implemented")
 		}),
-		AdminAPIRestartServiceHandler: admin_api.RestartServiceHandlerFunc(func(params admin_api.RestartServiceParams, principal interface{})) middleware.Responder {
+		AdminAPIRestartServiceHandler: admin_api.RestartServiceHandlerFunc(func(params admin_api.RestartServiceParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.RestartService has not yet been implemented")
 		}),
-		AdminAPISetConfigHandler: admin_api.SetConfigHandlerFunc(func(params admin_api.SetConfigParams, principal interface{})) middleware.Responder {
+		AdminAPISetConfigHandler: admin_api.SetConfigHandlerFunc(func(params admin_api.SetConfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.SetConfig has not yet been implemented")
 		}),
 		AdminAPISetPolicyHandler: admin_api.SetPolicyHandlerFunc(func(params admin_api.SetPolicyParams, principal interface{}) middleware.Responder {
