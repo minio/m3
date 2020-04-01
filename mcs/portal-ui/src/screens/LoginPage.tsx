@@ -125,7 +125,7 @@ class Login extends React.Component<LoginProps> {
       .then(() => {
         // We set the state in redux
         this.props.userLoggedIn(true);
-        // We push to history the new URL. 
+        // We push to history the new URL.
         history.push("/dashboard");
       })
       .catch(err => {
