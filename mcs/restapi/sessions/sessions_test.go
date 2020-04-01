@@ -29,9 +29,8 @@ func TestNewSession(t *testing.T) {
 	assert := assert.New(t)
 	cfg := mcCmd.Config{}
 	// Test Case 1: No collision
-	sessionID, err := GetInstance().NewSession(&cfg)
+	sessionID := GetInstance().NewSession(&cfg)
 	assert.NotEmpty(sessionID, "Session ID was returned empty")
-	assert.Nil(err, "error creating a session")
 }
 
 // TestValidateSession tests a valid sessionId on the sessions object
@@ -39,7 +38,7 @@ func TestValidateSession(t *testing.T) {
 	assert := assert.New(t)
 	cfg := mcCmd.Config{}
 	// Test Case 1: Valid session
-	sessionID, _ := GetInstance().NewSession(&cfg)
+	sessionID := GetInstance().NewSession(&cfg)
 	isValid := GetInstance().ValidSession(sessionID)
 	assert.Equal(isValid, true, "Session was not found valid")
 	// Test Case 2: Invalid session

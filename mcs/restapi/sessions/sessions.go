@@ -45,16 +45,12 @@ func GetInstance() *Singleton {
 	return instance
 }
 
-func (s *Singleton) NewSession(cfg *mcCmd.Config) (string, error) {
+func (s *Singleton) NewSession(cfg *mcCmd.Config) string {
+	// genereate random session id
 	sessionID := RandomCharString(64)
-	// check if this sessions doesn't have a collision
-	if _, ok := s.sessions[sessionID]; !ok {
-		s.sessions[sessionID] = cfg
-	} else {
-		// if there's a collision, try again
-		return s.NewSession(cfg)
-	}
-	return sessionID, nil
+	// store the cfg under that session id
+	s.sessions[sessionID] = cfg
+	return sessionID
 }
 
 func (s *Singleton) ValidSession(sessionID string) bool {

@@ -73,10 +73,7 @@ func login(mc McCmd, accessKey, secretKey *string) (*string, error) {
 		return nil, ErrInvalidCredentials
 	}
 	// if we made it here, the credentials work, generate a session
-	sessionID, err := sessions.GetInstance().NewSession(cfg)
-	if err != nil {
-		return nil, err
-	}
+	sessionID := sessions.GetInstance().NewSession(cfg)
 
 	return &sessionID, nil
 }
