@@ -31,12 +31,12 @@ import Link from "@material-ui/core/Link";
 
 import history from "../../history";
 import {
-    Redirect,
-    Route,
-    RouteComponentProps,
-    Router,
-    Switch,
-    withRouter
+  Redirect,
+  Route,
+  RouteComponentProps,
+  Router,
+  Switch,
+  withRouter
 } from "react-router-dom";
 import { connect } from "react-redux";
 import { AppState } from "../../store";
@@ -147,7 +147,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column"
     },
     fixedHeight: {
-      minHeight: 240,
+      minHeight: 240
     }
   });
 
@@ -168,14 +168,7 @@ class Console extends React.Component<
   ConsoleProps & RouteComponentProps & StyledProps & ThemedComponentProps
 > {
   componentDidMount(): void {
-    api
-      .invoke("GET", `/api/v1/users/whoami`)
-      .then(res => {})
-      .catch(err => {
-        // Commented this as whoami API is not available. This is a temporal fix for token dissapearing issue
-        /* storage.removeItem("token");
-        history.push("/"); */
-      });
+    //TODO: verify the session is still valid
   }
 
   render() {
@@ -218,8 +211,8 @@ class Console extends React.Component<
                 />
                 <Route exact path="/users" component={Users} />
                 <Route exact path="/dashboard" component={Dashboard} />
-                <Route exact path="/" >
-                    <Redirect to="/dashboard" />
+                <Route exact path="/">
+                  <Redirect to="/dashboard" />
                 </Route>
                 <Route component={NotFoundPage} />
               </Switch>

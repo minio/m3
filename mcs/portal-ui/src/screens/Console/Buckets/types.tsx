@@ -16,11 +16,10 @@
 
 export interface Bucket {
   name: string;
-  size: string;
-  accessType: string;
+  creation_date: Date;
 }
 
 export interface BucketList {
   buckets: Bucket[];
-  total_buckets: number;
+  total: number;
 }

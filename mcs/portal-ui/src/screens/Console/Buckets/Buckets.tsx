@@ -34,15 +34,14 @@ import {
 } from "@material-ui/core";
 import Typography from "@material-ui/core/Typography";
 import DeleteIcon from "@material-ui/icons/Delete";
-import PlayArrowRoundedIcon from '@material-ui/icons/PlayArrowRounded';
 import AddBucket from "./AddBucket";
 import DeleteBucket from "./DeleteBucket";
 import { MinTablePaginationActions } from "../../../common/MinTablePaginationActions";
 import { CreateIcon } from "../../../icons";
-import Checkbox from "@material-ui/core/Checkbox";
 import TextField from "@material-ui/core/TextField";
 import InputAdornment from "@material-ui/core/InputAdornment";
 import SearchIcon from "@material-ui/icons/Search";
+import Moment from "react-moment";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -54,6 +53,7 @@ const styles = (theme: Theme) =>
       overflow: "auto",
       flexDirection: "column"
     },
+
     addSideBar: {
       width: "320px",
       padding: "20px"
@@ -76,14 +76,14 @@ const styles = (theme: Theme) =>
     actionsTray: {
       textAlign: "right",
       "& button": {
-        marginLeft: 10,
-      },
+        marginLeft: 10
+      }
     },
     searchField: {
       background: "#FFFFFF",
       padding: 12,
       borderRadius: 5,
-      boxShadow: "0px 3px 6px #00000012",
+      boxShadow: "0px 3px 6px #00000012"
     }
   });
 
@@ -102,6 +102,7 @@ interface IBucketsState {
   rowsPerPage: number;
   deleteOpen: boolean;
   selectedBucket: string;
+  filterBuckets: string;
 }
 
 class Buckets extends React.Component<IBucketsProps, IBucketsState> {
@@ -115,7 +116,8 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
     page: 0,
     rowsPerPage: 10,
     deleteOpen: false,
-    selectedBucket: ""
+    selectedBucket: "",
+    filterBuckets: ""
   };
 
   fetchRecords() {
@@ -128,7 +130,7 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
           this.setState({
             loading: false,
             records: res.buckets,
-            totalRecords: res.total_buckets,
+            totalRecords: res.total,
             error: ""
           });
           // if we get 0 results, and page > 0 , go down 1 page
@@ -168,6 +170,8 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
     this.fetchRecords();
   }
 
+  bucketFilter(): void {}
+
   render() {
     const { classes } = this.props;
     const {
@@ -178,37 +182,25 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
       page,
       rowsPerPage,
       deleteOpen,
-      selectedBucket
+      selectedBucket,
+      filterBuckets
     } = this.state;
 
+    const offset = page * rowsPerPage;
+
     const handleChangePage = (event: unknown, newPage: number) => {
-      this.setState({ page: newPage }, () => {
-        this.fetchRecords();
-      });
+      this.setState({ page: newPage });
     };
 
     const handleChangeRowsPerPage = (
       event: React.ChangeEvent<HTMLInputElement>
     ) => {
       const rPP = parseInt(event.target.value, 10);
-      this.setState({ page: 0, rowsPerPage: rPP }, () => {
-        this.fetchRecords();
-      });
+      this.setState({ page: 0, rowsPerPage: rPP });
     };
 
     const confirmDeleteBucket = (bucket: string) => {
       this.setState({ deleteOpen: true, selectedBucket: bucket });
-    };
-
-    const bytesToSize = (bytesStr: string) => {
-      const bytes = parseInt(bytesStr, 10);
-      if (isNaN(bytes)) {
-        return "0 Byte";
-      }
-      const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-      if (bytes === 0) return "0 Byte";
-      const i = Math.floor(Math.log(bytes) / Math.log(1024));
-      return Math.round(bytes / Math.pow(1024, i)) + " " + sizes[i];
     };
 
     return (
@@ -232,13 +224,18 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
               className={classes.searchField}
               id="search-resource"
               label=""
+              onChange={val => {
+                this.setState({
+                  filterBuckets: val.target.value
+                });
+              }}
               InputProps={{
                 disableUnderline: true,
                 startAdornment: (
                   <InputAdornment position="start">
                     <SearchIcon />
                   </InputAdornment>
-                ),
+                )
               }}
             />
             <Button
@@ -253,18 +250,6 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
             >
               Create Bucket
             </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<PlayArrowRoundedIcon />}
-              onClick={() => {
-                this.setState({
-                  addScreenOpen: true
-                });
-              }}
-            >
-              Change Access
-            </Button>
           </Grid>
           <Grid item xs={12}>
             <br />
@@ -276,38 +261,43 @@ class Buckets extends React.Component<IBucketsProps, IBucketsState> {
                 <Table size="medium">
                   <TableHead className={classes.minTableHeader}>
                     <TableRow>
-                      <TableCell>Select</TableCell>
                       <TableCell>Name</TableCell>
-                      <TableCell>Access</TableCell>
-                      <TableCell>Usage </TableCell>
+                      <TableCell>Creation Date</TableCell>
                       <TableCell align="right">Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {records.map(row => (
-                      <TableRow key={row.name}>
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            value="secondary"
-                            color="primary"
-                            inputProps={{ 'aria-label': 'secondary checkbox' }}
-                          />
-                        </TableCell>
-                        <TableCell>{row.name}</TableCell>
-                        <TableCell>{row.accessType}</TableCell>
-                        <TableCell>{bytesToSize(row.size)}</TableCell>
-                        <TableCell align="right">
-                          <IconButton
-                            aria-label="delete"
-                            onClick={() => {
-                              confirmDeleteBucket(row.name);
-                            }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {records
+                      .slice(offset, offset + rowsPerPage)
+                      .filter((b: Bucket) => {
+                        if (filterBuckets === "") {
+                          return true;
+                        } else {
+                          if (b.name.indexOf(filterBuckets) >= 0) {
+                            return true;
+                          } else {
+                            return false;
+                          }
+                        }
+                      })
+                      .map(row => (
+                        <TableRow key={row.name}>
+                          <TableCell>{row.name}</TableCell>
+                          <TableCell>
+                            <Moment>{row.creation_date}</Moment>
+                          </TableCell>
+                          <TableCell align="right">
+                            <IconButton
+                              aria-label="delete"
+                              onClick={() => {
+                                confirmDeleteBucket(row.name);
+                              }}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                   <TableFooter>
                     <TableRow>
