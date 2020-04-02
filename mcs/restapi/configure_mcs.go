@@ -20,8 +20,13 @@ package restapi
 
 import (
 	"crypto/tls"
+	"log"
 	"net/http"
 	"strings"
+
+	"github.com/minio/m3/mcs/restapi/sessions"
+
+	"github.com/minio/m3/mcs/models"
 
 	assetfs "github.com/elazarl/go-bindata-assetfs"
 
@@ -51,7 +56,19 @@ func configureAPI(api *operations.McsAPI) http.Handler {
 	api.JSONConsumer = runtime.JSONConsumer()
 
 	api.JSONProducer = runtime.JSONProducer()
+	// Applies when the "x-token" header is set
 
+	api.KeyAuth = func(token string, scopes []string) (interface{}, error) {
+		if sessions.GetInstance().ValidSession(token) {
+			prin := models.Principal(token)
+			return &prin, nil
+		}
+		log.Printf("Access attempt with incorrect api key auth: %s", token)
+		return nil, errors.New(401, "incorrect api key auth")
+	}
+
+	// Register login handlers
+	registerLoginHandlers(api)
 	// Register bucket handlers
 	registerBucketsHandlers(api)
 	// Register all users handlers

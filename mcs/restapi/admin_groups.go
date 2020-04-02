@@ -33,7 +33,7 @@ import (
 
 func registerGroupsHandlers(api *operations.McsAPI) {
 	// List Groups
-	api.AdminAPIListGroupsHandler = admin_api.ListGroupsHandlerFunc(func(params admin_api.ListGroupsParams) middleware.Responder {
+	api.AdminAPIListGroupsHandler = admin_api.ListGroupsHandlerFunc(func(params admin_api.ListGroupsParams, principal interface{}) middleware.Responder {
 		listGroupsResponse, err := getListGroupsResponse()
 		if err != nil {
 			return admin_api.NewListGroupsDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
@@ -41,7 +41,7 @@ func registerGroupsHandlers(api *operations.McsAPI) {
 		return admin_api.NewListGroupsOK().WithPayload(listGroupsResponse)
 	})
 	// Group Info
-	api.AdminAPIGroupInfoHandler = admin_api.GroupInfoHandlerFunc(func(params admin_api.GroupInfoParams) middleware.Responder {
+	api.AdminAPIGroupInfoHandler = admin_api.GroupInfoHandlerFunc(func(params admin_api.GroupInfoParams, principal interface{}) middleware.Responder {
 		groupInfo, err := getGroupInfoResponse(params)
 		if err != nil {
 			return admin_api.NewGroupInfoDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
@@ -49,21 +49,21 @@ func registerGroupsHandlers(api *operations.McsAPI) {
 		return admin_api.NewGroupInfoOK().WithPayload(groupInfo)
 	})
 	// Add Group
-	api.AdminAPIAddGroupHandler = admin_api.AddGroupHandlerFunc(func(params admin_api.AddGroupParams) middleware.Responder {
+	api.AdminAPIAddGroupHandler = admin_api.AddGroupHandlerFunc(func(params admin_api.AddGroupParams, principal interface{}) middleware.Responder {
 		if err := getAddGroupResponse(params.Body); err != nil {
 			return admin_api.NewAddGroupDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
 		return admin_api.NewAddGroupCreated()
 	})
 	// Remove Group
-	api.AdminAPIRemoveGroupHandler = admin_api.RemoveGroupHandlerFunc(func(params admin_api.RemoveGroupParams) middleware.Responder {
+	api.AdminAPIRemoveGroupHandler = admin_api.RemoveGroupHandlerFunc(func(params admin_api.RemoveGroupParams, principal interface{}) middleware.Responder {
 		if err := getRemoveGroupResponse(params); err != nil {
 			return admin_api.NewRemoveGroupDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
 		return admin_api.NewRemoveGroupNoContent()
 	})
 	// Update Group
-	api.AdminAPIUpdateGroupHandler = admin_api.UpdateGroupHandlerFunc(func(params admin_api.UpdateGroupParams) middleware.Responder {
+	api.AdminAPIUpdateGroupHandler = admin_api.UpdateGroupHandlerFunc(func(params admin_api.UpdateGroupParams, principal interface{}) middleware.Responder {
 		groupUpdateResp, err := getUpdateGroupResponse(params)
 		if err != nil {
 			return admin_api.NewUpdateGroupDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})

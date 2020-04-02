@@ -29,16 +29,16 @@ import (
 )
 
 // SetPolicyHandlerFunc turns a function with the right signature into a set policy handler
-type SetPolicyHandlerFunc func(SetPolicyParams) middleware.Responder
+type SetPolicyHandlerFunc func(SetPolicyParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn SetPolicyHandlerFunc) Handle(params SetPolicyParams) middleware.Responder {
-	return fn(params)
+func (fn SetPolicyHandlerFunc) Handle(params SetPolicyParams, principal interface{}) middleware.Responder {
+	return fn(params, principal)
 }
 
 // SetPolicyHandler interface for that can handle valid set policy params
 type SetPolicyHandler interface {
-	Handle(SetPolicyParams) middleware.Responder
+	Handle(SetPolicyParams, interface{}) middleware.Responder
 }
 
 // NewSetPolicy creates a new http.Handler for the set policy operation
@@ -63,12 +63,25 @@ func (o *SetPolicy) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 	var Params = NewSetPolicyParams()
 
+	uprinc, aCtx, err := o.Context.Authorize(r, route)
+	if err != nil {
+		o.Context.Respond(rw, r, route.Produces, route, err)
+		return
+	}
+	if aCtx != nil {
+		r = aCtx
+	}
+	var principal interface{}
+	if uprinc != nil {
+		principal = uprinc
+	}
+
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
-	res := o.Handler.Handle(Params) // actually handle the request
+	res := o.Handler.Handle(Params, principal) // actually handle the request
 
 	o.Context.Respond(rw, r, route.Produces, route, res)
 

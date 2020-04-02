@@ -38,8 +38,7 @@ var minioGetGroupDescriptionMock func(group string) (*madmin.GroupDesc, error)
 var minioSetGroupStatusMock func(group string, status madmin.GroupStatus) error
 
 // Define a mock struct of Admin Client interface implementation
-type adminClientMock struct {
-}
+type adminClientMock struct{}
 
 // mock function of listUsers()
 func (ac adminClientMock) listUsers(ctx context.Context) (map[string]madmin.UserInfo, error) {

@@ -29,16 +29,16 @@ import (
 )
 
 // RestartServiceHandlerFunc turns a function with the right signature into a restart service handler
-type RestartServiceHandlerFunc func(RestartServiceParams) middleware.Responder
+type RestartServiceHandlerFunc func(RestartServiceParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn RestartServiceHandlerFunc) Handle(params RestartServiceParams) middleware.Responder {
-	return fn(params)
+func (fn RestartServiceHandlerFunc) Handle(params RestartServiceParams, principal interface{}) middleware.Responder {
+	return fn(params, principal)
 }
 
 // RestartServiceHandler interface for that can handle valid restart service params
 type RestartServiceHandler interface {
-	Handle(RestartServiceParams) middleware.Responder
+	Handle(RestartServiceParams, interface{}) middleware.Responder
 }
 
 // NewRestartService creates a new http.Handler for the restart service operation
@@ -63,12 +63,25 @@ func (o *RestartService) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 	var Params = NewRestartServiceParams()
 
+	uprinc, aCtx, err := o.Context.Authorize(r, route)
+	if err != nil {
+		o.Context.Respond(rw, r, route.Produces, route, err)
+		return
+	}
+	if aCtx != nil {
+		r = aCtx
+	}
+	var principal interface{}
+	if uprinc != nil {
+		principal = uprinc
+	}
+
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
-	res := o.Handler.Handle(Params) // actually handle the request
+	res := o.Handler.Handle(Params, principal) // actually handle the request
 
 	o.Context.Respond(rw, r, route.Produces, route, res)
 

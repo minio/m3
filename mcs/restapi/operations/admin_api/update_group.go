@@ -29,16 +29,16 @@ import (
 )
 
 // UpdateGroupHandlerFunc turns a function with the right signature into a update group handler
-type UpdateGroupHandlerFunc func(UpdateGroupParams) middleware.Responder
+type UpdateGroupHandlerFunc func(UpdateGroupParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn UpdateGroupHandlerFunc) Handle(params UpdateGroupParams) middleware.Responder {
-	return fn(params)
+func (fn UpdateGroupHandlerFunc) Handle(params UpdateGroupParams, principal interface{}) middleware.Responder {
+	return fn(params, principal)
 }
 
 // UpdateGroupHandler interface for that can handle valid update group params
 type UpdateGroupHandler interface {
-	Handle(UpdateGroupParams) middleware.Responder
+	Handle(UpdateGroupParams, interface{}) middleware.Responder
 }
 
 // NewUpdateGroup creates a new http.Handler for the update group operation
@@ -63,12 +63,25 @@ func (o *UpdateGroup) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 	var Params = NewUpdateGroupParams()
 
+	uprinc, aCtx, err := o.Context.Authorize(r, route)
+	if err != nil {
+		o.Context.Respond(rw, r, route.Produces, route, err)
+		return
+	}
+	if aCtx != nil {
+		r = aCtx
+	}
+	var principal interface{}
+	if uprinc != nil {
+		principal = uprinc
+	}
+
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
-	res := o.Handler.Handle(Params) // actually handle the request
+	res := o.Handler.Handle(Params, principal) // actually handle the request
 
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
