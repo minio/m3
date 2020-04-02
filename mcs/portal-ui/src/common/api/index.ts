@@ -21,7 +21,7 @@ export class API {
   invoke(method: string, url: string, data?: object) {
     const token: string = storage.getItem("token")!;
     return request(method, url)
-      .set("sessionId", token)
+      .set("Authorization", `Bearer ${token}`)
       .send(data)
       .then(res => res.body)
       .catch(err => this.onError(err));
