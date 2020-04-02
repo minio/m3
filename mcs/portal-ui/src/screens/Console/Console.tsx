@@ -31,12 +31,12 @@ import Link from "@material-ui/core/Link";
 
 import history from "../../history";
 import {
-    Redirect,
-    Route,
-    RouteComponentProps,
-    Router,
-    Switch,
-    withRouter
+  Redirect,
+  Route,
+  RouteComponentProps,
+  Router,
+  Switch,
+  withRouter
 } from "react-router-dom";
 import { connect } from "react-redux";
 import { AppState } from "../../store";
@@ -147,7 +147,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column"
     },
     fixedHeight: {
-      minHeight: 240,
+      minHeight: 240
     }
   });
 
@@ -211,8 +211,8 @@ class Console extends React.Component<
                 />
                 <Route exact path="/users" component={Users} />
                 <Route exact path="/dashboard" component={Dashboard} />
-                <Route exact path="/" >
-                    <Redirect to="/dashboard" />
+                <Route exact path="/">
+                  <Redirect to="/dashboard" />
                 </Route>
                 <Route component={NotFoundPage} />
               </Switch>
