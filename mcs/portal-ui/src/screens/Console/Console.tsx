@@ -168,14 +168,7 @@ class Console extends React.Component<
   ConsoleProps & RouteComponentProps & StyledProps & ThemedComponentProps
 > {
   componentDidMount(): void {
-    api
-      .invoke("GET", `/api/v1/users/whoami`)
-      .then(res => {})
-      .catch(err => {
-        // Commented this as whoami API is not available. This is a temporal fix for token dissapearing issue
-        /* storage.removeItem("token");
-        history.push("/"); */
-      });
+    //TODO: verify the session is still valid
   }
 
   render() {
