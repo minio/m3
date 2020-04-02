@@ -15,19 +15,18 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import React from "react";
-import Button from "@material-ui/core/Button";
-import TextField from "@material-ui/core/TextField";
-import Link from "@material-ui/core/Link";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import { createStyles, Theme, withStyles } from "@material-ui/core/styles";
 import request from "superagent";
 import storage from "local-storage-fallback";
 import { connect, ConnectedProps } from "react-redux";
+import Button from "@material-ui/core/Button";
+import TextField from "@material-ui/core/TextField";
+import Grid from "@material-ui/core/Grid";
+import Typography from "@material-ui/core/Typography";
+import { Paper } from "@material-ui/core";
+import { createStyles, Theme, withStyles } from "@material-ui/core/styles";
 import { SystemState } from "../types";
 import { userLoggedIn } from "../actions";
 import history from "../history";
-import { Paper } from "@material-ui/core";
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -98,32 +97,35 @@ interface LoginProps {
 
 class Login extends React.Component<LoginProps> {
   state = {
-    email: "",
-    password: "",
-    company: "",
+    accessKey: "",
+    secretKey: "",
     error: ""
   };
 
   formSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const url = "/api/v1/users/login";
-    const { email, password, company } = this.state;
+    const url = "/api/v1/login";
+    const { accessKey, secretKey } = this.state;
+
     request
       .post(url)
-      .send({ email: email, password: password, company: company })
+      .send({ accessKey, secretKey })
       .then((res: any) => {
-        if (res.body.jwt_token) {
+        const bodyResponse = res.body;
+
+        if (bodyResponse.sessionId) {
           // store the jwt token
-          storage.setItem("token", res.body.jwt_token);
-          return res.body.jwt_token;
-        } else if (res.body.error) {
+          storage.setItem("token", bodyResponse.sessionId);
+          //return res.body.sessionId;
+        } else if (bodyResponse.error) {
           // throw will be moved to catch block once bad login returns 403
-          throw res.body.error;
+          throw bodyResponse.error;
         }
       })
       .then(() => {
-        // push('/dashboard');
+        // We set the state in redux
         this.props.userLoggedIn(true);
+        // We push to history the new URL.
         history.push("/dashboard");
       })
       .catch(err => {
@@ -132,7 +134,7 @@ class Login extends React.Component<LoginProps> {
   };
 
   render() {
-    const { error, email, password, company } = this.state;
+    const { error, accessKey, secretKey } = this.state;
     const { classes } = this.props;
     return (
       <Paper className={classes.paper}>
@@ -163,46 +165,30 @@ class Login extends React.Component<LoginProps> {
                 )}
                 <Grid item xs={12}>
                   <TextField
-                    autoComplete="company_name"
-                    name="company_name"
                     required
                     fullWidth
-                    value={company}
+                    id="accessKey"
+                    value={accessKey}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      this.setState({ company: e.target.value })
+                      this.setState({ accessKey: e.target.value })
                     }
-                    id="company_name"
-                    label="Company"
-                    autoFocus
-                  />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <TextField
-                    required
-                    fullWidth
-                    id="email"
-                    value={email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      this.setState({ email: e.target.value })
-                    }
-                    label="Email Address"
-                    name="email"
-                    autoComplete="email"
+                    label="Access Key"
+                    name="accessKey"
+                    autoComplete="username"
                   />
                 </Grid>
                 <Grid item xs={12}>
                   <TextField
                     required
                     fullWidth
-                    value={password}
+                    value={secretKey}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      this.setState({ password: e.target.value })
+                      this.setState({ secretKey: e.target.value })
                     }
-                    name="password"
-                    label="Password"
+                    name="secretKey"
+                    label="Secret Key"
                     type="password"
-                    id="password"
+                    id="secretKey"
                     autoComplete="current-password"
                   />
                 </Grid>
@@ -216,13 +202,6 @@ class Login extends React.Component<LoginProps> {
               >
                 Login
               </Button>
-              <Grid container justify="flex-end">
-                <Grid item>
-                  <Link href="#" variant="body2">
-                    Forgot Password?
-                  </Link>
-                </Grid>
-              </Grid>
             </form>
           </Grid>
         </Grid>

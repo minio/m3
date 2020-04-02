@@ -172,8 +172,9 @@ class Console extends React.Component<
       .invoke("GET", `/api/v1/users/whoami`)
       .then(res => {})
       .catch(err => {
-        storage.removeItem("token");
-        history.push("/");
+        // Commented this as whoami API is not available. This is a temporal fix for token dissapearing issue
+        /* storage.removeItem("token");
+        history.push("/"); */
       });
   }
 
