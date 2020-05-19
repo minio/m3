@@ -27,18 +27,14 @@ done
 
 echo "Provisioning Kind"
 kind create cluster  --config kind-cluster.yaml
-#echo "Remove Master Taint"
+echo "Remove Master Taint"
 kubectl taint nodes --all node-role.kubernetes.io/master-
+echo "Install Contour"
+kubectl apply -f https://projectcontour.io/quickstart/contour.yaml
+kubectl patch daemonsets -n projectcontour envoy -p '{"spec":{"template":{"spec":{"nodeSelector":{"ingress-ready":"true"},"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}]}}}}'
 echo "install metrics server"
 kubectl apply -f deployments/metrics-dev.yaml
-#echo "installing dashboard"
-#kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-rc5/aio/deploy/recommended.yaml
-#echo "creating service account"
-#kubectl create serviceaccount dashboard -n default
-#kubectl create clusterrolebinding dashboard-admin -n default --clusterrole=cluster-admin --serviceaccount=default:dashboard
-# pre-load MinIO, postgres to speed up setup
-docker pull minio/minio:RELEASE.2020-02-07T23-28-16Z
-kind load docker-image minio/minio:RELEASE.2020-02-07T23-28-16Z
+
 
 # Whether or not to build the m3 container and load it to kind or just load it
 if [[ $M3_DOCKER == "true" ]]; then

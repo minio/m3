@@ -1,5 +1,5 @@
-// This file is part of MinIO Kubernetes Cloud
-// Copyright (c) 2019 MinIO, Inc.
+// This file is part of MinIO Console Server
+// Copyright (c) 2020 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -14,16 +14,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cluster
+package restapi
 
 const (
-	kesImage               = "KES_IMAGE"
-	kesPort                = "KES_PORT"
-	kesMTlsAuth            = "KES_M_TLS_AUTH"
-	kesConfigPath          = "KES_CONFIG_FILE_PATH"
-	KmsCACertConfigMap     = "KMS_CA_CERT_CONFIG_MAP"
-	KmsCACertFileName      = "KMS_CA_CERT_FILE_NAME"
-	CACertDefaultMountPath = "CA_CERT_DEFAULT_MOUNT_PATH"
-	kmsAddress             = "KMS_ADDRESS"
-	kmsToken               = "KMS_TOKEN"
+	// consts for common configuration
+	M3Version     = `0.1.0`
+	M3Hostname    = "M3_HOSTNAME"
+	M3Port        = "M3_PORT"
+	M3TLSHostname = "M3_TLS_HOSTNAME"
+	M3TLSPort     = "M3_TLS_PORT"
 )

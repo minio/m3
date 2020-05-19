@@ -1,0 +1,355 @@
+swagger: "2.0"
+info:
+  title: MinIO For Kubernetes
+  version: 0.1.0
+consumes:
+  - application/json
+produces:
+  - application/json
+schemes:
+  - http
+basePath: /api/v1
+# We are going to be taking `Authorization: Bearer TOKEN` header for our authentication
+securityDefinitions:
+  key:
+    type: oauth2
+    flow: accessCode
+    authorizationUrl: http://min.io
+    tokenUrl: http://min.io
+# Apply the key security definition to all APIs
+security:
+  - key: []
+paths:
+  /login:
+    get:
+      summary: Returns login strategy, form or sso.
+      operationId: LoginDetail
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/loginDetails"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      # Exclude this API from the authentication requirement
+      security: []
+      tags:
+        - UserAPI
+    post:
+      summary: Login to mcs
+      operationId: Login
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/loginRequest'
+      responses:
+        201:
+          description: A successful login.
+          schema:
+            $ref: '#/definitions/loginResponse'
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      # Exclude this API from the authentication requirement
+      security: []
+      tags:
+        - UserAPI
+
+  /login/oauth2/auth:
+    post:
+      summary: Identity Provider oauth2 callback endpoint.
+      operationId: LoginOauth2Auth
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/loginOauth2AuthRequest'
+      responses:
+        201:
+          description: A successful login.
+          schema:
+            $ref: '#/definitions/loginResponse'
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      security: []
+      tags:
+        - UserAPI
+
+  /logout:
+    post:
+      summary: Logout from mcs.
+      operationId: Logout
+      responses:
+        200:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - UserAPI
+
+  /session:
+    get:
+      summary: Endpoint to check if your session is still valid
+      operationId: SessionCheck
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/sessionResponse"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - UserAPI
+
+  /clusters:
+    get:
+      summary: List Clusters
+      operationId: ListClusters
+      parameters:
+        - name: sort_by
+          in: query
+          required: false
+          type: string
+        - name: offset
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: limit
+          in: query
+          required: false
+          type: integer
+          format: int32
+      # Exclude this API from the authentication requirement
+      security: []
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/listClustersResponse"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
+    post:
+      summary: Create Cluster
+      operationId: CreateCluster
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/createClusterRequest'
+      # Exclude this API from the authentication requirement
+      security: []
+      responses:
+        201:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
+
+  /clusters/{name}:
+    get:
+      summary: Cluster Info
+      operationId: ClusterInfo
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+      # Exclude this API from the authentication requirement
+      security: []
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/cluster"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
+    delete:
+      summary: Delete Cluster
+      operationId: DeleteCluster
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+      responses:
+        204:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
+
+definitions:
+  sessionResponse:
+    type: object
+    properties:
+      pages:
+        type: array
+        items:
+          type: string
+      status:
+        type: string
+        enum: [ok]
+  loginDetails:
+    type: object
+    properties:
+      loginStrategy:
+        type: string
+        enum: [form,redirect]
+      redirect:
+        type: string
+  loginOauth2AuthRequest:
+    type: object
+    required:
+      - state
+      - code
+    properties:
+      state:
+        type: string
+      code:
+        type: string
+  loginRequest:
+    type: object
+    required:
+      - accessKey
+      - secretKey
+    properties:
+      accessKey:
+        type: string
+      secretKey:
+        type: string
+  loginResponse:
+    type: object
+    properties:
+      sessionId:
+        type: string
+  cluster:
+    type: object
+    properties:
+      name:
+        type: string
+      zone_count:
+        type: integer
+      instance_count:
+        type: integer
+      volume_size:
+        type: integer
+      volume_count:
+        type: integer
+      creation_date:
+        type: string
+  clusterList:
+    type: object
+    properties:
+      name:
+        type: string
+      zone_count:
+        type: integer
+      instance_count:
+        type: integer
+      volume_size:
+        type: integer
+      volume_count:
+        type: integer
+      creation_date:
+        type: string
+  listClustersResponse:
+    type: object
+    properties:
+      clusters:
+        type: array
+        items:
+          $ref: "#/definitions/clusterList"
+        title: list of resulting clusters
+      total:
+        type: integer
+        format: int64
+        title: number of clusters accessible to tenant user
+  createClusterRequest:
+    type: object
+    required:
+      - name
+      - volume_configuration
+    properties:
+      name:
+        type: string
+        pattern: '^[a-z0-9-]{3,63}$'
+      image:
+        type: string
+      service_name:
+        type: string
+      zones:
+        type: array
+        items:
+          $ref: "#/definitions/zone"
+      volumes_per_server:
+        type: integer
+      volume_configuration:
+        type: object
+        required:
+          - size
+        properties:
+          size:
+            type: string
+          storage_class:
+            type: string
+      mounth_path:
+        type: string
+      access_key:
+        type: string
+      secret_key:
+        type: string
+      enable_mcs:
+        type: boolean
+        default: true
+      enable_ssl:
+        type: boolean
+        default: true
+  zone:
+    type: object
+    properties:
+      name:
+        type: string
+      servers:
+        type: integer
+  error:
+    type: object
+    required:
+      - message
+    properties:
+      code:
+        type: integer
+        format: int64
+      message:
+        type: string
+  # Structure that holds the `Bearer {TOKEN}` present on authenticated requests
+  principal:
+    type: string
+

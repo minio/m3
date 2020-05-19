@@ -48,8 +48,8 @@ VERSION:
 `
 
 var appCmds = []cli.Command{
-	controllerCmd,
 	devCmd,
+	serverCmd,
 }
 
 func main() {

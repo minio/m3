@@ -1,0 +1,242 @@
+# This is the setup for MinIO Operator taken from https://github.com/minio/minio-operator
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: minioinstances.operator.min.io
+spec:
+  group: operator.min.io
+  scope: Namespaced
+  names:
+    kind: MinIOInstance
+    singular: minioinstance
+    plural: minioinstances
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+      # openAPIV3Schema is the schema for validating custom objects.
+      # Refer https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#specifying-a-structural-schema
+      # for more details
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+              properties:
+                replicas:
+                  type: integer
+                  minimum: 1
+                  maximum: 32
+                version:
+                  type: string
+                mountpath:
+                  type: string
+                subpath:
+                  type: string
+      additionalPrinterColumns:
+        - name: Replicas
+          type: integer
+          jsonPath: ".spec.replicas"
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: mirrorinstances.operator.min.io
+spec:
+  group: operator.min.io
+  scope: Namespaced
+  names:
+    kind: MirrorInstance
+    singular: mirrorinstance
+    plural: mirrorinstances
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: minio-operator-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - secrets
+  - pods
+  - services
+  - events
+  verbs:
+  - get
+  - watch
+  - create
+  - list
+  - patch
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  - deployments
+  verbs:
+  - get
+  - create
+  - list
+  - patch
+  - watch
+  - update
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - create
+  - list
+  - patch
+  - watch
+  - update
+  - delete
+- apiGroups:
+  - "certificates.k8s.io"
+  resources:
+  - "certificatesigningrequests"
+  - "certificatesigningrequests/approval"
+  - "certificatesigningrequests/status"
+  verbs:
+  - update
+  - create
+  - get
+- apiGroups:
+  - operator.min.io
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - min.io
+  resources:
+  - "*"
+  verbs:
+  - "*"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: minio-operator-sa
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: minio-operator-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: minio-operator-role
+subjects:
+- kind: ServiceAccount
+  name: minio-operator-sa
+  namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: minio-operator
+  template:
+    metadata:
+      labels:
+        name: minio-operator
+    spec:
+      serviceAccountName: minio-operator-sa
+      containers:
+        - name: minio-operator
+          image: minio/k8s-operator:2.0.0
+          imagePullPolicy: IfNotPresent
+          # To specify cluster domain, un comment the following:
+          # env:
+          #   - name: CLUSTER_DOMAIN
+          #     value: mycluster.mydomain
+# M3 setup
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: m3-sa
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: m3-sa
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: m3-sa
+    namespace: default
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
+    name: client
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: m3
+  labels:
+    name: m3
+spec:
+  ports:
+    - port: 8787
+      name: http
+    - port: 8443
+      name: https
+  selector:
+    app: m3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: m3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: m3
+  template:
+    metadata:
+      labels:
+        app: m3
+    spec:
+      serviceAccountName: m3-sa
+      containers:
+        - name: m3
+          image: minio/m3:edge
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - /m3
+            - controller
+          envFrom:
+            - configMapRef:
+                name: m3-env
+          ports:
+            - containerPort: 8787
+              name: http
+            - containerPort: 8443
+              name: https

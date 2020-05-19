@@ -24,7 +24,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func getK8sConfig() *rest.Config {
+func GetK8sConfig() *rest.Config {
 	// creates the in-cluster config
 	var config *rest.Config
 	if env.Get("DEVELOPMENT", "") != "" {
@@ -47,9 +47,9 @@ func getK8sConfig() *rest.Config {
 	return config
 }
 
-// k8sClient returns kubernetes client using getK8sConfig for its config
-func k8sClient() (*kubernetes.Clientset, error) {
-	return kubernetes.NewForConfig(getK8sConfig())
+// K8sClient returns kubernetes client using GetK8sConfig for its config
+func K8sClient() (*kubernetes.Clientset, error) {
+	return kubernetes.NewForConfig(GetK8sConfig())
 }
 
 // appsV1API encapsulates the appsv1 kubernetes interface to ensure all

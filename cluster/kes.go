@@ -17,6 +17,7 @@
 package cluster
 
 import (
+	"context"
 	"crypto"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -343,7 +344,7 @@ func createNewKesDeployment(clientset *kubernetes.Clientset, deploymentName stri
 
 		//Creating nginx-resolver deployment with new rules
 		kesDeployment := getNewKesDeployment(deploymentName, kesSecretsNames)
-		_, err := appsV1API(clientset).Deployments("default").Create(&kesDeployment)
+		_, err := appsV1API(clientset).Deployments("default").Create(context.Background(), &kesDeployment, metav1.CreateOptions{})
 		if err != nil {
 			log.Println(err)
 			return
@@ -389,7 +390,7 @@ func createNewKesService(clientset *kubernetes.Clientset, serviceName string) <-
 				},
 			},
 		}
-		_, err := clientset.CoreV1().Services("default").Create(&pgSvc)
+		_, err := clientset.CoreV1().Services("default").Create(context.Background(), &pgSvc, metav1.CreateOptions{})
 		if err != nil {
 			log.Println(err)
 			return
@@ -462,7 +463,7 @@ func storeKeyPairInSecret(secretName string, content map[string]string) <-chan s
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
-		clientSet, err := k8sClient()
+		clientSet, err := K8sClient()
 		if err != nil {
 			log.Println(err)
 			return
@@ -480,7 +481,7 @@ func storeKeyPairInSecret(secretName string, content map[string]string) <-chan s
 
 		go secretInformer.Run(doneCh)
 
-		_, err = clientSet.CoreV1().Secrets("default").Create(&corev1.Secret{
+		_, err = clientSet.CoreV1().Secrets("default").Create(context.Background(), &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: secretName,
 				Labels: map[string]string{
@@ -488,7 +489,7 @@ func storeKeyPairInSecret(secretName string, content map[string]string) <-chan s
 				},
 			},
 			StringData: content,
-		})
+		}, metav1.CreateOptions{})
 		if err != nil {
 			log.Println(err)
 			return
@@ -573,7 +574,7 @@ func StartNewKes(shortName string) chan error {
 	doneCh := make(chan error)
 	go func() {
 		defer close(doneCh)
-		clientset, err := k8sClient()
+		clientset, err := K8sClient()
 		if err != nil {
 			doneCh <- err
 			return
