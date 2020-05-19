@@ -17,7 +17,6 @@
 package cluster
 
 import (
-	"github.com/minio/minio/pkg/env"
 	v12 "k8s.io/client-go/kubernetes/typed/apps/v1"
 
 	"k8s.io/client-go/kubernetes"
@@ -27,15 +26,17 @@ import (
 func GetK8sConfig() *rest.Config {
 	// creates the in-cluster config
 	var config *rest.Config
-	if env.Get("DEVELOPMENT", "") != "" {
-		//when doing local development, mount k8s api via `kubectl proxy`
+	// if k8s service-account token its provided we try to connect using those credentials
+	if getK8sToken() != "" {
 		config = &rest.Config{
-			Host:            "http://localhost:8001",
+			Host:            getK8sAPIServer(),
 			TLSClientConfig: rest.TLSClientConfig{Insecure: true},
 			APIPath:         "/",
-			BearerToken:     "eyJhbGciOiJSUzI1NiIsImtpZCI6InFETTJ6R21jMS1NRVpTOER0SnUwdVg1Q05XeDZLV2NKVTdMUnlsZWtUa28ifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6ImRldi1zYS10b2tlbi14eGxuaiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJkZXYtc2EiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiJmZDVhMzRjNy0wZTkwLTQxNTctYmY0Zi02Yjg4MzIwYWIzMDgiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6ZGVmYXVsdDpkZXYtc2EifQ.woZ6Bmkkw-BMV-_UX0Y-S_Lkb6H9zqKZX2aNhyy7valbYIZfIzrDqJYWV9q2SwCP20jBfdsDS40nDcMnHJPE5jZHkTajAV6eAnoq4EspRqORtLGFnVV-JR-okxtvhhQpsw5MdZacJk36ED6Hg8If5uTOF7VF5r70dP7WYBMFiZ3HSlJBnbu7QoTKFmbJ1MafsTQ2RBA37IJPkqi3OHvPadTux6UdMI8LlY7bLkZkaryYR36kwIzSqsYgsnefmm4eZkZzpCeyS9scm9lPjeyQTyCAhftlxfw8m_fsV0EDhmybZCjgJi4R49leJYkHdpnCSkubj87kJAbGMwvLhMhFFQ",
+			BearerToken:     getK8sToken(),
 		}
 	} else {
+		// if no token it's provided use rest.InClusterConfig() to get the service-account
+		// credentials, assuming we are running inside a k8s pod
 		var err error
 		config, err = rest.InClusterConfig()
 		if err != nil {
