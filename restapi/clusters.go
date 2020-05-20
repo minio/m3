@@ -96,6 +96,7 @@ func getClusterInfoResponse(params admin_api.ClusterInfoParams) (*models.Cluster
 		VolumeCount:   volumeCount,
 		VolumeSize:    minInst.Spec.VolumeClaimTemplate.Spec.Resources.Requests.Storage().Value(),
 		ZoneCount:     int64(len(minInst.Spec.Zones)),
+		CurrentState:  minInst.Status.CurrentState,
 	}, nil
 }
 
@@ -137,6 +138,7 @@ func getListClustersResponse(params admin_api.ListClustersParams) (*models.ListC
 			InstanceCount: instanceCount,
 			VolumeCount:   volumeCount,
 			VolumeSize:    minInst.Spec.VolumeClaimTemplate.Spec.Resources.Requests.Storage().Value(),
+			CurrentState:  minInst.Status.CurrentState,
 		})
 	}
 
@@ -259,16 +261,6 @@ func getClusterCreatedResponse(params admin_api.CreateClusterParams) error {
 			Replicas:  2,
 			Image:     "minio/mcs:v0.0.4",
 			MCSSecret: &corev1.LocalObjectReference{Name: mcsSecretName},
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": mcsSelector,
-				},
-			},
-			Metadata: &metav1.ObjectMeta{
-				Labels: map[string]string{
-					"app": mcsSelector,
-				},
-			},
 		}
 	}
 
