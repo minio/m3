@@ -17,10 +17,9 @@
 package cluster
 
 import (
+	"context"
 	"log"
 	"time"
-
-	"github.com/minio/m3/cluster/crds"
 
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
@@ -33,30 +32,15 @@ import (
 	// the file driver for go-migrate
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	v1 "k8s.io/api/core/v1"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Setups m3 on the kubernetes deployment that we are installed to
 func SetupM3() error {
 	// creates the clientset
-	clientset, err := k8sClient()
+	clientset, err := K8sClient()
 	if err != nil {
 		return err
-	}
-
-	currentNamespace := getNs()
-
-	// register CRDs
-	zonesCRD := crds.GetZoneCRD(currentNamespace)
-
-	apiextensionsClientSet, err := apiextensionsclient.NewForConfig(getK8sConfig())
-	if err != nil {
-		return err
-	}
-
-	if _, err = apiextensionsClientSet.ApiextensionsV1().CustomResourceDefinitions().Create(zonesCRD); err != nil {
-		log.Println(err)
 	}
 
 	// mark setup as complete
@@ -71,7 +55,7 @@ func markSetupComplete(clientset *kubernetes.Clientset) <-chan struct{} {
 	secretName := "m3-setup-complete"
 
 	go func() {
-		_, secretExists := clientset.CoreV1().Secrets("default").Get(secretName, metav1.GetOptions{})
+		_, secretExists := clientset.CoreV1().Secrets("default").Get(context.Background(), secretName, metav1.GetOptions{})
 		if secretExists == nil {
 			log.Println("m3 setup complete secret already exists... skip create")
 			close(doneCh)
@@ -99,7 +83,7 @@ func markSetupComplete(clientset *kubernetes.Clientset) <-chan struct{} {
 					"completed": []byte(time.Now().String()),
 				},
 			}
-			_, err := clientset.CoreV1().Secrets("default").Create(&secret)
+			_, err := clientset.CoreV1().Secrets("default").Create(context.Background(), &secret, metav1.CreateOptions{})
 			if err != nil {
 				log.Println(err)
 				close(doneCh)
@@ -112,14 +96,14 @@ func markSetupComplete(clientset *kubernetes.Clientset) <-chan struct{} {
 
 // getSetupDoneSecret gets m3 setup secret from kubernetes secrets
 func IsSetupComplete() (bool, error) {
-	config := getK8sConfig()
+	config := GetK8sConfig()
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Println(err)
 		return false, err
 	}
-	res, err := clientset.CoreV1().Secrets("default").Get("m3-setup-complete", metav1.GetOptions{})
+	res, err := clientset.CoreV1().Secrets("default").Get(context.Background(), "m3-setup-complete", metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}

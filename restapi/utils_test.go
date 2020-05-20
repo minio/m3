@@ -1,5 +1,5 @@
-// This file is part of MinIO Kubernetes Cloud
-// Copyright (c) 2019 MinIO, Inc.
+// This file is part of MinIO Console Server
+// Copyright (c) 2020 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -14,16 +14,39 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package cluster
+package restapi
 
-const (
-	kesImage               = "KES_IMAGE"
-	kesPort                = "KES_PORT"
-	kesMTlsAuth            = "KES_M_TLS_AUTH"
-	kesConfigPath          = "KES_CONFIG_FILE_PATH"
-	KmsCACertConfigMap     = "KMS_CA_CERT_CONFIG_MAP"
-	KmsCACertFileName      = "KMS_CA_CERT_FILE_NAME"
-	CACertDefaultMountPath = "CA_CERT_DEFAULT_MOUNT_PATH"
-	kmsAddress             = "KMS_ADDRESS"
-	kmsToken               = "KMS_TOKEN"
-)
+import "testing"
+
+func TestRandomCharString(t *testing.T) {
+	type args struct {
+		n int
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Get 16 characters",
+			args: args{
+				n: 16,
+			},
+			want: "abcdabcdabcdabcd",
+		},
+		{
+			name: "Get 16 characters",
+			args: args{
+				n: 8,
+			},
+			want: "abcdabcd",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := RandomCharString(tt.args.n); len(got) != len(tt.want) {
+				t.Errorf("RandomCharString() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

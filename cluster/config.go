@@ -24,7 +24,7 @@ import (
 )
 
 // Returns the namespace in which the controller is installed
-func getNs() string {
+func GetNs() string {
 	return "default"
 }
 
@@ -58,18 +58,6 @@ func getKesConfigPath() string {
 		configPath = defaultPath
 	}
 	return configPath
-}
-
-func getLivenessMaxInitialDelaySeconds() int32 {
-	var maxSeconds int32
-	if v := env.Get(maxLivenessInitialSecondsDelay, "120"); v != "" {
-		maxSecondsInt, err := strconv.Atoi(v)
-		if err != nil {
-			return 120
-		}
-		maxSeconds = int32(maxSecondsInt)
-	}
-	return maxSeconds
 }
 
 func getKmsAddress() string {
