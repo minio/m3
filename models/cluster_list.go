@@ -35,6 +35,9 @@ type ClusterList struct {
 	// creation date
 	CreationDate string `json:"creation_date,omitempty"`
 
+	// current state
+	CurrentState string `json:"currentState,omitempty"`
+
 	// instance count
 	InstanceCount int64 `json:"instance_count,omitempty"`
 

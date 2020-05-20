@@ -322,6 +322,9 @@ func init() {
         "creation_date": {
           "type": "string"
         },
+        "currentState": {
+          "type": "string"
+        },
         "instance_count": {
           "type": "integer"
         },
@@ -343,6 +346,9 @@ func init() {
       "type": "object",
       "properties": {
         "creation_date": {
+          "type": "string"
+        },
+        "currentState": {
           "type": "string"
         },
         "instance_count": {
@@ -854,6 +860,9 @@ func init() {
         "creation_date": {
           "type": "string"
         },
+        "currentState": {
+          "type": "string"
+        },
         "instance_count": {
           "type": "integer"
         },
@@ -875,6 +884,9 @@ func init() {
       "type": "object",
       "properties": {
         "creation_date": {
+          "type": "string"
+        },
+        "currentState": {
           "type": "string"
         },
         "instance_count": {

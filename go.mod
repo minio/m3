@@ -16,7 +16,7 @@ require (
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/minio/cli v1.22.0
 	github.com/minio/minio v0.0.0-20200501124117-09571d03a531
-	github.com/minio/minio-operator v0.0.0-20200518183032-7a9480230698
+	github.com/minio/minio-operator v0.0.0-20200520220606-60eca6e7beab
 	golang.org/x/net v0.0.0-20200505041828-1ed23360d12c
 	google.golang.org/grpc v1.23.1 // indirect
 	k8s.io/api v0.18.0
