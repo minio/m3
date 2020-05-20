@@ -23,17 +23,25 @@ import (
 	"github.com/minio/minio/pkg/env"
 )
 
+func getK8sToken() string {
+	return env.Get(m3K8sToken, "")
+}
+
+func getK8sAPIServer() string {
+	return env.Get(m3K8sAPIServer, "http://localhost:8001")
+}
+
 // Returns the namespace in which the controller is installed
 func GetNs() string {
 	return "default"
 }
 
 func getKesContainerImage() string {
-	return env.Get(kesImage, "minio/kes:latest")
+	return env.Get(m3KesImage, "minio/kes:latest")
 }
 
 func getKesRunningPort() int {
-	port, err := strconv.Atoi(env.Get(kesPort, "7373"))
+	port, err := strconv.Atoi(env.Get(m3KesPort, "7373"))
 	if err != nil {
 		port = 7373
 	}
@@ -43,7 +51,7 @@ func getKesRunningPort() int {
 func getKesMTlsAuth() string {
 	defaultMode := "verify"
 	var re = regexp.MustCompile(`^[a-z]+$`)
-	authMode := env.Get(kesMTlsAuth, defaultMode)
+	authMode := env.Get(m3KesMTlsAuth, defaultMode)
 	if !re.MatchString(authMode) {
 		authMode = defaultMode
 	}
@@ -53,7 +61,7 @@ func getKesMTlsAuth() string {
 func getKesConfigPath() string {
 	var re = regexp.MustCompile(`^[a-z_/\-\s0-9\.]+$`)
 	defaultPath := "kes-config/server-config.toml"
-	configPath := env.Get(kesConfigPath, defaultPath)
+	configPath := env.Get(m3KesConfigPath, defaultPath)
 	if !re.MatchString(configPath) {
 		configPath = defaultPath
 	}
@@ -61,21 +69,21 @@ func getKesConfigPath() string {
 }
 
 func getKmsAddress() string {
-	return env.Get(kmsAddress, "")
+	return env.Get(m3KmsAddress, "")
 }
 
 func getKmsToken() string {
-	return env.Get(kmsToken, "")
+	return env.Get(m3KmsToken, "")
 }
 
 func getKmsCACertConfigMap() string {
-	return env.Get(KmsCACertConfigMap, "")
+	return env.Get(m3KmsCACertConfigMap, "")
 }
 
 func getKmsCACertFileName() string {
-	return env.Get(KmsCACertFileName, "")
+	return env.Get(m3KmsCACertFileName, "")
 }
 
 func getCACertDefaultMounPath() string {
-	return env.Get(CACertDefaultMountPath, "/usr/local/share/ca-certificates")
+	return env.Get(m3CACertDefaultMountPath, "/usr/local/share/ca-certificates")
 }
