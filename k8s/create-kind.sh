@@ -44,8 +44,4 @@ else
 	kind load docker-image minio/m3:dev
 fi
 
-
-# Apply mkube
-kubectl apply -f deployments/m3-deployment.yaml
-
 echo "done"

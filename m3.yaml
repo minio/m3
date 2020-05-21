@@ -248,6 +248,14 @@ spec:
   selector:
     app: m3
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: m3-env
+data:
+  M3_PORT: "8787"
+  M3_TLS_PORT: "8443"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -269,7 +277,7 @@ spec:
           imagePullPolicy: "IfNotPresent"
           args:
             - /m3
-            - controller
+            - server
           envFrom:
             - configMapRef:
                 name: m3-env
