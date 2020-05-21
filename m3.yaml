@@ -29,16 +29,52 @@ spec:
                   type: integer
                   minimum: 1
                   maximum: 32
+                image:
+                  type: string
+                serviceName:
+                  type: string
+                volumesPerServer:
+                  type: integer
+                mountPath:
+                  type: string
+                podManagementPolicy:
+                  type: string
+                  enum: [Parallel,OrderedReady]
+                  default: Parallel
+                requestAutoCert:
+                  type: boolean
+                  default: false
                 version:
                   type: string
                 mountpath:
                   type: string
                 subpath:
                   type: string
+                mcs:
+                  type: object
+                  properties:
+                    image:
+                      type: string
+                    replicas:
+                      type: integer
+                      default: 2
+                    mcsSecret:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+            status:
+              type: object
+              properties:
+                currentState:
+                  type: string
+      subresources:
+        # status enables the status subresource.
+        status: {}
       additionalPrinterColumns:
-        - name: Replicas
-          type: integer
-          jsonPath: ".spec.replicas"
+        - name: Current State
+          type: string
+          jsonPath: ".status.currentState"
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -134,6 +170,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: minio-operator-sa
+  namespace: default
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -152,6 +189,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio-operator
+  namespace: default
 spec:
   replicas: 1
   selector:
@@ -165,7 +203,7 @@ spec:
       serviceAccountName: minio-operator-sa
       containers:
         - name: minio-operator
-          image: minio/k8s-operator:2.0.0
+          image: minio/k8s-operator:2.0.1
           imagePullPolicy: IfNotPresent
           # To specify cluster domain, un comment the following:
           # env:
