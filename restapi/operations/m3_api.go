@@ -89,6 +89,9 @@ func NewM3API(spec *loads.Document) *M3API {
 		UserAPISessionCheckHandler: user_api.SessionCheckHandlerFunc(func(params user_api.SessionCheckParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.SessionCheck has not yet been implemented")
 		}),
+		AdminAPIStartMirroringHandler: admin_api.StartMirroringHandlerFunc(func(params admin_api.StartMirroringParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.StartMirroring has not yet been implemented")
+		}),
 
 		KeyAuth: func(token string, scopes []string) (*models.Principal, error) {
 			return nil, errors.NotImplemented("oauth2 bearer auth (key) has not yet been implemented")
@@ -153,6 +156,8 @@ type M3API struct {
 	UserAPILogoutHandler user_api.LogoutHandler
 	// UserAPISessionCheckHandler sets the operation handler for the session check operation
 	UserAPISessionCheckHandler user_api.SessionCheckHandler
+	// AdminAPIStartMirroringHandler sets the operation handler for the start mirroring operation
+	AdminAPIStartMirroringHandler admin_api.StartMirroringHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -249,6 +254,9 @@ func (o *M3API) Validate() error {
 	}
 	if o.UserAPISessionCheckHandler == nil {
 		unregistered = append(unregistered, "user_api.SessionCheckHandler")
+	}
+	if o.AdminAPIStartMirroringHandler == nil {
+		unregistered = append(unregistered, "admin_api.StartMirroringHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -384,6 +392,10 @@ func (o *M3API) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/session"] = user_api.NewSessionCheck(o.context, o.UserAPISessionCheckHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/mirror"] = admin_api.NewStartMirroring(o.context, o.AdminAPIStartMirroringHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

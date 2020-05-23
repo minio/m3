@@ -18,12 +18,7 @@ package restapi
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"regexp"
-	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -152,10 +147,8 @@ func getClusterCreatedResponse(params admin_api.CreateClusterParams) error {
 
 	minioImage := params.Body.Image
 	if minioImage == "" {
-		minImg, err := getLatestMinIOImage()
-		if err == ErrCantDetermineMinIOImage {
-			return errors.New("can't determine the MinIO Version. please specify one")
-		} else if err != nil {
+		minImg, err := cluster.GetMinioImage()
+		if err != nil {
 			return err
 		}
 		minioImage = *minImg
@@ -295,33 +288,4 @@ func getClusterCreatedResponse(params admin_api.CreateClusterParams) error {
 	_, err = opClient.OperatorV1().MinIOInstances(currentNamespace).Create(context.Background(), &minInst, metav1.CreateOptions{})
 
 	return err
-}
-
-var ErrCantDetermineMinIOImage = errors.New("Can't determine MinIO Image")
-
-// getLatestMinIOImage returns the latest docker image for MinIO if found on the internet
-func getLatestMinIOImage() (*string, error) {
-	// Create an http client with a 4 second timeout
-	client := http.Client{
-		Timeout: 4 * time.Second,
-	}
-	resp, err := client.Get("http://dl.min.io/server/minio/release/linux-amd64/")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	var re = regexp.MustCompile(`(?m)\.\/minio\.(RELEASE.*?Z)"`)
-	// look for a single match
-	matches := re.FindAllStringSubmatch(string(body), 1)
-	for i := range matches {
-		release := matches[i][1]
-		dockerImage := fmt.Sprintf("minio/minio:%s", release)
-		return &dockerImage, nil
-	}
-	return nil, ErrCantDetermineMinIOImage
 }

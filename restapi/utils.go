@@ -36,7 +36,7 @@ import (
 // more likely then others.
 const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"
 
-func RandomCharString(n int) string {
+func RandomCharStringWithAlphabet(n int, alphabet string) string {
 	random := make([]byte, n)
 	if _, err := io.ReadFull(rand.Reader, random); err != nil {
 		panic(err) // Can only happen if we would run out of entropy.
@@ -44,8 +44,18 @@ func RandomCharString(n int) string {
 
 	var s strings.Builder
 	for _, v := range random {
-		j := v % byte(len(letters))
-		s.WriteByte(letters[j])
+		j := v % byte(len(alphabet))
+		s.WriteByte(alphabet[j])
 	}
 	return s.String()
+}
+
+func RandomCharString(n int) string {
+	return RandomCharStringWithAlphabet(n, letters)
+}
+
+const letterLowerCase = "abcdefghijklmnopqrstuvwxyz012345"
+
+func RandomLowerCaseCharString(n int) string {
+	return RandomCharStringWithAlphabet(n, letterLowerCase)
 }

@@ -10,12 +10,6 @@ m3:
 	@echo "Building m3 binary to './m3'"
 	@(cd cmd/m3; CGO_ENABLED=0 go build --ldflags "-s -w" -o ../../m3)
 
-clean:
-	@echo "Cleaning up all the generated files"
-	@find . -name '*.test' | xargs rm -fv
-	@find . -name '*~' | xargs rm -fv
-	@rm -rvf m3
-
 docker:
 	@docker build -t minio/m3 --build-arg build_version=$(BUILD_VERSION) --build-arg build_time='$(BUILD_TIME)' .
 
@@ -30,3 +24,15 @@ swagger-gen:
 
 yamlgen:
 	@./k8s/yamlgen.sh
+
+test:
+	@(GO111MODULE=on go test -race -v github.com/minio/m3/restapi/...)
+
+coverage:
+	@(GO111MODULE=on go test -v -coverprofile=coverage.out github.com/minio/m3/restapi/... && go tool cover -html=coverage.out && open coverage.html)
+
+clean:
+	@echo "Cleaning up all the generated files"
+	@find . -name '*.test' | xargs rm -fv
+	@find . -name '*~' | xargs rm -fv
+	@rm -rvf m3

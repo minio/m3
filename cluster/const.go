@@ -28,4 +28,7 @@ const (
 	m3KmsToken               = "M3_KMS_TOKEN"
 	m3K8sToken               = "M3_K8S_TOKEN"
 	m3K8sAPIServer           = "M3_K8S_API_SERVER"
+
+	M3MinioImage = "M3_MINIO_IMAGE"
+	M3MCImage    = "M3_MC_IMAGE"
 )
