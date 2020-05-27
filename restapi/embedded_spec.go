@@ -291,6 +291,40 @@ func init() {
         }
       }
     },
+    "/mirror": {
+      "post": {
+        "security": [],
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Start Mirroring",
+        "operationId": "StartMirroring",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/startMirroringRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/startMirroringResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/session": {
       "get": {
         "tags": [
@@ -529,6 +563,49 @@ func init() {
           "enum": [
             "ok"
           ]
+        }
+      }
+    },
+    "startMirroringRequest": {
+      "type": "object",
+      "required": [
+        "host_source",
+        "host_target",
+        "source",
+        "target"
+      ],
+      "properties": {
+        "host_source": {
+          "type": "string"
+        },
+        "host_target": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "mirror_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
+      }
+    },
+    "startMirroringResponse": {
+      "type": "object",
+      "required": [
+        "mirror_id"
+      ],
+      "properties": {
+        "mirror_id": {
+          "type": "string"
         }
       }
     },
@@ -815,6 +892,40 @@ func init() {
         }
       }
     },
+    "/mirror": {
+      "post": {
+        "security": [],
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Start Mirroring",
+        "operationId": "StartMirroring",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/startMirroringRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/startMirroringResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/session": {
       "get": {
         "tags": [
@@ -1067,6 +1178,49 @@ func init() {
           "enum": [
             "ok"
           ]
+        }
+      }
+    },
+    "startMirroringRequest": {
+      "type": "object",
+      "required": [
+        "host_source",
+        "host_target",
+        "source",
+        "target"
+      ],
+      "properties": {
+        "host_source": {
+          "type": "string"
+        },
+        "host_target": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "mirror_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        }
+      }
+    },
+    "startMirroringResponse": {
+      "type": "object",
+      "required": [
+        "mirror_id"
+      ],
+      "properties": {
+        "mirror_id": {
+          "type": "string"
         }
       }
     },

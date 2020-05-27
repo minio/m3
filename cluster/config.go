@@ -17,10 +17,21 @@
 package cluster
 
 import (
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/minio/minio/pkg/env"
+)
+
+var (
+	errCantDetermineMinIOImage = errors.New("Can't determine MinIO Image")
+	errCantDetermineMCImage    = errors.New("Can't determine MC Image")
 )
 
 func getK8sToken() string {
@@ -86,4 +97,89 @@ func getKmsCACertFileName() string {
 
 func getCACertDefaultMounPath() string {
 	return env.Get(m3CACertDefaultMountPath, "/usr/local/share/ca-certificates")
+}
+
+// getLatestMinIOImage returns the latest docker image for MinIO if found on the internet
+func getLatestMinIOImage() (*string, error) {
+	// Create an http client with a 4 second timeout
+	client := http.Client{
+		Timeout: 4 * time.Second,
+	}
+	resp, err := client.Get("https://dl.min.io/server/minio/release/linux-amd64/")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	var re = regexp.MustCompile(`(?m)\.\/minio\.(RELEASE.*?Z)"`)
+	// look for a single match
+	matches := re.FindAllStringSubmatch(string(body), 1)
+	for i := range matches {
+		release := matches[i][1]
+		dockerImage := fmt.Sprintf("minio/minio:%s", release)
+		return &dockerImage, nil
+	}
+	return nil, errCantDetermineMinIOImage
+}
+
+var latestMinIOImage, errLatestMinIOImage = getLatestMinIOImage()
+
+// GetMinioImage returns the image URL to be used when deploying a MinIO instance, if there is
+// a preferred image to be used (configured via ENVIRONMENT VARIABLES) GetMinioImage will return that
+// if not, GetMinioImage will try to obtain the image URL for the latest version of MinIO and return that
+func GetMinioImage() (*string, error) {
+	image := strings.TrimSpace(env.Get(M3MinioImage, ""))
+	// if there is a preferred image configured by the user we'll always return that
+	if image != "" {
+		return &image, nil
+	}
+	if errLatestMinIOImage != nil {
+		return nil, errLatestMinIOImage
+	}
+	return latestMinIOImage, nil
+}
+
+// getLatestMCImage returns the latest docker image for MC if found on the internet
+func getLatestMCImage() (*string, error) {
+	// Create an http client with a 4 second timeout
+	client := http.Client{
+		Timeout: 4 * time.Second,
+	}
+	resp, err := client.Get("https://dl.min.io/client/mc/release/linux-amd64/")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	var re = regexp.MustCompile(`(?m)\.\/mc\.(RELEASE.*?Z)"`)
+	// look for a single match
+	matches := re.FindAllStringSubmatch(string(body), 1)
+	for i := range matches {
+		release := matches[i][1]
+		dockerImage := fmt.Sprintf("minio/mc:%s", release)
+		return &dockerImage, nil
+	}
+	return nil, errCantDetermineMCImage
+}
+
+var latestMCImage, errLatestMCImage = getLatestMCImage()
+
+func GetMCImage() (*string, error) {
+	image := strings.TrimSpace(env.Get(M3MCImage, ""))
+	// if there is a preferred image configured by the user we'll always return that
+	if image != "" {
+		return &image, nil
+	}
+	if errLatestMCImage != nil {
+		return nil, errLatestMCImage
+	}
+	return latestMCImage, nil
 }
