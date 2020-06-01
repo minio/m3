@@ -28,40 +28,40 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 )
 
-// CreateClusterHandlerFunc turns a function with the right signature into a create cluster handler
-type CreateClusterHandlerFunc func(CreateClusterParams) middleware.Responder
+// ListTenantsHandlerFunc turns a function with the right signature into a list tenants handler
+type ListTenantsHandlerFunc func(ListTenantsParams) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn CreateClusterHandlerFunc) Handle(params CreateClusterParams) middleware.Responder {
+func (fn ListTenantsHandlerFunc) Handle(params ListTenantsParams) middleware.Responder {
 	return fn(params)
 }
 
-// CreateClusterHandler interface for that can handle valid create cluster params
-type CreateClusterHandler interface {
-	Handle(CreateClusterParams) middleware.Responder
+// ListTenantsHandler interface for that can handle valid list tenants params
+type ListTenantsHandler interface {
+	Handle(ListTenantsParams) middleware.Responder
 }
 
-// NewCreateCluster creates a new http.Handler for the create cluster operation
-func NewCreateCluster(ctx *middleware.Context, handler CreateClusterHandler) *CreateCluster {
-	return &CreateCluster{Context: ctx, Handler: handler}
+// NewListTenants creates a new http.Handler for the list tenants operation
+func NewListTenants(ctx *middleware.Context, handler ListTenantsHandler) *ListTenants {
+	return &ListTenants{Context: ctx, Handler: handler}
 }
 
-/*CreateCluster swagger:route POST /clusters AdminAPI createCluster
+/*ListTenants swagger:route GET /tenants AdminAPI listTenants
 
-Create Cluster
+List Tenants
 
 */
-type CreateCluster struct {
+type ListTenants struct {
 	Context *middleware.Context
-	Handler CreateClusterHandler
+	Handler ListTenantsHandler
 }
 
-func (o *CreateCluster) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (o *ListTenants) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
 		r = rCtx
 	}
-	var Params = NewCreateClusterParams()
+	var Params = NewListTenantsParams()
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)

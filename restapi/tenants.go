@@ -36,36 +36,36 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func registerClusterHandlers(api *operations.M3API) {
-	// Add Cluster
-	api.AdminAPICreateClusterHandler = admin_api.CreateClusterHandlerFunc(func(params admin_api.CreateClusterParams) middleware.Responder {
-		err := getClusterCreatedResponse(params)
+func registerTenantHandlers(api *operations.M3API) {
+	// Add Tenant
+	api.AdminAPICreateTenantHandler = admin_api.CreateTenantHandlerFunc(func(params admin_api.CreateTenantParams) middleware.Responder {
+		err := getTenantCreatedResponse(params)
 		if err != nil {
-			return admin_api.NewCreateClusterDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+			return admin_api.NewCreateTenantDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
-		return admin_api.NewCreateClusterCreated()
+		return admin_api.NewCreateTenantCreated()
 	})
-	// List Cluster
-	api.AdminAPIListClustersHandler = admin_api.ListClustersHandlerFunc(func(params admin_api.ListClustersParams) middleware.Responder {
-		resp, err := getListClustersResponse(params)
+	// List Tenants
+	api.AdminAPIListTenantsHandler = admin_api.ListTenantsHandlerFunc(func(params admin_api.ListTenantsParams) middleware.Responder {
+		resp, err := getListTenantsResponse(params)
 		if err != nil {
-			return admin_api.NewListClustersDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+			return admin_api.NewListTenantsDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
-		return admin_api.NewListClustersOK().WithPayload(resp)
+		return admin_api.NewListTenantsOK().WithPayload(resp)
 
 	})
-	// Detail Cluster
-	api.AdminAPIClusterInfoHandler = admin_api.ClusterInfoHandlerFunc(func(params admin_api.ClusterInfoParams) middleware.Responder {
-		resp, err := getClusterInfoResponse(params)
+	// Detail Tenant
+	api.AdminAPITenantInfoHandler = admin_api.TenantInfoHandlerFunc(func(params admin_api.TenantInfoParams) middleware.Responder {
+		resp, err := getTenantInfoResponse(params)
 		if err != nil {
-			return admin_api.NewClusterInfoDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+			return admin_api.NewTenantInfoDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
-		return admin_api.NewClusterInfoOK().WithPayload(resp)
+		return admin_api.NewTenantInfoOK().WithPayload(resp)
 
 	})
 }
 
-func getClusterInfoResponse(params admin_api.ClusterInfoParams) (*models.Cluster, error) {
+func getTenantInfoResponse(params admin_api.TenantInfoParams) (*models.Tenant, error) {
 	opClient, err := operatorClientset.NewForConfig(cluster.GetK8sConfig())
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func getClusterInfoResponse(params admin_api.ClusterInfoParams) (*models.Cluster
 		volumeCount = volumeCount + int64(zone.Servers*int32(minInst.Spec.VolumesPerServer))
 	}
 
-	return &models.Cluster{
+	return &models.Tenant{
 		CreationDate:  minInst.ObjectMeta.CreationTimestamp.String(),
 		InstanceCount: instanceCount,
 		Name:          params.Name,
@@ -95,7 +95,7 @@ func getClusterInfoResponse(params admin_api.ClusterInfoParams) (*models.Cluster
 	}, nil
 }
 
-func getListClustersResponse(params admin_api.ListClustersParams) (*models.ListClustersResponse, error) {
+func getListTenantsResponse(params admin_api.ListTenantsParams) (*models.ListTenantsResponse, error) {
 	opClient, err := operatorClientset.NewForConfig(cluster.GetK8sConfig())
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func getListClustersResponse(params admin_api.ListClustersParams) (*models.ListC
 		return nil, err
 	}
 
-	var clusters []*models.ClusterList
+	var tenants []*models.TenantList
 
 	for _, minInst := range minInstances.Items {
 
@@ -126,7 +126,7 @@ func getListClustersResponse(params admin_api.ListClustersParams) (*models.ListC
 			volumeCount = volumeCount + int64(zone.Servers*int32(minInst.Spec.VolumesPerServer))
 		}
 
-		clusters = append(clusters, &models.ClusterList{
+		tenants = append(tenants, &models.TenantList{
 			CreationDate:  minInst.ObjectMeta.CreationTimestamp.String(),
 			Name:          minInst.ObjectMeta.Name,
 			ZoneCount:     int64(len(minInst.Spec.Zones)),
@@ -137,13 +137,13 @@ func getListClustersResponse(params admin_api.ListClustersParams) (*models.ListC
 		})
 	}
 
-	return &models.ListClustersResponse{
-		Clusters: clusters,
-		Total:    0,
+	return &models.ListTenantsResponse{
+		Tenants: tenants,
+		Total:   0,
 	}, nil
 }
 
-func getClusterCreatedResponse(params admin_api.CreateClusterParams) error {
+func getTenantCreatedResponse(params admin_api.CreateTenantParams) error {
 
 	minioImage := params.Body.Image
 	if minioImage == "" {
@@ -195,6 +195,11 @@ func getClusterCreatedResponse(params admin_api.CreateClusterParams) error {
 		enableMCS = *params.Body.EnableMcs
 	}
 
+	volumeSize, err := resource.ParseQuantity(*params.Body.VolumeConfiguration.Size)
+	if err != nil {
+		return err
+	}
+
 	//Construct a MinIO Instance with everything we are getting from parameters
 	minInst := operator.MinIOInstance{
 		ObjectMeta: metav1.ObjectMeta{
@@ -218,7 +223,7 @@ func getClusterCreatedResponse(params admin_api.CreateClusterParams) error {
 					},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							corev1.ResourceStorage: resource.MustParse(*params.Body.VolumeConfiguration.Size),
+							corev1.ResourceStorage: volumeSize,
 						},
 					},
 				},

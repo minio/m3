@@ -30,23 +30,23 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// ListClustersResponse list clusters response
+// ListTenantsResponse list tenants response
 //
-// swagger:model listClustersResponse
-type ListClustersResponse struct {
+// swagger:model listTenantsResponse
+type ListTenantsResponse struct {
 
-	// list of resulting clusters
-	Clusters []*ClusterList `json:"clusters"`
+	// list of resulting tenants
+	Tenants []*TenantList `json:"tenants"`
 
-	// number of clusters accessible to tenant user
+	// number of tenants accessible to tenant user
 	Total int64 `json:"total,omitempty"`
 }
 
-// Validate validates this list clusters response
-func (m *ListClustersResponse) Validate(formats strfmt.Registry) error {
+// Validate validates this list tenants response
+func (m *ListTenantsResponse) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateClusters(formats); err != nil {
+	if err := m.validateTenants(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -56,21 +56,21 @@ func (m *ListClustersResponse) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ListClustersResponse) validateClusters(formats strfmt.Registry) error {
+func (m *ListTenantsResponse) validateTenants(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Clusters) { // not required
+	if swag.IsZero(m.Tenants) { // not required
 		return nil
 	}
 
-	for i := 0; i < len(m.Clusters); i++ {
-		if swag.IsZero(m.Clusters[i]) { // not required
+	for i := 0; i < len(m.Tenants); i++ {
+		if swag.IsZero(m.Tenants[i]) { // not required
 			continue
 		}
 
-		if m.Clusters[i] != nil {
-			if err := m.Clusters[i].Validate(formats); err != nil {
+		if m.Tenants[i] != nil {
+			if err := m.Tenants[i].Validate(formats); err != nil {
 				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("clusters" + "." + strconv.Itoa(i))
+					return ve.ValidateName("tenants" + "." + strconv.Itoa(i))
 				}
 				return err
 			}
@@ -82,7 +82,7 @@ func (m *ListClustersResponse) validateClusters(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *ListClustersResponse) MarshalBinary() ([]byte, error) {
+func (m *ListTenantsResponse) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -90,8 +90,8 @@ func (m *ListClustersResponse) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *ListClustersResponse) UnmarshalBinary(b []byte) error {
-	var res ListClustersResponse
+func (m *ListTenantsResponse) UnmarshalBinary(b []byte) error {
+	var res ListTenantsResponse
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

@@ -59,8 +59,8 @@ func configureAPI(api *operations.M3API) http.Handler {
 		}
 	}
 
-	// Register cluster handlers
-	registerClusterHandlers(api)
+	// Register tenant handlers
+	registerTenantHandlers(api)
 	// Register mirroring handlers
 	registerMirrorHandlers(api)
 
@@ -69,19 +69,19 @@ func configureAPI(api *operations.M3API) http.Handler {
 	//
 	// Example:
 	// api.APIAuthorizer = security.Authorized()
-	if api.AdminAPICreateClusterHandler == nil {
-		api.AdminAPICreateClusterHandler = admin_api.CreateClusterHandlerFunc(func(params admin_api.CreateClusterParams) middleware.Responder {
-			return middleware.NotImplemented("operation admin_api.CreateCluster has not yet been implemented")
+	if api.AdminAPICreateTenantHandler == nil {
+		api.AdminAPICreateTenantHandler = admin_api.CreateTenantHandlerFunc(func(params admin_api.CreateTenantParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.CreateTenant has not yet been implemented")
 		})
 	}
-	if api.AdminAPIDeleteClusterHandler == nil {
-		api.AdminAPIDeleteClusterHandler = admin_api.DeleteClusterHandlerFunc(func(params admin_api.DeleteClusterParams, principal *models.Principal) middleware.Responder {
-			return middleware.NotImplemented("operation admin_api.DeleteCluster has not yet been implemented")
+	if api.AdminAPIDeleteTenantHandler == nil {
+		api.AdminAPIDeleteTenantHandler = admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.DeleteTenant has not yet been implemented")
 		})
 	}
-	if api.AdminAPIListClustersHandler == nil {
-		api.AdminAPIListClustersHandler = admin_api.ListClustersHandlerFunc(func(params admin_api.ListClustersParams) middleware.Responder {
-			return middleware.NotImplemented("operation admin_api.ListClusters has not yet been implemented")
+	if api.AdminAPIListTenantsHandler == nil {
+		api.AdminAPIListTenantsHandler = admin_api.ListTenantsHandlerFunc(func(params admin_api.ListTenantsParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.ListTenants has not yet been implemented")
 		})
 	}
 	if api.UserAPILoginHandler == nil {

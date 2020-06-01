@@ -23,67 +23,72 @@ package admin_api
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
-	"github.com/go-openapi/strfmt"
+
+	"github.com/minio/m3/models"
 )
 
-// NewClusterInfoParams creates a new ClusterInfoParams object
+// NewCreateTenantParams creates a new CreateTenantParams object
 // no default values defined in spec.
-func NewClusterInfoParams() ClusterInfoParams {
+func NewCreateTenantParams() CreateTenantParams {
 
-	return ClusterInfoParams{}
+	return CreateTenantParams{}
 }
 
-// ClusterInfoParams contains all the bound params for the cluster info operation
+// CreateTenantParams contains all the bound params for the create tenant operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters ClusterInfo
-type ClusterInfoParams struct {
+// swagger:parameters CreateTenant
+type CreateTenantParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
 	/*
 	  Required: true
-	  In: path
+	  In: body
 	*/
-	Name string
+	Body *models.CreateTenantRequest
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewClusterInfoParams() beforehand.
-func (o *ClusterInfoParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewCreateTenantParams() beforehand.
+func (o *CreateTenantParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
 
-	rName, rhkName, _ := route.Params.GetOK("name")
-	if err := o.bindName(rName, rhkName, route.Formats); err != nil {
-		res = append(res, err)
-	}
+	if runtime.HasBody(r) {
+		defer r.Body.Close()
+		var body models.CreateTenantRequest
+		if err := route.Consumer.Consume(r.Body, &body); err != nil {
+			if err == io.EOF {
+				res = append(res, errors.Required("body", "body"))
+			} else {
+				res = append(res, errors.NewParseError("body", "body", "", err))
+			}
+		} else {
+			// validate body object
+			if err := body.Validate(route.Formats); err != nil {
+				res = append(res, err)
+			}
 
+			if len(res) == 0 {
+				o.Body = &body
+			}
+		}
+	} else {
+		res = append(res, errors.Required("body", "body"))
+	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
-	return nil
-}
-
-// bindName binds and validates parameter Name from path.
-func (o *ClusterInfoParams) bindName(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: true
-	// Parameter is provided by construction from the route
-
-	o.Name = raw
-
 	return nil
 }
