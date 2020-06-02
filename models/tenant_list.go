@@ -27,10 +27,10 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// Cluster cluster
+// TenantList tenant list
 //
-// swagger:model cluster
-type Cluster struct {
+// swagger:model tenantList
+type TenantList struct {
 
 	// creation date
 	CreationDate string `json:"creation_date,omitempty"`
@@ -54,13 +54,13 @@ type Cluster struct {
 	ZoneCount int64 `json:"zone_count,omitempty"`
 }
 
-// Validate validates this cluster
-func (m *Cluster) Validate(formats strfmt.Registry) error {
+// Validate validates this tenant list
+func (m *TenantList) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
 // MarshalBinary interface implementation
-func (m *Cluster) MarshalBinary() ([]byte, error) {
+func (m *TenantList) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -68,8 +68,8 @@ func (m *Cluster) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *Cluster) UnmarshalBinary(b []byte) error {
-	var res Cluster
+func (m *TenantList) UnmarshalBinary(b []byte) error {
+	var res TenantList
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

@@ -30,40 +30,40 @@ import (
 	"github.com/minio/m3/models"
 )
 
-// ClusterInfoOKCode is the HTTP code returned for type ClusterInfoOK
-const ClusterInfoOKCode int = 200
+// ListTenantsOKCode is the HTTP code returned for type ListTenantsOK
+const ListTenantsOKCode int = 200
 
-/*ClusterInfoOK A successful response.
+/*ListTenantsOK A successful response.
 
-swagger:response clusterInfoOK
+swagger:response listTenantsOK
 */
-type ClusterInfoOK struct {
+type ListTenantsOK struct {
 
 	/*
 	  In: Body
 	*/
-	Payload *models.Cluster `json:"body,omitempty"`
+	Payload *models.ListTenantsResponse `json:"body,omitempty"`
 }
 
-// NewClusterInfoOK creates ClusterInfoOK with default headers values
-func NewClusterInfoOK() *ClusterInfoOK {
+// NewListTenantsOK creates ListTenantsOK with default headers values
+func NewListTenantsOK() *ListTenantsOK {
 
-	return &ClusterInfoOK{}
+	return &ListTenantsOK{}
 }
 
-// WithPayload adds the payload to the cluster info o k response
-func (o *ClusterInfoOK) WithPayload(payload *models.Cluster) *ClusterInfoOK {
+// WithPayload adds the payload to the list tenants o k response
+func (o *ListTenantsOK) WithPayload(payload *models.ListTenantsResponse) *ListTenantsOK {
 	o.Payload = payload
 	return o
 }
 
-// SetPayload sets the payload to the cluster info o k response
-func (o *ClusterInfoOK) SetPayload(payload *models.Cluster) {
+// SetPayload sets the payload to the list tenants o k response
+func (o *ListTenantsOK) SetPayload(payload *models.ListTenantsResponse) {
 	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *ClusterInfoOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *ListTenantsOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(200)
 	if o.Payload != nil {
@@ -74,11 +74,11 @@ func (o *ClusterInfoOK) WriteResponse(rw http.ResponseWriter, producer runtime.P
 	}
 }
 
-/*ClusterInfoDefault Generic error response.
+/*ListTenantsDefault Generic error response.
 
-swagger:response clusterInfoDefault
+swagger:response listTenantsDefault
 */
-type ClusterInfoDefault struct {
+type ListTenantsDefault struct {
 	_statusCode int
 
 	/*
@@ -87,41 +87,41 @@ type ClusterInfoDefault struct {
 	Payload *models.Error `json:"body,omitempty"`
 }
 
-// NewClusterInfoDefault creates ClusterInfoDefault with default headers values
-func NewClusterInfoDefault(code int) *ClusterInfoDefault {
+// NewListTenantsDefault creates ListTenantsDefault with default headers values
+func NewListTenantsDefault(code int) *ListTenantsDefault {
 	if code <= 0 {
 		code = 500
 	}
 
-	return &ClusterInfoDefault{
+	return &ListTenantsDefault{
 		_statusCode: code,
 	}
 }
 
-// WithStatusCode adds the status to the cluster info default response
-func (o *ClusterInfoDefault) WithStatusCode(code int) *ClusterInfoDefault {
+// WithStatusCode adds the status to the list tenants default response
+func (o *ListTenantsDefault) WithStatusCode(code int) *ListTenantsDefault {
 	o._statusCode = code
 	return o
 }
 
-// SetStatusCode sets the status to the cluster info default response
-func (o *ClusterInfoDefault) SetStatusCode(code int) {
+// SetStatusCode sets the status to the list tenants default response
+func (o *ListTenantsDefault) SetStatusCode(code int) {
 	o._statusCode = code
 }
 
-// WithPayload adds the payload to the cluster info default response
-func (o *ClusterInfoDefault) WithPayload(payload *models.Error) *ClusterInfoDefault {
+// WithPayload adds the payload to the list tenants default response
+func (o *ListTenantsDefault) WithPayload(payload *models.Error) *ListTenantsDefault {
 	o.Payload = payload
 	return o
 }
 
-// SetPayload sets the payload to the cluster info default response
-func (o *ClusterInfoDefault) SetPayload(payload *models.Error) {
+// SetPayload sets the payload to the list tenants default response
+func (o *ListTenantsDefault) SetPayload(payload *models.Error) {
 	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *ClusterInfoDefault) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *ListTenantsDefault) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(o._statusCode)
 	if o.Payload != nil {

@@ -30,8 +30,8 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// ListClustersURL generates an URL for the list clusters operation
-type ListClustersURL struct {
+// ListTenantsURL generates an URL for the list tenants operation
+type ListTenantsURL struct {
 	Limit  *int32
 	Offset *int32
 	SortBy *string
@@ -44,7 +44,7 @@ type ListClustersURL struct {
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *ListClustersURL) WithBasePath(bp string) *ListClustersURL {
+func (o *ListTenantsURL) WithBasePath(bp string) *ListTenantsURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -52,15 +52,15 @@ func (o *ListClustersURL) WithBasePath(bp string) *ListClustersURL {
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *ListClustersURL) SetBasePath(bp string) {
+func (o *ListTenantsURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *ListClustersURL) Build() (*url.URL, error) {
+func (o *ListTenantsURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/clusters"
+	var _path = "/tenants"
 
 	_basePath := o._basePath
 	if _basePath == "" {
@@ -100,7 +100,7 @@ func (o *ListClustersURL) Build() (*url.URL, error) {
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *ListClustersURL) Must(u *url.URL, err error) *url.URL {
+func (o *ListTenantsURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -111,17 +111,17 @@ func (o *ListClustersURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *ListClustersURL) String() string {
+func (o *ListTenantsURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *ListClustersURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *ListTenantsURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on ListClustersURL")
+		return nil, errors.New("scheme is required for a full url on ListTenantsURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on ListClustersURL")
+		return nil, errors.New("host is required for a full url on ListTenantsURL")
 	}
 
 	base, err := o.Build()
@@ -135,6 +135,6 @@ func (o *ListClustersURL) BuildFull(scheme, host string) (*url.URL, error) {
 }
 
 // StringFull returns the string representation of a complete url
-func (o *ListClustersURL) StringFull(scheme, host string) string {
+func (o *ListTenantsURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

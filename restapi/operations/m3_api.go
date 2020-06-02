@@ -62,17 +62,14 @@ func NewM3API(spec *loads.Document) *M3API {
 
 		JSONProducer: runtime.JSONProducer(),
 
-		AdminAPIClusterInfoHandler: admin_api.ClusterInfoHandlerFunc(func(params admin_api.ClusterInfoParams) middleware.Responder {
-			return middleware.NotImplemented("operation admin_api.ClusterInfo has not yet been implemented")
+		AdminAPICreateTenantHandler: admin_api.CreateTenantHandlerFunc(func(params admin_api.CreateTenantParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.CreateTenant has not yet been implemented")
 		}),
-		AdminAPICreateClusterHandler: admin_api.CreateClusterHandlerFunc(func(params admin_api.CreateClusterParams) middleware.Responder {
-			return middleware.NotImplemented("operation admin_api.CreateCluster has not yet been implemented")
+		AdminAPIDeleteTenantHandler: admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.DeleteTenant has not yet been implemented")
 		}),
-		AdminAPIDeleteClusterHandler: admin_api.DeleteClusterHandlerFunc(func(params admin_api.DeleteClusterParams, principal *models.Principal) middleware.Responder {
-			return middleware.NotImplemented("operation admin_api.DeleteCluster has not yet been implemented")
-		}),
-		AdminAPIListClustersHandler: admin_api.ListClustersHandlerFunc(func(params admin_api.ListClustersParams) middleware.Responder {
-			return middleware.NotImplemented("operation admin_api.ListClusters has not yet been implemented")
+		AdminAPIListTenantsHandler: admin_api.ListTenantsHandlerFunc(func(params admin_api.ListTenantsParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.ListTenants has not yet been implemented")
 		}),
 		UserAPILoginHandler: user_api.LoginHandlerFunc(func(params user_api.LoginParams) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.Login has not yet been implemented")
@@ -91,6 +88,9 @@ func NewM3API(spec *loads.Document) *M3API {
 		}),
 		AdminAPIStartMirroringHandler: admin_api.StartMirroringHandlerFunc(func(params admin_api.StartMirroringParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.StartMirroring has not yet been implemented")
+		}),
+		AdminAPITenantInfoHandler: admin_api.TenantInfoHandlerFunc(func(params admin_api.TenantInfoParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.TenantInfo has not yet been implemented")
 		}),
 
 		KeyAuth: func(token string, scopes []string) (*models.Principal, error) {
@@ -138,14 +138,12 @@ type M3API struct {
 	// APIAuthorizer provides access control (ACL/RBAC/ABAC) by providing access to the request and authenticated principal
 	APIAuthorizer runtime.Authorizer
 
-	// AdminAPIClusterInfoHandler sets the operation handler for the cluster info operation
-	AdminAPIClusterInfoHandler admin_api.ClusterInfoHandler
-	// AdminAPICreateClusterHandler sets the operation handler for the create cluster operation
-	AdminAPICreateClusterHandler admin_api.CreateClusterHandler
-	// AdminAPIDeleteClusterHandler sets the operation handler for the delete cluster operation
-	AdminAPIDeleteClusterHandler admin_api.DeleteClusterHandler
-	// AdminAPIListClustersHandler sets the operation handler for the list clusters operation
-	AdminAPIListClustersHandler admin_api.ListClustersHandler
+	// AdminAPICreateTenantHandler sets the operation handler for the create tenant operation
+	AdminAPICreateTenantHandler admin_api.CreateTenantHandler
+	// AdminAPIDeleteTenantHandler sets the operation handler for the delete tenant operation
+	AdminAPIDeleteTenantHandler admin_api.DeleteTenantHandler
+	// AdminAPIListTenantsHandler sets the operation handler for the list tenants operation
+	AdminAPIListTenantsHandler admin_api.ListTenantsHandler
 	// UserAPILoginHandler sets the operation handler for the login operation
 	UserAPILoginHandler user_api.LoginHandler
 	// UserAPILoginDetailHandler sets the operation handler for the login detail operation
@@ -158,6 +156,8 @@ type M3API struct {
 	UserAPISessionCheckHandler user_api.SessionCheckHandler
 	// AdminAPIStartMirroringHandler sets the operation handler for the start mirroring operation
 	AdminAPIStartMirroringHandler admin_api.StartMirroringHandler
+	// AdminAPITenantInfoHandler sets the operation handler for the tenant info operation
+	AdminAPITenantInfoHandler admin_api.TenantInfoHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -228,17 +228,14 @@ func (o *M3API) Validate() error {
 		unregistered = append(unregistered, "KeyAuth")
 	}
 
-	if o.AdminAPIClusterInfoHandler == nil {
-		unregistered = append(unregistered, "admin_api.ClusterInfoHandler")
+	if o.AdminAPICreateTenantHandler == nil {
+		unregistered = append(unregistered, "admin_api.CreateTenantHandler")
 	}
-	if o.AdminAPICreateClusterHandler == nil {
-		unregistered = append(unregistered, "admin_api.CreateClusterHandler")
+	if o.AdminAPIDeleteTenantHandler == nil {
+		unregistered = append(unregistered, "admin_api.DeleteTenantHandler")
 	}
-	if o.AdminAPIDeleteClusterHandler == nil {
-		unregistered = append(unregistered, "admin_api.DeleteClusterHandler")
-	}
-	if o.AdminAPIListClustersHandler == nil {
-		unregistered = append(unregistered, "admin_api.ListClustersHandler")
+	if o.AdminAPIListTenantsHandler == nil {
+		unregistered = append(unregistered, "admin_api.ListTenantsHandler")
 	}
 	if o.UserAPILoginHandler == nil {
 		unregistered = append(unregistered, "user_api.LoginHandler")
@@ -257,6 +254,9 @@ func (o *M3API) Validate() error {
 	}
 	if o.AdminAPIStartMirroringHandler == nil {
 		unregistered = append(unregistered, "admin_api.StartMirroringHandler")
+	}
+	if o.AdminAPITenantInfoHandler == nil {
+		unregistered = append(unregistered, "admin_api.TenantInfoHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -356,22 +356,18 @@ func (o *M3API) initHandlerCache() {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
 
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/clusters/{name}"] = admin_api.NewClusterInfo(o.context, o.AdminAPIClusterInfoHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters"] = admin_api.NewCreateCluster(o.context, o.AdminAPICreateClusterHandler)
+	o.handlers["POST"]["/tenants"] = admin_api.NewCreateTenant(o.context, o.AdminAPICreateTenantHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
-	o.handlers["DELETE"]["/clusters/{name}"] = admin_api.NewDeleteCluster(o.context, o.AdminAPIDeleteClusterHandler)
+	o.handlers["DELETE"]["/tenants/{name}"] = admin_api.NewDeleteTenant(o.context, o.AdminAPIDeleteTenantHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters"] = admin_api.NewListClusters(o.context, o.AdminAPIListClustersHandler)
+	o.handlers["GET"]["/tenants"] = admin_api.NewListTenants(o.context, o.AdminAPIListTenantsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -396,6 +392,10 @@ func (o *M3API) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/mirror"] = admin_api.NewStartMirroring(o.context, o.AdminAPIStartMirroringHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/tenants/{name}"] = admin_api.NewTenantInfo(o.context, o.AdminAPITenantInfoHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

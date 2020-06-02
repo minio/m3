@@ -30,35 +30,35 @@ import (
 	"github.com/minio/m3/models"
 )
 
-// CreateClusterCreatedCode is the HTTP code returned for type CreateClusterCreated
-const CreateClusterCreatedCode int = 201
+// DeleteTenantNoContentCode is the HTTP code returned for type DeleteTenantNoContent
+const DeleteTenantNoContentCode int = 204
 
-/*CreateClusterCreated A successful response.
+/*DeleteTenantNoContent A successful response.
 
-swagger:response createClusterCreated
+swagger:response deleteTenantNoContent
 */
-type CreateClusterCreated struct {
+type DeleteTenantNoContent struct {
 }
 
-// NewCreateClusterCreated creates CreateClusterCreated with default headers values
-func NewCreateClusterCreated() *CreateClusterCreated {
+// NewDeleteTenantNoContent creates DeleteTenantNoContent with default headers values
+func NewDeleteTenantNoContent() *DeleteTenantNoContent {
 
-	return &CreateClusterCreated{}
+	return &DeleteTenantNoContent{}
 }
 
 // WriteResponse to the client
-func (o *CreateClusterCreated) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *DeleteTenantNoContent) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
 
-	rw.WriteHeader(201)
+	rw.WriteHeader(204)
 }
 
-/*CreateClusterDefault Generic error response.
+/*DeleteTenantDefault Generic error response.
 
-swagger:response createClusterDefault
+swagger:response deleteTenantDefault
 */
-type CreateClusterDefault struct {
+type DeleteTenantDefault struct {
 	_statusCode int
 
 	/*
@@ -67,41 +67,41 @@ type CreateClusterDefault struct {
 	Payload *models.Error `json:"body,omitempty"`
 }
 
-// NewCreateClusterDefault creates CreateClusterDefault with default headers values
-func NewCreateClusterDefault(code int) *CreateClusterDefault {
+// NewDeleteTenantDefault creates DeleteTenantDefault with default headers values
+func NewDeleteTenantDefault(code int) *DeleteTenantDefault {
 	if code <= 0 {
 		code = 500
 	}
 
-	return &CreateClusterDefault{
+	return &DeleteTenantDefault{
 		_statusCode: code,
 	}
 }
 
-// WithStatusCode adds the status to the create cluster default response
-func (o *CreateClusterDefault) WithStatusCode(code int) *CreateClusterDefault {
+// WithStatusCode adds the status to the delete tenant default response
+func (o *DeleteTenantDefault) WithStatusCode(code int) *DeleteTenantDefault {
 	o._statusCode = code
 	return o
 }
 
-// SetStatusCode sets the status to the create cluster default response
-func (o *CreateClusterDefault) SetStatusCode(code int) {
+// SetStatusCode sets the status to the delete tenant default response
+func (o *DeleteTenantDefault) SetStatusCode(code int) {
 	o._statusCode = code
 }
 
-// WithPayload adds the payload to the create cluster default response
-func (o *CreateClusterDefault) WithPayload(payload *models.Error) *CreateClusterDefault {
+// WithPayload adds the payload to the delete tenant default response
+func (o *DeleteTenantDefault) WithPayload(payload *models.Error) *DeleteTenantDefault {
 	o.Payload = payload
 	return o
 }
 
-// SetPayload sets the payload to the create cluster default response
-func (o *CreateClusterDefault) SetPayload(payload *models.Error) {
+// SetPayload sets the payload to the delete tenant default response
+func (o *DeleteTenantDefault) SetPayload(payload *models.Error) {
 	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *CreateClusterDefault) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *DeleteTenantDefault) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
 	rw.WriteHeader(o._statusCode)
 	if o.Payload != nil {

@@ -28,40 +28,40 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 )
 
-// ClusterInfoHandlerFunc turns a function with the right signature into a cluster info handler
-type ClusterInfoHandlerFunc func(ClusterInfoParams) middleware.Responder
+// TenantInfoHandlerFunc turns a function with the right signature into a tenant info handler
+type TenantInfoHandlerFunc func(TenantInfoParams) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn ClusterInfoHandlerFunc) Handle(params ClusterInfoParams) middleware.Responder {
+func (fn TenantInfoHandlerFunc) Handle(params TenantInfoParams) middleware.Responder {
 	return fn(params)
 }
 
-// ClusterInfoHandler interface for that can handle valid cluster info params
-type ClusterInfoHandler interface {
-	Handle(ClusterInfoParams) middleware.Responder
+// TenantInfoHandler interface for that can handle valid tenant info params
+type TenantInfoHandler interface {
+	Handle(TenantInfoParams) middleware.Responder
 }
 
-// NewClusterInfo creates a new http.Handler for the cluster info operation
-func NewClusterInfo(ctx *middleware.Context, handler ClusterInfoHandler) *ClusterInfo {
-	return &ClusterInfo{Context: ctx, Handler: handler}
+// NewTenantInfo creates a new http.Handler for the tenant info operation
+func NewTenantInfo(ctx *middleware.Context, handler TenantInfoHandler) *TenantInfo {
+	return &TenantInfo{Context: ctx, Handler: handler}
 }
 
-/*ClusterInfo swagger:route GET /clusters/{name} AdminAPI clusterInfo
+/*TenantInfo swagger:route GET /tenants/{name} AdminAPI tenantInfo
 
-Cluster Info
+Tenant Info
 
 */
-type ClusterInfo struct {
+type TenantInfo struct {
 	Context *middleware.Context
-	Handler ClusterInfoHandler
+	Handler TenantInfoHandler
 }
 
-func (o *ClusterInfo) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (o *TenantInfo) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
 		r = rCtx
 	}
-	var Params = NewClusterInfoParams()
+	var Params = NewTenantInfoParams()
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)

@@ -30,18 +30,18 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// NewDeleteClusterParams creates a new DeleteClusterParams object
+// NewTenantInfoParams creates a new TenantInfoParams object
 // no default values defined in spec.
-func NewDeleteClusterParams() DeleteClusterParams {
+func NewTenantInfoParams() TenantInfoParams {
 
-	return DeleteClusterParams{}
+	return TenantInfoParams{}
 }
 
-// DeleteClusterParams contains all the bound params for the delete cluster operation
+// TenantInfoParams contains all the bound params for the tenant info operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters DeleteCluster
-type DeleteClusterParams struct {
+// swagger:parameters TenantInfo
+type TenantInfoParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
@@ -56,8 +56,8 @@ type DeleteClusterParams struct {
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewDeleteClusterParams() beforehand.
-func (o *DeleteClusterParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewTenantInfoParams() beforehand.
+func (o *TenantInfoParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
@@ -74,7 +74,7 @@ func (o *DeleteClusterParams) BindRequest(r *http.Request, route *middleware.Mat
 }
 
 // bindName binds and validates parameter Name from path.
-func (o *DeleteClusterParams) bindName(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *TenantInfoParams) bindName(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]

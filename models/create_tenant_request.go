@@ -31,10 +31,10 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// CreateClusterRequest create cluster request
+// CreateTenantRequest create tenant request
 //
-// swagger:model createClusterRequest
-type CreateClusterRequest struct {
+// swagger:model createTenantRequest
+type CreateTenantRequest struct {
 
 	// access key
 	AccessKey string `json:"access_key,omitempty"`
@@ -64,7 +64,7 @@ type CreateClusterRequest struct {
 
 	// volume configuration
 	// Required: true
-	VolumeConfiguration *CreateClusterRequestVolumeConfiguration `json:"volume_configuration"`
+	VolumeConfiguration *CreateTenantRequestVolumeConfiguration `json:"volume_configuration"`
 
 	// volumes per server
 	VolumesPerServer int64 `json:"volumes_per_server,omitempty"`
@@ -73,8 +73,8 @@ type CreateClusterRequest struct {
 	Zones []*Zone `json:"zones"`
 }
 
-// Validate validates this create cluster request
-func (m *CreateClusterRequest) Validate(formats strfmt.Registry) error {
+// Validate validates this create tenant request
+func (m *CreateTenantRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateName(formats); err != nil {
@@ -95,7 +95,7 @@ func (m *CreateClusterRequest) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *CreateClusterRequest) validateName(formats strfmt.Registry) error {
+func (m *CreateTenantRequest) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
 		return err
@@ -108,7 +108,7 @@ func (m *CreateClusterRequest) validateName(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *CreateClusterRequest) validateVolumeConfiguration(formats strfmt.Registry) error {
+func (m *CreateTenantRequest) validateVolumeConfiguration(formats strfmt.Registry) error {
 
 	if err := validate.Required("volume_configuration", "body", m.VolumeConfiguration); err != nil {
 		return err
@@ -126,7 +126,7 @@ func (m *CreateClusterRequest) validateVolumeConfiguration(formats strfmt.Regist
 	return nil
 }
 
-func (m *CreateClusterRequest) validateZones(formats strfmt.Registry) error {
+func (m *CreateTenantRequest) validateZones(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Zones) { // not required
 		return nil
@@ -152,7 +152,7 @@ func (m *CreateClusterRequest) validateZones(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *CreateClusterRequest) MarshalBinary() ([]byte, error) {
+func (m *CreateTenantRequest) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -160,8 +160,8 @@ func (m *CreateClusterRequest) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *CreateClusterRequest) UnmarshalBinary(b []byte) error {
-	var res CreateClusterRequest
+func (m *CreateTenantRequest) UnmarshalBinary(b []byte) error {
+	var res CreateTenantRequest
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
@@ -169,10 +169,10 @@ func (m *CreateClusterRequest) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-// CreateClusterRequestVolumeConfiguration create cluster request volume configuration
+// CreateTenantRequestVolumeConfiguration create tenant request volume configuration
 //
-// swagger:model CreateClusterRequestVolumeConfiguration
-type CreateClusterRequestVolumeConfiguration struct {
+// swagger:model CreateTenantRequestVolumeConfiguration
+type CreateTenantRequestVolumeConfiguration struct {
 
 	// size
 	// Required: true
@@ -182,8 +182,8 @@ type CreateClusterRequestVolumeConfiguration struct {
 	StorageClass string `json:"storage_class,omitempty"`
 }
 
-// Validate validates this create cluster request volume configuration
-func (m *CreateClusterRequestVolumeConfiguration) Validate(formats strfmt.Registry) error {
+// Validate validates this create tenant request volume configuration
+func (m *CreateTenantRequestVolumeConfiguration) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateSize(formats); err != nil {
@@ -196,7 +196,7 @@ func (m *CreateClusterRequestVolumeConfiguration) Validate(formats strfmt.Regist
 	return nil
 }
 
-func (m *CreateClusterRequestVolumeConfiguration) validateSize(formats strfmt.Registry) error {
+func (m *CreateTenantRequestVolumeConfiguration) validateSize(formats strfmt.Registry) error {
 
 	if err := validate.Required("volume_configuration"+"."+"size", "body", m.Size); err != nil {
 		return err
@@ -206,7 +206,7 @@ func (m *CreateClusterRequestVolumeConfiguration) validateSize(formats strfmt.Re
 }
 
 // MarshalBinary interface implementation
-func (m *CreateClusterRequestVolumeConfiguration) MarshalBinary() ([]byte, error) {
+func (m *CreateTenantRequestVolumeConfiguration) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -214,8 +214,8 @@ func (m *CreateClusterRequestVolumeConfiguration) MarshalBinary() ([]byte, error
 }
 
 // UnmarshalBinary interface implementation
-func (m *CreateClusterRequestVolumeConfiguration) UnmarshalBinary(b []byte) error {
-	var res CreateClusterRequestVolumeConfiguration
+func (m *CreateTenantRequestVolumeConfiguration) UnmarshalBinary(b []byte) error {
+	var res CreateTenantRequestVolumeConfiguration
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

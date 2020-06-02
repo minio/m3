@@ -51,136 +51,6 @@ func init() {
   },
   "basePath": "/api/v1",
   "paths": {
-    "/clusters": {
-      "get": {
-        "security": [],
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "List Clusters",
-        "operationId": "ListClusters",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "sort_by",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int32",
-            "name": "offset",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int32",
-            "name": "limit",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/listClustersResponse"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [],
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "Create Cluster",
-        "operationId": "CreateCluster",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/createClusterRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "A successful response."
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/clusters/{name}": {
-      "get": {
-        "security": [],
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "Cluster Info",
-        "operationId": "ClusterInfo",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "name",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/cluster"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "Delete Cluster",
-        "operationId": "DeleteCluster",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "name",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "A successful response."
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/login": {
       "get": {
         "security": [],
@@ -347,62 +217,140 @@ func init() {
           }
         }
       }
+    },
+    "/tenants": {
+      "get": {
+        "security": [],
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "List Tenants",
+        "operationId": "ListTenants",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "sort_by",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/listTenantsResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [],
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Create Tenant",
+        "operationId": "CreateTenant",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/createTenantRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/tenants/{name}": {
+      "get": {
+        "security": [],
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Tenant Info",
+        "operationId": "TenantInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/tenant"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Delete Tenant",
+        "operationId": "DeleteTenant",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
-    "cluster": {
-      "type": "object",
-      "properties": {
-        "creation_date": {
-          "type": "string"
-        },
-        "currentState": {
-          "type": "string"
-        },
-        "instance_count": {
-          "type": "integer"
-        },
-        "name": {
-          "type": "string"
-        },
-        "volume_count": {
-          "type": "integer"
-        },
-        "volume_size": {
-          "type": "integer"
-        },
-        "zone_count": {
-          "type": "integer"
-        }
-      }
-    },
-    "clusterList": {
-      "type": "object",
-      "properties": {
-        "creation_date": {
-          "type": "string"
-        },
-        "currentState": {
-          "type": "string"
-        },
-        "instance_count": {
-          "type": "integer"
-        },
-        "name": {
-          "type": "string"
-        },
-        "volume_count": {
-          "type": "integer"
-        },
-        "volume_size": {
-          "type": "integer"
-        },
-        "zone_count": {
-          "type": "integer"
-        }
-      }
-    },
-    "createClusterRequest": {
+    "createTenantRequest": {
       "type": "object",
       "required": [
         "name",
@@ -476,20 +424,20 @@ func init() {
         }
       }
     },
-    "listClustersResponse": {
+    "listTenantsResponse": {
       "type": "object",
       "properties": {
-        "clusters": {
+        "tenants": {
           "type": "array",
-          "title": "list of resulting clusters",
+          "title": "list of resulting tenants",
           "items": {
-            "$ref": "#/definitions/clusterList"
+            "$ref": "#/definitions/tenantList"
           }
         },
         "total": {
           "type": "integer",
           "format": "int64",
-          "title": "number of clusters accessible to tenant user"
+          "title": "number of tenants accessible to tenant user"
         }
       }
     },
@@ -606,6 +554,58 @@ func init() {
       "properties": {
         "mirror_id": {
           "type": "string"
+        }
+      }
+    },
+    "tenant": {
+      "type": "object",
+      "properties": {
+        "creation_date": {
+          "type": "string"
+        },
+        "currentState": {
+          "type": "string"
+        },
+        "instance_count": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "volume_count": {
+          "type": "integer"
+        },
+        "volume_size": {
+          "type": "integer"
+        },
+        "zone_count": {
+          "type": "integer"
+        }
+      }
+    },
+    "tenantList": {
+      "type": "object",
+      "properties": {
+        "creation_date": {
+          "type": "string"
+        },
+        "currentState": {
+          "type": "string"
+        },
+        "instance_count": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "volume_count": {
+          "type": "integer"
+        },
+        "volume_size": {
+          "type": "integer"
+        },
+        "zone_count": {
+          "type": "integer"
         }
       }
     },
@@ -652,136 +652,6 @@ func init() {
   },
   "basePath": "/api/v1",
   "paths": {
-    "/clusters": {
-      "get": {
-        "security": [],
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "List Clusters",
-        "operationId": "ListClusters",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "sort_by",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int32",
-            "name": "offset",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int32",
-            "name": "limit",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/listClustersResponse"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [],
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "Create Cluster",
-        "operationId": "CreateCluster",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/createClusterRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "A successful response."
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/clusters/{name}": {
-      "get": {
-        "security": [],
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "Cluster Info",
-        "operationId": "ClusterInfo",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "name",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/cluster"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "Delete Cluster",
-        "operationId": "DeleteCluster",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "name",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "A successful response."
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/login": {
       "get": {
         "security": [],
@@ -948,10 +818,140 @@ func init() {
           }
         }
       }
+    },
+    "/tenants": {
+      "get": {
+        "security": [],
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "List Tenants",
+        "operationId": "ListTenants",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "sort_by",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/listTenantsResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [],
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Create Tenant",
+        "operationId": "CreateTenant",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/createTenantRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/tenants/{name}": {
+      "get": {
+        "security": [],
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Tenant Info",
+        "operationId": "TenantInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/tenant"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Delete Tenant",
+        "operationId": "DeleteTenant",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
-    "CreateClusterRequestVolumeConfiguration": {
+    "CreateTenantRequestVolumeConfiguration": {
       "type": "object",
       "required": [
         "size"
@@ -965,59 +965,7 @@ func init() {
         }
       }
     },
-    "cluster": {
-      "type": "object",
-      "properties": {
-        "creation_date": {
-          "type": "string"
-        },
-        "currentState": {
-          "type": "string"
-        },
-        "instance_count": {
-          "type": "integer"
-        },
-        "name": {
-          "type": "string"
-        },
-        "volume_count": {
-          "type": "integer"
-        },
-        "volume_size": {
-          "type": "integer"
-        },
-        "zone_count": {
-          "type": "integer"
-        }
-      }
-    },
-    "clusterList": {
-      "type": "object",
-      "properties": {
-        "creation_date": {
-          "type": "string"
-        },
-        "currentState": {
-          "type": "string"
-        },
-        "instance_count": {
-          "type": "integer"
-        },
-        "name": {
-          "type": "string"
-        },
-        "volume_count": {
-          "type": "integer"
-        },
-        "volume_size": {
-          "type": "integer"
-        },
-        "zone_count": {
-          "type": "integer"
-        }
-      }
-    },
-    "createClusterRequest": {
+    "createTenantRequest": {
       "type": "object",
       "required": [
         "name",
@@ -1091,20 +1039,20 @@ func init() {
         }
       }
     },
-    "listClustersResponse": {
+    "listTenantsResponse": {
       "type": "object",
       "properties": {
-        "clusters": {
+        "tenants": {
           "type": "array",
-          "title": "list of resulting clusters",
+          "title": "list of resulting tenants",
           "items": {
-            "$ref": "#/definitions/clusterList"
+            "$ref": "#/definitions/tenantList"
           }
         },
         "total": {
           "type": "integer",
           "format": "int64",
-          "title": "number of clusters accessible to tenant user"
+          "title": "number of tenants accessible to tenant user"
         }
       }
     },
@@ -1221,6 +1169,58 @@ func init() {
       "properties": {
         "mirror_id": {
           "type": "string"
+        }
+      }
+    },
+    "tenant": {
+      "type": "object",
+      "properties": {
+        "creation_date": {
+          "type": "string"
+        },
+        "currentState": {
+          "type": "string"
+        },
+        "instance_count": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "volume_count": {
+          "type": "integer"
+        },
+        "volume_size": {
+          "type": "integer"
+        },
+        "zone_count": {
+          "type": "integer"
+        }
+      }
+    },
+    "tenantList": {
+      "type": "object",
+      "properties": {
+        "creation_date": {
+          "type": "string"
+        },
+        "currentState": {
+          "type": "string"
+        },
+        "instance_count": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "volume_count": {
+          "type": "integer"
+        },
+        "volume_size": {
+          "type": "integer"
+        },
+        "zone_count": {
+          "type": "integer"
         }
       }
     },

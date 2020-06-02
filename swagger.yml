@@ -113,10 +113,10 @@ paths:
       tags:
         - UserAPI
 
-  /clusters:
+  /tenants:
     get:
-      summary: List Clusters
-      operationId: ListClusters
+      summary: List Tenants
+      operationId: ListTenants
       parameters:
         - name: sort_by
           in: query
@@ -138,7 +138,7 @@ paths:
         200:
           description: A successful response.
           schema:
-            $ref: "#/definitions/listClustersResponse"
+            $ref: "#/definitions/listTenantsResponse"
         default:
           description: Generic error response.
           schema:
@@ -146,14 +146,14 @@ paths:
       tags:
         - AdminAPI
     post:
-      summary: Create Cluster
-      operationId: CreateCluster
+      summary: Create Tenant
+      operationId: CreateTenant
       parameters:
         - name: body
           in: body
           required: true
           schema:
-            $ref: '#/definitions/createClusterRequest'
+            $ref: '#/definitions/createTenantRequest'
       # Exclude this API from the authentication requirement
       security: []
       responses:
@@ -166,10 +166,10 @@ paths:
       tags:
         - AdminAPI
 
-  /clusters/{name}:
+  /tenants/{name}:
     get:
-      summary: Cluster Info
-      operationId: ClusterInfo
+      summary: Tenant Info
+      operationId: TenantInfo
       parameters:
         - name: name
           in: path
@@ -181,7 +181,7 @@ paths:
         200:
           description: A successful response.
           schema:
-            $ref: "#/definitions/cluster"
+            $ref: "#/definitions/tenant"
         default:
           description: Generic error response.
           schema:
@@ -189,8 +189,8 @@ paths:
       tags:
         - AdminAPI
     delete:
-      summary: Delete Cluster
-      operationId: DeleteCluster
+      summary: Delete Tenant
+      operationId: DeleteTenant
       parameters:
         - name: name
           in: path
@@ -274,7 +274,7 @@ definitions:
     properties:
       sessionId:
         type: string
-  cluster:
+  tenant:
     type: object
     properties:
       name:
@@ -291,7 +291,7 @@ definitions:
         type: string
       currentState:
         type: string
-  clusterList:
+  tenantList:
     type: object
     properties:
       name:
@@ -308,19 +308,19 @@ definitions:
         type: string
       currentState:
         type: string
-  listClustersResponse:
+  listTenantsResponse:
     type: object
     properties:
-      clusters:
+      tenants:
         type: array
         items:
-          $ref: "#/definitions/clusterList"
-        title: list of resulting clusters
+          $ref: "#/definitions/tenantList"
+        title: list of resulting tenants
       total:
         type: integer
         format: int64
-        title: number of clusters accessible to tenant user
-  createClusterRequest:
+        title: number of tenants accessible to tenant user
+  createTenantRequest:
     type: object
     required:
       - name
