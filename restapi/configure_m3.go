@@ -63,6 +63,8 @@ func configureAPI(api *operations.M3API) http.Handler {
 	registerTenantHandlers(api)
 	// Register mirroring handlers
 	registerMirrorHandlers(api)
+	// Register StorageClass handlers
+	registerStorageClassHandlers(api)
 
 	// Set your custom authorizer if needed. Default one is security.Authorized()
 	// Expected interface runtime.Authorizer

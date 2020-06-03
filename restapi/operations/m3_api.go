@@ -68,6 +68,9 @@ func NewM3API(spec *loads.Document) *M3API {
 		AdminAPIDeleteTenantHandler: admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.DeleteTenant has not yet been implemented")
 		}),
+		AdminAPIListStorageClassesHandler: admin_api.ListStorageClassesHandlerFunc(func(params admin_api.ListStorageClassesParams) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.ListStorageClasses has not yet been implemented")
+		}),
 		AdminAPIListTenantsHandler: admin_api.ListTenantsHandlerFunc(func(params admin_api.ListTenantsParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.ListTenants has not yet been implemented")
 		}),
@@ -142,6 +145,8 @@ type M3API struct {
 	AdminAPICreateTenantHandler admin_api.CreateTenantHandler
 	// AdminAPIDeleteTenantHandler sets the operation handler for the delete tenant operation
 	AdminAPIDeleteTenantHandler admin_api.DeleteTenantHandler
+	// AdminAPIListStorageClassesHandler sets the operation handler for the list storage classes operation
+	AdminAPIListStorageClassesHandler admin_api.ListStorageClassesHandler
 	// AdminAPIListTenantsHandler sets the operation handler for the list tenants operation
 	AdminAPIListTenantsHandler admin_api.ListTenantsHandler
 	// UserAPILoginHandler sets the operation handler for the login operation
@@ -233,6 +238,9 @@ func (o *M3API) Validate() error {
 	}
 	if o.AdminAPIDeleteTenantHandler == nil {
 		unregistered = append(unregistered, "admin_api.DeleteTenantHandler")
+	}
+	if o.AdminAPIListStorageClassesHandler == nil {
+		unregistered = append(unregistered, "admin_api.ListStorageClassesHandler")
 	}
 	if o.AdminAPIListTenantsHandler == nil {
 		unregistered = append(unregistered, "admin_api.ListTenantsHandler")
@@ -364,6 +372,10 @@ func (o *M3API) initHandlerCache() {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/tenants/{name}"] = admin_api.NewDeleteTenant(o.context, o.AdminAPIDeleteTenantHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/storage-classes"] = admin_api.NewListStorageClasses(o.context, o.AdminAPIListStorageClassesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

@@ -218,6 +218,30 @@ func init() {
         }
       }
     },
+    "/storage-classes": {
+      "get": {
+        "security": [],
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "List Storage Classes",
+        "operationId": "ListStorageClasses",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/storageClasses"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/tenants": {
       "get": {
         "security": [],
@@ -557,6 +581,12 @@ func init() {
         }
       }
     },
+    "storageClasses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "tenant": {
       "type": "object",
       "properties": {
@@ -808,6 +838,30 @@ func init() {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/sessionResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/storage-classes": {
+      "get": {
+        "security": [],
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "List Storage Classes",
+        "operationId": "ListStorageClasses",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/storageClasses"
             }
           },
           "default": {
@@ -1170,6 +1224,12 @@ func init() {
         "mirror_id": {
           "type": "string"
         }
+      }
+    },
+    "storageClasses": {
+      "type": "array",
+      "items": {
+        "type": "string"
       }
     },
     "tenant": {
