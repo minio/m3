@@ -200,6 +200,21 @@ func getTenantCreatedResponse(params admin_api.CreateTenantParams) error {
 		return err
 	}
 
+	volTemp := corev1.PersistentVolumeClaimSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{
+			corev1.ReadWriteOnce,
+		},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceStorage: volumeSize,
+			},
+		},
+	}
+
+	if params.Body.VolumeConfiguration.StorageClass != "" {
+		volTemp.StorageClassName = &params.Body.VolumeConfiguration.StorageClass
+	}
+
 	//Construct a MinIO Instance with everything we are getting from parameters
 	minInst := operator.MinIOInstance{
 		ObjectMeta: metav1.ObjectMeta{
@@ -217,16 +232,7 @@ func getTenantCreatedResponse(params admin_api.CreateTenantParams) error {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "data",
 				},
-				Spec: corev1.PersistentVolumeClaimSpec{
-					AccessModes: []corev1.PersistentVolumeAccessMode{
-						corev1.ReadWriteOnce,
-					},
-					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceStorage: volumeSize,
-						},
-					},
-				},
+				Spec: volTemp,
 			},
 		},
 	}
