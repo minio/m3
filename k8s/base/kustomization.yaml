@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# beginning of customizations
+resources:
+  - m3-service-account.yaml
+  - m3-cluster-role.yaml
+  - m3-cluster-role-binding.yaml
+  - m3-service.yaml
+  - m3-deployment.yaml
+  - mcs-deployment.yaml
+  - mcs-service.yaml
+  - minio-operator.yaml
+
