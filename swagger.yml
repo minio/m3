@@ -196,6 +196,8 @@ paths:
           in: path
           required: true
           type: string
+      # Exclude this API from the authentication requirement
+      security: []
       responses:
         204:
           description: A successful response.
