@@ -307,10 +307,16 @@ definitions:
         type: integer
       volume_count:
         type: integer
+      volumes_per_server:
+        type: integer
       creation_date:
         type: string
       currentState:
         type: string
+      zones:
+        type: array
+        items:
+          $ref: "#/definitions/zone"
   tenantList:
     type: object
     properties:
