@@ -77,7 +77,7 @@ func configureAPI(api *operations.M3API) http.Handler {
 		})
 	}
 	if api.AdminAPIDeleteTenantHandler == nil {
-		api.AdminAPIDeleteTenantHandler = admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams, principal *models.Principal) middleware.Responder {
+		api.AdminAPIDeleteTenantHandler = admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.DeleteTenant has not yet been implemented")
 		})
 	}

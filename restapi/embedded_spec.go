@@ -346,6 +346,7 @@ func init() {
         }
       },
       "delete": {
+        "security": [],
         "tags": [
           "AdminAPI"
         ],
@@ -977,6 +978,7 @@ func init() {
         }
       },
       "delete": {
+        "security": [],
         "tags": [
           "AdminAPI"
         ],

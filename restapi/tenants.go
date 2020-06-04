@@ -19,6 +19,7 @@ package restapi
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -63,6 +64,39 @@ func registerTenantHandlers(api *operations.M3API) {
 		return admin_api.NewTenantInfoOK().WithPayload(resp)
 
 	})
+
+	// Detail Tenant
+	api.AdminAPIDeleteTenantHandler = admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams) middleware.Responder {
+		err := getDeleteTenantResponse(params)
+		if err != nil {
+			log.Println(err)
+			return admin_api.NewTenantInfoDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String("Unable to delete tenant")})
+		}
+		return admin_api.NewTenantInfoOK()
+
+	})
+}
+
+// getDeleteTenantResponse gets the output of deleting a minio instance
+func getDeleteTenantResponse(params admin_api.DeleteTenantParams) error {
+	opClientClientSet, err := operatorClientset.NewForConfig(cluster.GetK8sConfig())
+	if err != nil {
+		return err
+	}
+	opClient := &operatorClient{
+		client: opClientClientSet,
+	}
+	currentNamespace := cluster.GetNs()
+	return deleteTenantAction(context.Background(), opClient, currentNamespace, params.Name)
+}
+
+// deleteTenantAction performs the actions of deleting a tenant
+func deleteTenantAction(ctx context.Context, operatorClient OperatorClient, nameSpace, instanceName string) error {
+	err := operatorClient.MinIOInstanceDelete(ctx, nameSpace, instanceName, metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func getTenantInfoResponse(params admin_api.TenantInfoParams) (*models.Tenant, error) {
