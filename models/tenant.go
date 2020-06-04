@@ -23,6 +23,9 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"strconv"
+
+	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 )
@@ -50,12 +53,52 @@ type Tenant struct {
 	// volume size
 	VolumeSize int64 `json:"volume_size,omitempty"`
 
+	// volumes per server
+	VolumesPerServer int64 `json:"volumes_per_server,omitempty"`
+
 	// zone count
 	ZoneCount int64 `json:"zone_count,omitempty"`
+
+	// zones
+	Zones []*Zone `json:"zones"`
 }
 
 // Validate validates this tenant
 func (m *Tenant) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateZones(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *Tenant) validateZones(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Zones) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Zones); i++ {
+		if swag.IsZero(m.Zones[i]) { // not required
+			continue
+		}
+
+		if m.Zones[i] != nil {
+			if err := m.Zones[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("zones" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 

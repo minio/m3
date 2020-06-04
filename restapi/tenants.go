@@ -1,4 +1,4 @@
-// This file is part of MinIO Console Server
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2020 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -118,14 +118,25 @@ func getTenantInfoResponse(params admin_api.TenantInfoParams) (*models.Tenant, e
 		volumeCount = volumeCount + int64(zone.Servers*int32(minInst.Spec.VolumesPerServer))
 	}
 
+	var zones []*models.Zone
+
+	for _, z := range minInst.Spec.Zones {
+		zones = append(zones, &models.Zone{
+			Name:    z.Name,
+			Servers: int64(z.Servers),
+		})
+	}
+
 	return &models.Tenant{
-		CreationDate:  minInst.ObjectMeta.CreationTimestamp.String(),
-		InstanceCount: instanceCount,
-		Name:          params.Name,
-		VolumeCount:   volumeCount,
-		VolumeSize:    minInst.Spec.VolumeClaimTemplate.Spec.Resources.Requests.Storage().Value(),
-		ZoneCount:     int64(len(minInst.Spec.Zones)),
-		CurrentState:  minInst.Status.CurrentState,
+		CreationDate:     minInst.ObjectMeta.CreationTimestamp.String(),
+		InstanceCount:    instanceCount,
+		Name:             params.Name,
+		VolumesPerServer: int64(minInst.Spec.VolumesPerServer),
+		VolumeCount:      volumeCount,
+		VolumeSize:       minInst.Spec.VolumeClaimTemplate.Spec.Resources.Requests.Storage().Value(),
+		ZoneCount:        int64(len(minInst.Spec.Zones)),
+		CurrentState:     minInst.Status.CurrentState,
+		Zones:            zones,
 	}, nil
 }
 
@@ -257,7 +268,7 @@ func getTenantCreatedResponse(params admin_api.CreateTenantParams) error {
 		Spec: operator.MinIOInstanceSpec{
 			Image:            minioImage,
 			VolumesPerServer: 1,
-			Mountpath:        "/data",
+			Mountpath:        "/export",
 			CredsSecret: &corev1.LocalObjectReference{
 				Name: secretName,
 			},
