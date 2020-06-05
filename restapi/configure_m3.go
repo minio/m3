@@ -61,8 +61,6 @@ func configureAPI(api *operations.M3API) http.Handler {
 
 	// Register tenant handlers
 	registerTenantHandlers(api)
-	// Register mirroring handlers
-	registerMirrorHandlers(api)
 	// Register StorageClass handlers
 	registerStorageClassHandlers(api)
 

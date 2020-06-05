@@ -19,8 +19,6 @@ package restapi
 import (
 	"context"
 
-	operator "github.com/minio/minio-operator/pkg/apis/operator.min.io/v1"
-	v1 "github.com/minio/minio-operator/pkg/apis/operator.min.io/v1"
 	operatorClientset "github.com/minio/minio-operator/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -29,7 +27,6 @@ import (
 // by mock when testing, it should include all OperatorClient respective api calls
 // that are used within this project.
 type OperatorClient interface {
-	MirrorInstanceCreate(ctx context.Context, currentNamespace string, instance *operator.MirrorInstance, options metav1.CreateOptions) (*v1.MirrorInstance, error)
 	MinIOInstanceDelete(ctx context.Context, currentNamespace string, instanceName string, options metav1.DeleteOptions) error
 }
 
@@ -39,11 +36,6 @@ type OperatorClient interface {
 // from the minio-operator.
 type operatorClient struct {
 	client *operatorClientset.Clientset
-}
-
-// MirrorInstanceCreate implements the mirror instance create action from minio-operator
-func (c *operatorClient) MirrorInstanceCreate(ctx context.Context, currentNamespace string, instance *operator.MirrorInstance, options metav1.CreateOptions) (*v1.MirrorInstance, error) {
-	return c.client.OperatorV1().MirrorInstances(currentNamespace).Create(ctx, instance, options)
 }
 
 // MinIOInstanceDelete implements the minio instance delete action from minio-operator

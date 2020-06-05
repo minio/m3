@@ -208,30 +208,6 @@ paths:
       tags:
         - AdminAPI
 
-  /mirror:
-    post:
-      summary: Start Mirroring
-      operationId: StartMirroring
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: "#/definitions/startMirroringRequest"
-      # Exclude this API from the authentication requirement
-      security: []
-      responses:
-        201:
-          description: A successful response.
-          schema:
-            $ref: "#/definitions/startMirroringResponse"
-        default:
-          description: Generic error response.
-          schema:
-            $ref: "#/definitions/error"
-      tags:
-        - AdminAPI
-
   /storage-classes:
     get:
       summary: List Storage Classes
@@ -393,35 +369,6 @@ definitions:
         type: string
       servers:
         type: integer
-  startMirroringRequest:
-    type: object
-    required:
-      - host_source
-      - host_target
-      - source
-      - target
-    properties:
-      image:
-        type: string
-      host_source:
-        type: string
-      host_target:
-        type: string
-      source:
-        type: string
-      target:
-        type: string
-      mirror_flags:
-        type: array
-        items:
-          type: string
-  startMirroringResponse:
-    type: object
-    required:
-      - mirror_id
-    properties:
-      mirror_id:
-        type: string
 
   storageClasses:
     type: array

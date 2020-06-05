@@ -89,9 +89,6 @@ func NewM3API(spec *loads.Document) *M3API {
 		UserAPISessionCheckHandler: user_api.SessionCheckHandlerFunc(func(params user_api.SessionCheckParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation user_api.SessionCheck has not yet been implemented")
 		}),
-		AdminAPIStartMirroringHandler: admin_api.StartMirroringHandlerFunc(func(params admin_api.StartMirroringParams) middleware.Responder {
-			return middleware.NotImplemented("operation admin_api.StartMirroring has not yet been implemented")
-		}),
 		AdminAPITenantInfoHandler: admin_api.TenantInfoHandlerFunc(func(params admin_api.TenantInfoParams) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.TenantInfo has not yet been implemented")
 		}),
@@ -159,8 +156,6 @@ type M3API struct {
 	UserAPILogoutHandler user_api.LogoutHandler
 	// UserAPISessionCheckHandler sets the operation handler for the session check operation
 	UserAPISessionCheckHandler user_api.SessionCheckHandler
-	// AdminAPIStartMirroringHandler sets the operation handler for the start mirroring operation
-	AdminAPIStartMirroringHandler admin_api.StartMirroringHandler
 	// AdminAPITenantInfoHandler sets the operation handler for the tenant info operation
 	AdminAPITenantInfoHandler admin_api.TenantInfoHandler
 	// ServeError is called when an error is received, there is a default handler
@@ -259,9 +254,6 @@ func (o *M3API) Validate() error {
 	}
 	if o.UserAPISessionCheckHandler == nil {
 		unregistered = append(unregistered, "user_api.SessionCheckHandler")
-	}
-	if o.AdminAPIStartMirroringHandler == nil {
-		unregistered = append(unregistered, "admin_api.StartMirroringHandler")
 	}
 	if o.AdminAPITenantInfoHandler == nil {
 		unregistered = append(unregistered, "admin_api.TenantInfoHandler")
@@ -400,10 +392,6 @@ func (o *M3API) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/session"] = user_api.NewSessionCheck(o.context, o.UserAPISessionCheckHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/mirror"] = admin_api.NewStartMirroring(o.context, o.AdminAPIStartMirroringHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
