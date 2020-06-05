@@ -1,4 +1,4 @@
-// This file is part of MinIO Kubernetes Cloud
+// This file is part of MinIO Console Server
 // Copyright (c) 2020 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -16,11 +16,4 @@
 
 package restapi
 
-const (
-	// consts for common configuration
-	M3Version     = `0.1.0`
-	M3Hostname    = "M3_HOSTNAME"
-	M3Port        = "M3_PORT"
-	M3TLSHostname = "M3_TLS_HOSTNAME"
-	M3TLSPort     = "M3_TLS_PORT"
-)
+type opClientMock struct{}

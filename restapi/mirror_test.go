@@ -10,8 +10,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type opClientMock struct{}
-
 var opClientMirrorInstanceCreateMock func(ctx context.Context, currentNamespace string, instance *operator.MirrorInstance, options metav1.CreateOptions) (*v1.MirrorInstance, error)
 
 // mock function of MirrorInstanceCreate()

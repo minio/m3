@@ -346,6 +346,7 @@ func init() {
         }
       },
       "delete": {
+        "security": [],
         "tags": [
           "AdminAPI"
         ],
@@ -608,8 +609,17 @@ func init() {
         "volume_size": {
           "type": "integer"
         },
+        "volumes_per_server": {
+          "type": "integer"
+        },
         "zone_count": {
           "type": "integer"
+        },
+        "zones": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/zone"
+          }
         }
       }
     },
@@ -977,6 +987,7 @@ func init() {
         }
       },
       "delete": {
+        "security": [],
         "tags": [
           "AdminAPI"
         ],
@@ -1253,8 +1264,17 @@ func init() {
         "volume_size": {
           "type": "integer"
         },
+        "volumes_per_server": {
+          "type": "integer"
+        },
         "zone_count": {
           "type": "integer"
+        },
+        "zones": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/zone"
+          }
         }
       }
     },

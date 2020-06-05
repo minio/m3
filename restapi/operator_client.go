@@ -1,4 +1,4 @@
-// This file is part of MinIO Console Server
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2020 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -30,6 +30,7 @@ import (
 // that are used within this project.
 type OperatorClient interface {
 	MirrorInstanceCreate(ctx context.Context, currentNamespace string, instance *operator.MirrorInstance, options metav1.CreateOptions) (*v1.MirrorInstance, error)
+	MinIOInstanceDelete(ctx context.Context, currentNamespace string, instanceName string, options metav1.DeleteOptions) error
 }
 
 // Interface implementation
@@ -43,4 +44,9 @@ type operatorClient struct {
 // MirrorInstanceCreate implements the mirror instance create action from minio-operator
 func (c *operatorClient) MirrorInstanceCreate(ctx context.Context, currentNamespace string, instance *operator.MirrorInstance, options metav1.CreateOptions) (*v1.MirrorInstance, error) {
 	return c.client.OperatorV1().MirrorInstances(currentNamespace).Create(ctx, instance, options)
+}
+
+// MinIOInstanceDelete implements the minio instance delete action from minio-operator
+func (c *operatorClient) MinIOInstanceDelete(ctx context.Context, currentNamespace string, instanceName string, options metav1.DeleteOptions) error {
+	return c.client.OperatorV1().MinIOInstances(currentNamespace).Delete(ctx, instanceName, options)
 }

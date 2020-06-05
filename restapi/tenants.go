@@ -1,4 +1,4 @@
-// This file is part of MinIO Console Server
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2020 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -19,6 +19,7 @@ package restapi
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -63,6 +64,39 @@ func registerTenantHandlers(api *operations.M3API) {
 		return admin_api.NewTenantInfoOK().WithPayload(resp)
 
 	})
+
+	// Detail Tenant
+	api.AdminAPIDeleteTenantHandler = admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams) middleware.Responder {
+		err := getDeleteTenantResponse(params)
+		if err != nil {
+			log.Println(err)
+			return admin_api.NewTenantInfoDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String("Unable to delete tenant")})
+		}
+		return admin_api.NewTenantInfoOK()
+
+	})
+}
+
+// getDeleteTenantResponse gets the output of deleting a minio instance
+func getDeleteTenantResponse(params admin_api.DeleteTenantParams) error {
+	opClientClientSet, err := operatorClientset.NewForConfig(cluster.GetK8sConfig())
+	if err != nil {
+		return err
+	}
+	opClient := &operatorClient{
+		client: opClientClientSet,
+	}
+	currentNamespace := cluster.GetNs()
+	return deleteTenantAction(context.Background(), opClient, currentNamespace, params.Name)
+}
+
+// deleteTenantAction performs the actions of deleting a tenant
+func deleteTenantAction(ctx context.Context, operatorClient OperatorClient, nameSpace, instanceName string) error {
+	err := operatorClient.MinIOInstanceDelete(ctx, nameSpace, instanceName, metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func getTenantInfoResponse(params admin_api.TenantInfoParams) (*models.Tenant, error) {
@@ -84,14 +118,25 @@ func getTenantInfoResponse(params admin_api.TenantInfoParams) (*models.Tenant, e
 		volumeCount = volumeCount + int64(zone.Servers*int32(minInst.Spec.VolumesPerServer))
 	}
 
+	var zones []*models.Zone
+
+	for _, z := range minInst.Spec.Zones {
+		zones = append(zones, &models.Zone{
+			Name:    z.Name,
+			Servers: int64(z.Servers),
+		})
+	}
+
 	return &models.Tenant{
-		CreationDate:  minInst.ObjectMeta.CreationTimestamp.String(),
-		InstanceCount: instanceCount,
-		Name:          params.Name,
-		VolumeCount:   volumeCount,
-		VolumeSize:    minInst.Spec.VolumeClaimTemplate.Spec.Resources.Requests.Storage().Value(),
-		ZoneCount:     int64(len(minInst.Spec.Zones)),
-		CurrentState:  minInst.Status.CurrentState,
+		CreationDate:     minInst.ObjectMeta.CreationTimestamp.String(),
+		InstanceCount:    instanceCount,
+		Name:             params.Name,
+		VolumesPerServer: int64(minInst.Spec.VolumesPerServer),
+		VolumeCount:      volumeCount,
+		VolumeSize:       minInst.Spec.VolumeClaimTemplate.Spec.Resources.Requests.Storage().Value(),
+		ZoneCount:        int64(len(minInst.Spec.Zones)),
+		CurrentState:     minInst.Status.CurrentState,
+		Zones:            zones,
 	}, nil
 }
 
@@ -223,7 +268,7 @@ func getTenantCreatedResponse(params admin_api.CreateTenantParams) error {
 		Spec: operator.MinIOInstanceSpec{
 			Image:            minioImage,
 			VolumesPerServer: 1,
-			Mountpath:        "/data",
+			Mountpath:        "/export",
 			CredsSecret: &corev1.LocalObjectReference{
 				Name: secretName,
 			},

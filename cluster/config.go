@@ -44,7 +44,11 @@ func getK8sAPIServer() string {
 
 // Returns the namespace in which the controller is installed
 func GetNs() string {
-	return "default"
+	dat, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return "default"
+	}
+	return string(dat)
 }
 
 func getKesContainerImage() string {

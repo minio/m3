@@ -1,4 +1,4 @@
-// This file is part of MinIO Console Server
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2020 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -27,10 +27,10 @@ import (
 var Port = "8787"
 
 // Hostname m3 hostname
-var Hostname = "localhost"
+var Hostname = "0.0.0.0"
 
 // TLSHostname m3 tls hostname
-var TLSHostname = "localhost"
+var TLSHostname = "0.0.0.0"
 
 // TLSPort tls port
 var TLSPort = "8443"
@@ -49,7 +49,7 @@ func GetHostname() string {
 func GetPort() int {
 	port, err := strconv.Atoi(env.Get(M3Port, Port))
 	if err != nil {
-		port = 9090
+		port = 8787
 	}
 	return port
 }
