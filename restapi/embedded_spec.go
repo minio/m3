@@ -51,142 +51,8 @@ func init() {
   },
   "basePath": "/api/v1",
   "paths": {
-    "/login": {
-      "get": {
-        "security": [],
-        "tags": [
-          "UserAPI"
-        ],
-        "summary": "Returns login strategy, form or sso.",
-        "operationId": "LoginDetail",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/loginDetails"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [],
-        "tags": [
-          "UserAPI"
-        ],
-        "summary": "Login to mcs",
-        "operationId": "Login",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/loginRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "A successful login.",
-            "schema": {
-              "$ref": "#/definitions/loginResponse"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/login/oauth2/auth": {
-      "post": {
-        "security": [],
-        "tags": [
-          "UserAPI"
-        ],
-        "summary": "Identity Provider oauth2 callback endpoint.",
-        "operationId": "LoginOauth2Auth",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/loginOauth2AuthRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "A successful login.",
-            "schema": {
-              "$ref": "#/definitions/loginResponse"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/logout": {
-      "post": {
-        "tags": [
-          "UserAPI"
-        ],
-        "summary": "Logout from mcs.",
-        "operationId": "Logout",
-        "responses": {
-          "200": {
-            "description": "A successful response."
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/session": {
-      "get": {
-        "tags": [
-          "UserAPI"
-        ],
-        "summary": "Endpoint to check if your session is still valid",
-        "operationId": "SessionCheck",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/sessionResponse"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/storage-classes": {
       "get": {
-        "security": [],
         "tags": [
           "AdminAPI"
         ],
@@ -210,7 +76,6 @@ func init() {
     },
     "/tenants": {
       "get": {
-        "security": [],
         "tags": [
           "AdminAPI"
         ],
@@ -251,7 +116,6 @@ func init() {
         }
       },
       "post": {
-        "security": [],
         "tags": [
           "AdminAPI"
         ],
@@ -282,7 +146,6 @@ func init() {
     },
     "/tenants/{name}": {
       "get": {
-        "security": [],
         "tags": [
           "AdminAPI"
         ],
@@ -312,7 +175,6 @@ func init() {
         }
       },
       "delete": {
-        "security": [],
         "tags": [
           "AdminAPI"
         ],
@@ -432,78 +294,8 @@ func init() {
         }
       }
     },
-    "loginDetails": {
-      "type": "object",
-      "properties": {
-        "loginStrategy": {
-          "type": "string",
-          "enum": [
-            "form",
-            "redirect"
-          ]
-        },
-        "redirect": {
-          "type": "string"
-        }
-      }
-    },
-    "loginOauth2AuthRequest": {
-      "type": "object",
-      "required": [
-        "state",
-        "code"
-      ],
-      "properties": {
-        "code": {
-          "type": "string"
-        },
-        "state": {
-          "type": "string"
-        }
-      }
-    },
-    "loginRequest": {
-      "type": "object",
-      "required": [
-        "accessKey",
-        "secretKey"
-      ],
-      "properties": {
-        "accessKey": {
-          "type": "string"
-        },
-        "secretKey": {
-          "type": "string"
-        }
-      }
-    },
-    "loginResponse": {
-      "type": "object",
-      "properties": {
-        "sessionId": {
-          "type": "string"
-        }
-      }
-    },
     "principal": {
       "type": "string"
-    },
-    "sessionResponse": {
-      "type": "object",
-      "properties": {
-        "pages": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "ok"
-          ]
-        }
-      }
     },
     "storageClasses": {
       "type": "array",
@@ -615,142 +407,8 @@ func init() {
   },
   "basePath": "/api/v1",
   "paths": {
-    "/login": {
-      "get": {
-        "security": [],
-        "tags": [
-          "UserAPI"
-        ],
-        "summary": "Returns login strategy, form or sso.",
-        "operationId": "LoginDetail",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/loginDetails"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "post": {
-        "security": [],
-        "tags": [
-          "UserAPI"
-        ],
-        "summary": "Login to mcs",
-        "operationId": "Login",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/loginRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "A successful login.",
-            "schema": {
-              "$ref": "#/definitions/loginResponse"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/login/oauth2/auth": {
-      "post": {
-        "security": [],
-        "tags": [
-          "UserAPI"
-        ],
-        "summary": "Identity Provider oauth2 callback endpoint.",
-        "operationId": "LoginOauth2Auth",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/loginOauth2AuthRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "A successful login.",
-            "schema": {
-              "$ref": "#/definitions/loginResponse"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/logout": {
-      "post": {
-        "tags": [
-          "UserAPI"
-        ],
-        "summary": "Logout from mcs.",
-        "operationId": "Logout",
-        "responses": {
-          "200": {
-            "description": "A successful response."
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/session": {
-      "get": {
-        "tags": [
-          "UserAPI"
-        ],
-        "summary": "Endpoint to check if your session is still valid",
-        "operationId": "SessionCheck",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/sessionResponse"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/storage-classes": {
       "get": {
-        "security": [],
         "tags": [
           "AdminAPI"
         ],
@@ -774,7 +432,6 @@ func init() {
     },
     "/tenants": {
       "get": {
-        "security": [],
         "tags": [
           "AdminAPI"
         ],
@@ -815,7 +472,6 @@ func init() {
         }
       },
       "post": {
-        "security": [],
         "tags": [
           "AdminAPI"
         ],
@@ -846,7 +502,6 @@ func init() {
     },
     "/tenants/{name}": {
       "get": {
-        "security": [],
         "tags": [
           "AdminAPI"
         ],
@@ -876,7 +531,6 @@ func init() {
         }
       },
       "delete": {
-        "security": [],
         "tags": [
           "AdminAPI"
         ],
@@ -1010,78 +664,8 @@ func init() {
         }
       }
     },
-    "loginDetails": {
-      "type": "object",
-      "properties": {
-        "loginStrategy": {
-          "type": "string",
-          "enum": [
-            "form",
-            "redirect"
-          ]
-        },
-        "redirect": {
-          "type": "string"
-        }
-      }
-    },
-    "loginOauth2AuthRequest": {
-      "type": "object",
-      "required": [
-        "state",
-        "code"
-      ],
-      "properties": {
-        "code": {
-          "type": "string"
-        },
-        "state": {
-          "type": "string"
-        }
-      }
-    },
-    "loginRequest": {
-      "type": "object",
-      "required": [
-        "accessKey",
-        "secretKey"
-      ],
-      "properties": {
-        "accessKey": {
-          "type": "string"
-        },
-        "secretKey": {
-          "type": "string"
-        }
-      }
-    },
-    "loginResponse": {
-      "type": "object",
-      "properties": {
-        "sessionId": {
-          "type": "string"
-        }
-      }
-    },
     "principal": {
       "type": "string"
-    },
-    "sessionResponse": {
-      "type": "object",
-      "properties": {
-        "pages": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "ok"
-          ]
-        }
-      }
     },
     "storageClasses": {
       "type": "array",

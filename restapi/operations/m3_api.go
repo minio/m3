@@ -38,7 +38,6 @@ import (
 
 	"github.com/minio/m3/models"
 	"github.com/minio/m3/restapi/operations/admin_api"
-	"github.com/minio/m3/restapi/operations/user_api"
 )
 
 // NewM3API creates a new M3 instance
@@ -62,34 +61,19 @@ func NewM3API(spec *loads.Document) *M3API {
 
 		JSONProducer: runtime.JSONProducer(),
 
-		AdminAPICreateTenantHandler: admin_api.CreateTenantHandlerFunc(func(params admin_api.CreateTenantParams) middleware.Responder {
+		AdminAPICreateTenantHandler: admin_api.CreateTenantHandlerFunc(func(params admin_api.CreateTenantParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.CreateTenant has not yet been implemented")
 		}),
-		AdminAPIDeleteTenantHandler: admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams) middleware.Responder {
+		AdminAPIDeleteTenantHandler: admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.DeleteTenant has not yet been implemented")
 		}),
-		AdminAPIListStorageClassesHandler: admin_api.ListStorageClassesHandlerFunc(func(params admin_api.ListStorageClassesParams) middleware.Responder {
+		AdminAPIListStorageClassesHandler: admin_api.ListStorageClassesHandlerFunc(func(params admin_api.ListStorageClassesParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.ListStorageClasses has not yet been implemented")
 		}),
-		AdminAPIListTenantsHandler: admin_api.ListTenantsHandlerFunc(func(params admin_api.ListTenantsParams) middleware.Responder {
+		AdminAPIListTenantsHandler: admin_api.ListTenantsHandlerFunc(func(params admin_api.ListTenantsParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.ListTenants has not yet been implemented")
 		}),
-		UserAPILoginHandler: user_api.LoginHandlerFunc(func(params user_api.LoginParams) middleware.Responder {
-			return middleware.NotImplemented("operation user_api.Login has not yet been implemented")
-		}),
-		UserAPILoginDetailHandler: user_api.LoginDetailHandlerFunc(func(params user_api.LoginDetailParams) middleware.Responder {
-			return middleware.NotImplemented("operation user_api.LoginDetail has not yet been implemented")
-		}),
-		UserAPILoginOauth2AuthHandler: user_api.LoginOauth2AuthHandlerFunc(func(params user_api.LoginOauth2AuthParams) middleware.Responder {
-			return middleware.NotImplemented("operation user_api.LoginOauth2Auth has not yet been implemented")
-		}),
-		UserAPILogoutHandler: user_api.LogoutHandlerFunc(func(params user_api.LogoutParams, principal *models.Principal) middleware.Responder {
-			return middleware.NotImplemented("operation user_api.Logout has not yet been implemented")
-		}),
-		UserAPISessionCheckHandler: user_api.SessionCheckHandlerFunc(func(params user_api.SessionCheckParams, principal *models.Principal) middleware.Responder {
-			return middleware.NotImplemented("operation user_api.SessionCheck has not yet been implemented")
-		}),
-		AdminAPITenantInfoHandler: admin_api.TenantInfoHandlerFunc(func(params admin_api.TenantInfoParams) middleware.Responder {
+		AdminAPITenantInfoHandler: admin_api.TenantInfoHandlerFunc(func(params admin_api.TenantInfoParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.TenantInfo has not yet been implemented")
 		}),
 
@@ -146,16 +130,6 @@ type M3API struct {
 	AdminAPIListStorageClassesHandler admin_api.ListStorageClassesHandler
 	// AdminAPIListTenantsHandler sets the operation handler for the list tenants operation
 	AdminAPIListTenantsHandler admin_api.ListTenantsHandler
-	// UserAPILoginHandler sets the operation handler for the login operation
-	UserAPILoginHandler user_api.LoginHandler
-	// UserAPILoginDetailHandler sets the operation handler for the login detail operation
-	UserAPILoginDetailHandler user_api.LoginDetailHandler
-	// UserAPILoginOauth2AuthHandler sets the operation handler for the login oauth2 auth operation
-	UserAPILoginOauth2AuthHandler user_api.LoginOauth2AuthHandler
-	// UserAPILogoutHandler sets the operation handler for the logout operation
-	UserAPILogoutHandler user_api.LogoutHandler
-	// UserAPISessionCheckHandler sets the operation handler for the session check operation
-	UserAPISessionCheckHandler user_api.SessionCheckHandler
 	// AdminAPITenantInfoHandler sets the operation handler for the tenant info operation
 	AdminAPITenantInfoHandler admin_api.TenantInfoHandler
 	// ServeError is called when an error is received, there is a default handler
@@ -239,21 +213,6 @@ func (o *M3API) Validate() error {
 	}
 	if o.AdminAPIListTenantsHandler == nil {
 		unregistered = append(unregistered, "admin_api.ListTenantsHandler")
-	}
-	if o.UserAPILoginHandler == nil {
-		unregistered = append(unregistered, "user_api.LoginHandler")
-	}
-	if o.UserAPILoginDetailHandler == nil {
-		unregistered = append(unregistered, "user_api.LoginDetailHandler")
-	}
-	if o.UserAPILoginOauth2AuthHandler == nil {
-		unregistered = append(unregistered, "user_api.LoginOauth2AuthHandler")
-	}
-	if o.UserAPILogoutHandler == nil {
-		unregistered = append(unregistered, "user_api.LogoutHandler")
-	}
-	if o.UserAPISessionCheckHandler == nil {
-		unregistered = append(unregistered, "user_api.SessionCheckHandler")
 	}
 	if o.AdminAPITenantInfoHandler == nil {
 		unregistered = append(unregistered, "admin_api.TenantInfoHandler")
@@ -372,26 +331,6 @@ func (o *M3API) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/tenants"] = admin_api.NewListTenants(o.context, o.AdminAPIListTenantsHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/login"] = user_api.NewLogin(o.context, o.UserAPILoginHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/login"] = user_api.NewLoginDetail(o.context, o.UserAPILoginDetailHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/login/oauth2/auth"] = user_api.NewLoginOauth2Auth(o.context, o.UserAPILoginOauth2AuthHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/logout"] = user_api.NewLogout(o.context, o.UserAPILogoutHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/session"] = user_api.NewSessionCheck(o.context, o.UserAPISessionCheckHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

@@ -26,19 +26,21 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime/middleware"
+
+	"github.com/minio/m3/models"
 )
 
 // ListStorageClassesHandlerFunc turns a function with the right signature into a list storage classes handler
-type ListStorageClassesHandlerFunc func(ListStorageClassesParams) middleware.Responder
+type ListStorageClassesHandlerFunc func(ListStorageClassesParams, *models.Principal) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn ListStorageClassesHandlerFunc) Handle(params ListStorageClassesParams) middleware.Responder {
-	return fn(params)
+func (fn ListStorageClassesHandlerFunc) Handle(params ListStorageClassesParams, principal *models.Principal) middleware.Responder {
+	return fn(params, principal)
 }
 
 // ListStorageClassesHandler interface for that can handle valid list storage classes params
 type ListStorageClassesHandler interface {
-	Handle(ListStorageClassesParams) middleware.Responder
+	Handle(ListStorageClassesParams, *models.Principal) middleware.Responder
 }
 
 // NewListStorageClasses creates a new http.Handler for the list storage classes operation
@@ -63,12 +65,25 @@ func (o *ListStorageClasses) ServeHTTP(rw http.ResponseWriter, r *http.Request) 
 	}
 	var Params = NewListStorageClassesParams()
 
+	uprinc, aCtx, err := o.Context.Authorize(r, route)
+	if err != nil {
+		o.Context.Respond(rw, r, route.Produces, route, err)
+		return
+	}
+	if aCtx != nil {
+		r = aCtx
+	}
+	var principal *models.Principal
+	if uprinc != nil {
+		principal = uprinc.(*models.Principal) // this is really a models.Principal, I promise
+	}
+
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
-	res := o.Handler.Handle(Params) // actually handle the request
+	res := o.Handler.Handle(Params, principal) // actually handle the request
 
 	o.Context.Respond(rw, r, route.Produces, route, res)
 

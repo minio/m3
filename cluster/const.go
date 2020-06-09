@@ -17,18 +17,9 @@
 package cluster
 
 const (
-	m3KesImage               = "M3_KES_IMAGE"
-	m3KesPort                = "M3_KES_PORT"
-	m3KesMTlsAuth            = "M3_KES_M_TLS_AUTH"
-	m3KesConfigPath          = "M3_KES_CONFIG_FILE_PATH"
-	m3KmsCACertConfigMap     = "M3_KMS_CA_CERT_CONFIG_MAP"
-	m3KmsCACertFileName      = "M3_KMS_CA_CERT_FILE_NAME"
-	m3CACertDefaultMountPath = "M3_CA_CERT_DEFAULT_MOUNT_PATH"
-	m3KmsAddress             = "M3_KMS_ADDRESS"
-	m3KmsToken               = "M3_KMS_TOKEN"
-	m3K8sToken               = "M3_K8S_TOKEN"
-	m3K8sAPIServer           = "M3_K8S_API_SERVER"
-
-	M3MinioImage = "M3_MINIO_IMAGE"
-	M3MCImage    = "M3_MC_IMAGE"
+	M3K8sAPIServer         = "M3_K8S_API_SERVER"
+	m3k8SAPIServerInsecure = "M3_K8S_API_SERVER_INSECURE"
+	M3MinioImage           = "M3_MINIO_IMAGE"
+	M3MCImage              = "M3_MC_IMAGE"
+	M3Namespace            = "M3_NAMESPACE"
 )
