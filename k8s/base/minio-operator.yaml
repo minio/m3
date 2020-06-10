@@ -1,4 +1,3 @@
-# This is the setup for MinIO Operator taken from https://github.com/minio/minio-operator
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -90,29 +89,6 @@ spec:
         - name: Current State
           type: string
           jsonPath: ".status.currentState"
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: mirrorinstances.operator.min.io
-spec:
-  group: operator.min.io
-  scope: Namespaced
-  names:
-    kind: MirrorInstance
-    singular: mirrorinstance
-    plural: mirrorinstances
-  versions:
-    - name: v1
-      served: true
-      storage: true
-      schema:
-        openAPIV3Schema:
-          type: object
-          properties:
-            spec:
-              type: object
-              x-kubernetes-preserve-unknown-fields: true
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
@@ -225,80 +201,3 @@ spec:
           # env:
           #   - name: CLUSTER_DOMAIN
           #     value: mycluster.mydomain
-# M3 setup
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: m3-sa
-  namespace: default
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: m3-sa
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-admin
-subjects:
-  - kind: ServiceAccount
-    name: m3-sa
-    namespace: default
-  - apiGroup: rbac.authorization.k8s.io
-    kind: User
-    name: client
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: m3
-  labels:
-    name: m3
-spec:
-  ports:
-    - port: 8787
-      name: http
-    - port: 8443
-      name: https
-  selector:
-    app: m3
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: m3-env
-data:
-  M3_PORT: "8787"
-  M3_TLS_PORT: "8443"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: m3
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: m3
-  template:
-    metadata:
-      labels:
-        app: m3
-    spec:
-      serviceAccountName: m3-sa
-      containers:
-        - name: m3
-          image: minio/m3:edge
-          imagePullPolicy: "IfNotPresent"
-          args:
-            - /m3
-            - server
-          envFrom:
-            - configMapRef:
-                name: m3-env
-          ports:
-            - containerPort: 8787
-              name: http
-            - containerPort: 8443
-              name: https
