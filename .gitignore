@@ -20,6 +20,5 @@ vendor/
 target/
 m3
 !cmd/m3
-m3-deployment.yaml
 
 k8s/cust/
