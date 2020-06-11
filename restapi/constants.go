@@ -23,4 +23,6 @@ const (
 	M3Port        = "M3_PORT"
 	M3TLSHostname = "M3_TLS_HOSTNAME"
 	M3TLSPort     = "M3_TLS_PORT"
+	// M3TenantMemorySize Memory size to be used when creating MinioInstance request
+	M3TenantMemorySize = "M3_TENANT_MEMORY_SIZE"
 )
