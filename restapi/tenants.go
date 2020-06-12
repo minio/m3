@@ -245,6 +245,11 @@ func getTenantCreatedResponse(params admin_api.CreateTenantParams) error {
 		return err
 	}
 
+	memorySize, err := resource.ParseQuantity(getTenantMemorySize())
+	if err != nil {
+		return err
+	}
+
 	volTemp := corev1.PersistentVolumeClaimSpec{
 		AccessModes: []corev1.PersistentVolumeAccessMode{
 			corev1.ReadWriteOnce,
@@ -252,6 +257,7 @@ func getTenantCreatedResponse(params admin_api.CreateTenantParams) error {
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceStorage: volumeSize,
+				corev1.ResourceMemory:  memorySize,
 			},
 		},
 	}
@@ -266,9 +272,8 @@ func getTenantCreatedResponse(params admin_api.CreateTenantParams) error {
 			Name: *params.Body.Name,
 		},
 		Spec: operator.MinIOInstanceSpec{
-			Image:            minioImage,
-			VolumesPerServer: 1,
-			Mountpath:        "/export",
+			Image:     minioImage,
+			Mountpath: "/export",
 			CredsSecret: &corev1.LocalObjectReference{
 				Name: secretName,
 			},
@@ -327,7 +332,8 @@ func getTenantCreatedResponse(params admin_api.CreateTenantParams) error {
 		}
 	}
 
-	// Set Volumes Per Server if provided
+	// Set Volumes Per Server if provided, default 1
+	minInst.Spec.VolumesPerServer = 1
 	if params.Body.VolumesPerServer > 0 {
 		minInst.Spec.VolumesPerServer = int(params.Body.VolumesPerServer)
 	}

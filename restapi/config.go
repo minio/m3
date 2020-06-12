@@ -38,6 +38,10 @@ var TLSPort = "8443"
 // TLSRedirect m3 tls redirect rule
 var TLSRedirect = "off"
 
+// defaultTenantMemorySize default value used
+// when generating minioInstance request
+var defaultTenantMemorySize = "16Gi"
+
 // GetHostname gets m3 hostname set on env variable,
 // default one or defined on run command
 func GetHostname() string {
@@ -68,4 +72,10 @@ func GetSSLPort() int {
 		port = 9443
 	}
 	return port
+}
+
+// getTenantMemorySize Memory size value to be used when generating the
+// MinioInstance request
+func getTenantMemorySize() string {
+	return env.Get(M3TenantMemorySize, defaultTenantMemorySize)
 }
