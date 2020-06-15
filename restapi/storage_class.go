@@ -32,8 +32,9 @@ import (
 
 func registerStorageClassHandlers(api *operations.M3API) {
 	// List StorageClasses
-	api.AdminAPIListStorageClassesHandler = admin_api.ListStorageClassesHandlerFunc(func(params admin_api.ListStorageClassesParams) middleware.Responder {
-		resp, err := getListStorageClassesResponse()
+	api.AdminAPIListStorageClassesHandler = admin_api.ListStorageClassesHandlerFunc(func(params admin_api.ListStorageClassesParams, principal *models.Principal) middleware.Responder {
+		sessionID := string(*principal)
+		resp, err := getListStorageClassesResponse(sessionID)
 		if err != nil {
 			return admin_api.NewListStorageClassesDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
@@ -54,9 +55,9 @@ func getStorageClasses(ctx context.Context, client K8sClient) (*models.StorageCl
 	return &scResp, nil
 }
 
-func getListStorageClassesResponse() (*models.StorageClasses, error) {
+func getListStorageClassesResponse(token string) (*models.StorageClasses, error) {
 	ctx := context.Background()
-	client, err := cluster.K8sClient()
+	client, err := cluster.K8sClient(token)
 	if err != nil {
 		log.Println("error getting k8sClient:", err)
 		return nil, err

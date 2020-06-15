@@ -25,12 +25,8 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/middleware"
-
 	"github.com/minio/m3/models"
 	"github.com/minio/m3/restapi/operations"
-	"github.com/minio/m3/restapi/operations/admin_api"
-	"github.com/minio/m3/restapi/operations/user_api"
 )
 
 //go:generate swagger generate server --target ../../m3 --name M3 --spec ../swagger.yml --principal models.Principal --exclude-main
@@ -53,62 +49,20 @@ func configureAPI(api *operations.M3API) http.Handler {
 
 	api.JSONProducer = runtime.JSONProducer()
 
-	if api.KeyAuth == nil {
-		api.KeyAuth = func(token string, scopes []string) (*models.Principal, error) {
-			return nil, errors.NotImplemented("oauth2 bearer auth (key) has not yet been implemented")
+	api.KeyAuth = func(token string, scopes []string) (*models.Principal, error) {
+		// here we just check the token is present on the request, authentication will be done
+		// by kubernetes api server
+		if token != "" {
+			prin := models.Principal(token)
+			return &prin, nil
 		}
+		return nil, errors.New(401, "authentication token not provided")
 	}
 
 	// Register tenant handlers
 	registerTenantHandlers(api)
 	// Register StorageClass handlers
 	registerStorageClassHandlers(api)
-
-	// Set your custom authorizer if needed. Default one is security.Authorized()
-	// Expected interface runtime.Authorizer
-	//
-	// Example:
-	// api.APIAuthorizer = security.Authorized()
-	if api.AdminAPICreateTenantHandler == nil {
-		api.AdminAPICreateTenantHandler = admin_api.CreateTenantHandlerFunc(func(params admin_api.CreateTenantParams) middleware.Responder {
-			return middleware.NotImplemented("operation admin_api.CreateTenant has not yet been implemented")
-		})
-	}
-	if api.AdminAPIDeleteTenantHandler == nil {
-		api.AdminAPIDeleteTenantHandler = admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams) middleware.Responder {
-			return middleware.NotImplemented("operation admin_api.DeleteTenant has not yet been implemented")
-		})
-	}
-	if api.AdminAPIListTenantsHandler == nil {
-		api.AdminAPIListTenantsHandler = admin_api.ListTenantsHandlerFunc(func(params admin_api.ListTenantsParams) middleware.Responder {
-			return middleware.NotImplemented("operation admin_api.ListTenants has not yet been implemented")
-		})
-	}
-	if api.UserAPILoginHandler == nil {
-		api.UserAPILoginHandler = user_api.LoginHandlerFunc(func(params user_api.LoginParams) middleware.Responder {
-			return middleware.NotImplemented("operation user_api.Login has not yet been implemented")
-		})
-	}
-	if api.UserAPILoginDetailHandler == nil {
-		api.UserAPILoginDetailHandler = user_api.LoginDetailHandlerFunc(func(params user_api.LoginDetailParams) middleware.Responder {
-			return middleware.NotImplemented("operation user_api.LoginDetail has not yet been implemented")
-		})
-	}
-	if api.UserAPILoginOauth2AuthHandler == nil {
-		api.UserAPILoginOauth2AuthHandler = user_api.LoginOauth2AuthHandlerFunc(func(params user_api.LoginOauth2AuthParams) middleware.Responder {
-			return middleware.NotImplemented("operation user_api.LoginOauth2Auth has not yet been implemented")
-		})
-	}
-	if api.UserAPILogoutHandler == nil {
-		api.UserAPILogoutHandler = user_api.LogoutHandlerFunc(func(params user_api.LogoutParams, principal *models.Principal) middleware.Responder {
-			return middleware.NotImplemented("operation user_api.Logout has not yet been implemented")
-		})
-	}
-	if api.UserAPISessionCheckHandler == nil {
-		api.UserAPISessionCheckHandler = user_api.SessionCheckHandlerFunc(func(params user_api.SessionCheckParams, principal *models.Principal) middleware.Responder {
-			return middleware.NotImplemented("operation user_api.SessionCheck has not yet been implemented")
-		})
-	}
 
 	api.PreServerShutdown = func() {}
 

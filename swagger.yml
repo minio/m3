@@ -20,99 +20,6 @@ securityDefinitions:
 security:
   - key: []
 paths:
-  /login:
-    get:
-      summary: Returns login strategy, form or sso.
-      operationId: LoginDetail
-      responses:
-        200:
-          description: A successful response.
-          schema:
-            $ref: "#/definitions/loginDetails"
-        default:
-          description: Generic error response.
-          schema:
-            $ref: "#/definitions/error"
-      # Exclude this API from the authentication requirement
-      security: []
-      tags:
-        - UserAPI
-    post:
-      summary: Login to mcs
-      operationId: Login
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: "#/definitions/loginRequest"
-      responses:
-        201:
-          description: A successful login.
-          schema:
-            $ref: "#/definitions/loginResponse"
-        default:
-          description: Generic error response.
-          schema:
-            $ref: "#/definitions/error"
-      # Exclude this API from the authentication requirement
-      security: []
-      tags:
-        - UserAPI
-
-  /login/oauth2/auth:
-    post:
-      summary: Identity Provider oauth2 callback endpoint.
-      operationId: LoginOauth2Auth
-      parameters:
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: "#/definitions/loginOauth2AuthRequest"
-      responses:
-        201:
-          description: A successful login.
-          schema:
-            $ref: "#/definitions/loginResponse"
-        default:
-          description: Generic error response.
-          schema:
-            $ref: "#/definitions/error"
-      security: []
-      tags:
-        - UserAPI
-
-  /logout:
-    post:
-      summary: Logout from mcs.
-      operationId: Logout
-      responses:
-        200:
-          description: A successful response.
-        default:
-          description: Generic error response.
-          schema:
-            $ref: "#/definitions/error"
-      tags:
-        - UserAPI
-
-  /session:
-    get:
-      summary: Endpoint to check if your session is still valid
-      operationId: SessionCheck
-      responses:
-        200:
-          description: A successful response.
-          schema:
-            $ref: "#/definitions/sessionResponse"
-        default:
-          description: Generic error response.
-          schema:
-            $ref: "#/definitions/error"
-      tags:
-        - UserAPI
-
   /tenants:
     get:
       summary: List Tenants
@@ -132,8 +39,6 @@ paths:
           required: false
           type: integer
           format: int32
-      # Exclude this API from the authentication requirement
-      security: []
       responses:
         200:
           description: A successful response.
@@ -154,8 +59,6 @@ paths:
           required: true
           schema:
             $ref: "#/definitions/createTenantRequest"
-      # Exclude this API from the authentication requirement
-      security: []
       responses:
         201:
           description: A successful response.
@@ -175,8 +78,6 @@ paths:
           in: path
           required: true
           type: string
-      # Exclude this API from the authentication requirement
-      security: []
       responses:
         200:
           description: A successful response.
@@ -196,8 +97,6 @@ paths:
           in: path
           required: true
           type: string
-      # Exclude this API from the authentication requirement
-      security: []
       responses:
         204:
           description: A successful response.
@@ -212,8 +111,6 @@ paths:
     get:
       summary: List Storage Classes
       operationId: ListStorageClasses
-      # Exclude this API from the authentication requirement
-      security: []
       responses:
         200:
           description: A successful response.
@@ -227,49 +124,6 @@ paths:
         - AdminAPI
 
 definitions:
-  sessionResponse:
-    type: object
-    properties:
-      pages:
-        type: array
-        items:
-          type: string
-      status:
-        type: string
-        enum: [ok]
-  loginDetails:
-    type: object
-    properties:
-      loginStrategy:
-        type: string
-        enum: [form, redirect]
-      redirect:
-        type: string
-  loginOauth2AuthRequest:
-    type: object
-    required:
-      - state
-      - code
-    properties:
-      state:
-        type: string
-      code:
-        type: string
-  loginRequest:
-    type: object
-    required:
-      - accessKey
-      - secretKey
-    properties:
-      accessKey:
-        type: string
-      secretKey:
-        type: string
-  loginResponse:
-    type: object
-    properties:
-      sessionId:
-        type: string
   tenant:
     type: object
     properties:

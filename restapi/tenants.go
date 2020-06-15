@@ -33,22 +33,23 @@ import (
 	"github.com/minio/m3/restapi/operations"
 	"github.com/minio/m3/restapi/operations/admin_api"
 	operator "github.com/minio/minio-operator/pkg/apis/operator.min.io/v1"
-	operatorClientset "github.com/minio/minio-operator/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func registerTenantHandlers(api *operations.M3API) {
 	// Add Tenant
-	api.AdminAPICreateTenantHandler = admin_api.CreateTenantHandlerFunc(func(params admin_api.CreateTenantParams) middleware.Responder {
-		err := getTenantCreatedResponse(params)
+	api.AdminAPICreateTenantHandler = admin_api.CreateTenantHandlerFunc(func(params admin_api.CreateTenantParams, principal *models.Principal) middleware.Responder {
+		sessionID := string(*principal)
+		err := getTenantCreatedResponse(sessionID, params)
 		if err != nil {
 			return admin_api.NewCreateTenantDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
 		return admin_api.NewCreateTenantCreated()
 	})
 	// List Tenants
-	api.AdminAPIListTenantsHandler = admin_api.ListTenantsHandlerFunc(func(params admin_api.ListTenantsParams) middleware.Responder {
-		resp, err := getListTenantsResponse(params)
+	api.AdminAPIListTenantsHandler = admin_api.ListTenantsHandlerFunc(func(params admin_api.ListTenantsParams, principal *models.Principal) middleware.Responder {
+		sessionID := string(*principal)
+		resp, err := getListTenantsResponse(sessionID, params)
 		if err != nil {
 			return admin_api.NewListTenantsDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
@@ -56,8 +57,9 @@ func registerTenantHandlers(api *operations.M3API) {
 
 	})
 	// Detail Tenant
-	api.AdminAPITenantInfoHandler = admin_api.TenantInfoHandlerFunc(func(params admin_api.TenantInfoParams) middleware.Responder {
-		resp, err := getTenantInfoResponse(params)
+	api.AdminAPITenantInfoHandler = admin_api.TenantInfoHandlerFunc(func(params admin_api.TenantInfoParams, principal *models.Principal) middleware.Responder {
+		sessionID := string(*principal)
+		resp, err := getTenantInfoResponse(sessionID, params)
 		if err != nil {
 			return admin_api.NewTenantInfoDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
@@ -66,8 +68,9 @@ func registerTenantHandlers(api *operations.M3API) {
 	})
 
 	// Detail Tenant
-	api.AdminAPIDeleteTenantHandler = admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams) middleware.Responder {
-		err := getDeleteTenantResponse(params)
+	api.AdminAPIDeleteTenantHandler = admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams, principal *models.Principal) middleware.Responder {
+		sessionID := string(*principal)
+		err := getDeleteTenantResponse(sessionID, params)
 		if err != nil {
 			log.Println(err)
 			return admin_api.NewTenantInfoDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String("Unable to delete tenant")})
@@ -78,8 +81,8 @@ func registerTenantHandlers(api *operations.M3API) {
 }
 
 // getDeleteTenantResponse gets the output of deleting a minio instance
-func getDeleteTenantResponse(params admin_api.DeleteTenantParams) error {
-	opClientClientSet, err := operatorClientset.NewForConfig(cluster.GetK8sConfig())
+func getDeleteTenantResponse(token string, params admin_api.DeleteTenantParams) error {
+	opClientClientSet, err := cluster.OperatorClient(token)
 	if err != nil {
 		return err
 	}
@@ -99,8 +102,8 @@ func deleteTenantAction(ctx context.Context, operatorClient OperatorClient, name
 	return nil
 }
 
-func getTenantInfoResponse(params admin_api.TenantInfoParams) (*models.Tenant, error) {
-	opClient, err := operatorClientset.NewForConfig(cluster.GetK8sConfig())
+func getTenantInfoResponse(token string, params admin_api.TenantInfoParams) (*models.Tenant, error) {
+	opClient, err := cluster.OperatorClient(token)
 	if err != nil {
 		return nil, err
 	}
@@ -140,8 +143,8 @@ func getTenantInfoResponse(params admin_api.TenantInfoParams) (*models.Tenant, e
 	}, nil
 }
 
-func getListTenantsResponse(params admin_api.ListTenantsParams) (*models.ListTenantsResponse, error) {
-	opClient, err := operatorClientset.NewForConfig(cluster.GetK8sConfig())
+func getListTenantsResponse(token string, params admin_api.ListTenantsParams) (*models.ListTenantsResponse, error) {
+	opClient, err := cluster.OperatorClient(token)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +191,7 @@ func getListTenantsResponse(params admin_api.ListTenantsParams) (*models.ListTen
 	}, nil
 }
 
-func getTenantCreatedResponse(params admin_api.CreateTenantParams) error {
+func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams) error {
 
 	minioImage := params.Body.Image
 	if minioImage == "" {
@@ -221,7 +224,7 @@ func getTenantCreatedResponse(params admin_api.CreateTenantParams) error {
 		},
 	}
 
-	clientset, err := cluster.K8sClient()
+	clientset, err := cluster.K8sClient(token)
 	if err != nil {
 		return err
 	}
@@ -342,7 +345,7 @@ func getTenantCreatedResponse(params admin_api.CreateTenantParams) error {
 		minInst.Spec.Mountpath = params.Body.MounthPath
 	}
 
-	opClient, err := operatorClientset.NewForConfig(cluster.GetK8sConfig())
+	opClient, err := cluster.OperatorClient(token)
 	if err != nil {
 		return err
 	}

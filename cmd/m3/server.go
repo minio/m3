@@ -21,8 +21,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/minio/m3/cluster"
-
 	"github.com/go-openapi/loads"
 	"github.com/jessevdk/go-flags"
 	"github.com/minio/cli"
@@ -72,12 +70,6 @@ var serverCmd = cli.Command{
 
 // starts the controller
 func startServer(ctx *cli.Context) error {
-
-	// check m3 is setup properly
-	if err := cluster.SetupM3(); err != nil {
-		log.Println(err)
-	}
-
 	swaggerSpec, err := loads.Embedded(restapi.SwaggerJSON, restapi.FlatSwaggerJSON)
 	if err != nil {
 		log.Fatalln(err)

@@ -17,44 +17,36 @@
 package cluster
 
 import (
-	v12 "k8s.io/client-go/kubernetes/typed/apps/v1"
-
+	operator "github.com/minio/minio-operator/pkg/client/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	certutil "k8s.io/client-go/util/cert"
 )
 
-func GetK8sConfig() *rest.Config {
-	// creates the in-cluster config
-	var config *rest.Config
-	// if k8s service-account token its provided we try to connect using those credentials
-	if getK8sToken() != "" {
-		config = &rest.Config{
-			Host:            getK8sAPIServer(),
-			TLSClientConfig: rest.TLSClientConfig{Insecure: true},
-			APIPath:         "/",
-			BearerToken:     getK8sToken(),
-		}
-	} else {
-		// if no token it's provided use rest.InClusterConfig() to get the service-account
-		// credentials, assuming we are running inside a k8s pod
-		var err error
-		config, err = rest.InClusterConfig()
-		if err != nil {
-			panic(err.Error())
-		}
-
+func GetK8sConfig(token string) *rest.Config {
+	// if m3 is running inside k8s by default he will have access to the ca cert from the k8s local authority
+	const (
+		rootCAFile = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	)
+	tlsClientConfig := rest.TLSClientConfig{Insecure: getK8sAPIServerInsecure()}
+	if _, err := certutil.NewPool(rootCAFile); err == nil {
+		tlsClientConfig.CAFile = rootCAFile
 	}
-
+	config := &rest.Config{
+		Host:            getK8sAPIServer(),
+		TLSClientConfig: tlsClientConfig,
+		APIPath:         "/",
+		BearerToken:     token,
+	}
 	return config
 }
 
-// K8sClient returns kubernetes client using GetK8sConfig for its config
-func K8sClient() (*kubernetes.Clientset, error) {
-	return kubernetes.NewForConfig(GetK8sConfig())
+// OperatorClient returns an operator client using GetK8sConfig for its config
+func OperatorClient(token string) (*operator.Clientset, error) {
+	return operator.NewForConfig(GetK8sConfig(token))
 }
 
-// appsV1API encapsulates the appsv1 kubernetes interface to ensure all
-// deployment related APIs are of the same version
-func appsV1API(client *kubernetes.Clientset) v12.AppsV1Interface {
-	return client.AppsV1()
+// K8sClient returns kubernetes client using GetK8sConfig for its config
+func K8sClient(token string) (*kubernetes.Clientset, error) {
+	return kubernetes.NewForConfig(GetK8sConfig(token))
 }

@@ -20,9 +20,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -34,16 +34,29 @@ var (
 	errCantDetermineMCImage    = errors.New("Can't determine MC Image")
 )
 
-func getK8sToken() string {
-	return env.Get(m3K8sToken, "")
-}
-
 func getK8sAPIServer() string {
-	return env.Get(m3K8sAPIServer, "http://localhost:8001")
+	// if m3 is running inside a k8s pod KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT will contain the k8s api server apiServerAddress
+	// if m3 is not running inside k8s by default will look for the k8s api server on localhost:8001 (kubectl proxy)
+	// NOTE: using kubectl proxy is for local development only, since every request send to localhost:8001 will bypass service account authentication
+	// more info here: https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#directly-accessing-the-rest-api
+	// you can override this using M3_K8S_API_SERVER, ie use the k8s cluster from `kubectl config view`
+	host, port := env.Get("KUBERNETES_SERVICE_HOST", ""), env.Get("KUBERNETES_SERVICE_PORT", "")
+	apiServerAddress := "http://localhost:8001"
+	if host != "" && port != "" {
+		apiServerAddress = "https://" + net.JoinHostPort(host, port)
+	}
+	return env.Get(M3K8sAPIServer, apiServerAddress)
 }
 
-// Returns the namespace in which the controller is installed
-func GetNs() string {
+// getK8sAPIServerInsecure allow to tell the k8s client to skip TLS certificate verification, ie: when connecting to a k8s cluster
+// that uses certificate not trusted by your machine
+func getK8sAPIServerInsecure() bool {
+	return strings.ToLower(env.Get(m3k8SAPIServerInsecure, "off")) == "on"
+}
+
+// GetNsFromFile assumes mkube is running inside a k8s pod and extract the current namespace from the
+// /var/run/secrets/kubernetes.io/serviceaccount/namespace file
+func GetNsFromFile() string {
 	dat, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
 		return "default"
@@ -51,56 +64,12 @@ func GetNs() string {
 	return string(dat)
 }
 
-func getKesContainerImage() string {
-	return env.Get(m3KesImage, "minio/kes:latest")
-}
+// This operation will run only once at mkube startup
+var namespace = GetNsFromFile()
 
-func getKesRunningPort() int {
-	port, err := strconv.Atoi(env.Get(m3KesPort, "7373"))
-	if err != nil {
-		port = 7373
-	}
-	return port
-}
-
-func getKesMTlsAuth() string {
-	defaultMode := "verify"
-	var re = regexp.MustCompile(`^[a-z]+$`)
-	authMode := env.Get(m3KesMTlsAuth, defaultMode)
-	if !re.MatchString(authMode) {
-		authMode = defaultMode
-	}
-	return authMode
-}
-
-func getKesConfigPath() string {
-	var re = regexp.MustCompile(`^[a-z_/\-\s0-9\.]+$`)
-	defaultPath := "kes-config/server-config.toml"
-	configPath := env.Get(m3KesConfigPath, defaultPath)
-	if !re.MatchString(configPath) {
-		configPath = defaultPath
-	}
-	return configPath
-}
-
-func getKmsAddress() string {
-	return env.Get(m3KmsAddress, "")
-}
-
-func getKmsToken() string {
-	return env.Get(m3KmsToken, "")
-}
-
-func getKmsCACertConfigMap() string {
-	return env.Get(m3KmsCACertConfigMap, "")
-}
-
-func getKmsCACertFileName() string {
-	return env.Get(m3KmsCACertFileName, "")
-}
-
-func getCACertDefaultMounPath() string {
-	return env.Get(m3CACertDefaultMountPath, "/usr/local/share/ca-certificates")
+// Returns the namespace in which the controller is installed
+func GetNs() string {
+	return env.Get(M3Namespace, namespace)
 }
 
 // getLatestMinIOImage returns the latest docker image for MinIO if found on the internet
