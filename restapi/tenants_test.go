@@ -17,22 +17,47 @@
 package restapi
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io/ioutil"
+	"net/http"
 	"testing"
 
+	"github.com/minio/m3/cluster"
+	"github.com/minio/m3/models"
+	"github.com/minio/m3/restapi/operations/admin_api"
+	v1 "github.com/minio/minio-operator/pkg/apis/operator.min.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
 )
 
 var opClientMinioInstanceDeleteMock func(ctx context.Context, currentNamespace string, instanceName string, options metav1.DeleteOptions) error
+var opClientMinioInstanceGetMock func(ctx context.Context, currentNamespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error)
+var opClientMinioInstancePatchMock func(ctx context.Context, currentNamespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error)
+var httpClientGetMock func(url string) (resp *http.Response, err error)
 
 // mock function of MinioInstanceDelete()
 func (ac opClientMock) MinIOInstanceDelete(ctx context.Context, currentNamespace string, instanceName string, options metav1.DeleteOptions) error {
 	return opClientMinioInstanceDeleteMock(ctx, currentNamespace, instanceName, options)
 }
 
-func Test_deleteTenantAction(t *testing.T) {
+// mock function of MinIOInstanceGet()
+func (ac opClientMock) MinIOInstanceGet(ctx context.Context, currentNamespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error) {
+	return opClientMinioInstanceGetMock(ctx, currentNamespace, instanceName, options)
+}
 
+// mock function of MinioInstancePatch()
+func (ac opClientMock) MinIOInstancePatch(ctx context.Context, currentNamespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error) {
+	return opClientMinioInstancePatchMock(ctx, currentNamespace, instanceName, pt, data, options)
+}
+
+// mock function of get()
+func (h httpClientMock) Get(url string) (resp *http.Response, err error) {
+	return httpClientGetMock(url)
+}
+
+func Test_deleteTenantAction(t *testing.T) {
 	opClient := opClientMock{}
 
 	type args struct {
@@ -78,6 +103,167 @@ func Test_deleteTenantAction(t *testing.T) {
 		opClientMinioInstanceDeleteMock = tt.args.mockMinioInstanceDelete
 		t.Run(tt.name, func(t *testing.T) {
 			if err := deleteTenantAction(tt.args.ctx, tt.args.operatorClient, tt.args.nameSpace, tt.args.instanceName); (err != nil) != tt.wantErr {
+				t.Errorf("deleteTenantAction() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_UpdateTenantAction(t *testing.T) {
+	opClient := opClientMock{}
+	httpClientM := httpClientMock{}
+
+	type args struct {
+		ctx                    context.Context
+		operatorClient         OperatorClient
+		httpCl                 cluster.HTTPClientI
+		nameSpace              string
+		instanceName           string
+		mockMinioInstancePatch func(ctx context.Context, currentNamespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error)
+		mockMinioInstanceGet   func(ctx context.Context, currentNamespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error)
+		mockHTTPClientGet      func(url string) (resp *http.Response, err error)
+		params                 admin_api.UpdateTenantParams
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Update minio version no errors",
+			args: args{
+				ctx:            context.Background(),
+				operatorClient: opClient,
+				httpCl:         httpClientM,
+				nameSpace:      "default",
+				instanceName:   "minio-instance",
+				mockMinioInstancePatch: func(ctx context.Context, currentNamespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error) {
+					return &v1.MinIOInstance{}, nil
+				},
+				mockMinioInstanceGet: func(ctx context.Context, currentNamespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error) {
+					return &v1.MinIOInstance{}, nil
+				},
+				mockHTTPClientGet: func(url string) (resp *http.Response, err error) {
+					return &http.Response{}, nil
+				},
+				params: admin_api.UpdateTenantParams{
+					Body: &models.UpdateTenantRequest{
+						Image: "minio/minio:RELEASE.2020-06-03T22-13-49Z",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Error occurs getting minioInstance",
+			args: args{
+				ctx:            context.Background(),
+				operatorClient: opClient,
+				httpCl:         httpClientM,
+				nameSpace:      "default",
+				instanceName:   "minio-instance",
+				mockMinioInstancePatch: func(ctx context.Context, currentNamespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error) {
+					return &v1.MinIOInstance{}, nil
+				},
+				mockMinioInstanceGet: func(ctx context.Context, currentNamespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error) {
+					return nil, errors.New("error-get")
+				},
+				mockHTTPClientGet: func(url string) (resp *http.Response, err error) {
+					return &http.Response{}, nil
+				},
+				params: admin_api.UpdateTenantParams{
+					Body: &models.UpdateTenantRequest{
+						Image: "minio/minio:RELEASE.2020-06-03T22-13-49Z",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Error occurs patching minioInstance",
+			args: args{
+				ctx:            context.Background(),
+				operatorClient: opClient,
+				httpCl:         httpClientM,
+				nameSpace:      "default",
+				instanceName:   "minio-instance",
+				mockMinioInstancePatch: func(ctx context.Context, currentNamespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error) {
+					return nil, errors.New("error-get")
+				},
+				mockMinioInstanceGet: func(ctx context.Context, currentNamespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error) {
+					return &v1.MinIOInstance{}, nil
+				},
+				mockHTTPClientGet: func(url string) (resp *http.Response, err error) {
+					return &http.Response{}, nil
+				},
+				params: admin_api.UpdateTenantParams{
+					Body: &models.UpdateTenantRequest{
+						Image: "minio/minio:RELEASE.2020-06-03T22-13-49Z",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Empty image should patch correctly with latest image",
+			args: args{
+				ctx:            context.Background(),
+				operatorClient: opClient,
+				httpCl:         httpClientM,
+				nameSpace:      "default",
+				instanceName:   "minio-instance",
+				mockMinioInstancePatch: func(ctx context.Context, currentNamespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error) {
+					return &v1.MinIOInstance{}, nil
+				},
+				mockMinioInstanceGet: func(ctx context.Context, currentNamespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error) {
+					return &v1.MinIOInstance{}, nil
+				},
+				mockHTTPClientGet: func(url string) (resp *http.Response, err error) {
+					r := ioutil.NopCloser(bytes.NewReader([]byte(`./minio.RELEASE.2020-06-18T02-23-35Z"`)))
+					return &http.Response{
+						Body: r,
+					}, nil
+				},
+				params: admin_api.UpdateTenantParams{
+					Body: &models.UpdateTenantRequest{
+						Image: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Empty image input Error retrieving latest image",
+			args: args{
+				ctx:            context.Background(),
+				operatorClient: opClient,
+				httpCl:         httpClientM,
+				nameSpace:      "default",
+				instanceName:   "minio-instance",
+				mockMinioInstancePatch: func(ctx context.Context, currentNamespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error) {
+					return &v1.MinIOInstance{}, nil
+				},
+				mockMinioInstanceGet: func(ctx context.Context, currentNamespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error) {
+					return &v1.MinIOInstance{}, nil
+				},
+				mockHTTPClientGet: func(url string) (resp *http.Response, err error) {
+					return nil, errors.New("error")
+				},
+				params: admin_api.UpdateTenantParams{
+					Body: &models.UpdateTenantRequest{
+						Image: "",
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		opClientMinioInstanceGetMock = tt.args.mockMinioInstanceGet
+		opClientMinioInstancePatchMock = tt.args.mockMinioInstancePatch
+		httpClientGetMock = tt.args.mockHTTPClientGet
+		t.Run(tt.name, func(t *testing.T) {
+			if err := updateTenantAction(tt.args.ctx, tt.args.operatorClient, tt.args.httpCl, tt.args.nameSpace, tt.args.params); (err != nil) != tt.wantErr {
 				t.Errorf("deleteTenantAction() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

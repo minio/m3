@@ -14,9 +14,9 @@ spec:
       served: true
       storage: true
       schema:
-      # openAPIV3Schema is the schema for validating custom objects.
-      # Refer https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#specifying-a-structural-schema
-      # for more details
+        # openAPIV3Schema is the schema for validating custom objects.
+        # Refer https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#specifying-a-structural-schema
+        # for more details
         openAPIV3Schema:
           type: object
           properties:
@@ -38,7 +38,7 @@ spec:
                   type: string
                 podManagementPolicy:
                   type: string
-                  enum: [Parallel,OrderedReady]
+                  enum: [Parallel, OrderedReady]
                   default: Parallel
                 requestAutoCert:
                   type: boolean
@@ -95,68 +95,68 @@ kind: ClusterRole
 metadata:
   name: minio-operator-role
 rules:
-- apiGroups:
-  - ""
-  resources:
-  - namespaces
-  - secrets
-  - pods
-  - services
-  - events
-  verbs:
-  - get
-  - watch
-  - create
-  - list
-  - delete
-- apiGroups:
-  - apps
-  resources:
-  - statefulsets
-  - deployments
-  verbs:
-  - get
-  - create
-  - list
-  - patch
-  - watch
-  - update
-  - delete
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  verbs:
-  - get
-  - create
-  - list
-  - patch
-  - watch
-  - update
-  - delete
-- apiGroups:
-  - "certificates.k8s.io"
-  resources:
-  - "certificatesigningrequests"
-  - "certificatesigningrequests/approval"
-  - "certificatesigningrequests/status"
-  verbs:
-  - update
-  - create
-  - get
-  - delete
-- apiGroups:
-  - operator.min.io
-  resources:
-  - "*"
-  verbs:
-  - "*"
-- apiGroups:
-  - min.io
-  resources:
-  - "*"
-  verbs:
-  - "*"
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - secrets
+      - pods
+      - services
+      - events
+    verbs:
+      - get
+      - watch
+      - create
+      - list
+      - delete
+  - apiGroups:
+      - apps
+    resources:
+      - statefulsets
+      - deployments
+    verbs:
+      - get
+      - create
+      - list
+      - patch
+      - watch
+      - update
+      - delete
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - get
+      - create
+      - list
+      - patch
+      - watch
+      - update
+      - delete
+  - apiGroups:
+      - "certificates.k8s.io"
+    resources:
+      - "certificatesigningrequests"
+      - "certificatesigningrequests/approval"
+      - "certificatesigningrequests/status"
+    verbs:
+      - update
+      - create
+      - get
+      - delete
+  - apiGroups:
+      - operator.min.io
+    resources:
+      - "*"
+    verbs:
+      - "*"
+  - apiGroups:
+      - min.io
+    resources:
+      - "*"
+    verbs:
+      - "*"
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -173,9 +173,9 @@ roleRef:
   kind: ClusterRole
   name: minio-operator-role
 subjects:
-- kind: ServiceAccount
-  name: minio-operator
-  namespace: default
+  - kind: ServiceAccount
+    name: minio-operator
+    namespace: default
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -195,7 +195,7 @@ spec:
       serviceAccountName: minio-operator
       containers:
         - name: minio-operator
-          image: minio/k8s-operator:2.0.6
+          image: minio/k8s-operator:2.0.7
           imagePullPolicy: IfNotPresent
           # To specify cluster domain, un comment the following:
           # env:

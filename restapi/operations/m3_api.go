@@ -76,6 +76,9 @@ func NewM3API(spec *loads.Document) *M3API {
 		AdminAPITenantInfoHandler: admin_api.TenantInfoHandlerFunc(func(params admin_api.TenantInfoParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.TenantInfo has not yet been implemented")
 		}),
+		AdminAPIUpdateTenantHandler: admin_api.UpdateTenantHandlerFunc(func(params admin_api.UpdateTenantParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.UpdateTenant has not yet been implemented")
+		}),
 
 		KeyAuth: func(token string, scopes []string) (*models.Principal, error) {
 			return nil, errors.NotImplemented("oauth2 bearer auth (key) has not yet been implemented")
@@ -132,6 +135,8 @@ type M3API struct {
 	AdminAPIListTenantsHandler admin_api.ListTenantsHandler
 	// AdminAPITenantInfoHandler sets the operation handler for the tenant info operation
 	AdminAPITenantInfoHandler admin_api.TenantInfoHandler
+	// AdminAPIUpdateTenantHandler sets the operation handler for the update tenant operation
+	AdminAPIUpdateTenantHandler admin_api.UpdateTenantHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -216,6 +221,9 @@ func (o *M3API) Validate() error {
 	}
 	if o.AdminAPITenantInfoHandler == nil {
 		unregistered = append(unregistered, "admin_api.TenantInfoHandler")
+	}
+	if o.AdminAPIUpdateTenantHandler == nil {
+		unregistered = append(unregistered, "admin_api.UpdateTenantHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -335,6 +343,10 @@ func (o *M3API) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/tenants/{name}"] = admin_api.NewTenantInfo(o.context, o.AdminAPITenantInfoHandler)
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/tenants/{name}"] = admin_api.NewUpdateTenant(o.context, o.AdminAPIUpdateTenantHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

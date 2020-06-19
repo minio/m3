@@ -19,8 +19,10 @@ package restapi
 import (
 	"context"
 
+	v1 "github.com/minio/minio-operator/pkg/apis/operator.min.io/v1"
 	operatorClientset "github.com/minio/minio-operator/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
 )
 
 // OperatorClient interface with all functions to be implemented
@@ -28,6 +30,8 @@ import (
 // that are used within this project.
 type OperatorClient interface {
 	MinIOInstanceDelete(ctx context.Context, currentNamespace string, instanceName string, options metav1.DeleteOptions) error
+	MinIOInstanceGet(ctx context.Context, currentNamespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error)
+	MinIOInstancePatch(ctx context.Context, currentNamespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error)
 }
 
 // Interface implementation
@@ -41,4 +45,14 @@ type operatorClient struct {
 // MinIOInstanceDelete implements the minio instance delete action from minio-operator
 func (c *operatorClient) MinIOInstanceDelete(ctx context.Context, currentNamespace string, instanceName string, options metav1.DeleteOptions) error {
 	return c.client.OperatorV1().MinIOInstances(currentNamespace).Delete(ctx, instanceName, options)
+}
+
+// MinIOInstanceGet implements the minio instance get action from minio-operator
+func (c *operatorClient) MinIOInstanceGet(ctx context.Context, currentNamespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error) {
+	return c.client.OperatorV1().MinIOInstances(currentNamespace).Get(ctx, instanceName, options)
+}
+
+// MinIOInstancePatch implements the minio instance patch action from minio-operator
+func (c *operatorClient) MinIOInstancePatch(ctx context.Context, currentNamespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error) {
+	return c.client.OperatorV1().MinIOInstances(currentNamespace).Patch(ctx, instanceName, pt, data, options)
 }
