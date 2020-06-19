@@ -174,6 +174,40 @@ func init() {
           }
         }
       },
+      "put": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Update Tenant",
+        "operationId": "UpdateTenant",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/updateTenantRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
           "AdminAPI"
@@ -364,6 +398,15 @@ func init() {
         }
       }
     },
+    "updateTenantRequest": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string",
+          "pattern": "^((.*?)/(.*?):(.+))$"
+        }
+      }
+    },
     "zone": {
       "type": "object",
       "properties": {
@@ -521,6 +564,40 @@ func init() {
             "schema": {
               "$ref": "#/definitions/tenant"
             }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Update Tenant",
+        "operationId": "UpdateTenant",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/updateTenantRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response."
           },
           "default": {
             "description": "Generic error response.",
@@ -731,6 +808,15 @@ func init() {
         },
         "zone_count": {
           "type": "integer"
+        }
+      }
+    },
+    "updateTenantRequest": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string",
+          "pattern": "^((.*?)/(.*?):(.+))$"
         }
       }
     },

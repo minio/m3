@@ -106,6 +106,28 @@ paths:
             $ref: "#/definitions/error"
       tags:
         - AdminAPI
+    put:
+      summary: Update Tenant
+      operationId: UpdateTenant
+      parameters:
+        - name: name
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/updateTenantRequest"
+      responses:
+        201:
+          description: A successful response.
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
 
   /storage-classes:
     get:
@@ -176,6 +198,12 @@ definitions:
         type: integer
         format: int64
         title: number of tenants accessible to tenant user
+  updateTenantRequest:
+    type: object
+    properties:
+      image:
+        type: string
+        pattern: "^((.*?)/(.*?):(.+))$"
   createTenantRequest:
     type: object
     required:
