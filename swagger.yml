@@ -147,6 +147,8 @@ definitions:
         type: array
         items:
           $ref: "#/definitions/zone"
+      namespace:
+        type: string
   tenantList:
     type: object
     properties:
@@ -163,6 +165,8 @@ definitions:
       creation_date:
         type: string
       currentState:
+        type: string
+      namespace:
         type: string
   listTenantsResponse:
     type: object

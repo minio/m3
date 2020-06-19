@@ -44,6 +44,9 @@ type TenantList struct {
 	// name
 	Name string `json:"name,omitempty"`
 
+	// namespace
+	Namespace string `json:"namespace,omitempty"`
+
 	// volume count
 	VolumeCount int64 `json:"volume_count,omitempty"`
 
