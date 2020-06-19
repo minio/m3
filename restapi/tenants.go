@@ -18,10 +18,15 @@ package restapi
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
+	"strings"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
+	types "k8s.io/apimachinery/pkg/types"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -67,7 +72,7 @@ func registerTenantHandlers(api *operations.M3API) {
 
 	})
 
-	// Detail Tenant
+	// Delete Tenant
 	api.AdminAPIDeleteTenantHandler = admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams, principal *models.Principal) middleware.Responder {
 		sessionID := string(*principal)
 		err := getDeleteTenantResponse(sessionID, params)
@@ -77,6 +82,17 @@ func registerTenantHandlers(api *operations.M3API) {
 		}
 		return admin_api.NewTenantInfoOK()
 
+	})
+
+	// Update Tenant
+	api.AdminAPIUpdateTenantHandler = admin_api.UpdateTenantHandlerFunc(func(params admin_api.UpdateTenantParams, principal *models.Principal) middleware.Responder {
+		sessionID := string(*principal)
+		err := getUpdateTenantResponse(sessionID, params)
+		if err != nil {
+			log.Println(err)
+			return admin_api.NewUpdateTenantDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String("Unable to update tenant")})
+		}
+		return admin_api.NewUpdateTenantCreated()
 	})
 }
 
@@ -353,4 +369,61 @@ func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams)
 	_, err = opClient.OperatorV1().MinIOInstances(currentNamespace).Create(context.Background(), &minInst, metav1.CreateOptions{})
 
 	return err
+}
+
+// updateTenantAction does an update on the minioInstance by patching the desired changes
+func updateTenantAction(ctx context.Context, operatorClient OperatorClient, httpCl cluster.HTTPClientI, nameSpace string, params admin_api.UpdateTenantParams) error {
+	imageToUpdate := params.Body.Image
+	minInst, err := operatorClient.MinIOInstanceGet(ctx, nameSpace, params.Name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	// if image to update is empty we'll use the latest image by default
+	if strings.TrimSpace(imageToUpdate) != "" {
+		minInst.Spec.Image = params.Body.Image
+	} else {
+		im, err := cluster.GetLatestMinioImage(httpCl)
+		if err != nil {
+			return err
+		}
+		minInst.Spec.Image = *im
+	}
+
+	payloadBytes, err := json.Marshal(minInst)
+	if err != nil {
+		return err
+	}
+	_, err = operatorClient.MinIOInstancePatch(ctx, nameSpace, minInst.Name, types.MergePatchType, payloadBytes, metav1.PatchOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getUpdateTenantResponse(token string, params admin_api.UpdateTenantParams) error {
+	ctx := context.Background()
+	// TODO: use namespace of the tenant not from the controller
+	currentNamespace := cluster.GetNs()
+
+	opClientClientSet, err := cluster.OperatorClient(token)
+	if err != nil {
+		log.Println("error getting operator client:", err)
+		return err
+	}
+
+	opClient := &operatorClient{
+		client: opClientClientSet,
+	}
+	httpC := &cluster.HTTPClient{
+		Client: &http.Client{
+			Timeout: 4 * time.Second,
+		},
+	}
+	if err := updateTenantAction(ctx, opClient, httpC, currentNamespace, params); err != nil {
+		log.Println("error patching MinioInstance:", err)
+		return err
+	}
+
+	return nil
 }

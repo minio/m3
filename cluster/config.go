@@ -73,11 +73,7 @@ func GetNs() string {
 }
 
 // getLatestMinIOImage returns the latest docker image for MinIO if found on the internet
-func getLatestMinIOImage() (*string, error) {
-	// Create an http client with a 4 second timeout
-	client := http.Client{
-		Timeout: 4 * time.Second,
-	}
+func getLatestMinIOImage(client HTTPClientI) (*string, error) {
 	resp, err := client.Get("https://dl.min.io/server/minio/release/linux-amd64/")
 	if err != nil {
 		return nil, err
@@ -99,7 +95,12 @@ func getLatestMinIOImage() (*string, error) {
 	return nil, errCantDetermineMinIOImage
 }
 
-var latestMinIOImage, errLatestMinIOImage = getLatestMinIOImage()
+var latestMinIOImage, errLatestMinIOImage = getLatestMinIOImage(
+	&HTTPClient{
+		Client: &http.Client{
+			Timeout: 4 * time.Second,
+		},
+	})
 
 // GetMinioImage returns the image URL to be used when deploying a MinIO instance, if there is
 // a preferred image to be used (configured via ENVIRONMENT VARIABLES) GetMinioImage will return that
@@ -112,6 +113,15 @@ func GetMinioImage() (*string, error) {
 	}
 	if errLatestMinIOImage != nil {
 		return nil, errLatestMinIOImage
+	}
+	return latestMinIOImage, nil
+}
+
+// GetLatestMinioImage returns the latest image URL on minio repository
+func GetLatestMinioImage(client HTTPClientI) (*string, error) {
+	latestMinIOImage, err := getLatestMinIOImage(client)
+	if err != nil {
+		return nil, err
 	}
 	return latestMinIOImage, nil
 }

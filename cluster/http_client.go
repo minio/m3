@@ -1,4 +1,4 @@
-// This file is part of MinIO Console Server
+// This file is part of MinIO Kubernetes Cloud
 // Copyright (c) 2020 MinIO, Inc.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -14,7 +14,27 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package restapi
+package cluster
 
-type opClientMock struct{}
-type httpClientMock struct{}
+import (
+	"net/http"
+)
+
+// HTTPClientI interface with all functions to be implemented
+// by mock when testing, it should include all HttpClient respective api calls
+// that are used within this project.
+type HTTPClientI interface {
+	Get(url string) (resp *http.Response, err error)
+}
+
+// HTTPClient Interface implementation
+//
+// Define the structure of a http client and define the functions that are actually used
+type HTTPClient struct {
+	Client *http.Client
+}
+
+// Get implements http.Client.Get()
+func (c *HTTPClient) Get(url string) (resp *http.Response, err error) {
+	return c.Client.Get(url)
+}
