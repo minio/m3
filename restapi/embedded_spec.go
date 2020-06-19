@@ -352,6 +352,9 @@ func init() {
         "name": {
           "type": "string"
         },
+        "namespace": {
+          "type": "string"
+        },
         "volume_count": {
           "type": "integer"
         },
@@ -385,6 +388,9 @@ func init() {
           "type": "integer"
         },
         "name": {
+          "type": "string"
+        },
+        "namespace": {
           "type": "string"
         },
         "volume_count": {
@@ -765,6 +771,9 @@ func init() {
         "name": {
           "type": "string"
         },
+        "namespace": {
+          "type": "string"
+        },
         "volume_count": {
           "type": "integer"
         },
@@ -798,6 +807,9 @@ func init() {
           "type": "integer"
         },
         "name": {
+          "type": "string"
+        },
+        "namespace": {
           "type": "string"
         },
         "volume_count": {

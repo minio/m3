@@ -156,6 +156,7 @@ func getTenantInfoResponse(token string, params admin_api.TenantInfoParams) (*mo
 		ZoneCount:        int64(len(minInst.Spec.Zones)),
 		CurrentState:     minInst.Status.CurrentState,
 		Zones:            zones,
+		Namespace:        minInst.ObjectMeta.Namespace,
 	}, nil
 }
 
@@ -198,6 +199,7 @@ func getListTenantsResponse(token string, params admin_api.ListTenantsParams) (*
 			VolumeCount:   volumeCount,
 			VolumeSize:    minInst.Spec.VolumeClaimTemplate.Spec.Resources.Requests.Storage().Value(),
 			CurrentState:  minInst.Status.CurrentState,
+			Namespace:     minInst.ObjectMeta.Namespace,
 		})
 	}
 
