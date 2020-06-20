@@ -29,9 +29,10 @@ import (
 // by mock when testing, it should include all OperatorClient respective api calls
 // that are used within this project.
 type OperatorClient interface {
-	MinIOInstanceDelete(ctx context.Context, currentNamespace string, instanceName string, options metav1.DeleteOptions) error
-	MinIOInstanceGet(ctx context.Context, currentNamespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error)
-	MinIOInstancePatch(ctx context.Context, currentNamespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error)
+	MinIOInstanceDelete(ctx context.Context, namespace string, instanceName string, options metav1.DeleteOptions) error
+	MinIOInstanceGet(ctx context.Context, namespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error)
+	MinIOInstancePatch(ctx context.Context, namespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error)
+	MinIOInstanceList(ctx context.Context, namespace string, opts metav1.ListOptions) (*v1.MinIOInstanceList, error)
 }
 
 // Interface implementation
@@ -43,16 +44,21 @@ type operatorClient struct {
 }
 
 // MinIOInstanceDelete implements the minio instance delete action from minio-operator
-func (c *operatorClient) MinIOInstanceDelete(ctx context.Context, currentNamespace string, instanceName string, options metav1.DeleteOptions) error {
-	return c.client.OperatorV1().MinIOInstances(currentNamespace).Delete(ctx, instanceName, options)
+func (c *operatorClient) MinIOInstanceDelete(ctx context.Context, namespace string, instanceName string, options metav1.DeleteOptions) error {
+	return c.client.OperatorV1().MinIOInstances(namespace).Delete(ctx, instanceName, options)
 }
 
 // MinIOInstanceGet implements the minio instance get action from minio-operator
-func (c *operatorClient) MinIOInstanceGet(ctx context.Context, currentNamespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error) {
-	return c.client.OperatorV1().MinIOInstances(currentNamespace).Get(ctx, instanceName, options)
+func (c *operatorClient) MinIOInstanceGet(ctx context.Context, namespace string, instanceName string, options metav1.GetOptions) (*v1.MinIOInstance, error) {
+	return c.client.OperatorV1().MinIOInstances(namespace).Get(ctx, instanceName, options)
 }
 
 // MinIOInstancePatch implements the minio instance patch action from minio-operator
-func (c *operatorClient) MinIOInstancePatch(ctx context.Context, currentNamespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error) {
-	return c.client.OperatorV1().MinIOInstances(currentNamespace).Patch(ctx, instanceName, pt, data, options)
+func (c *operatorClient) MinIOInstancePatch(ctx context.Context, namespace string, instanceName string, pt types.PatchType, data []byte, options metav1.PatchOptions) (*v1.MinIOInstance, error) {
+	return c.client.OperatorV1().MinIOInstances(namespace).Patch(ctx, instanceName, pt, data, options)
+}
+
+// MinIOInstanceList implements the minio instance list action from minio-operator
+func (c *operatorClient) MinIOInstanceList(ctx context.Context, namespace string, opts metav1.ListOptions) (*v1.MinIOInstanceList, error) {
+	return c.client.OperatorV1().MinIOInstances(namespace).List(ctx, opts)
 }

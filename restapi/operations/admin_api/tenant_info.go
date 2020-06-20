@@ -48,7 +48,7 @@ func NewTenantInfo(ctx *middleware.Context, handler TenantInfoHandler) *TenantIn
 	return &TenantInfo{Context: ctx, Handler: handler}
 }
 
-/*TenantInfo swagger:route GET /tenants/{name} AdminAPI tenantInfo
+/*TenantInfo swagger:route GET /namespaces/{namespace}/tenants/{tenant} AdminAPI tenantInfo
 
 Tenant Info
 

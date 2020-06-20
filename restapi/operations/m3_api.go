@@ -67,6 +67,9 @@ func NewM3API(spec *loads.Document) *M3API {
 		AdminAPIDeleteTenantHandler: admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.DeleteTenant has not yet been implemented")
 		}),
+		AdminAPIListAllTenantsHandler: admin_api.ListAllTenantsHandlerFunc(func(params admin_api.ListAllTenantsParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.ListAllTenants has not yet been implemented")
+		}),
 		AdminAPIListStorageClassesHandler: admin_api.ListStorageClassesHandlerFunc(func(params admin_api.ListStorageClassesParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.ListStorageClasses has not yet been implemented")
 		}),
@@ -129,6 +132,8 @@ type M3API struct {
 	AdminAPICreateTenantHandler admin_api.CreateTenantHandler
 	// AdminAPIDeleteTenantHandler sets the operation handler for the delete tenant operation
 	AdminAPIDeleteTenantHandler admin_api.DeleteTenantHandler
+	// AdminAPIListAllTenantsHandler sets the operation handler for the list all tenants operation
+	AdminAPIListAllTenantsHandler admin_api.ListAllTenantsHandler
 	// AdminAPIListStorageClassesHandler sets the operation handler for the list storage classes operation
 	AdminAPIListStorageClassesHandler admin_api.ListStorageClassesHandler
 	// AdminAPIListTenantsHandler sets the operation handler for the list tenants operation
@@ -212,6 +217,9 @@ func (o *M3API) Validate() error {
 	}
 	if o.AdminAPIDeleteTenantHandler == nil {
 		unregistered = append(unregistered, "admin_api.DeleteTenantHandler")
+	}
+	if o.AdminAPIListAllTenantsHandler == nil {
+		unregistered = append(unregistered, "admin_api.ListAllTenantsHandler")
 	}
 	if o.AdminAPIListStorageClassesHandler == nil {
 		unregistered = append(unregistered, "admin_api.ListStorageClassesHandler")
@@ -330,7 +338,11 @@ func (o *M3API) initHandlerCache() {
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
-	o.handlers["DELETE"]["/tenants/{name}"] = admin_api.NewDeleteTenant(o.context, o.AdminAPIDeleteTenantHandler)
+	o.handlers["DELETE"]["/namespaces/{namespace}/tenants/{tenant}"] = admin_api.NewDeleteTenant(o.context, o.AdminAPIDeleteTenantHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/tenants"] = admin_api.NewListAllTenants(o.context, o.AdminAPIListAllTenantsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -338,15 +350,15 @@ func (o *M3API) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/tenants"] = admin_api.NewListTenants(o.context, o.AdminAPIListTenantsHandler)
+	o.handlers["GET"]["/namespaces/{namespace}/tenants"] = admin_api.NewListTenants(o.context, o.AdminAPIListTenantsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/tenants/{name}"] = admin_api.NewTenantInfo(o.context, o.AdminAPITenantInfoHandler)
+	o.handlers["GET"]["/namespaces/{namespace}/tenants/{tenant}"] = admin_api.NewTenantInfo(o.context, o.AdminAPITenantInfoHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
-	o.handlers["PUT"]["/tenants/{name}"] = admin_api.NewUpdateTenant(o.context, o.AdminAPIUpdateTenantHandler)
+	o.handlers["PUT"]["/namespaces/{namespace}/tenants/{tenant}"] = admin_api.NewUpdateTenant(o.context, o.AdminAPIUpdateTenantHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

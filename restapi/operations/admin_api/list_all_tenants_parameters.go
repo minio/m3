@@ -32,18 +32,18 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// NewListTenantsParams creates a new ListTenantsParams object
+// NewListAllTenantsParams creates a new ListAllTenantsParams object
 // no default values defined in spec.
-func NewListTenantsParams() ListTenantsParams {
+func NewListAllTenantsParams() ListAllTenantsParams {
 
-	return ListTenantsParams{}
+	return ListAllTenantsParams{}
 }
 
-// ListTenantsParams contains all the bound params for the list tenants operation
+// ListAllTenantsParams contains all the bound params for the list all tenants operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters ListTenants
-type ListTenantsParams struct {
+// swagger:parameters ListAllTenants
+type ListAllTenantsParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
@@ -52,11 +52,6 @@ type ListTenantsParams struct {
 	  In: query
 	*/
 	Limit *int32
-	/*
-	  Required: true
-	  In: path
-	*/
-	Namespace string
 	/*
 	  In: query
 	*/
@@ -70,8 +65,8 @@ type ListTenantsParams struct {
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewListTenantsParams() beforehand.
-func (o *ListTenantsParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewListAllTenantsParams() beforehand.
+func (o *ListAllTenantsParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
@@ -80,11 +75,6 @@ func (o *ListTenantsParams) BindRequest(r *http.Request, route *middleware.Match
 
 	qLimit, qhkLimit, _ := qs.GetOK("limit")
 	if err := o.bindLimit(qLimit, qhkLimit, route.Formats); err != nil {
-		res = append(res, err)
-	}
-
-	rNamespace, rhkNamespace, _ := route.Params.GetOK("namespace")
-	if err := o.bindNamespace(rNamespace, rhkNamespace, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -105,7 +95,7 @@ func (o *ListTenantsParams) BindRequest(r *http.Request, route *middleware.Match
 }
 
 // bindLimit binds and validates parameter Limit from query.
-func (o *ListTenantsParams) bindLimit(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *ListAllTenantsParams) bindLimit(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -126,23 +116,8 @@ func (o *ListTenantsParams) bindLimit(rawData []string, hasKey bool, formats str
 	return nil
 }
 
-// bindNamespace binds and validates parameter Namespace from path.
-func (o *ListTenantsParams) bindNamespace(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-
-	// Required: true
-	// Parameter is provided by construction from the route
-
-	o.Namespace = raw
-
-	return nil
-}
-
 // bindOffset binds and validates parameter Offset from query.
-func (o *ListTenantsParams) bindOffset(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *ListAllTenantsParams) bindOffset(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -164,7 +139,7 @@ func (o *ListTenantsParams) bindOffset(rawData []string, hasKey bool, formats st
 }
 
 // bindSortBy binds and validates parameter SortBy from query.
-func (o *ListTenantsParams) bindSortBy(rawData []string, hasKey bool, formats strfmt.Registry) error {
+func (o *ListAllTenantsParams) bindSortBy(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]

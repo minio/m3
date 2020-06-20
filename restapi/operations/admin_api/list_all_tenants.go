@@ -30,40 +30,40 @@ import (
 	"github.com/minio/m3/models"
 )
 
-// UpdateTenantHandlerFunc turns a function with the right signature into a update tenant handler
-type UpdateTenantHandlerFunc func(UpdateTenantParams, *models.Principal) middleware.Responder
+// ListAllTenantsHandlerFunc turns a function with the right signature into a list all tenants handler
+type ListAllTenantsHandlerFunc func(ListAllTenantsParams, *models.Principal) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn UpdateTenantHandlerFunc) Handle(params UpdateTenantParams, principal *models.Principal) middleware.Responder {
+func (fn ListAllTenantsHandlerFunc) Handle(params ListAllTenantsParams, principal *models.Principal) middleware.Responder {
 	return fn(params, principal)
 }
 
-// UpdateTenantHandler interface for that can handle valid update tenant params
-type UpdateTenantHandler interface {
-	Handle(UpdateTenantParams, *models.Principal) middleware.Responder
+// ListAllTenantsHandler interface for that can handle valid list all tenants params
+type ListAllTenantsHandler interface {
+	Handle(ListAllTenantsParams, *models.Principal) middleware.Responder
 }
 
-// NewUpdateTenant creates a new http.Handler for the update tenant operation
-func NewUpdateTenant(ctx *middleware.Context, handler UpdateTenantHandler) *UpdateTenant {
-	return &UpdateTenant{Context: ctx, Handler: handler}
+// NewListAllTenants creates a new http.Handler for the list all tenants operation
+func NewListAllTenants(ctx *middleware.Context, handler ListAllTenantsHandler) *ListAllTenants {
+	return &ListAllTenants{Context: ctx, Handler: handler}
 }
 
-/*UpdateTenant swagger:route PUT /namespaces/{namespace}/tenants/{tenant} AdminAPI updateTenant
+/*ListAllTenants swagger:route GET /tenants AdminAPI listAllTenants
 
-Update Tenant
+List Tenant of All Namespaces
 
 */
-type UpdateTenant struct {
+type ListAllTenants struct {
 	Context *middleware.Context
-	Handler UpdateTenantHandler
+	Handler ListAllTenantsHandler
 }
 
-func (o *UpdateTenant) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (o *ListAllTenants) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
 		r = rCtx
 	}
-	var Params = NewUpdateTenantParams()
+	var Params = NewListAllTenantsParams()
 
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {

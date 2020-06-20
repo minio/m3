@@ -48,7 +48,7 @@ func NewDeleteTenant(ctx *middleware.Context, handler DeleteTenantHandler) *Dele
 	return &DeleteTenant{Context: ctx, Handler: handler}
 }
 
-/*DeleteTenant swagger:route DELETE /tenants/{name} AdminAPI deleteTenant
+/*DeleteTenant swagger:route DELETE /namespaces/{namespace}/tenants/{tenant} AdminAPI deleteTenant
 
 Delete Tenant
 

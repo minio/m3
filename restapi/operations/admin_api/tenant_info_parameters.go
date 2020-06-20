@@ -50,7 +50,12 @@ type TenantInfoParams struct {
 	  Required: true
 	  In: path
 	*/
-	Name string
+	Namespace string
+	/*
+	  Required: true
+	  In: path
+	*/
+	Tenant string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -62,8 +67,13 @@ func (o *TenantInfoParams) BindRequest(r *http.Request, route *middleware.Matche
 
 	o.HTTPRequest = r
 
-	rName, rhkName, _ := route.Params.GetOK("name")
-	if err := o.bindName(rName, rhkName, route.Formats); err != nil {
+	rNamespace, rhkNamespace, _ := route.Params.GetOK("namespace")
+	if err := o.bindNamespace(rNamespace, rhkNamespace, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	rTenant, rhkTenant, _ := route.Params.GetOK("tenant")
+	if err := o.bindTenant(rTenant, rhkTenant, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -73,8 +83,8 @@ func (o *TenantInfoParams) BindRequest(r *http.Request, route *middleware.Matche
 	return nil
 }
 
-// bindName binds and validates parameter Name from path.
-func (o *TenantInfoParams) bindName(rawData []string, hasKey bool, formats strfmt.Registry) error {
+// bindNamespace binds and validates parameter Namespace from path.
+func (o *TenantInfoParams) bindNamespace(rawData []string, hasKey bool, formats strfmt.Registry) error {
 	var raw string
 	if len(rawData) > 0 {
 		raw = rawData[len(rawData)-1]
@@ -83,7 +93,22 @@ func (o *TenantInfoParams) bindName(rawData []string, hasKey bool, formats strfm
 	// Required: true
 	// Parameter is provided by construction from the route
 
-	o.Name = raw
+	o.Namespace = raw
+
+	return nil
+}
+
+// bindTenant binds and validates parameter Tenant from path.
+func (o *TenantInfoParams) bindTenant(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: true
+	// Parameter is provided by construction from the route
+
+	o.Tenant = raw
 
 	return nil
 }

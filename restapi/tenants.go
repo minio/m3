@@ -51,7 +51,17 @@ func registerTenantHandlers(api *operations.M3API) {
 		}
 		return admin_api.NewCreateTenantCreated()
 	})
-	// List Tenants
+	// List All Tenants of all namespaces
+	api.AdminAPIListAllTenantsHandler = admin_api.ListAllTenantsHandlerFunc(func(params admin_api.ListAllTenantsParams, principal *models.Principal) middleware.Responder {
+		sessionID := string(*principal)
+		resp, err := getListAllTenantsResponse(sessionID, params)
+		if err != nil {
+			return admin_api.NewListTenantsDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
+		}
+		return admin_api.NewListTenantsOK().WithPayload(resp)
+
+	})
+	// List Tenants by namespace
 	api.AdminAPIListTenantsHandler = admin_api.ListTenantsHandlerFunc(func(params admin_api.ListTenantsParams, principal *models.Principal) middleware.Responder {
 		sessionID := string(*principal)
 		resp, err := getListTenantsResponse(sessionID, params)
@@ -96,19 +106,6 @@ func registerTenantHandlers(api *operations.M3API) {
 	})
 }
 
-// getDeleteTenantResponse gets the output of deleting a minio instance
-func getDeleteTenantResponse(token string, params admin_api.DeleteTenantParams) error {
-	opClientClientSet, err := cluster.OperatorClient(token)
-	if err != nil {
-		return err
-	}
-	opClient := &operatorClient{
-		client: opClientClientSet,
-	}
-	currentNamespace := cluster.GetNs()
-	return deleteTenantAction(context.Background(), opClient, currentNamespace, params.Name)
-}
-
 // deleteTenantAction performs the actions of deleting a tenant
 func deleteTenantAction(ctx context.Context, operatorClient OperatorClient, nameSpace, instanceName string) error {
 	err := operatorClient.MinIOInstanceDelete(ctx, nameSpace, instanceName, metav1.DeleteOptions{})
@@ -118,14 +115,25 @@ func deleteTenantAction(ctx context.Context, operatorClient OperatorClient, name
 	return nil
 }
 
+// getDeleteTenantResponse gets the output of deleting a minio instance
+func getDeleteTenantResponse(token string, params admin_api.DeleteTenantParams) error {
+	opClientClientSet, err := cluster.OperatorClient(token)
+	if err != nil {
+		return err
+	}
+	opClient := &operatorClient{
+		client: opClientClientSet,
+	}
+	return deleteTenantAction(context.Background(), opClient, params.Namespace, params.Tenant)
+}
+
 func getTenantInfoResponse(token string, params admin_api.TenantInfoParams) (*models.Tenant, error) {
 	opClient, err := cluster.OperatorClient(token)
 	if err != nil {
 		return nil, err
 	}
-	currentNamespace := cluster.GetNs()
 
-	minInst, err := opClient.OperatorV1().MinIOInstances(currentNamespace).Get(context.Background(), params.Name, metav1.GetOptions{})
+	minInst, err := opClient.OperatorV1().MinIOInstances(params.Namespace).Get(context.Background(), params.Tenant, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +157,7 @@ func getTenantInfoResponse(token string, params admin_api.TenantInfoParams) (*mo
 	return &models.Tenant{
 		CreationDate:     minInst.ObjectMeta.CreationTimestamp.String(),
 		InstanceCount:    instanceCount,
-		Name:             params.Name,
+		Name:             params.Tenant,
 		VolumesPerServer: int64(minInst.Spec.VolumesPerServer),
 		VolumeCount:      volumeCount,
 		VolumeSize:       minInst.Spec.VolumeClaimTemplate.Spec.Resources.Requests.Storage().Value(),
@@ -160,22 +168,16 @@ func getTenantInfoResponse(token string, params admin_api.TenantInfoParams) (*mo
 	}, nil
 }
 
-func getListTenantsResponse(token string, params admin_api.ListTenantsParams) (*models.ListTenantsResponse, error) {
-	opClient, err := cluster.OperatorClient(token)
-	if err != nil {
-		return nil, err
-	}
-	currentNamespace := cluster.GetNs()
-
+func listTenants(ctx context.Context, operatorClient OperatorClient, namespace string, limit *int32) (*models.ListTenantsResponse, error) {
 	listOpts := metav1.ListOptions{
 		Limit: 10,
 	}
 
-	if params.Limit != nil {
-		listOpts.Limit = int64(*params.Limit)
+	if limit != nil {
+		listOpts.Limit = int64(*limit)
 	}
 
-	minInstances, err := opClient.OperatorV1().MinIOInstances(currentNamespace).List(context.Background(), listOpts)
+	minInstances, err := operatorClient.MinIOInstanceList(ctx, namespace, listOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -209,8 +211,44 @@ func getListTenantsResponse(token string, params admin_api.ListTenantsParams) (*
 	}, nil
 }
 
-func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams) error {
+func getListAllTenantsResponse(token string, params admin_api.ListAllTenantsParams) (*models.ListTenantsResponse, error) {
+	ctx := context.Background()
+	opClientClientSet, err := cluster.OperatorClient(token)
+	if err != nil {
+		log.Println("error getting operator client:", err)
+		return nil, err
+	}
+	opClient := &operatorClient{
+		client: opClientClientSet,
+	}
+	listT, err := listTenants(ctx, opClient, "", params.Limit)
+	if err != nil {
+		log.Println("error listing tenants:", err)
+		return nil, err
+	}
+	return listT, nil
+}
 
+// getListTenantsResponse list tenants by namespace
+func getListTenantsResponse(token string, params admin_api.ListTenantsParams) (*models.ListTenantsResponse, error) {
+	ctx := context.Background()
+	opClientClientSet, err := cluster.OperatorClient(token)
+	if err != nil {
+		log.Println("error getting operator client:", err)
+		return nil, err
+	}
+	opClient := &operatorClient{
+		client: opClientClientSet,
+	}
+	listT, err := listTenants(ctx, opClient, params.Namespace, params.Limit)
+	if err != nil {
+		log.Println("error listing tenants:", err)
+		return nil, err
+	}
+	return listT, nil
+}
+
+func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams) error {
 	minioImage := params.Body.Image
 	if minioImage == "" {
 		minImg, err := cluster.GetMinioImage()
@@ -246,8 +284,8 @@ func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams)
 	if err != nil {
 		return err
 	}
-	currentNamespace := cluster.GetNs()
-	_, err = clientset.CoreV1().Secrets(currentNamespace).Create(context.Background(), &instanceSecret, metav1.CreateOptions{})
+	ns := *params.Body.Namespace
+	_, err = clientset.CoreV1().Secrets(ns).Create(context.Background(), &instanceSecret, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
@@ -327,7 +365,7 @@ func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams)
 				"MCS_SECRET_KEY":       []byte(RandomCharString(32)),
 			},
 		}
-		_, err = clientset.CoreV1().Secrets(currentNamespace).Create(context.Background(), &instanceSecret, metav1.CreateOptions{})
+		_, err = clientset.CoreV1().Secrets(ns).Create(context.Background(), &instanceSecret, metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
@@ -368,7 +406,7 @@ func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams)
 		return err
 	}
 
-	_, err = opClient.OperatorV1().MinIOInstances(currentNamespace).Create(context.Background(), &minInst, metav1.CreateOptions{})
+	_, err = opClient.OperatorV1().MinIOInstances(ns).Create(context.Background(), &minInst, metav1.CreateOptions{})
 
 	return err
 }
@@ -376,7 +414,7 @@ func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams)
 // updateTenantAction does an update on the minioInstance by patching the desired changes
 func updateTenantAction(ctx context.Context, operatorClient OperatorClient, httpCl cluster.HTTPClientI, nameSpace string, params admin_api.UpdateTenantParams) error {
 	imageToUpdate := params.Body.Image
-	minInst, err := operatorClient.MinIOInstanceGet(ctx, nameSpace, params.Name, metav1.GetOptions{})
+	minInst, err := operatorClient.MinIOInstanceGet(ctx, nameSpace, params.Tenant, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

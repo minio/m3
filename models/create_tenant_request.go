@@ -56,6 +56,10 @@ type CreateTenantRequest struct {
 	// Pattern: ^[a-z0-9-]{3,63}$
 	Name *string `json:"name"`
 
+	// namespace
+	// Required: true
+	Namespace *string `json:"namespace"`
+
 	// secret key
 	SecretKey string `json:"secret_key,omitempty"`
 
@@ -81,6 +85,10 @@ func (m *CreateTenantRequest) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateNamespace(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateVolumeConfiguration(formats); err != nil {
 		res = append(res, err)
 	}
@@ -102,6 +110,15 @@ func (m *CreateTenantRequest) validateName(formats strfmt.Registry) error {
 	}
 
 	if err := validate.Pattern("name", "body", string(*m.Name), `^[a-z0-9-]{3,63}$`); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *CreateTenantRequest) validateNamespace(formats strfmt.Registry) error {
+
+	if err := validate.Required("namespace", "body", m.Namespace); err != nil {
 		return err
 	}
 
