@@ -30,28 +30,48 @@ import (
 	"github.com/minio/m3/models"
 )
 
-// CreateTenantCreatedCode is the HTTP code returned for type CreateTenantCreated
-const CreateTenantCreatedCode int = 201
+// CreateTenantOKCode is the HTTP code returned for type CreateTenantOK
+const CreateTenantOKCode int = 200
 
-/*CreateTenantCreated A successful response.
+/*CreateTenantOK A successful response.
 
-swagger:response createTenantCreated
+swagger:response createTenantOK
 */
-type CreateTenantCreated struct {
+type CreateTenantOK struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.CreateTenantResponse `json:"body,omitempty"`
 }
 
-// NewCreateTenantCreated creates CreateTenantCreated with default headers values
-func NewCreateTenantCreated() *CreateTenantCreated {
+// NewCreateTenantOK creates CreateTenantOK with default headers values
+func NewCreateTenantOK() *CreateTenantOK {
 
-	return &CreateTenantCreated{}
+	return &CreateTenantOK{}
+}
+
+// WithPayload adds the payload to the create tenant o k response
+func (o *CreateTenantOK) WithPayload(payload *models.CreateTenantResponse) *CreateTenantOK {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the create tenant o k response
+func (o *CreateTenantOK) SetPayload(payload *models.CreateTenantResponse) {
+	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *CreateTenantCreated) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+func (o *CreateTenantOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
-
-	rw.WriteHeader(201)
+	rw.WriteHeader(200)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
 }
 
 /*CreateTenantDefault Generic error response.

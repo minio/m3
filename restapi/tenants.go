@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -45,11 +46,11 @@ func registerTenantHandlers(api *operations.M3API) {
 	// Add Tenant
 	api.AdminAPICreateTenantHandler = admin_api.CreateTenantHandlerFunc(func(params admin_api.CreateTenantParams, principal *models.Principal) middleware.Responder {
 		sessionID := string(*principal)
-		err := getTenantCreatedResponse(sessionID, params)
+		resp, err := getTenantCreatedResponse(sessionID, params)
 		if err != nil {
 			return admin_api.NewCreateTenantDefault(500).WithPayload(&models.Error{Code: 500, Message: swag.String(err.Error())})
 		}
-		return admin_api.NewCreateTenantCreated()
+		return admin_api.NewCreateTenantOK().WithPayload(resp)
 	})
 	// List All Tenants of all namespaces
 	api.AdminAPIListAllTenantsHandler = admin_api.ListAllTenantsHandlerFunc(func(params admin_api.ListAllTenantsParams, principal *models.Principal) middleware.Responder {
@@ -248,12 +249,12 @@ func getListTenantsResponse(token string, params admin_api.ListTenantsParams) (*
 	return listT, nil
 }
 
-func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams) error {
+func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams) (*models.CreateTenantResponse, error) {
 	minioImage := params.Body.Image
 	if minioImage == "" {
 		minImg, err := cluster.GetMinioImage()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		minioImage = *minImg
 	}
@@ -282,12 +283,12 @@ func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams)
 
 	clientset, err := cluster.K8sClient(token)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	ns := *params.Body.Namespace
 	_, err = clientset.CoreV1().Secrets(ns).Create(context.Background(), &instanceSecret, metav1.CreateOptions{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	enableSSL := true
@@ -301,12 +302,12 @@ func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams)
 
 	volumeSize, err := resource.ParseQuantity(*params.Body.VolumeConfiguration.Size)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	memorySize, err := resource.ParseQuantity(getTenantMemorySize())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	volTemp := corev1.PersistentVolumeClaimSpec{
@@ -367,12 +368,12 @@ func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams)
 		}
 		_, err = clientset.CoreV1().Secrets(ns).Create(context.Background(), &instanceSecret, metav1.CreateOptions{})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		minInst.Spec.MCS = &operator.MCSConfig{
 			Replicas:  2,
-			Image:     "minio/mcs:v0.0.4",
+			Image:     "minio/mcs:v0.1.1",
 			MCSSecret: &corev1.LocalObjectReference{Name: mcsSecretName},
 		}
 	}
@@ -400,15 +401,36 @@ func getTenantCreatedResponse(token string, params admin_api.CreateTenantParams)
 	if params.Body.MounthPath != "" {
 		minInst.Spec.Mountpath = params.Body.MounthPath
 	}
+	// add annotations
+	if len(params.Body.Annotations) > 0 {
+		if minInst.Spec.Metadata == nil {
+			minInst.Spec.Metadata = &metav1.ObjectMeta{}
+		}
+		minInst.Spec.Metadata.Annotations = params.Body.Annotations
+	}
 
 	opClient, err := cluster.OperatorClient(token)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	_, err = opClient.OperatorV1().MinIOInstances(ns).Create(context.Background(), &minInst, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
 
-	return err
+	// Integratrions
+	if os.Getenv("GKE_INTEGRATION") != "" {
+		err := gkeIntegration(clientset, *params.Body.Name, ns, token)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &models.CreateTenantResponse{
+		AccessKey: accessKey,
+		SecretKey: secretKey,
+	}, nil
 }
 
 // updateTenantAction does an update on the minioInstance by patching the desired changes

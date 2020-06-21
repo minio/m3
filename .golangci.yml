@@ -15,3 +15,7 @@ linters:
     - deadcode
     - unparam
     - structcheck
+
+run:
+  skip-dirs:
+    - pkg/clientgen

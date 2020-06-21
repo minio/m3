@@ -39,6 +39,9 @@ type CreateTenantRequest struct {
 	// access key
 	AccessKey string `json:"access_key,omitempty"`
 
+	// annotations
+	Annotations map[string]string `json:"annotations,omitempty"`
+
 	// enable mcs
 	EnableMcs *bool `json:"enable_mcs,omitempty"`
 
