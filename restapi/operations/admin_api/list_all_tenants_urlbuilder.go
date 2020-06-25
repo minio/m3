@@ -26,13 +26,15 @@ import (
 	"errors"
 	"net/url"
 	golangswaggerpaths "path"
-	"strings"
+
+	"github.com/go-openapi/swag"
 )
 
-// DeleteTenantURL generates an URL for the delete tenant operation
-type DeleteTenantURL struct {
-	Namespace string
-	Tenant    string
+// ListAllTenantsURL generates an URL for the list all tenants operation
+type ListAllTenantsURL struct {
+	Limit  *int32
+	Offset *int32
+	SortBy *string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -42,7 +44,7 @@ type DeleteTenantURL struct {
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *DeleteTenantURL) WithBasePath(bp string) *DeleteTenantURL {
+func (o *ListAllTenantsURL) WithBasePath(bp string) *ListAllTenantsURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -50,29 +52,15 @@ func (o *DeleteTenantURL) WithBasePath(bp string) *DeleteTenantURL {
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *DeleteTenantURL) SetBasePath(bp string) {
+func (o *ListAllTenantsURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *DeleteTenantURL) Build() (*url.URL, error) {
+func (o *ListAllTenantsURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/namespaces/{namespace}/tenants/{tenant}"
-
-	namespace := o.Namespace
-	if namespace != "" {
-		_path = strings.Replace(_path, "{namespace}", namespace, -1)
-	} else {
-		return nil, errors.New("namespace is required on DeleteTenantURL")
-	}
-
-	tenant := o.Tenant
-	if tenant != "" {
-		_path = strings.Replace(_path, "{tenant}", tenant, -1)
-	} else {
-		return nil, errors.New("tenant is required on DeleteTenantURL")
-	}
+	var _path = "/tenants"
 
 	_basePath := o._basePath
 	if _basePath == "" {
@@ -80,11 +68,39 @@ func (o *DeleteTenantURL) Build() (*url.URL, error) {
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 
+	qs := make(url.Values)
+
+	var limitQ string
+	if o.Limit != nil {
+		limitQ = swag.FormatInt32(*o.Limit)
+	}
+	if limitQ != "" {
+		qs.Set("limit", limitQ)
+	}
+
+	var offsetQ string
+	if o.Offset != nil {
+		offsetQ = swag.FormatInt32(*o.Offset)
+	}
+	if offsetQ != "" {
+		qs.Set("offset", offsetQ)
+	}
+
+	var sortByQ string
+	if o.SortBy != nil {
+		sortByQ = *o.SortBy
+	}
+	if sortByQ != "" {
+		qs.Set("sort_by", sortByQ)
+	}
+
+	_result.RawQuery = qs.Encode()
+
 	return &_result, nil
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *DeleteTenantURL) Must(u *url.URL, err error) *url.URL {
+func (o *ListAllTenantsURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -95,17 +111,17 @@ func (o *DeleteTenantURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *DeleteTenantURL) String() string {
+func (o *ListAllTenantsURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *DeleteTenantURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *ListAllTenantsURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on DeleteTenantURL")
+		return nil, errors.New("scheme is required for a full url on ListAllTenantsURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on DeleteTenantURL")
+		return nil, errors.New("host is required for a full url on ListAllTenantsURL")
 	}
 
 	base, err := o.Build()
@@ -119,6 +135,6 @@ func (o *DeleteTenantURL) BuildFull(scheme, host string) (*url.URL, error) {
 }
 
 // StringFull returns the string representation of a complete url
-func (o *DeleteTenantURL) StringFull(scheme, host string) string {
+func (o *ListAllTenantsURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

@@ -22,8 +22,8 @@ security:
 paths:
   /tenants:
     get:
-      summary: List Tenants
-      operationId: ListTenants
+      summary: List Tenant of All Namespaces
+      operationId: ListAllTenants
       parameters:
         - name: sort_by
           in: query
@@ -69,12 +69,51 @@ paths:
       tags:
         - AdminAPI
 
-  /tenants/{name}:
+  /namespaces/{namespace}/tenants:
+    get:
+      summary: List Tenants by Namespace
+      operationId: ListTenants
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          type: string
+        - name: sort_by
+          in: query
+          required: false
+          type: string
+        - name: offset
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: limit
+          in: query
+          required: false
+          type: integer
+          format: int32
+      responses:
+        200:
+          description: A successful response.
+          schema:
+            $ref: "#/definitions/listTenantsResponse"
+        default:
+          description: Generic error response.
+          schema:
+            $ref: "#/definitions/error"
+      tags:
+        - AdminAPI
+
+  /namespaces/{namespace}/tenants/{tenant}:
     get:
       summary: Tenant Info
       operationId: TenantInfo
       parameters:
-        - name: name
+        - name: namespace
+          in: path
+          required: true
+          type: string
+        - name: tenant
           in: path
           required: true
           type: string
@@ -93,7 +132,11 @@ paths:
       summary: Delete Tenant
       operationId: DeleteTenant
       parameters:
-        - name: name
+        - name: namespace
+          in: path
+          required: true
+          type: string
+        - name: tenant
           in: path
           required: true
           type: string
@@ -110,7 +153,11 @@ paths:
       summary: Update Tenant
       operationId: UpdateTenant
       parameters:
-        - name: name
+        - name: namespace
+          in: path
+          required: true
+          type: string
+        - name: tenant
           in: path
           required: true
           type: string
@@ -213,6 +260,7 @@ definitions:
     required:
       - name
       - volume_configuration
+      - namespace
     properties:
       name:
         type: string
@@ -248,6 +296,8 @@ definitions:
       enable_ssl:
         type: boolean
         default: true
+      namespace:
+        type: string
   zone:
     type: object
     properties:

@@ -31,7 +31,8 @@ import (
 
 // TenantInfoURL generates an URL for the tenant info operation
 type TenantInfoURL struct {
-	Name string
+	Namespace string
+	Tenant    string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -57,13 +58,20 @@ func (o *TenantInfoURL) SetBasePath(bp string) {
 func (o *TenantInfoURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/tenants/{name}"
+	var _path = "/namespaces/{namespace}/tenants/{tenant}"
 
-	name := o.Name
-	if name != "" {
-		_path = strings.Replace(_path, "{name}", name, -1)
+	namespace := o.Namespace
+	if namespace != "" {
+		_path = strings.Replace(_path, "{namespace}", namespace, -1)
 	} else {
-		return nil, errors.New("name is required on TenantInfoURL")
+		return nil, errors.New("namespace is required on TenantInfoURL")
+	}
+
+	tenant := o.Tenant
+	if tenant != "" {
+		_path = strings.Replace(_path, "{tenant}", tenant, -1)
+	} else {
+		return nil, errors.New("tenant is required on TenantInfoURL")
 	}
 
 	_basePath := o._basePath

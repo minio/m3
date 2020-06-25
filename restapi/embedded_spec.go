@@ -51,6 +51,163 @@ func init() {
   },
   "basePath": "/api/v1",
   "paths": {
+    "/namespaces/{namespace}/tenants": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "List Tenants by Namespace",
+        "operationId": "ListTenants",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "sort_by",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/listTenantsResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/namespaces/{namespace}/tenants/{tenant}": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Tenant Info",
+        "operationId": "TenantInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "tenant",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/tenant"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Update Tenant",
+        "operationId": "UpdateTenant",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "tenant",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/updateTenantRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Delete Tenant",
+        "operationId": "DeleteTenant",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "tenant",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/storage-classes": {
       "get": {
         "tags": [
@@ -79,8 +236,8 @@ func init() {
         "tags": [
           "AdminAPI"
         ],
-        "summary": "List Tenants",
-        "operationId": "ListTenants",
+        "summary": "List Tenant of All Namespaces",
+        "operationId": "ListAllTenants",
         "parameters": [
           {
             "type": "string",
@@ -143,97 +300,6 @@ func init() {
           }
         }
       }
-    },
-    "/tenants/{name}": {
-      "get": {
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "Tenant Info",
-        "operationId": "TenantInfo",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "name",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/tenant"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "Update Tenant",
-        "operationId": "UpdateTenant",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "name",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/updateTenantRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "A successful response."
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "Delete Tenant",
-        "operationId": "DeleteTenant",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "name",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "A successful response."
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
     }
   },
   "definitions": {
@@ -241,7 +307,8 @@ func init() {
       "type": "object",
       "required": [
         "name",
-        "volume_configuration"
+        "volume_configuration",
+        "namespace"
       ],
       "properties": {
         "access_key": {
@@ -264,6 +331,9 @@ func init() {
         "name": {
           "type": "string",
           "pattern": "^[a-z0-9-]{3,63}$"
+        },
+        "namespace": {
+          "type": "string"
         },
         "secret_key": {
           "type": "string"
@@ -456,6 +526,163 @@ func init() {
   },
   "basePath": "/api/v1",
   "paths": {
+    "/namespaces/{namespace}/tenants": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "List Tenants by Namespace",
+        "operationId": "ListTenants",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "sort_by",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "offset",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int32",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/listTenantsResponse"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/namespaces/{namespace}/tenants/{tenant}": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Tenant Info",
+        "operationId": "TenantInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "tenant",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/tenant"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Update Tenant",
+        "operationId": "UpdateTenant",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "tenant",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/updateTenantRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Delete Tenant",
+        "operationId": "DeleteTenant",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "tenant",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "A successful response."
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/storage-classes": {
       "get": {
         "tags": [
@@ -484,8 +711,8 @@ func init() {
         "tags": [
           "AdminAPI"
         ],
-        "summary": "List Tenants",
-        "operationId": "ListTenants",
+        "summary": "List Tenant of All Namespaces",
+        "operationId": "ListAllTenants",
         "parameters": [
           {
             "type": "string",
@@ -548,97 +775,6 @@ func init() {
           }
         }
       }
-    },
-    "/tenants/{name}": {
-      "get": {
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "Tenant Info",
-        "operationId": "TenantInfo",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "name",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/tenant"
-            }
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "Update Tenant",
-        "operationId": "UpdateTenant",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "name",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/updateTenantRequest"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "A successful response."
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "Delete Tenant",
-        "operationId": "DeleteTenant",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "name",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "A successful response."
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
     }
   },
   "definitions": {
@@ -660,7 +796,8 @@ func init() {
       "type": "object",
       "required": [
         "name",
-        "volume_configuration"
+        "volume_configuration",
+        "namespace"
       ],
       "properties": {
         "access_key": {
@@ -683,6 +820,9 @@ func init() {
         "name": {
           "type": "string",
           "pattern": "^[a-z0-9-]{3,63}$"
+        },
+        "namespace": {
+          "type": "string"
         },
         "secret_key": {
           "type": "string"

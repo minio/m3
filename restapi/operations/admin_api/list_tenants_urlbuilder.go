@@ -26,12 +26,15 @@ import (
 	"errors"
 	"net/url"
 	golangswaggerpaths "path"
+	"strings"
 
 	"github.com/go-openapi/swag"
 )
 
 // ListTenantsURL generates an URL for the list tenants operation
 type ListTenantsURL struct {
+	Namespace string
+
 	Limit  *int32
 	Offset *int32
 	SortBy *string
@@ -60,7 +63,14 @@ func (o *ListTenantsURL) SetBasePath(bp string) {
 func (o *ListTenantsURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/tenants"
+	var _path = "/namespaces/{namespace}/tenants"
+
+	namespace := o.Namespace
+	if namespace != "" {
+		_path = strings.Replace(_path, "{namespace}", namespace, -1)
+	} else {
+		return nil, errors.New("namespace is required on ListTenantsURL")
+	}
 
 	_basePath := o._basePath
 	if _basePath == "" {
