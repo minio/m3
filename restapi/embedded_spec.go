@@ -51,6 +51,43 @@ func init() {
   },
   "basePath": "/api/v1",
   "paths": {
+    "/namespaces/{namespace}/resourcequotas/{resource-quota-name}": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Get Resource Quota",
+        "operationId": "GetResourceQuota",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "resource-quota-name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/resourceQuota"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/namespaces/{namespace}/tenants": {
       "get": {
         "tags": [
@@ -198,29 +235,6 @@ func init() {
         "responses": {
           "204": {
             "description": "A successful response."
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/storage-classes": {
-      "get": {
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "List Storage Classes",
-        "operationId": "ListStorageClasses",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/storageClasses"
-            }
           },
           "default": {
             "description": "Generic error response.",
@@ -401,10 +415,34 @@ func init() {
     "principal": {
       "type": "string"
     },
-    "storageClasses": {
-      "type": "array",
-      "items": {
-        "type": "string"
+    "resourceQuota": {
+      "type": "object",
+      "properties": {
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/resourceQuotaElement"
+          }
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "resourceQuotaElement": {
+      "type": "object",
+      "properties": {
+        "hard": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "name": {
+          "type": "string"
+        },
+        "used": {
+          "type": "integer",
+          "format": "int64"
+        }
       }
     },
     "tenant": {
@@ -526,6 +564,43 @@ func init() {
   },
   "basePath": "/api/v1",
   "paths": {
+    "/namespaces/{namespace}/resourcequotas/{resource-quota-name}": {
+      "get": {
+        "tags": [
+          "AdminAPI"
+        ],
+        "summary": "Get Resource Quota",
+        "operationId": "GetResourceQuota",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "resource-quota-name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/resourceQuota"
+            }
+          },
+          "default": {
+            "description": "Generic error response.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/namespaces/{namespace}/tenants": {
       "get": {
         "tags": [
@@ -673,29 +748,6 @@ func init() {
         "responses": {
           "204": {
             "description": "A successful response."
-          },
-          "default": {
-            "description": "Generic error response.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/storage-classes": {
-      "get": {
-        "tags": [
-          "AdminAPI"
-        ],
-        "summary": "List Storage Classes",
-        "operationId": "ListStorageClasses",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/storageClasses"
-            }
           },
           "default": {
             "description": "Generic error response.",
@@ -890,10 +942,34 @@ func init() {
     "principal": {
       "type": "string"
     },
-    "storageClasses": {
-      "type": "array",
-      "items": {
-        "type": "string"
+    "resourceQuota": {
+      "type": "object",
+      "properties": {
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/resourceQuotaElement"
+          }
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "resourceQuotaElement": {
+      "type": "object",
+      "properties": {
+        "hard": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "name": {
+          "type": "string"
+        },
+        "used": {
+          "type": "integer",
+          "format": "int64"
+        }
       }
     },
     "tenant": {

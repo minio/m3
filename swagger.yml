@@ -176,15 +176,24 @@ paths:
       tags:
         - AdminAPI
 
-  /storage-classes:
+  /namespaces/{namespace}/resourcequotas/{resource-quota-name}:
     get:
-      summary: List Storage Classes
-      operationId: ListStorageClasses
+      summary: Get Resource Quota
+      operationId: GetResourceQuota
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          type: string
+        - name: resource-quota-name
+          in: path
+          required: true
+          type: string
       responses:
         200:
           description: A successful response.
           schema:
-            $ref: "#/definitions/storageClasses"
+            $ref: "#/definitions/resourceQuota"
         default:
           description: Generic error response.
           schema:
@@ -306,10 +315,27 @@ definitions:
       servers:
         type: integer
 
-  storageClasses:
-    type: array
-    items:
-      type: string
+  resourceQuota:
+    type: object
+    properties:
+      name:
+        type: string
+      elements:
+        type: array
+        items:
+          $ref: "#/definitions/resourceQuotaElement"
+
+  resourceQuotaElement:
+    type: object
+    properties:
+      name:
+        type: string
+      hard:
+        type: integer
+        format: int64
+      used:
+        type: integer
+        format: int64
 
   error:
     type: object

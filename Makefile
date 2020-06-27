@@ -20,6 +20,8 @@ k8sdev:
 
 swagger-gen:
 	@echo "Generating swagger server code from yaml"
+	@rm -rf restapi/operations
+	@rm -rf models
 	@swagger generate server -A m3 --main-package=m3 --exclude-main -P models.Principal -f ./swagger.yml -r NOTICE
 
 yamlgen:
