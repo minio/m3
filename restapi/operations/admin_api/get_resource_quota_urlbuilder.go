@@ -26,17 +26,23 @@ import (
 	"errors"
 	"net/url"
 	golangswaggerpaths "path"
+	"strings"
 )
 
-// ListStorageClassesURL generates an URL for the list storage classes operation
-type ListStorageClassesURL struct {
+// GetResourceQuotaURL generates an URL for the get resource quota operation
+type GetResourceQuotaURL struct {
+	Namespace         string
+	ResourceQuotaName string
+
 	_basePath string
+	// avoid unkeyed usage
+	_ struct{}
 }
 
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *ListStorageClassesURL) WithBasePath(bp string) *ListStorageClassesURL {
+func (o *GetResourceQuotaURL) WithBasePath(bp string) *GetResourceQuotaURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -44,15 +50,29 @@ func (o *ListStorageClassesURL) WithBasePath(bp string) *ListStorageClassesURL {
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *ListStorageClassesURL) SetBasePath(bp string) {
+func (o *GetResourceQuotaURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *ListStorageClassesURL) Build() (*url.URL, error) {
+func (o *GetResourceQuotaURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/storage-classes"
+	var _path = "/namespaces/{namespace}/resourcequotas/{resource-quota-name}"
+
+	namespace := o.Namespace
+	if namespace != "" {
+		_path = strings.Replace(_path, "{namespace}", namespace, -1)
+	} else {
+		return nil, errors.New("namespace is required on GetResourceQuotaURL")
+	}
+
+	resourceQuotaName := o.ResourceQuotaName
+	if resourceQuotaName != "" {
+		_path = strings.Replace(_path, "{resource-quota-name}", resourceQuotaName, -1)
+	} else {
+		return nil, errors.New("resourceQuotaName is required on GetResourceQuotaURL")
+	}
 
 	_basePath := o._basePath
 	if _basePath == "" {
@@ -64,7 +84,7 @@ func (o *ListStorageClassesURL) Build() (*url.URL, error) {
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *ListStorageClassesURL) Must(u *url.URL, err error) *url.URL {
+func (o *GetResourceQuotaURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -75,17 +95,17 @@ func (o *ListStorageClassesURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *ListStorageClassesURL) String() string {
+func (o *GetResourceQuotaURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *ListStorageClassesURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *GetResourceQuotaURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on ListStorageClassesURL")
+		return nil, errors.New("scheme is required for a full url on GetResourceQuotaURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on ListStorageClassesURL")
+		return nil, errors.New("host is required for a full url on GetResourceQuotaURL")
 	}
 
 	base, err := o.Build()
@@ -99,6 +119,6 @@ func (o *ListStorageClassesURL) BuildFull(scheme, host string) (*url.URL, error)
 }
 
 // StringFull returns the string representation of a complete url
-func (o *ListStorageClassesURL) StringFull(scheme, host string) string {
+func (o *GetResourceQuotaURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

@@ -61,8 +61,8 @@ func configureAPI(api *operations.M3API) http.Handler {
 
 	// Register tenant handlers
 	registerTenantHandlers(api)
-	// Register StorageClass handlers
-	registerStorageClassHandlers(api)
+	// Register ResourceQuota handlers
+	registerResourceQuotaHandlers(api)
 
 	api.PreServerShutdown = func() {}
 

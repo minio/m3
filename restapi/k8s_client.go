@@ -19,7 +19,7 @@ package restapi
 import (
 	"context"
 
-	v1 "k8s.io/api/storage/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -28,7 +28,7 @@ import (
 // by mock when testing, it should include all K8sClient respective api calls
 // that are used within this project.
 type K8sClient interface {
-	listStorageClasses(ctx context.Context, opts metav1.ListOptions) (*v1.StorageClassList, error)
+	getResourceQuota(ctx context.Context, namespace, resource string, opts metav1.GetOptions) (*v1.ResourceQuota, error)
 }
 
 // Interface implementation
@@ -38,7 +38,6 @@ type k8sClient struct {
 	client *kubernetes.Clientset
 }
 
-// listStorageClasses implements StorageClasses().List(ctx, opts)
-func (c *k8sClient) listStorageClasses(ctx context.Context, opts metav1.ListOptions) (*v1.StorageClassList, error) {
-	return c.client.StorageV1().StorageClasses().List(ctx, opts)
+func (c *k8sClient) getResourceQuota(ctx context.Context, namespace, resource string, opts metav1.GetOptions) (*v1.ResourceQuota, error) {
+	return c.client.CoreV1().ResourceQuotas(namespace).Get(ctx, resource, opts)
 }

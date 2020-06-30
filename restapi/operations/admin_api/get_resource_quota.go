@@ -30,40 +30,40 @@ import (
 	"github.com/minio/m3/models"
 )
 
-// ListStorageClassesHandlerFunc turns a function with the right signature into a list storage classes handler
-type ListStorageClassesHandlerFunc func(ListStorageClassesParams, *models.Principal) middleware.Responder
+// GetResourceQuotaHandlerFunc turns a function with the right signature into a get resource quota handler
+type GetResourceQuotaHandlerFunc func(GetResourceQuotaParams, *models.Principal) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn ListStorageClassesHandlerFunc) Handle(params ListStorageClassesParams, principal *models.Principal) middleware.Responder {
+func (fn GetResourceQuotaHandlerFunc) Handle(params GetResourceQuotaParams, principal *models.Principal) middleware.Responder {
 	return fn(params, principal)
 }
 
-// ListStorageClassesHandler interface for that can handle valid list storage classes params
-type ListStorageClassesHandler interface {
-	Handle(ListStorageClassesParams, *models.Principal) middleware.Responder
+// GetResourceQuotaHandler interface for that can handle valid get resource quota params
+type GetResourceQuotaHandler interface {
+	Handle(GetResourceQuotaParams, *models.Principal) middleware.Responder
 }
 
-// NewListStorageClasses creates a new http.Handler for the list storage classes operation
-func NewListStorageClasses(ctx *middleware.Context, handler ListStorageClassesHandler) *ListStorageClasses {
-	return &ListStorageClasses{Context: ctx, Handler: handler}
+// NewGetResourceQuota creates a new http.Handler for the get resource quota operation
+func NewGetResourceQuota(ctx *middleware.Context, handler GetResourceQuotaHandler) *GetResourceQuota {
+	return &GetResourceQuota{Context: ctx, Handler: handler}
 }
 
-/*ListStorageClasses swagger:route GET /storage-classes AdminAPI listStorageClasses
+/*GetResourceQuota swagger:route GET /namespaces/{namespace}/resourcequotas/{resource-quota-name} AdminAPI getResourceQuota
 
-List Storage Classes
+Get Resource Quota
 
 */
-type ListStorageClasses struct {
+type GetResourceQuota struct {
 	Context *middleware.Context
-	Handler ListStorageClassesHandler
+	Handler GetResourceQuotaHandler
 }
 
-func (o *ListStorageClasses) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (o *GetResourceQuota) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
 		r = rCtx
 	}
-	var Params = NewListStorageClassesParams()
+	var Params = NewGetResourceQuotaParams()
 
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {

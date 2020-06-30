@@ -24,14 +24,43 @@ package models
 
 import (
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
-// StorageClasses storage classes
+// ResourceQuotaElement resource quota element
 //
-// swagger:model storageClasses
-type StorageClasses []string
+// swagger:model resourceQuotaElement
+type ResourceQuotaElement struct {
 
-// Validate validates this storage classes
-func (m StorageClasses) Validate(formats strfmt.Registry) error {
+	// hard
+	Hard int64 `json:"hard,omitempty"`
+
+	// name
+	Name string `json:"name,omitempty"`
+
+	// used
+	Used int64 `json:"used,omitempty"`
+}
+
+// Validate validates this resource quota element
+func (m *ResourceQuotaElement) Validate(formats strfmt.Registry) error {
+	return nil
+}
+
+// MarshalBinary interface implementation
+func (m *ResourceQuotaElement) MarshalBinary() ([]byte, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return swag.WriteJSON(m)
+}
+
+// UnmarshalBinary interface implementation
+func (m *ResourceQuotaElement) UnmarshalBinary(b []byte) error {
+	var res ResourceQuotaElement
+	if err := swag.ReadJSON(b, &res); err != nil {
+		return err
+	}
+	*m = res
 	return nil
 }

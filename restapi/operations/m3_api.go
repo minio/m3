@@ -67,11 +67,11 @@ func NewM3API(spec *loads.Document) *M3API {
 		AdminAPIDeleteTenantHandler: admin_api.DeleteTenantHandlerFunc(func(params admin_api.DeleteTenantParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.DeleteTenant has not yet been implemented")
 		}),
+		AdminAPIGetResourceQuotaHandler: admin_api.GetResourceQuotaHandlerFunc(func(params admin_api.GetResourceQuotaParams, principal *models.Principal) middleware.Responder {
+			return middleware.NotImplemented("operation admin_api.GetResourceQuota has not yet been implemented")
+		}),
 		AdminAPIListAllTenantsHandler: admin_api.ListAllTenantsHandlerFunc(func(params admin_api.ListAllTenantsParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.ListAllTenants has not yet been implemented")
-		}),
-		AdminAPIListStorageClassesHandler: admin_api.ListStorageClassesHandlerFunc(func(params admin_api.ListStorageClassesParams, principal *models.Principal) middleware.Responder {
-			return middleware.NotImplemented("operation admin_api.ListStorageClasses has not yet been implemented")
 		}),
 		AdminAPIListTenantsHandler: admin_api.ListTenantsHandlerFunc(func(params admin_api.ListTenantsParams, principal *models.Principal) middleware.Responder {
 			return middleware.NotImplemented("operation admin_api.ListTenants has not yet been implemented")
@@ -132,10 +132,10 @@ type M3API struct {
 	AdminAPICreateTenantHandler admin_api.CreateTenantHandler
 	// AdminAPIDeleteTenantHandler sets the operation handler for the delete tenant operation
 	AdminAPIDeleteTenantHandler admin_api.DeleteTenantHandler
+	// AdminAPIGetResourceQuotaHandler sets the operation handler for the get resource quota operation
+	AdminAPIGetResourceQuotaHandler admin_api.GetResourceQuotaHandler
 	// AdminAPIListAllTenantsHandler sets the operation handler for the list all tenants operation
 	AdminAPIListAllTenantsHandler admin_api.ListAllTenantsHandler
-	// AdminAPIListStorageClassesHandler sets the operation handler for the list storage classes operation
-	AdminAPIListStorageClassesHandler admin_api.ListStorageClassesHandler
 	// AdminAPIListTenantsHandler sets the operation handler for the list tenants operation
 	AdminAPIListTenantsHandler admin_api.ListTenantsHandler
 	// AdminAPITenantInfoHandler sets the operation handler for the tenant info operation
@@ -218,11 +218,11 @@ func (o *M3API) Validate() error {
 	if o.AdminAPIDeleteTenantHandler == nil {
 		unregistered = append(unregistered, "admin_api.DeleteTenantHandler")
 	}
+	if o.AdminAPIGetResourceQuotaHandler == nil {
+		unregistered = append(unregistered, "admin_api.GetResourceQuotaHandler")
+	}
 	if o.AdminAPIListAllTenantsHandler == nil {
 		unregistered = append(unregistered, "admin_api.ListAllTenantsHandler")
-	}
-	if o.AdminAPIListStorageClassesHandler == nil {
-		unregistered = append(unregistered, "admin_api.ListStorageClassesHandler")
 	}
 	if o.AdminAPIListTenantsHandler == nil {
 		unregistered = append(unregistered, "admin_api.ListTenantsHandler")
@@ -342,11 +342,11 @@ func (o *M3API) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/tenants"] = admin_api.NewListAllTenants(o.context, o.AdminAPIListAllTenantsHandler)
+	o.handlers["GET"]["/namespaces/{namespace}/resourcequotas/{resource-quota-name}"] = admin_api.NewGetResourceQuota(o.context, o.AdminAPIGetResourceQuotaHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/storage-classes"] = admin_api.NewListStorageClasses(o.context, o.AdminAPIListStorageClassesHandler)
+	o.handlers["GET"]["/tenants"] = admin_api.NewListAllTenants(o.context, o.AdminAPIListAllTenantsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
