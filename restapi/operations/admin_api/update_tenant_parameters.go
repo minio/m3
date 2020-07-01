@@ -81,7 +81,7 @@ func (o *UpdateTenantParams) BindRequest(r *http.Request, route *middleware.Matc
 		var body models.UpdateTenantRequest
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
-				res = append(res, errors.Required("body", "body"))
+				res = append(res, errors.Required("body", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("body", "body", "", err))
 			}
@@ -96,7 +96,7 @@ func (o *UpdateTenantParams) BindRequest(r *http.Request, route *middleware.Matc
 			}
 		}
 	} else {
-		res = append(res, errors.Required("body", "body"))
+		res = append(res, errors.Required("body", "body", ""))
 	}
 	rNamespace, rhkNamespace, _ := route.Params.GetOK("namespace")
 	if err := o.bindNamespace(rNamespace, rhkNamespace, route.Formats); err != nil {

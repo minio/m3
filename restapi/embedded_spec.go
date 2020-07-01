@@ -303,8 +303,11 @@ func init() {
           }
         ],
         "responses": {
-          "201": {
-            "description": "A successful response."
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/createTenantResponse"
+            }
           },
           "default": {
             "description": "Generic error response.",
@@ -327,6 +330,12 @@ func init() {
       "properties": {
         "access_key": {
           "type": "string"
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         },
         "enable_mcs": {
           "type": "boolean",
@@ -377,6 +386,17 @@ func init() {
           "items": {
             "$ref": "#/definitions/zone"
           }
+        }
+      }
+    },
+    "createTenantResponse": {
+      "type": "object",
+      "properties": {
+        "access_key": {
+          "type": "string"
+        },
+        "secret_key": {
+          "type": "string"
         }
       }
     },
@@ -714,8 +734,11 @@ func init() {
           }
         ],
         "responses": {
-          "201": {
-            "description": "A successful response."
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/createTenantResponse"
+            }
           },
           "default": {
             "description": "Generic error response.",
@@ -855,6 +878,12 @@ func init() {
         "access_key": {
           "type": "string"
         },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "enable_mcs": {
           "type": "boolean",
           "default": true
@@ -904,6 +933,17 @@ func init() {
           "items": {
             "$ref": "#/definitions/zone"
           }
+        }
+      }
+    },
+    "createTenantResponse": {
+      "type": "object",
+      "properties": {
+        "access_key": {
+          "type": "string"
+        },
+        "secret_key": {
+          "type": "string"
         }
       }
     },
